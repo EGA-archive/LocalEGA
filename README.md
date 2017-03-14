@@ -1,2 +1,3 @@
-# LEGA-ingestion
-Local EGA ingestion microservice
+# Local-EGA implementation
+
+...using Python
