@@ -12,7 +12,7 @@ from Crypto.Cipher import AES, PKCS1_OAEP
 from Crypto.Hash import SHA256
 
 from lega.conf import CONF
-import lega.checksum
+from lega import checksum
 
 LOG = logging.getLogger(__name__)
 

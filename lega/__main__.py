@@ -1,16 +1,19 @@
 import sys
 
+from lega.conf import CONF
 
 def main(args=None):
     """The main routine."""
+
     if not args:
         args = sys.argv[1:]
 
-    print("This is the main routine.")
-    print("It should do something interesting.")
+    CONF.setup( args )
+    print("Main EGA routine")
+    print(repr(CONF))
+    print("Configuration values:")
+    CONF.write(sys.stdout)
 
-    # Do argument parsing here (eg. with argparse) and anything else
-    # you want your project to do.
 
 if __name__ == "__main__":
     main()

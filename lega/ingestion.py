@@ -14,20 +14,30 @@ __version__ = 0.1
 import json
 import os
 import logging
+import sys
 
 from flask import Flask, request, g, Response
 
-import lega.conf
-import lega.utils
-import lega.checksum
-import lega.amqp as broker
-#from .db import Database
+from lega.conf import CONF
+from lega import utils
+from lega import checksum
+from lega import amqp as broker
+#from lega.db import Database
 
 APP = Flask(__name__)
-LOG = APP.logger
-CONF = conf.CONF
-CONF.setup()
+#LOG = APP.logger
+LOG = logging.getLogger(__name__)
+
+conf_file = os.environ.get('LEGA_CONF', None)
+if conf_file:
+    print('USING {} as configuration file'.format(conf_file))
+    conf_file = ['--conf', conf_file]
+
+CONF.setup(conf_file)
+print(CONF)
 CONF.log_setup(LOG,'ingestion')
+broker.setup()
+CONF.log_setup(broker.LOG,'message.broker')
 
 @APP.route('/')
 def index():
@@ -49,7 +59,7 @@ def ingest():
     LOG.debug("Inbox area: {}".format(inbox))
 
     staging_area = utils.create_staging_area(submission_id)
-    LOG.debug("Creating taging area: {}".format(staging_area))
+    LOG.debug("Creating staging area: {}".format(staging_area))
 
     def process_files():
         for submission_file in data['files']:
@@ -124,12 +134,22 @@ def ingest_fake():
 #     return get_db().entry(file_id)
 
 
+def main(args=None):
 
-if __name__ == "__main__":
-    import sys
-    # Re-conf
-    CONF.setup(sys.argv[1:])
+    if not args:
+        args = sys.argv[1:]
+
+    # re-conf
+    CONF.setup(args)
+    CONF.log_setup(LOG,'ingestion')
+    broker.setup()
+    CONF.log_setup(broker.LOG,'message.broker')
 
     APP.run(host=CONF.get('uwsgi','host'),
             port=CONF.getint('uwsgi','port'),
             debug=CONF.get('uwsgi','debug', fallback=False))
+
+    return 0
+
+if __name__ == '__main__':
+    sys.exit( main() )
