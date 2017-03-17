@@ -7,15 +7,16 @@ import logging
 import json
 import traceback
 
-import lega.conf
-import lega.amqp as broker
+from .conf import CONF
+from . import crypto
+from . import amqp as broker
+from . import utils
 
-CONF = conf.CONF
 LOG = logging.getLogger(__name__)
 
 def work(message_id, body):
 
-    LOG.debug("Processing message: {}".format(message_id))
+    LOG.debug(f"Processing message: {message_id}")
     try:
 
         data = json.loads(body)
@@ -31,27 +32,27 @@ def work(message_id, body):
 
     except Exception as e:
         LOG.debug("{}: {}".format(e.__class__.__name__, str(e)))
+        #if isinstance(e,crypto.Error) or isinstance(e,OSError):
 
         traceback.print_exc()
         raise e
 
-    LOG.debug("Done with message {}".format(message_id))
 
 def main(args=None):
 
-    if not os.environ['GPG_AGENT_INFO']:
-        sys.exit(2)
-
     if not args:
         args = sys.argv[1:]
-    conf.setup(args)
-    conf.log_setup(LOG,'vault')
+
+    CONF.setup(args) # re-conf
+    CONF.log_setup(LOG,'vault')
+    broker.setup()
+    CONF.log_setup(broker.LOG,'message.broker')
 
     broker.consume(
         broker.process(work),
-        from_queue = CONF.get('vault','todo_queue')
+        from_queue = CONF.get('vault','message_queue')
     )
+    return 0
 
 if __name__ == '__main__':
-    import sys
     sys.exit( main() )

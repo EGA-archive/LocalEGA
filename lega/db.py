@@ -2,7 +2,7 @@ import sqlite3
 import logging
 import os
 
-from lega.conf import CONF
+from .conf import CONF
 
 LOG = logging.getLogger(__name__)
 

@@ -7,9 +7,9 @@ import logging
 import json
 import traceback
 
-from lega.conf import CONF
-from lega import crypto
-from lega import amqp as broker
+from .conf import CONF
+from . import crypto
+from . import amqp as broker
 
 LOG = logging.getLogger(__name__)
 
@@ -65,7 +65,7 @@ def main(args=None):
 
     broker.consume(
         broker.process(work),
-        from_queue = CONF.get('worker','todo_queue')
+        from_queue = CONF.get('worker','message_queue')
     )
     return 0
 

@@ -1,6 +1,6 @@
 import sys
 
-from lega.conf import CONF
+from .conf import CONF
 
 def main(args=None):
     """The main routine."""

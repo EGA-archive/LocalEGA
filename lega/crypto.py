@@ -11,8 +11,8 @@ from Crypto.Random import get_random_bytes
 from Crypto.Cipher import AES, PKCS1_OAEP
 from Crypto.Hash import SHA256
 
-from lega.conf import CONF
-from lega import checksum
+from .conf import CONF
+from . import checksum
 
 LOG = logging.getLogger(__name__)
 
@@ -54,7 +54,7 @@ def setup():
 def re_encrypt( stream, target ):
 
     session_key = get_random_bytes(32) # for AES-256
-    LOG.debug('session key    = {}'.format(session_key))
+    LOG.debug(f'session key    = {session_key}')
 
     LOG.debug('Creating AES cypher')
     iv = get_random_bytes(AES.block_size) # 16 bytes
@@ -64,8 +64,8 @@ def re_encrypt( stream, target ):
     rsa = PKCS1_OAEP.new(MASTER_KEY, hashAlgo=SHA256)
 
     encryption_key = rsa.encrypt(session_key)
-    LOG.debug('\tencryption key = {}\n' \
-              '\tchunk size     = {}'.format(encryption_key,CHUNK_SIZE))
+    LOG.debug(f'\tencryption key = {encryption_key}\n'
+              f'\tchunk size     = {CHUNK_SIZE}')
 
     with open(target, 'wb') as target_h:
 
@@ -75,7 +75,7 @@ def re_encrypt( stream, target ):
         LOG.debug('Writing key to file')
         target_h.write(encryption_key)
         LOG.debug('Writing cipher header to file')
-        cipherheader = '\n# ciphertext (chunk size: {})\n'.format(CHUNK_SIZE)
+        cipherheader = f'\n# ciphertext (chunk size: {CHUNK_SIZE})\n'
         target_h.write(cipherheader.encode('utf-8'))
 
         LOG.debug('Writing blocks to file')
@@ -93,10 +93,12 @@ def re_encrypt( stream, target ):
             cipherchunk = aes.encrypt(chunk)
             target_h.write(cipherchunk)
 
-        LOG.debug('File ingested')
         if padding:
             paddingheader = '\n#Padding size: {}'.format(len(padding))
             target_h.write(paddingheader.encode('utf-8'))
+
+    LOG.debug('File re-encrypted')
+    return 0
 
 
 def ingest(enc_file,
@@ -105,41 +107,39 @@ def ingest(enc_file,
            target
 ):
     '''Decrypts a gpg-encoded file and verifies the integrity of its content.
-Finally, it re-encrypts it chunk-by-chunk'''
+       Finally, it re-encrypts it chunk-by-chunk'''
 
     assert( isinstance(org_hash,str) )
 
     #return ('File: {} and {}: {}'.format(filepath, hashAlgo, filehash))
-    LOG.debug('Processing file\n==============\n' \
-              'enc_file  = {}\n' \
-              'org_hash  = {}\n' \
-              'hash_algo = {}\n' \
-              'target    = {}'.format(enc_file,org_hash,hash_algo,target))
+    LOG.debug(f'Processing file\n==============\n'
+              f'enc_file  = {enc_file}\n'
+              f'org_hash  = {org_hash}\n'
+              f'hash_algo = {hash_algo}\n'
+              f'target    = {target}')
 
     # Open the file in binary mode. No encoding dance.
     with open(enc_file, 'rb') as enc_file_h:
 
         ################# Decrypting using GPG
-        LOG.debug('GPG Decrypting: {}'.format(enc_file))
+        LOG.debug(f'GPG Decrypting: {enc_file}')
         decrypted_content, _, _ = GPG_CONTEXT.decrypt(enc_file_h, verify=False) # passphrase is in gpg-agent
 
         ################# Check integrity of decrypted content
-        LOG.debug('Verifying the {} checksum of decrypted content for file: {}'.format(hash_algo, enc_file))
+        LOG.debug(f'Verifying the {hash_algo} checksum of decrypted content of {enc_file}')
 
         decrypted_stream = io.BytesIO(decrypted_content)
         if not checksum.verify(decrypted_stream, org_hash, hashAlgo = hash_algo):
-            errmsg = 'Invalid {} checksum for the decrypted content of {}'.format(hash_algo, enc_file)
+            errmsg = f'Invalid {hash_algo} checksum for decrypted content of {enc_file}'
             LOG.debug(errmsg)
             raise Exception(errmsg)
 
-        LOG.debug('Valid {} checksum'.format(hash_algo))
+        LOG.debug(f'Valid {hash_algo} checksum')
 
         ################# Re-encrypt the file
-        LOG.debug('Re-encrypting into {}'.format(target))
+        LOG.debug(f'Re-encrypting into {target}')
         decrypted_stream.seek(0)
-        re_encrypt(decrypted_stream, target)
-
-        return 0
+        return re_encrypt(decrypted_stream, target)
 
 
 # def encrypt(in_filename, out_filename = None):
