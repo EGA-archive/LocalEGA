@@ -15,10 +15,10 @@ class Configuration(configparser.SafeConfigParser):
     conf_file = None
 
     def setup(self,args=None, encoding='utf-8'):
-        '''Loads the configuration files in order:
-           1) {}
-           2) {}
-           3) the command line arguments following "--conf"'''.format(*_config_files)
+        f'''Loads the configuration files in order:
+           1) {_config_files[0]}
+           2) {_config_files[1]}
+           3) the command line arguments following "--conf"'''
 
         # Finding the --conf file
         try:
