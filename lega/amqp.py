@@ -60,7 +60,7 @@ def process(work):
                                    properties  = pika.BasicProperties( correlation_id = props.correlation_id ),
                                    body        = answer)
         # Acknowledgment: Cancel the message resend in case MQ crashes
-        LOG.debug('Sending ACK for message {message_id} (Correlation ID: {correlation_id})')
+        LOG.debug(f'Sending ACK for message {message_id} (Correlation ID: {correlation_id})')
         _CHANNEL.basic_ack(delivery_tag=method_frame.delivery_tag)
     return process_request
 

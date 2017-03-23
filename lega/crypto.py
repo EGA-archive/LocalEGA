@@ -3,6 +3,7 @@
 
 import logging
 import io
+import re
 
 import gpg
 from gpg.constants import PROTOCOL_OpenPGP
@@ -23,6 +24,12 @@ MASTER_KEY = None
 
 CHUNK_SIZE = 1 << 26 # 67 MB or 2**26
 
+def to_header(length, mode, block_size):
+    return "{}|{}|{}\n".format(length, mode, block_size)
+
+def from_header(h):
+    return tuple(h.strip().split('|'))
+
 def setup():
     global GPG_CONTEXT
     global MASTER_KEY
@@ -30,16 +37,15 @@ def setup():
 
     if GPG_CONTEXT is None:
         GPG_CONTEXT = gpg.Context(
-            armor    = CONF.getboolean('worker','armor',fallback=False)
+            armor    = CONF.getboolean('worker','gpg_armor',fallback=False),
+            offline  = CONF.getboolean('worker','gpg_offline',fallback=False)
         )
         GPG_CONTEXT.set_engine_info(
             gpg.constants.PROTOCOL_OpenPGP, # protocol
             home_dir = CONF.get('worker','gpg_home')
         )
+        LOG.debug("Setting the gpg homedir to {}".format(CONF.get('worker','gpg_home')))
         GPG_CONTEXT.set_status_cb(lambda x,y: LOG.debug('{} {}'.format(x,y)))
-        # def passphrase_cb(hint, desc, prev_bad, hook):
-        #     return CONF.get('worker','gpg_passphrase')
-        # GPG_CONTEXT.set_passphrase_cb(passphrase_cb)
 
 
     if MASTER_KEY is None:
@@ -58,7 +64,7 @@ def re_encrypt( stream, target ):
 
     LOG.debug('Creating AES cypher')
     iv = get_random_bytes(AES.block_size) # 16 bytes
-    aes = AES.new(key=session_key, mode=AES.MODE_CBC,iv=iv)
+    aes = AES.new(key=session_key, mode=AES.MODE_CTR)#, iv=iv)
 
     LOG.debug('Creating RSA cypher')
     rsa = PKCS1_OAEP.new(MASTER_KEY, hashAlgo=SHA256)
@@ -70,12 +76,12 @@ def re_encrypt( stream, target ):
     with open(target, 'wb') as target_h:
 
         LOG.debug('Writing header to file')
-        header = "# Key length: {} | AES mode: CBC | AES block size: {}\n".format(len(encryption_key), aes.block_size)
+        header = to_header(len(encryption_key), 'CBC', aes.block_size)
         target_h.write(header.encode('utf-8'))
         LOG.debug('Writing key to file')
         target_h.write(encryption_key)
         LOG.debug('Writing cipher header to file')
-        cipherheader = f'\n# ciphertext (chunk size: {CHUNK_SIZE})\n'
+        cipherheader = f'\n# ciphertext chunk size: {CHUNK_SIZE})\n'
         target_h.write(cipherheader.encode('utf-8'))
 
         LOG.debug('Writing blocks to file')
@@ -141,6 +147,86 @@ def ingest(enc_file,
         decrypted_stream.seek(0)
         return re_encrypt(decrypted_stream, target)
 
+
+# def decrypt_from_vault( stream, target ):
+
+#     LOG.debug('Writing header to file')
+#     header = stream.readline()
+#     assert( header.startswith('# Key length: ') )
+#     header.split(' ')[3]
+#  "# Key length: {}| AES mode: CBC | AES block size: {}\n".format(len(encryption_key), aes.block_size)
+#         target_h.write(header.encode('utf-8'))
+#         LOG.debug('Writing key to file')
+#         target_h.write(encryption_key)
+#         LOG.debug('Writing cipher header to file')
+#         cipherheader = f'\n# ciphertext (chunk size: {CHUNK_SIZE})\n'
+#         target_h.write(cipherheader.encode('utf-8'))
+
+#         LOG.debug('Writing blocks to file')
+#         padding = None
+#         while True:
+#             chunk = stream.read(CHUNK_SIZE)
+#             if len(chunk) == 0:
+#                 LOG.debug('no more data')
+#                 break
+#             elif len(chunk) % 16 != 0:
+#                 LOG.debug('Must pad the block: {}'.format(len(chunk) % 16))
+#                 padding = b' ' * (16 - len(chunk) % 16)
+#                 chunk += padding
+
+#             cipherchunk = aes.encrypt(chunk)
+#             target_h.write(cipherchunk)
+
+#         if padding:
+#             paddingheader = '\n#Padding size: {}'.format(len(padding))
+#             target_h.write(paddingheader.encode('utf-8'))
+
+#     session_key = get_random_bytes(32) # for AES-256
+#     LOG.debug(f'session key    = {session_key}')
+
+#     LOG.debug('Creating AES cypher')
+#     iv = get_random_bytes(AES.block_size) # 16 bytes
+#     aes = AES.new(key=session_key, mode=AES.MODE_CBC,iv=iv)
+
+#     LOG.debug('Creating RSA cypher')
+#     rsa = PKCS1_OAEP.new(MASTER_KEY, hashAlgo=SHA256)
+
+#     encryption_key = rsa.encrypt(session_key)
+#     LOG.debug(f'\tencryption key = {encryption_key}\n'
+#               f'\tchunk size     = {CHUNK_SIZE}')
+
+#     with open(target, 'wb') as target_h:
+
+#         LOG.debug('Writing header to file')
+#         header = "# Key length: {} | AES mode: CBC | AES block size: {}\n".format(len(encryption_key), aes.block_size)
+#         target_h.write(header.encode('utf-8'))
+#         LOG.debug('Writing key to file')
+#         target_h.write(encryption_key)
+#         LOG.debug('Writing cipher header to file')
+#         cipherheader = f'\n# ciphertext (chunk size: {CHUNK_SIZE})\n'
+#         target_h.write(cipherheader.encode('utf-8'))
+
+#         LOG.debug('Writing blocks to file')
+#         padding = None
+#         while True:
+#             chunk = stream.read(CHUNK_SIZE)
+#             if len(chunk) == 0:
+#                 LOG.debug('no more data')
+#                 break
+#             elif len(chunk) % 16 != 0:
+#                 LOG.debug('Must pad the block: {}'.format(len(chunk) % 16))
+#                 padding = b' ' * (16 - len(chunk) % 16)
+#                 chunk += padding
+
+#             cipherchunk = aes.encrypt(chunk)
+#             target_h.write(cipherchunk)
+
+#         if padding:
+#             paddingheader = '\n#Padding size: {}'.format(len(padding))
+#             target_h.write(paddingheader.encode('utf-8'))
+
+#     LOG.debug('File decrypted')
+#     return 0
 
 # def encrypt(in_filename, out_filename = None):
 #     '''Encrypts a file using the Master Private Key'''

@@ -49,10 +49,6 @@ def work(message_id, body):
 
 def main(args=None):
 
-    if not os.environ.get('GPG_AGENT_INFO', None):
-        print("GPG_AGENT_INFO is undefined, so the gpg-agent will be unreachable", file=sys.stderr)
-        return 2
-
     if not args:
         args = sys.argv[1:]
 

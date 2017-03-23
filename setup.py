@@ -1,5 +1,5 @@
 from setuptools import setup
-from lega.version import __version__ as lega_version
+from lega import __version__ as lega_version
 
 setup(name='lega',
       version=lega_version,
