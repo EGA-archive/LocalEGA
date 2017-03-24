@@ -24,6 +24,9 @@ from . import checksum
 from . import amqp as broker
 #from lega.db import Database
 
+from colorama import Fore
+
+
 APP = Flask(__name__)
 #LOG = APP.logger
 LOG = logging.getLogger(__name__)
@@ -55,50 +58,64 @@ def ingest():
     user          = data['user']
 
     inbox = utils.get_inbox(user)
-    LOG.debug(f"Inbox area: {inbox}")
+    LOG.info(f"Inbox area: {inbox}")
 
     staging_area = utils.create_staging_area(submission_id)
-    LOG.debug(f"Creating staging area: {staging_area}")
+    LOG.info(f"Staging area: {staging_area}")
+
+    staging_area_enc = utils.create_staging_area(submission_id, group='enc')
+    LOG.info(f"Staging area (for encryption): {staging_area_enc}")
+
+    msg = {
+        'filepath' : None,
+        'target'   : None,
+        'hash'     : None,
+        'hash_algo': None,
+        'submission_id': submission_id,
+        'user_id': user,
+    }
 
     def process_files(files, start=0):
         total = len(files)
-        n = start
+        width = len(str(total))
+        n = success = start
         for submission_file in files:
-            n +=1
-            enchash       = submission_file['encryptedHash']
-            hash_algo     = submission_file['hashAlgorithm']
-            filename      = submission_file['filename']
+            try:
+                n +=1
+                filename      = submission_file['filename']
+                enchash       = submission_file['encryptedHash']
+                hash_algo     = submission_file['hashAlgorithm']
 
-            LOG.debug(f'[{n:2}/{total}] Ingesting {filename}')
-            yield f'[{n:2}/{total}] Ingesting {filename}\n'
+                LOG.info(f'[{n:{width}}/{total:{width}}] Ingesting {filename}')
+                yield f'[{n:{width}}/{total:{width}}] Ingesting {filename}'
 
-            ################# Check integrity of encrypted file
-            filepath = os.path.join( inbox , filename )
-            LOG.debug(f'Verifying the {hash_algo} checksum of encrypted file: {filepath}')
-            with open(filepath, 'rb') as file_h: # Open the file in binary mode. No encoding dance.
-                if not checksum.verify(file_h, enchash, hashAlgo = hash_algo):
-                    errmsg = f'Invalid {hash_algo} checksum for {filepath}'
-                    LOG.debug(errmsg)
-                    raise Exception(errmsg)
-            LOG.debug(f'Valid {hash_algo} checksum for {filepath}')
+                ################# Check integrity of encrypted file
+                filepath = os.path.join( inbox , filename )
+                LOG.debug(f'Verifying the {hash_algo} checksum of encrypted file: {filepath}')
+                with open(filepath, 'rb') as file_h: # Open the file in binary mode. No encoding dance.
+                    if not checksum.verify(file_h, enchash, hashAlgo = hash_algo):
+                        errmsg = f'Invalid {hash_algo} checksum for {filepath}'
+                        raise Exception(errmsg)
+                LOG.debug(f'Valid {hash_algo} checksum for {filepath}')
 
-            ################# Moving encrypted file to staging area
-            utils.mv( filepath, os.path.join( staging_area , filename ))
+                ################# Moving encrypted file to staging area
+                utils.mv( filepath, os.path.join( staging_area , filename ))
 
-            ################# Publish internal message for the workers
-            staging_area_enc = utils.create_staging_area(submission_id, group='enc')
-            msg = {
-                'filepath' : os.path.join( staging_area , filename ),
-                'target'   : os.path.join( staging_area_enc , filename ),
-                'hash'     : submission_file['unencryptedHash'],
-                'hash_algo': hash_algo,
-                'submission_id': submission_id,
-                'user_id': user,
-            }
-            broker.publish(json.dumps(msg), routing_to=CONF.get('message.broker','routing_todo'))
-            LOG.debug('Message sent to broker')
-        fileId = 0
-        yield f'Ingested {total} files\n'
+                ################# Publish internal message for the workers
+                # reusing same msg
+                msg['filepath'] = os.path.join( staging_area , filename )
+                msg['target'] = os.path.join( staging_area_enc , filename )
+                msg['hash'] = submission_file['unencryptedHash']
+                msg['hash_algo'] = hash_algo
+                broker.publish(json.dumps(msg), routing_to=CONF.get('message.broker','routing_todo'))
+                LOG.debug('Message sent to broker')
+                success += 1
+                yield f' {Fore.GREEN}✓{Fore.RESET}\n'
+            except Exception as e:
+                LOG.debug(repr(e))
+                yield f' {Fore.RED}x{Fore.RESET}\n'
+
+        yield f'Ingested {success} files (out of {total} files)\n'
 
     return Response(process_files(data['files']), mimetype='text/plain')
     #return
