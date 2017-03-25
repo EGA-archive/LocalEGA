@@ -66,14 +66,8 @@ def ingest():
     staging_area_enc = utils.create_staging_area(submission_id, group='enc')
     LOG.info(f"Staging area (for encryption): {staging_area_enc}")
 
-    msg = {
-        'filepath' : None,
-        'target'   : None,
-        'hash'     : None,
-        'hash_algo': None,
-        'submission_id': submission_id,
-        'user_id': user,
-    }
+    # Common attributes for message. Object will be reused
+    msg = { 'submission_id': submission_id, 'user_id': user }
 
     def process_files(files, start=0):
         total = len(files)
@@ -83,30 +77,37 @@ def ingest():
             try:
                 n +=1
                 filename      = submission_file['filename']
-                enchash       = submission_file['encryptedHash']
-                hash_algo     = submission_file['hashAlgorithm']
+                encIntegrity  = submission_file['encryptedIntegrity']
 
-                LOG.info(f'[{n:{width}}/{total:{width}}] Ingesting {filename}')
-                yield f'[{n:{width}}/{total:{width}}] Ingesting {filename}'
+                progress = f'[{n:{width}}/{total:{width}}] Ingesting {filename}'
+                LOG.info(f'{progress}\n')
+                yield progress
+
+                inbox_filepath = os.path.join( inbox , filename )
+                staging_filepath = os.path.join( staging_area , filename )
+                staging_encfilepath = os.path.join( staging_area_enc , filename )
 
                 ################# Check integrity of encrypted file
-                filepath = os.path.join( inbox , filename )
-                LOG.debug(f'Verifying the {hash_algo} checksum of encrypted file: {filepath}')
-                with open(filepath, 'rb') as file_h: # Open the file in binary mode. No encoding dance.
-                    if not checksum.verify(file_h, enchash, hashAlgo = hash_algo):
-                        errmsg = f'Invalid {hash_algo} checksum for {filepath}'
+                filehash  = encIntegrity['hash']
+                hash_algo = encIntegrity['algorithm']
+                LOG.debug(f'Verifying the {hash_algo} checksum of encrypted file: {inbox_filepath}')
+                with open(inbox_filepath, 'rb') as inbox_file: # Open the file in binary mode. No encoding dance.
+                    if not checksum.verify(inbox_file, filehash, hashAlgo = hash_algo):
+                        errmsg = f'Invalid {hash_algo} checksum for {inbox_filepath}'
+                        LOG.warning(errmsg)
                         raise Exception(errmsg)
-                LOG.debug(f'Valid {hash_algo} checksum for {filepath}')
+                LOG.debug(f'Valid {hash_algo} checksum for {inbox_filepath}')
 
                 ################# Moving encrypted file to staging area
-                utils.mv( filepath, os.path.join( staging_area , filename ))
+                utils.mv( inbox_filepath, staging_filepath )
+                LOG.debug(f'File moved:\n\tfrom {inbox_filepath}\n\tto {staging_filepath}')
 
                 ################# Publish internal message for the workers
                 # reusing same msg
-                msg['filepath'] = os.path.join( staging_area , filename )
-                msg['target'] = os.path.join( staging_area_enc , filename )
-                msg['hash'] = submission_file['unencryptedHash']
-                msg['hash_algo'] = hash_algo
+                msg['filepath'] = staging_filepath
+                msg['target'] = staging_encfilepath
+                msg['hash'] = submission_file['unencryptedIntegrity']['hash']
+                msg['hash_algo'] = submission_file['unencryptedIntegrity']['algorithm']
                 broker.publish(json.dumps(msg), routing_to=CONF.get('message.broker','routing_todo'))
                 LOG.debug('Message sent to broker')
                 success += 1
