@@ -33,20 +33,25 @@ def create_staging_area(submission_id, group='org'):
     return staging_area
 
 def mv(filepath, target):
+    '''Moving (actually copying) the file to the another location'''
     shutil.copyfile( filepath, target )
     #os.rename( filepath, target )
 
 def to_vault(filepath, submission_id, user_id):
-    # vault_area = os.path.abspath(
-    #     os.path.join(
-    #         CONF.get('vault','location'),
-    #         ''
-    #     )
-    # )
-    # os.makedirs(vault_area, exist_ok=True)
+    '''Moving the file to the vault'''
+    vault_area = os.path.abspath(
+        os.path.join(
+            CONF.get('vault','location'),
+            submission_id
+        )
+    )
+    os.makedirs(vault_area, exist_ok=True)
 
-    # os.rename( filepath, target )
-    print('Not implemented yet')
+    filename = os.path.basename(filepath)
+    # Moving the file
+    os.rename( filepath,
+               os.path.join(vault_area, filename)
+    )
 
 
 def fake_data():
