@@ -16,21 +16,20 @@ def cache_var(v):
         return wrapper
     return decorator
 
-def get_inbox(userId):
-    return os.path.abspath( CONF.get('ingestion','inbox',raw=True) % { 'userId': userId } )
-
 def get_data(data, datatype='bytes'):
     return json.loads(b64decode(data))
 
-def create_staging_area(submission_id, group='org'):
-    staging_area = os.path.abspath(
-        os.path.join(
-            CONF.get('ingestion','staging',raw=True) % {'submission' : submission_id },
-            group
-        )
-    )
-    os.makedirs(staging_area, exist_ok=True)
-    return staging_area
+def get_inbox(userId):
+    return os.path.abspath( CONF.get('ingestion','inbox',raw=True) % { 'userId': userId } )
+
+def staging_area(submission_id, create=False, afterEncryption=False):
+    '''Build the staging area'''
+    group = '_enc' if afterEncryption else ''
+    area = os.path.abspath( CONF.get('ingestion','staging',raw=True) % { 'submission': submission_id } + group)
+    if create:
+        shutil.rmtree(area, ignore_errors=True) # delete
+        os.makedirs(area, exist_ok=True)        # re-create
+    return area
 
 def mv(filepath, target):
     '''Moving (actually copying) the file to the another location'''
@@ -40,10 +39,7 @@ def mv(filepath, target):
 def to_vault(filepath, submission_id, user_id):
     '''Moving the file to the vault'''
     vault_area = os.path.abspath(
-        os.path.join(
-            CONF.get('vault','location'),
-            submission_id
-        )
+        os.path.join( CONF.get('vault','location'), submission_id )
     )
     os.makedirs(vault_area, exist_ok=True)
 
@@ -57,7 +53,7 @@ def to_vault(filepath, submission_id, user_id):
 def fake_data():
     return b64encode(b'{'
                      b'"submissionId":"12345",'
-                     b'"user":"1002",'
+                     b'"userId":"1002",'
                      b'"files":['
                      b'{  "filename":"test.gpg", '
                      b'   "encryptedIntegrity": { "hash": "efee20c02c7f51a53652c53cf703ef34", "algorithm": "md5" },'
@@ -76,7 +72,7 @@ def fake_data():
 def small_fake_data():
     return b64encode(b'{'
                      b'"submissionId":"738",'
-                     b'"user":"1003",'
+                     b'"userId":"1003",'
                      b'"files":['
                      b'{'
                      b'  "filename":"test-1.gpg", '

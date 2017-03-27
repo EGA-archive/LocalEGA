@@ -55,19 +55,19 @@ def ingest():
         return "Error: Provide a base64-encoded message"
 
     submission_id = data['submissionId']
-    user          = data['user']
+    user_id       = data['userId']
 
-    inbox = utils.get_inbox(user)
+    inbox = utils.get_inbox(user_id)
     LOG.info(f"Inbox area: {inbox}")
 
-    staging_area = utils.create_staging_area(submission_id)
+    staging_area = utils.staging_area(submission_id, create=True)
     LOG.info(f"Staging area: {staging_area}")
 
-    staging_area_enc = utils.create_staging_area(submission_id, group='enc')
+    staging_area_enc = utils.staging_area(submission_id, create=True, afterEncryption=True)
     LOG.info(f"Staging area (for encryption): {staging_area_enc}")
 
     # Common attributes for message. Object will be reused
-    msg = { 'submission_id': submission_id, 'user_id': user }
+    msg = { 'submission_id': submission_id, 'user_id': user_id }
 
     def process_files(files, start=0):
         total = len(files)

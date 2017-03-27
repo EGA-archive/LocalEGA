@@ -21,9 +21,10 @@ def work(message_id, body):
 
         data = json.loads(body)
 
-        utils.to_vault( data['target'],
-                        data['submission_id'],
-                        data['user_id']
+        utils.to_vault(
+            filepath      = data['filepath'],
+            submission_id = data['submission_id'],
+            user_id       = data['user_id']
         )
 
         # Mark it as processed in DB
@@ -31,9 +32,8 @@ def work(message_id, body):
         return None
 
     except Exception as e:
-        LOG.debug("{}: {}".format(e.__class__.__name__, str(e)))
+        LOG.debug(f"{e.__class__.__name__}: {e!s}")
         #if isinstance(e,crypto.Error) or isinstance(e,OSError):
-
         traceback.print_exc()
         raise e
 

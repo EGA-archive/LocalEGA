@@ -30,19 +30,17 @@ def work(message_id, body):
 
         LOG.debug("Done with message {}".format(message_id))
 
-        # reply = {
-        #     'filepath': data['target']
-        #     'submission_id': data['submission_id'],
-        #     'user_id': data['user_id']
-        # }
-        # LOG.debug("Reply message: {}".format(reply))
-        # return json.dumps(reply)
-        return body
+        reply = {
+            'filepath': data['target'],
+            'submission_id': data['submission_id'],
+            'user_id': data['user_id'],
+        }
+        LOG.debug(f"Reply message: {reply!r}")
+        return json.dumps(reply)
 
     except Exception as e:
-        LOG.debug("{}: {}".format(e.__class__.__name__, str(e)))
+        LOG.debug(f"{e.__class__.__name__}: {e!s}")
         #if isinstance(e,crypto.Error) or isinstance(e,OSError):
-
         traceback.print_exc()
         raise e
 
@@ -54,7 +52,6 @@ def main(args=None):
 
     CONF.setup(args) # re-conf
     CONF.log_setup(LOG,'worker')
-    crypto.setup()
     CONF.log_setup(crypto.LOG,'crypto')
     broker.setup()
     CONF.log_setup(broker.LOG,'message.broker')
