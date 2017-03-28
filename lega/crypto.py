@@ -1,3 +1,13 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+'''
+####################################
+#
+# Encryption/Decryption module
+#
+####################################
+'''
 # https://wiki.gnupg.org/APIs
 # https://wiki.python.org/moin/GnuPrivacyGuard
 
