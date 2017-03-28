@@ -1,81 +1,161 @@
-import sqlite3
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+'''
+####################################
+#
+# Database Connection
+#
+####################################
+'''
+
 import logging
 import os
+import sys
+import sqlalchemy
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import Column, Integer, String
 
 from .conf import CONF
+from .utils import cache_var
 
 LOG = logging.getLogger(__name__)
 
 SCHEMA = '''\
-drop table if exists entries;
-create table entries (
-  id integer primary key autoincrement,
-  filepath text not null,
-  filehash text not null,
-  hashAlgo text not null,
-  status integer not null
-);'''
 
-class Database():
-    DB = None
-    path = None
+DROP TABLE IF EXISTS dev_ega_downloader.file;
+CREATE TABLE dev_ega_downloader.file (
+        file_id int4 NULL,
+        dataset_stable_id varchar(128) NULL,
+        packet_stable_id varchar(128) NULL,
+        file_name varchar(256) NULL,
+        index_name varchar(256) NULL,
+        "size" int8 NULL,
+        stable_id varchar(128) NULL,
+        status varchar(13) NULL
+)
+WITH (
+        OIDS=FALSE
+);
+CREATE INDEX file_dataset_stable_id_idx ON dev_ega_downloader.file (dataset_stable_id);
+CREATE UNIQUE INDEX file_file_id_idx ON dev_ega_downloader.file (file_id);
+CREATE INDEX file_stable_id_idx ON dev_ega_downloader.file (stable_id);
 
-    def __init__(self):
-        pass
+'''
 
-    def setup(self):
-        LOG.debug('Database setup')
-        assert CONF.conf_file, "Configuration not loaded"
-        # if CONF.conf_file:
-        #     _db_path = path.join(path.dirname(CONF.conf_file),CONF.get('db','database'))
-        # else: # default
-        #     _db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),'..',CONF.get('db','database'))
+STATUS_IN_PROGRESS = 'In progress'
 
-        self.path = os.path.join(os.path.dirname(CONF.conf_file),CONF.get('db','database'))
-        self.DB = sqlite3.connect(self.path)
-        #self.DB.row_factory = sqlite3.Row
+@cache_var('DB_ENGINE')
+def _engine():
+    '''Get the database connection'''
+    location = CONF.get('db','database')
+    LOG.debug(f"Connecting to DB") # Don't show location in logs
+    return sqlalchemy.create_engine(location)
 
-    def create(self):
-        CUR = self.DB.cursor()
-        CUR.executescript(SCHEMA)
-        CUR.close()
-        self.DB.commit()
+@cache_var('DB_SESSION')
+def _session():
+    '''Get the SQLAlchemy session'''
+    return sqlalchemy.orm.sessionmaker(bind=_engine())()
 
-    def close(self):
-        self.DB.close()
+Base = declarative_base()
 
-    def display(self):
-        LOG.debug('Displaying the whole database')
-        CUR = self.DB.cursor()
-        CUR.execute('SELECT id, status, filepath, filehash FROM entries ORDER BY id ASC')
-        res = CUR.fetchall()
-        CUR.close()
-        return [ str(x) for x in res ]
+# class EGAFile(Base):
+#     __tablename__ = 'entries'
+#     id       = Column(Integer, primary_key=True)
+#     filename = Column(String)
+#     filepath = Column(String)
+#     filehash = Column(String)
+#     hashalgo = Column(String)
+#     status = Column(String)
 
-    def entry(self, entry):
-        CUR = self.DB.cursor()
-        CUR.execute('SELECT status, filepath, filehash FROM entries WHERE id=?', (entry,))
-        res = str(CUR.fetchone())
-        CUR.close()
-        return res
+#     def __repr__(self):
+#         return f"<{self.id} | {self.filename} | {self.status}>"
 
-    def update_entry(self,entry,value):
-        CUR = self.DB.cursor()
-        CUR.execute('UPDATE entries SET status=? WHERE id=?', (value,entry))
-        CUR.close()
-        self.DB.commit()
+class EGAFile(Base):
+    __tablename__ = 'dev_ega_downloader.file'
+    file_id = Column(Integer, primary_key=True)
+    dataset_stable_id = Column(String)
+    packet_stable_id = Column(String)
+    file_name = Column(String)
+    index_name = Column(String)
+    size = Column(Integer)
+    stable_id = Column(String)
+    status = Column(String)
 
-    def delete(self,entry):
-        CUR = self.DB.cursor()
-        CUR.execute("DELETE FROM entries WHERE id=?", (entry,))
-        CUR.close()
-        self.DB.commit()
+    filepath = Column(String)
+    filehash = Column(String)
+    hashalgo = Column(String)
 
-    def add(self,d):
-        query = 'INSERT INTO entries(filepath,filehash,hashAlgo,status) VALUES(:filepath,:filehash,:hashAlgo,"In progress")'
-        CUR = self.DB.cursor()
-        CUR.execute(query, d)
-        res = CUR.lastrowid
-        CUR.close()
-        self.DB.commit()
-        return res
+    def __repr__(self):
+        return f"<{self.id} | {self.filename} | {self.status}>"
+
+# CREATE INDEX file_dataset_stable_id_idx ON dev_ega_downloader.file (dataset_stable_id);
+# CREATE UNIQUE INDEX file_file_id_idx ON dev_ega_downloader.file (file_id);
+# CREATE INDEX file_stable_id_idx ON dev_ega_downloader.file (stable_id);
+
+
+def create():
+    LOG.debug('Creating the database')
+    Base.metadata.create_all(_engine())
+
+def close():
+    _engine().close()
+
+def display():
+    LOG.debug('Displaying the whole database')
+    for f in _session().query(EGAFile):
+        print(f)
+
+def entry(e):
+    return _session().query(EGAFile).filter(EGAFile.id==e).first()
+
+def update_entry(entry,value):
+    CUR = _db().cursor()
+    CUR.execute('UPDATE entries SET status=? WHERE id=?', (value,entry))
+    CUR.close()
+    _db().commit()
+
+def delete(entry):
+    CUR = _db().cursor()
+    CUR.execute("DELETE FROM entries WHERE id=?", (entry,))
+    CUR.close()
+    _db().commit()
+
+def add(**kwargs):
+    status = kwargs.pop('status',None)
+    if not status:
+        status=STATUS_IN_PROGRESS
+    f = EGAFile(**kwargs)
+    _session().add(f)
+    _session().commit()
+    return 0
+
+def main(args=None):
+
+    if not args:
+        args = sys.argv[1:]
+
+    CONF.setup(args) # re-conf
+    CONF.log_setup(LOG,'db')
+
+    if '--create' in args:
+        print('Create DB')
+        create()
+
+    if '--add' in args:
+        print('Adding to DB')
+        _session().add_all([
+            EGAFile(filename = f'bla{i}',
+                    filepath = f'bla{i}',
+                    filehash = f'aaaaaa{i}',
+                    hashAlgo = 'sha256',
+                    status   = 3) for i in range(10)])
+        _session().commit()
+
+    print('Displaying to DB')
+    display()
+
+    print(entry(50))
+
+if __name__ == '__main__':
+    sys.exit( main() )
