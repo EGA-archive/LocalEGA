@@ -48,7 +48,7 @@ STATUS_IN_PROGRESS = 'In progress'
 @cache_var('DB_ENGINE')
 def _engine():
     '''Get the database connection'''
-    location = CONF.get('db','database')
+    location = CONF.get('db','uri')
     LOG.debug(f"Connecting to DB") # Don't show location in logs
     return sqlalchemy.create_engine(location)
 
