@@ -1,12 +1,13 @@
 import configparser
 import logging
-from os.path import dirname, join, expanduser
+from pathlib import Path
 #import sys
 
 
+
 _config_files = [
-    join(dirname(__file__),'defaults.ini'),
-    expanduser('~/.lega/lega.ini')
+    Path(__file__).parent / 'defaults.ini',
+    Path.home() / '.lega/lega.ini'
 ]
 
 LOG = logging.getLogger(__name__)
@@ -23,7 +24,7 @@ class Configuration(configparser.SafeConfigParser):
         # Finding the --conf file
         try:
             self.conf_file = args[ args.index('--conf') + 1 ]
-            _config_files.append( self.conf_file )
+            _config_files.append( Path(self.conf_file) )
             LOG.info("Overriding configuration settings with {}".format(self.conf_file))
         except ValueError:
             LOG.info("--conf <file> was not mentioned\n"
@@ -39,7 +40,7 @@ class Configuration(configparser.SafeConfigParser):
 
     def __repr__(self):
         '''Show the configuration files'''
-        return "Configuration files:\n\t* " + '\n\t* '.join(_config_files)
+        return "Configuration files:\n\t* " + '\n\t* '.join(str(s) for s in _config_files)
 
 
     def log_setup(self,logger, domain):

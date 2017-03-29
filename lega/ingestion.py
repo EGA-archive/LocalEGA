@@ -15,8 +15,11 @@ import json
 import os
 import logging
 import sys
+import asyncio
 
-from flask import Flask, request, g, Response
+from aiohttp import web
+from colorama import Fore
+from aiopg.sa import create_engine
 
 from .conf import CONF
 from . import utils
@@ -24,32 +27,56 @@ from . import checksum
 from . import amqp as broker
 #from lega.db import Database
 
-from colorama import Fore
-
-
-APP = Flask(__name__)
-#LOG = APP.logger
 LOG = logging.getLogger(__name__)
 
-conf_file = os.environ.get('LEGA_CONF', None)
-if conf_file:
-    print('USING {} as configuration file'.format(conf_file))
-    conf_file = ['--conf', conf_file]
+async def init(app):
+    engine = await create_engine(#database=CONF.get('db','uri'),
+                                 user=CONF.get('db','username'),
+                                 password=CONF.get('db','password'),
+                                 host=CONF.get('db','host'),
+                                 port=CONF.getint('db','port'),
+                                 loop=app.loop)
+    app['db'] = engine
 
-CONF.setup(conf_file)
-CONF.log_setup(LOG,'ingestion')
-broker.setup()
-CONF.log_setup(broker.LOG,'message.broker')
+async def index(request):
+    return web.Response(text='GOOOoooooodddd morning, Vietnaaaam!')
 
-@APP.route('/')
-def index():
-    return 'GOOOoooooodddd morning, Vietnaaaam!'
 
-@APP.route('/ingest', methods = ['POST'])
-def ingest():
-    #assert( request.method == 'POST' )
+async def process_file(n, submission_file, inbox, staging_area, staging_area_enc, msg):
+    filename  = submission_file['filename']
+    filehash  = submission_file['encryptedIntegrity']['hash']
+    hash_algo = submission_file['encryptedIntegrity']['algorithm']
 
-    data = utils.get_data(request.data)
+    inbox_filepath = os.path.join( inbox , filename )
+    staging_filepath = os.path.join( staging_area , filename )
+    staging_encfilepath = os.path.join( staging_area_enc , filename )
+
+    ################# Check integrity of encrypted file
+    LOG.debug(f'Verifying the {hash_algo} checksum of encrypted file: {inbox_filepath}')
+    async with open(inbox_filepath, 'rb') as inbox_file: # Open the file in binary mode. No encoding dance.
+        if not checksum.verify(inbox_file, filehash, hashAlgo = hash_algo):
+            errmsg = f'Invalid {hash_algo} checksum for {inbox_filepath}'
+            LOG.warning(errmsg)
+            raise Exception(errmsg)
+    LOG.debug(f'Valid {hash_algo} checksum for {inbox_filepath}')
+
+    ################# Moving encrypted file to staging area
+    await utils.mv( inbox_filepath, staging_filepath )
+    LOG.debug(f'File moved:\n\tfrom {inbox_filepath}\n\tto {staging_filepath}')
+
+    ################# Publish internal message for the workers
+    # reusing same msg
+    msg['filepath'] = staging_filepath
+    msg['target'] = staging_encfilepath
+    msg['hash'] = submission_file['unencryptedIntegrity']['hash']
+    msg['hash_algo'] = submission_file['unencryptedIntegrity']['algorithm']
+    await broker.publish(json.dumps(msg), routing_to=CONF.get('message.broker','routing_todo'))
+    LOG.debug('Message sent to broker')
+
+async def ingest(request):
+    #assert( request[method == 'POST' )
+
+    data = utils.get_data(await request.read())
 
     if not data:
         return "Error: Provide a base64-encoded message"
@@ -69,109 +96,71 @@ def ingest():
     # Common attributes for message. Object will be reused
     msg = { 'submission_id': submission_id, 'user_id': user_id }
 
-    def process_files(files, start=0):
-        total = len(files)
-        width = len(str(total))
-        n = success = start
-        for submission_file in files:
-            try:
-                n +=1
-                filename      = submission_file['filename']
-                encIntegrity  = submission_file['encryptedIntegrity']
+    loop = request.app.loop
 
-                progress = f'[{n:{width}}/{total:{width}}] Ingesting {filename}'
-                LOG.info(f'{progress}\n')
-                yield progress
+    total = len(data['files'])
+    width = len(str(total))
+    success = 0
+    n = 0
 
-                inbox_filepath = os.path.join( inbox , filename )
-                staging_filepath = os.path.join( staging_area , filename )
-                staging_encfilepath = os.path.join( staging_area_enc , filename )
+    for submission_file in data['files']:
 
-                ################# Check integrity of encrypted file
-                filehash  = encIntegrity['hash']
-                hash_algo = encIntegrity['algorithm']
-                LOG.debug(f'Verifying the {hash_algo} checksum of encrypted file: {inbox_filepath}')
-                with open(inbox_filepath, 'rb') as inbox_file: # Open the file in binary mode. No encoding dance.
-                    if not checksum.verify(inbox_file, filehash, hashAlgo = hash_algo):
-                        errmsg = f'Invalid {hash_algo} checksum for {inbox_filepath}'
-                        LOG.warning(errmsg)
-                        raise Exception(errmsg)
-                LOG.debug(f'Valid {hash_algo} checksum for {inbox_filepath}')
+        n +=1
+        progress = f'[{n:{width}}/{total:{width}}] Ingesting {submission_file["filename"]}'
+        LOG.info(f'{progress}\n')
 
-                ################# Moving encrypted file to staging area
-                utils.mv( inbox_filepath, staging_filepath )
-                LOG.debug(f'File moved:\n\tfrom {inbox_filepath}\n\tto {staging_filepath}')
+        try:
 
-                ################# Publish internal message for the workers
-                # reusing same msg
-                msg['filepath'] = staging_filepath
-                msg['target'] = staging_encfilepath
-                msg['hash'] = submission_file['unencryptedIntegrity']['hash']
-                msg['hash_algo'] = submission_file['unencryptedIntegrity']['algorithm']
-                broker.publish(json.dumps(msg), routing_to=CONF.get('message.broker','routing_todo'))
-                LOG.debug('Message sent to broker')
-                success += 1
-                yield f' {Fore.GREEN}✓{Fore.RESET}\n'
-            except Exception as e:
-                LOG.debug(repr(e))
-                yield f' {Fore.RED}x{Fore.RESET}\n'
+            LOG.debug(f"Creating task for {submission_file['filename']}")
+            #await loop.create_task(process_file, n, submission_file, inbox, staging_area, staging_area_enc, msg )
+            await asyncio.sleep(2)
 
-        yield f'Ingested {success} files (out of {total} files)\n'
+            success += 1
+            response = f'{progress} {Fore.GREEN}✓{Fore.RESET}\n'
+        except Exception as e:
+            LOG.debug(repr(e))
+            response = f'{progress} {Fore.RED}x{Fore.RESET}\n'
 
-    return Response(process_files(data['files']), mimetype='text/plain')
-    #return
+    return web.Response(text=response + f'Ingested {success} files (out of {total} files)\n')
 
-@APP.route('/ingest.fake', methods = ['GET'])
-def ingest_fake():
-    request.data = utils.fake_data()
-    return ingest()
-
-@APP.route('/ingest.fake.small', methods = ['GET'])
-def ingest_fake_small():
-    request.data = utils.small_fake_data()
-    return ingest()
-
-
-
-
-# def get_db():
-#     _db = getattr(g, '_db', None)
-#     if _db is None:
-#         _db = g._db = Database()
-#         _db.setup()
-#     return _db
-
-# @APP.teardown_appcontext
-# def close_connection(exception):
-#     get_db().close()
-
-
-# @APP.route('/status')
-# def display():
-#     return get_db().display()
-
-
-# @APP.route('/status/<int:file_id>')
-# def status(file_id):
-#     return get_db().entry(file_id)
-
+async def shutdown(app):
+    app['db'].close()
+    await app['db'].wait_closed()
 
 def main(args=None):
 
     if not args:
         args = sys.argv[1:]
 
+    if '--conf' not in args:
+        conf_file = os.environ.get('LEGA_CONF', None)
+        if conf_file:
+            print(f'USING {conf_file} as configuration file')
+            args.append('--conf')
+            args.append(conf_file)
+
     # re-conf
     CONF.setup(args)
     CONF.log_setup(LOG,'ingestion')
-    broker.setup()
-    CONF.log_setup(broker.LOG,'message.broker')
+    # broker.setup()
+    # CONF.log_setup(broker.LOG,'message.broker')
 
-    APP.run(host=CONF.get('uwsgi','host'),
-            port=CONF.getint('uwsgi','port'),
-            debug=CONF.get('uwsgi','debug', fallback=False))
+    loop = asyncio.get_event_loop()
+    app = web.Application(loop=loop)
 
-    return 0
+    app.router.add_get('/', index)
+    app.router.add_post('/ingest', ingest)
+
+    app.on_startup.append(init)
+    app.on_cleanup.append(shutdown)
+    #app.on_shutdown.append(shutdown)
+
+    web.run_app(app,
+                host=CONF.get('ingestion','host'),
+                port=CONF.getint('ingestion','port')
+    )
 
 if __name__ == '__main__':
-    sys.exit( main() )
+    main()
+
+
