@@ -21,29 +21,12 @@ from .utils import cache_var
 
 LOG = logging.getLogger(__name__)
 
-SCHEMA = '''\
-
-DROP TABLE IF EXISTS dev_ega_downloader.file;
-CREATE TABLE dev_ega_downloader.file (
-        file_id int4 NULL,
-        dataset_stable_id varchar(128) NULL,
-        packet_stable_id varchar(128) NULL,
-        file_name varchar(256) NULL,
-        index_name varchar(256) NULL,
-        "size" int8 NULL,
-        stable_id varchar(128) NULL,
-        status varchar(13) NULL
-)
-WITH (
-        OIDS=FALSE
-);
-CREATE INDEX file_dataset_stable_id_idx ON dev_ega_downloader.file (dataset_stable_id);
-CREATE UNIQUE INDEX file_file_id_idx ON dev_ega_downloader.file (file_id);
-CREATE INDEX file_stable_id_idx ON dev_ega_downloader.file (stable_id);
-
-'''
-
-STATUS_IN_PROGRESS = 'In progress'
+STATUS = {
+    0: 'Error',
+    1: 'In progress',
+    2: 'Idle',
+    3: 'Archived',
+}
 
 @cache_var('DB_ENGINE')
 def _engine():
@@ -69,7 +52,7 @@ Base = declarative_base()
 #     status = Column(String)
 
 #     def __repr__(self):
-#         return f"<{self.id} | {self.filename} | {self.status}>"
+#         return f"<{self.id} | {self.filename} | {STATUS[self.status]}>"
 
 class EGAFile(Base):
     __tablename__ = 'dev_ega_downloader.file'
@@ -87,7 +70,7 @@ class EGAFile(Base):
     hashalgo = Column(String)
 
     def __repr__(self):
-        return f"<{self.id} | {self.filename} | {self.status}>"
+        return f"<{self.id} | {self.filename} | {STATUS[self.status]}>"
 
 # CREATE INDEX file_dataset_stable_id_idx ON dev_ega_downloader.file (dataset_stable_id);
 # CREATE UNIQUE INDEX file_file_id_idx ON dev_ega_downloader.file (file_id);
@@ -124,7 +107,7 @@ def delete(entry):
 def add(**kwargs):
     status = kwargs.pop('status',None)
     if not status:
-        status=STATUS_IN_PROGRESS
+        status=STATUS[1] # in progress
     f = EGAFile(**kwargs)
     _session().add(f)
     _session().commit()
