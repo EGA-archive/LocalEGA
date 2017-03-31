@@ -1,5 +1,6 @@
 import json
 import os
+from pathlib import Path
 import shutil
 #import msgpack
 from base64 import b64encode, b64decode
@@ -18,34 +19,30 @@ def cache_var(v):
     return decorator
 
 def get_inbox(userId):
-    return os.path.abspath( CONF.get('ingestion','inbox',raw=True) % { 'userId': userId } )
+    return Path( CONF.get('ingestion','inbox',raw=True) % { 'userId': userId } )
 
 def staging_area(submission_id, create=False, afterEncryption=False):
     '''Build the staging area'''
     group = '_enc' if afterEncryption else ''
-    area = os.path.abspath( CONF.get('ingestion','staging',raw=True) % { 'submission': submission_id } + group)
+    area = Path( CONF.get('ingestion','staging',raw=True) % { 'submission': submission_id } + group)
     if create:
         shutil.rmtree(area, ignore_errors=True) # delete
-        os.makedirs(area, exist_ok=True)        # re-create
+        area.mkdir(parents=True, exist_ok=True) # re-create
     return area
 
-async def mv(filepath, target):
+def mv(filepath, target):
     '''Moving (actually copying) the file to the another location'''
     shutil.copyfile( filepath, target )
     #os.rename( filepath, target )
 
-async def to_vault(filepath, submission_id, user_id):
+def to_vault(filepath, submission_id, user_id):
     '''Moving the file to the vault'''
-    vault_area = os.path.abspath(
-        os.path.join( CONF.get('vault','location'), submission_id )
-    )
-    os.makedirs(vault_area, exist_ok=True)
+    vault_area = Path( CONF.get('vault','location')) / submission_id
+    vault_area.mkdir(parents=True, exist_ok=True) # re-create
 
-    filename = os.path.basename(filepath)
-    # Moving the file
-    os.rename( filepath,
-               os.path.join(vault_area, filename)
-    )
+    filepath = Path(filepath) # In case it's a str
+    target = vault_area / filepath.parts[-1]
+    filepath.rename(target)
 
 def get_data(data):
     return json.loads(b64decode(data))
