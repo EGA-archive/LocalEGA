@@ -46,15 +46,15 @@ class Configuration(configparser.SafeConfigParser):
     def log_setup(self,logger, domain):
         # Log level
         log_level = getattr(logging, self.get(domain,'log_level',fallback='INFO').upper(), logging.INFO)
-        logger.info('[{}] Setting Log level: {}'.format(domain,logging.getLevelName(log_level)))
+        logger.info(f'[{domain}] Adjusting the Log level to {logging.getLevelName(log_level)}')
         logger.setLevel( log_level )
 
         # Log Formatting
-        log_format = self.get(domain,'log_format',fallback=None,raw=True)
+        log_format = self.get(domain,'log_format',fallback='[{levelname}][{name}:{funcName}:{lineno}] {message}',raw=True)
         log_style = self.get(domain,'log_style',fallback='{',raw=True)
         if log_format:
             if log_level < logging.INFO:
-                print('[{}] Setting Log Format to {}'.format(domain,log_format))
+                print(f'[{domain}] Adjusting the Log Format')
             formatter = logging.Formatter(fmt=log_format, style=log_style)
             for ch in logger.handlers:
                 ch.setFormatter(formatter)
@@ -63,9 +63,14 @@ class Configuration(configparser.SafeConfigParser):
         log = self.get(domain,'log',fallback=None)
         if log:
             if log_level < logging.INFO:
-                print('[{}] Setting Log Output to {}'.format(domain,log))
+                print(f'[{domain}] Log Output in {log}')
             logger.addHandler(logging.FileHandler(log, 'a'))
-
+        else:
+            logging.basicConfig(
+                level=log_level,
+                format=log_format,
+                stream=sys.stderr,
+            )
 
 CONF = Configuration()
 
