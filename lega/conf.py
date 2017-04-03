@@ -1,9 +1,7 @@
+import sys
 import configparser
 import logging
 from pathlib import Path
-#import sys
-
-
 
 _config_files = [
     Path(__file__).parent / 'defaults.ini',

@@ -13,8 +13,6 @@ from . import amqp as broker
 
 LOG = logging.getLogger(__name__)
 
-#CONF.setup()
-
 def work(message_id, body):
 
     LOG.debug("Processing message: {}".format(message_id))
@@ -53,7 +51,10 @@ def main(args=None):
     CONF.setup(args) # re-conf
     CONF.log_setup(LOG,'worker')
     CONF.log_setup(crypto.LOG,'crypto')
-    broker.setup()
+
+    # Broker setup
+    # global BROKER_CONNECTION, BROKER_CHANNEL
+    # BROKER_CONNECTION, BROKER_CHANNEL = broker.get_connection()
     CONF.log_setup(broker.LOG,'message.broker')
 
     broker.consume(
