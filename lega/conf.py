@@ -1,17 +1,20 @@
 import sys
 import configparser
 import logging
+from logging.config import fileConfig,dictConfig
 from pathlib import Path
+import yaml
 
 _config_files = [
     Path(__file__).parent / 'defaults.ini',
     Path.home() / '.lega/lega.ini'
 ]
 
-LOG = logging.getLogger(__name__)
+LOG = logging.getLogger('conf')
 
 class Configuration(configparser.SafeConfigParser):
     conf_file = None
+    log_conf = None
 
     def setup(self,args=None, encoding='utf-8'):
         f'''Loads the configuration files in order:
@@ -23,7 +26,7 @@ class Configuration(configparser.SafeConfigParser):
         try:
             self.conf_file = args[ args.index('--conf') + 1 ]
             _config_files.append( Path(self.conf_file) )
-            LOG.info("Overriding configuration settings with {}".format(self.conf_file))
+            LOG.info(f"Overriding configuration settings with {self.conf_file}")
         except ValueError:
             LOG.info("--conf <file> was not mentioned\n"
                      "Using the default configuration files")
@@ -31,48 +34,43 @@ class Configuration(configparser.SafeConfigParser):
             LOG.info("Using the default configuration files")
         except IndexError:
             LOG.info("Wrong use of --conf <file>")
-            raise configparser.Error("Wrong use of --conf <file>")
+            raise ValueError("Wrong use of --conf <file>")
 
         self.read(_config_files, encoding=encoding)
 
+        # Finding the --log-conf file
+        try:
+            log_conf = Path(args[ args.index('--log-conf') + 1 ])
+
+            if log_conf.exists():
+                print('Reading the log configuration from:',log_conf)
+                if log_conf.suffix in ('.yaml', '.yml'):
+                    with open(log_conf, 'r') as stream:
+                        dictConfig(yaml.load(stream))
+                        self.log_conf = log_conf
+                else: # It's an ini file
+                    fileConfig(log_conf)
+                    self.log_conf = log_conf
+
+        except ValueError:
+            LOG.info("--log-conf <file> was not mentioned")
+        except (TypeError, AttributeError): # if args = None
+            pass # No log conf
+        except IndexError:
+            print("Wrong use of --log-conf <file>")
+            sys.exit(2)
+        except Exception as e:
+            print(repr(e))
+            sys.exit(2)
 
     def __repr__(self):
         '''Show the configuration files'''
-        return "Configuration files:\n\t* " + '\n\t* '.join(str(s) for s in _config_files)
-
-
-    def log_setup(self,logger, domain):
-        # Log level
-        log_level = getattr(logging, self.get(domain,'log_level',fallback='INFO').upper(), logging.INFO)
-        logger.info(f'[{domain}] Adjusting the Log level to {logging.getLevelName(log_level)}')
-        logger.setLevel( log_level )
-
-        # Log Formatting
-        log_format = self.get(domain,'log_format',fallback='[{levelname}][{name}:{funcName}:{lineno}] {message}',raw=True)
-        log_style = self.get(domain,'log_style',fallback='{',raw=True)
-        if log_format:
-            if log_level < logging.INFO:
-                print(f'[{domain}] Adjusting the Log Format')
-            formatter = logging.Formatter(fmt=log_format, style=log_style)
-            for ch in logger.handlers:
-                ch.setFormatter(formatter)
-
-        # Output
-        log = self.get(domain,'log',fallback=None)
-        if log:
-            if log_level < logging.INFO:
-                print(f'[{domain}] Log Output in {log}')
-            logger.addHandler(logging.FileHandler(log, 'a'))
-        else:
-            logging.basicConfig(
-                level=log_level,
-                format=log_format,
-                stream=sys.stderr,
-            )
+        res = 'Configuration files:\n\t*' + '\n\t* '.join(str(s) for s in _config_files)
+        if self.log_conf:
+            res += '\nLogging loaded from ' + self.log_conf
+        return res
 
 CONF = Configuration()
-
-
 
 # def run(type, value, tb):
 #    if hasattr(sys, 'ps1') or not sys.stderr.isatty():

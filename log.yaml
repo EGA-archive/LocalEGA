@@ -1,0 +1,74 @@
+version: 1
+formatters:
+  lega:
+    format: '[{name}][{process:d} {processName:>15}][{levelname}][{asctime:<20}] ({lineno}) {funcName}: {message}'
+    style: '{'
+  simple:
+    format: '[{name:^10}][{levelname:^6}] {message}'
+    style: '{'
+
+handlers:
+  console:
+    class: logging.StreamHandler
+    formatter: simple
+    stream: ext://sys.stdout
+  ingestionRotatingFile:
+    class: logging.handlers.TimedRotatingFileHandler
+    formatter: lega
+    when: 'D'
+    interval: 30
+    encoding: 'utf-8'
+    filename: 'logs/ingestion.log'
+  ingestionFile:
+    class: logging.FileHandler
+    formatter: lega
+    filename: 'logs/ingestion.log'
+  workerFile:
+    class: logging.handlers.TimedRotatingFileHandler
+    formatter: lega
+    when: 'D'
+    interval: 30
+    encoding: 'utf-8'
+    filename: 'logs/worker.log'
+  mainFile:
+    class: logging.FileHandler
+    formatter: lega
+    filename: 'logs/main.log'
+    mode: 'w'
+  amqpFile:
+    class: logging.FileHandler
+    formatter: lega
+    filename: 'logs/amqp.log'
+    mode: 'w'
+  dbFile:
+    class: logging.FileHandler
+    formatter: lega
+    filename: 'logs/db.log'
+    mode: 'w'
+  noHandler:
+    class: logging.NullHandler
+    level: NOTSET
+
+loggers:
+  asyncio:
+    level: DEBUG
+    handlers: [console]
+  ingestion:
+    level: DEBUG
+    handlers: [console,ingestionFile]
+  worker:
+    level: DEBUG
+    handlers: [workerFile]
+    propagate: no
+  amqp:
+    level: DEBUG
+    handlers: [amqpFile]
+    propagate: no
+  db:
+    level: DEBUG
+    handlers: [dbFile]
+    propagate: no
+
+root:
+  level: NOTSET
+  handlers: [noHandler]
