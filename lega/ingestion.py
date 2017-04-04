@@ -4,12 +4,10 @@
 '''
 ####################################
 #
-# Re-Encryption Service
+# Ingestion API Front-end
 #
 ####################################
 '''
-
-__version__ = 0.1
 
 import json
 import os

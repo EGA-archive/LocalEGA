@@ -1,7 +1,6 @@
 import sys
 import configparser
-import logging
-from logging.config import fileConfig,dictConfig
+from logging.config import fileConfig, dictConfig
 from pathlib import Path
 import yaml
 
@@ -9,8 +8,6 @@ _config_files = [
     Path(__file__).parent / 'defaults.ini',
     Path.home() / '.lega/lega.ini'
 ]
-
-LOG = logging.getLogger('conf')
 
 class Configuration(configparser.SafeConfigParser):
     conf_file = None
