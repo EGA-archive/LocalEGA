@@ -137,12 +137,6 @@ async def ingest(request):
                          'user_id': user_id,
     }
 
-    async def _test(func, filename, args):
-        sleep_for = randint(4,10)
-        print('Handling', filename, 'and sleep for',sleep_for)
-        await asyncio.sleep(sleep_for)
-        await loop.run_in_executor(None, func, *args) # default executor, set to ProcessPoolExecutor in main()
-
     # Creating a listing of the tasks to run.
     success = 0
     total = len(data['files'])
