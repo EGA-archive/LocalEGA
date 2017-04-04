@@ -186,10 +186,6 @@ async def init(app):
                                     port=CONF.getint('db','port'),
                                     loop=app.loop) #database=CONF.get('db','uri'),
 
-    executor = ProcessPoolExecutor(max_workers=None) # max_workers=None number of processors on the machine
-    app['executor'] = executor
-    app.loop.set_default_executor(executor)
-
 async def shutdown(app):
     print('Shutting down...')
     app['db'].close()
