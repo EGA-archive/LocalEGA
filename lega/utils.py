@@ -1,11 +1,14 @@
 import json
 import os
+#import logging
 from pathlib import Path
 import shutil
 #import msgpack
 from base64 import b64encode, b64decode
 
 from .conf import CONF
+
+#LOG = logging.getLogger('utils')
 
 def cache_var(v):
     '''Decorator to cache into a global variable'''

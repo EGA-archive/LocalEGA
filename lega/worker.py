@@ -11,7 +11,7 @@ from .conf import CONF
 from . import crypto
 from . import amqp as broker
 
-LOG = logging.getLogger(__name__)
+LOG = logging.getLogger('worker')
 
 def work(message_id, body):
 
@@ -49,13 +49,6 @@ def main(args=None):
         args = sys.argv[1:]
 
     CONF.setup(args) # re-conf
-    CONF.log_setup(LOG,'worker')
-    CONF.log_setup(crypto.LOG,'crypto')
-
-    # Broker setup
-    # global BROKER_CONNECTION, BROKER_CHANNEL
-    # BROKER_CONNECTION, BROKER_CHANNEL = broker.get_connection()
-    CONF.log_setup(broker.LOG,'message.broker')
 
     broker.consume(
         broker.process(work),

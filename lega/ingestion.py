@@ -14,7 +14,6 @@ __version__ = 0.1
 import json
 import os
 import logging
-import sys
 import asyncio
 from concurrent.futures import ProcessPoolExecutor
 import multiprocessing
@@ -32,28 +31,20 @@ from . import checksum
 from . import amqp as broker
 #from lega.db import Database
 
-LOG = logging.getLogger(__name__)
-
-# #_SIGMAP = dict((k, v) for v, k in signal.__dict__.items() if v.startswith('SIG'))
-# def _default_handler(sig, frame):
-#     this = multiprocessing.current_process()
-#     print("{this!r} interrupted by a {sig} signal; exiting cleanly now", file=sys.stderr)
-#     sys.exit(sig)
-
+LOG = logging.getLogger('ingestion')
 
 async def index(request):
     return web.Response(text='GOOOoooooodddd morning, Vietnaaaam!')
 
-
-def register_sig_handler(signals=[signal.SIGINT, signal.SIGTERM],
-                         handler=None):
-    if handler is None:
-        handler = _default_handler
-    for sig in signals:
-        signal.signal(sig, handler)
-
+async def create_inbox(request):
+    raise web.HTTPBadRequest(text='Not implemented yet!')
 
 def process_submission(submission):
+    '''Main function to process a submission.
+
+    The argument is a dictionnary with information regarding one file submission.
+    This function will be called upon request, and run in a separate process (a member of the ProcessPoolExecutor)
+    '''
 
     inbox            = submission['inbox']
     staging_area     = submission['staging_area']
@@ -96,23 +87,23 @@ def process_submission(submission):
     broker.publish(channel, json.dumps(msg), routing_to=CONF.get('message.broker','routing_todo'))
     LOG.debug('Message sent to broker')
 
-async def do_something():
-    print('Johan is the King')
-    await asyncio.sleep(1)
-    #raise ValueError('42')
-    print('Johan is the King 2')
-    return 'Tja'
-
-async def process_delay(func,*args):
-    await asyncio.sleep(randint(1,5))
-    await loop.run_in_executor(None, func, args)
-
 
 async def ingest(request):
+    '''Ingestion endpoint
+
+    When a request is received, the POST data is parsed by `utils.get_data`,
+    and provides information about the list of files to ingest
+
+    The data is of the form:
+    * submission id
+    * user
+
+
+    We use a StreamResponse to send the response about each
+    '''
     #assert( request[method == 'POST' )
 
     data = utils.get_data(await request.read())
-
 
     if not data:
         raise web.HTTPBadRequest()
@@ -146,35 +137,48 @@ async def ingest(request):
                          'user_id': user_id,
     }
 
+    async def _test(func, filename, args):
+        sleep_for = randint(4,10)
+        print('Handling', filename, 'and sleep for',sleep_for)
+        await asyncio.sleep(sleep_for)
+        await loop.run_in_executor(None, func, *args) # default executor, set to ProcessPoolExecutor in main()
+
+    # Creating a listing of the tasks to run.
     success = 0
     total = len(data['files'])
     width = len(str(total))
-    tasks = {} # task -> name. Task is hashable
+    tasks = {} # (task -> str) mapping
+    done = asyncio.Queue()
+
     for submission in data['files']:
+
         submission.update(submission_extra)
 
-        #task = loop.run_in_executor(None, process_submission, submission) # default executor, set to ProcessPoolExecutor in main()
-        task = process_delay(process_submission, submission)
-        tasks[task] = submission["filename"]
+        task = asyncio.ensure_future(
+            loop.run_in_executor(None, process_submission, submission) # default executor, set to ProcessPoolExecutor in main()
+        ) # That will start running the task
 
-    # await asyncio.wait(tasks.keys(), loop=request.app.loop, return_when=asyncio.ALL_COMPLETED)
+        task.add_done_callback(lambda f: done.put_nowait(f))
+        tasks[task] = submission['filename']
 
-    for n,result in enumerate(asyncio.as_completed(tasks.keys())):
-        n += 1
-        #title = tasks[result]
+    # Running the tasks and getting the results as they arrive.
+    for n in range(1,total+1):
 
+        task = await done.get()
+        filename = tasks[task]
         try:
-            await result # May raise the exception caught in the separate process
-            #res = f'[{n:{width}}/{total:{width}}] {title} {Fore.GREEN}✓{Fore.RESET}\n'
-            res = f'[{n:{width}}/{total:{width}}] {Fore.GREEN}✓{Fore.RESET}\n'
+            task.result() # May raise the exception caught in the separate process
+            res = f'[{n:{width}}/{total:{width}}] {filename} {Fore.GREEN}✓{Fore.RESET}\n'
             success += 1 # no race here
         except Exception as e:
-            LOG.error(repr(e))
-            #res = f'[{n:{width}}/{total:{width}}] {title} {Fore.RED}x{Fore.RESET}\n'
-            res = f'[{n:{width}}/{total:{width}}] {Fore.RED}x{Fore.RESET}\n'
+            LOG.error(f'Offloaded task came back with Error: {e!r}')
+            res = f'[{n:{width}}/{total:{width}}] {filename} {Fore.RED}x{Fore.RESET}\n'
 
+        # Send the result to the responde as they arrive
         await response.write(res.encode())
         await response.drain()
+
+    assert( done.empty() )
 
     r = f'\nIngested {success} files (out of {total} files)\n'
     await response.write(r.encode())
@@ -188,13 +192,22 @@ async def init(app):
                                     port=CONF.getint('db','port'),
                                     loop=app.loop) #database=CONF.get('db','uri'),
 
+    executor = ProcessPoolExecutor(max_workers=None) # max_workers=None number of processors on the machine
+    app['executor'] = executor
+    app.loop.set_default_executor(executor)
+
 async def shutdown(app):
+    print('Shutting down...')
     app['db'].close()
     await app['db'].wait_closed()
+    for task in asyncio.Task.all_tasks():
+        task.cancel()
+    app.loop.stop()
 
 def main(args=None):
 
     if not args:
+        import sys
         args = sys.argv[1:]
 
     if '--conf' not in args:
@@ -204,38 +217,36 @@ def main(args=None):
             args.append('--conf')
             args.append(conf_file)
 
-    # re-conf
-    CONF.setup(args)
-    CONF.log_setup(LOG,'ingestion')
-
-    # Broker setup
-    # global BROKER_CONNECTION, BROKER_CHANNEL
-    # BROKER_CONNECTION, BROKER_CHANNEL = broker.get_connection()
-    CONF.log_setup(broker.LOG,'message.broker')
+    CONF.setup(args) # re-conf
 
     loop = asyncio.get_event_loop()
-
-    EXECUTOR = ProcessPoolExecutor(max_workers=None) # max_workers=None number of processors on the machine
-    loop.set_default_executor(EXECUTOR)
-
     server = web.Application(loop=loop)
+    executor = ProcessPoolExecutor(max_workers=None) # max_workers=None number of processors on the machine
+    loop.set_default_executor(executor)
+
+    # Registering the routes
     server.router.add_get('/', index)
     server.router.add_post('/ingest', ingest)
-    server.on_startup.append(init)
-    server.on_cleanup.append(shutdown)
-    #server.on_shutdown.append(shutdown)
+    server.router.add_get('/create-inbox', create_inbox)
 
-    try:
-        web.run_app(server,
-                    host=CONF.get('ingestion','host'),
-                    port=CONF.getint('ingestion','port')
-        )
-    except KeyboardInterrupt:
-        loop.stop()
-    finally:
-        EXECUTOR.shutdown(wait=True)
-        EXECUTOR=None
-        loop.close()
+    # Registering some initialization and cleanup routines
+    server.on_startup.append(init)
+    server.on_shutdown.append(shutdown)
+    #server.on_cleanup.append(cleanup)
+
+    # Registering when we close. Like catching the KeyboardInterrupt exception but better.
+    # loop.add_signal_handler(signal.SIGINT,
+    #                         functools.partial(executor.shutdown, wait=False)
+    # )
+
+    # And ...... cue music!
+    web.run_app(server,
+                host=CONF.get('ingestion','host'),
+                port=CONF.getint('ingestion','port'),
+                shutdown_timeout=0,
+    )
+    # https://github.com/aio-libs/aiohttp/blob/master/aiohttp/web.py
+    # run_app already catches the KeyboardInterrupt and calls loop.close() at the end
 
 if __name__ == '__main__':
     main()

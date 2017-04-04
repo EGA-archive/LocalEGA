@@ -12,7 +12,7 @@ from . import crypto
 from . import amqp as broker
 from . import utils
 
-LOG = logging.getLogger(__name__)
+LOG = logging.getLogger('vault')
 
 def work(message_id, body):
 
@@ -44,12 +44,6 @@ def main(args=None):
         args = sys.argv[1:]
 
     CONF.setup(args) # re-conf
-    CONF.log_setup(LOG,'vault')
-
-    # Broker setup
-    # global BROKER_CONNECTION, BROKER_CHANNEL
-    # BROKER_CONNECTION, BROKER_CHANNEL = broker.get_connection()
-    CONF.log_setup(broker.LOG,'message.broker')
 
     broker.consume(
         broker.process(work),

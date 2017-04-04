@@ -4,7 +4,7 @@ import uuid
 
 from .conf import CONF
 
-LOG = logging.getLogger(__name__)
+LOG = logging.getLogger('amqp')
 
 def get_connection():
     params = {

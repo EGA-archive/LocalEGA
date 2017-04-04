@@ -19,7 +19,7 @@ from sqlalchemy import Column, Integer, String
 from .conf import CONF
 from .utils import cache_var
 
-LOG = logging.getLogger(__name__)
+LOG = logging.getLogger('db')
 
 STATUS = {
     0: 'Error',
@@ -119,7 +119,6 @@ def main(args=None):
         args = sys.argv[1:]
 
     CONF.setup(args) # re-conf
-    CONF.log_setup(LOG,'db')
 
     if '--create' in args:
         print('Create DB')

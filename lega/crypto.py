@@ -26,7 +26,7 @@ from .conf import CONF
 from . import checksum
 from .utils import cache_var
 
-LOG = logging.getLogger(__name__)
+LOG = logging.getLogger('crypto')
 
 @cache_var('MASTER_KEY')
 def _master_key():
@@ -174,7 +174,6 @@ def ingest(enc_file,
 if __name__ == '__main__':
     import sys
     CONF.setup(sys.argv[1:]) # re-conf
-    CONF.log_setup(LOG,'crypto')
 
     stream = io.BytesIO(b'Hello ' * 2048)
 
