@@ -1,13 +1,38 @@
 import sys
 import configparser
+import logging
 from logging.config import fileConfig, dictConfig
 from pathlib import Path
 import yaml
 
 _config_files = [
     Path(__file__).parent / 'defaults.ini',
-    Path.home() / '.lega/lega.ini'
+    Path.home() / '.lega/conf.ini'
 ]
+
+f"""lega.conf
+~~~~~~~~~~~~~~~~~~~~~
+
+This module provides a dictionary-like with configuration settings.
+It also loads the logging settings when `setup` is called.
+
+The `--log <file>` argument is used to configuration where the logs go.
+Without it, there is no logging capabilities.
+The <file> can be in `INI` or `YAML` format.
+
+The `--conf <file>` allows the user to override the configuration settings.
+The settings are loaded, in order:
+* from {_config_files[0]}
+* from {_config_files[1]}
+* and finally from the file specified as the `--conf` argument.
+
+
+See `https://github.com/NBISweden/LocalEGA` for a full documentation.
+:copyright: (c) 2017, NBIS System Developers.
+"""
+
+from . import __name__ as package_name
+LOG = logging.getLogger(package_name)
 
 class Configuration(configparser.SafeConfigParser):
     conf_file = None
@@ -17,7 +42,13 @@ class Configuration(configparser.SafeConfigParser):
         f'''Loads the configuration files in order:
            1) {_config_files[0]}
            2) {_config_files[1]}
-           3) the command line arguments following "--conf"'''
+           3) the command line arguments following `--conf`
+
+        When done, the logging settings are loaded
+        from the file specified after the `--log` argument.
+
+        The latter file must be either in `INI` format
+        or in `YAML` format, in which case, it must end in `.yaml` or `.yml`.'''
 
         # Finding the --conf file
         try:
@@ -30,15 +61,14 @@ class Configuration(configparser.SafeConfigParser):
         except (TypeError, AttributeError): # if args = None
             LOG.info("Using the default configuration files")
         except IndexError:
-            LOG.info("Wrong use of --conf <file>")
+            LOG.error("Wrong use of --conf <file>")
             raise ValueError("Wrong use of --conf <file>")
 
         self.read(_config_files, encoding=encoding)
 
-        # Finding the --log-conf file
+        # Finding the --log file
         try:
-            log_conf = Path(args[ args.index('--log-conf') + 1 ])
-
+            log_conf = Path(args[ args.index('--log') + 1 ])
             if log_conf.exists():
                 print('Reading the log configuration from:',log_conf)
                 if log_conf.suffix in ('.yaml', '.yml'):
@@ -50,11 +80,11 @@ class Configuration(configparser.SafeConfigParser):
                     self.log_conf = log_conf
 
         except ValueError:
-            LOG.info("--log-conf <file> was not mentioned")
+            LOG.info("--log <file> was not mentioned")
         except (TypeError, AttributeError): # if args = None
             pass # No log conf
         except IndexError:
-            print("Wrong use of --log-conf <file>")
+            LOG.error("Wrong use of --log <file>")
             sys.exit(2)
         except Exception as e:
             print(repr(e))
@@ -69,17 +99,3 @@ class Configuration(configparser.SafeConfigParser):
 
 CONF = Configuration()
 
-# def run(type, value, tb):
-#    if hasattr(sys, 'ps1') or not sys.stderr.isatty():
-#       # we are in interactive mode or we don't have a tty-like
-#       # device, so we call the default hook
-#       sys.__excepthook__(type, value, tb)
-#    else:
-#       import traceback, pdb
-#       # we are NOT in interactive mode, print the exception...
-#       traceback.print_exception(type, value, tb)
-#       print
-#       # ...then start the debugger in post-mortem mode.
-#       pdb.pm()
-
-# sys.excepthook = run

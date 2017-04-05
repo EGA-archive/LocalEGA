@@ -7,17 +7,27 @@
 # Ingestion API Front-end
 #
 ####################################
+
+We provide:
+
+|------------------------------|-----------------|----------------|
+| endpoint                     | accepted method |     Note       |
+|------------------------------|-----------------|----------------|
+| [LocalEGA-URL]/              |       GET       |                |
+| [LocalEGA-URL]/ingest        |      POST       | requires login |
+| [LocalEGA-URL]/create-inbox  |       GET       | requires login |
+|------------------------------|-----------------|----------------|
+
+:author: Frédéric Haziza
+:copyright: (c) 2017, NBIS System Developers.
 '''
 
-import json
-import os
+import sys
+from os import environ as env
 import logging
 import asyncio
+import json
 from concurrent.futures import ProcessPoolExecutor
-import multiprocessing
-import signal
-import functools
-from random import randint
 
 from aiohttp import web
 from colorama import Fore
@@ -32,9 +42,18 @@ from . import amqp as broker
 LOG = logging.getLogger('ingestion')
 
 async def index(request):
+    '''Main endpoint
+
+    Not really used at the moment.
+    However, we could use it as a webpage documentation.
+    '''
     return web.Response(text='GOOOoooooodddd morning, Vietnaaaam!')
 
 async def create_inbox(request):
+    '''Inbox creation endpoint
+
+    Not implemented yet.
+    '''
     raise web.HTTPBadRequest(text='Not implemented yet!')
 
 def process_submission(submission):
@@ -94,10 +113,17 @@ async def ingest(request):
 
     The data is of the form:
     * submission id
-    * user
+    * user id
+    * a list of files
 
+    Each file is of the form:
+    * filename
+    * encrypted hash information (with both the hash value and the hash algorithm)
+    * unencrypted hash information (with both the hash value and the hash algorithm)
 
-    We use a StreamResponse to send the response about each
+    The hash algorithm we support are MD5 and SHA256, for the moment.
+
+    We use a StreamResponse to send, stepwise, information about each file as they're processed.
     '''
     #assert( request[method == 'POST' )
 
@@ -163,7 +189,7 @@ async def ingest(request):
             res = f'[{n:{width}}/{total:{width}}] {filename} {Fore.GREEN}✓{Fore.RESET}\n'
             success += 1 # no race here
         except Exception as e:
-            LOG.error(f'Offloaded task came back with Error: {e!r}')
+            LOG.error(f'Task in separate process came back with {e!r}')
             res = f'[{n:{width}}/{total:{width}}] {filename} {Fore.RED}x{Fore.RESET}\n'
 
         # Send the result to the responde as they arrive
@@ -172,25 +198,37 @@ async def ingest(request):
 
     assert( done.empty() )
 
-    r = f'\nIngested {success} files (out of {total} files)\n'
+    r = f'Ingested {success} files (out of {total} files)\n'
     await response.write(r.encode())
     await response.write_eof()
     return response
 
 async def init(app):
-    app['db'] = await create_engine(user=CONF.get('db','username'),
-                                    password=CONF.get('db','password'),
-                                    host=CONF.get('db','host'),
-                                    port=CONF.getint('db','port'),
-                                    loop=app.loop) #database=CONF.get('db','uri'),
+    '''Initialization running before the loop.run_forever'''
+    try:
+        app['db'] = await create_engine(user=CONF.get('db','username'),
+                                        password=CONF.get('db','password'),
+                                        host=CONF.get('db','host'),
+                                        port=CONF.getint('db','port'),
+                                        loop=app.loop) #database=CONF.get('db','uri'),
+    except Exception as e:
+        print('Connection error to the Postgres database\n')
+        print(str(e))
+        app.loop.call_soon(app.loop.stop)
+        app.loop.call_soon(app.loop.close)
+        sys.exit(2)
 
 async def shutdown(app):
-    print('Shutting down...')
+    '''Function run after a KeyboardInterrupt. After that: cleanup'''
+    LOG.info('Shutting down the database engine')
     app['db'].close()
     await app['db'].wait_closed()
+
+async def cleanup(app):
+    '''Function run after a KeyboardInterrupt. Right after, the loop is closed'''
+    LOG.info('Cancelling all pending tasks')
     for task in asyncio.Task.all_tasks():
         task.cancel()
-    app.loop.stop()
 
 def main(args=None):
 
@@ -199,7 +237,7 @@ def main(args=None):
         args = sys.argv[1:]
 
     if '--conf' not in args:
-        conf_file = os.environ.get('LEGA_CONF')
+        conf_file = env.get('LEGA_CONF')
         if conf_file:
             print(f'USING {conf_file} as configuration file')
             args.append('--conf')
@@ -220,12 +258,7 @@ def main(args=None):
     # Registering some initialization and cleanup routines
     server.on_startup.append(init)
     server.on_shutdown.append(shutdown)
-    #server.on_cleanup.append(cleanup)
-
-    # Registering when we close. Like catching the KeyboardInterrupt exception but better.
-    # loop.add_signal_handler(signal.SIGINT,
-    #                         functools.partial(executor.shutdown, wait=False)
-    # )
+    server.on_cleanup.append(cleanup)
 
     # And ...... cue music!
     web.run_app(server,
@@ -235,6 +268,10 @@ def main(args=None):
     )
     # https://github.com/aio-libs/aiohttp/blob/master/aiohttp/web.py
     # run_app already catches the KeyboardInterrupt and calls loop.close() at the end
+
+    LOG.info('Shutting down the executor')
+    executor.shutdown(wait=True)
+    LOG.info('Exiting the Ingestion server')
 
 if __name__ == '__main__':
     main()

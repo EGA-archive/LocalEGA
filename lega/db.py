@@ -21,6 +21,15 @@ from .utils import cache_var
 
 LOG = logging.getLogger('db')
 
+__all__ = ('EGAFile',
+           'create',
+           'close',
+           'display',
+           'entry',
+           'update_entry',
+           'delete',
+           'add', )
+
 STATUS = {
     0: 'Error',
     1: 'In progress',

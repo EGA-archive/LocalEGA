@@ -1,11 +1,27 @@
 version: 1
-formatters:
-  lega:
-    format: '[{name}][{process:d} {processName:>15}][{levelname}][{asctime:<20}] ({lineno}) {funcName}: {message}'
-    style: '{'
-  simple:
-    format: '[{name:^10}][{levelname:^6}] {message}'
-    style: '{'
+root:
+  level: NOTSET
+  handlers: [noHandler]
+
+loggers:
+  asyncio:
+    level: DEBUG
+    handlers: [console]
+  ingestion:
+    level: DEBUG
+    handlers: [console,ingestionRotatingFile]
+  worker:
+    level: DEBUG
+    handlers: [workerFile]
+    propagate: no
+  amqp:
+    level: DEBUG
+    handlers: [amqpFile]
+    propagate: no
+  db:
+    level: DEBUG
+    handlers: [dbFile]
+    propagate: no
 
 handlers:
   console:
@@ -49,26 +65,10 @@ handlers:
     class: logging.NullHandler
     level: NOTSET
 
-loggers:
-  asyncio:
-    level: DEBUG
-    handlers: [console]
-  ingestion:
-    level: DEBUG
-    handlers: [console,ingestionFile]
-  worker:
-    level: DEBUG
-    handlers: [workerFile]
-    propagate: no
-  amqp:
-    level: DEBUG
-    handlers: [amqpFile]
-    propagate: no
-  db:
-    level: DEBUG
-    handlers: [dbFile]
-    propagate: no
-
-root:
-  level: NOTSET
-  handlers: [noHandler]
+formatters:
+  lega:
+    format: '[{name}][{process:d} {processName:>15}][{levelname}][{asctime:<20}] ({lineno}) {funcName}: {message}'
+    style: '{'
+  simple:
+    format: '[{name:^10}][{levelname:^6}] {message}'
+    style: '{'
