@@ -7,6 +7,20 @@
 # Re-Encryption Worker
 #
 ####################################
+
+It simply consumes message from the message queue configured in the [worker] section.
+
+It defaults to the `tasks` queue.
+
+It is possible to start several workers, of course!
+However, they should have the gpg-agent socket location in their environment (when using GnuPG 2.0 or less).
+In GnuPG 2.1, it is not necessary (Just point the `homedir` to the right place).
+
+When a message is consumed, it must be of the form:
+* filepath
+* target
+* hash (of the unencrypted content)
+* hash_algo: the associated hash algorithm
 '''
 
 import sys
@@ -28,7 +42,7 @@ def work(message_id, body):
 
         data = json.loads(body)
 
-        crypto.ingest( data['filepath'],
+        crypto.ingest( data['source'],
                        data['hash'],
                        hash_algo = data['hash_algo'],
                        target = data['target']

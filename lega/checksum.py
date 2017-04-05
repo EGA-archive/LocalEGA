@@ -1,6 +1,15 @@
+# -*- coding: utf-8 -*-
+
+'''
+Supported algorithms: MD5 and SHA256
+
+We will read the files in chunks of n bytes, where n is:
+* 128 * 64 for MD5
+* 256 * 64 for SHA256
+'''
+
 import hashlib
 
-## Supported secure hash
 HASH_ALGORITHMS = {
     'md5': (hashlib.md5,128 * 64),
     'sha256': (hashlib.sha256, 256 * 64),

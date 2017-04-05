@@ -7,6 +7,18 @@
 # Listener moving files to the Vault
 #
 ####################################
+
+It simply consumes message from the message queue configured in the [vault] section.
+
+It defaults to the `completed` queue.
+
+When a message is consumed, it must be of the form:
+* filepath
+* submission_id
+* user_id
+
+This service should probably also implement a stort of StableID generator,
+and input that in the database.
 '''
 
 import sys

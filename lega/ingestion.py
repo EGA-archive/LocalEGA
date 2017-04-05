@@ -95,7 +95,7 @@ def process_submission(submission):
     msg = {
         'submission_id': submission_id,
         'user_id': user_id,
-        'filepath': str(staging_filepath),
+        'source': str(staging_filepath),
         'target' : str(staging_encfilepath),
         'hash': submission_file['unencryptedIntegrity']['hash'],
         'hash_algo': submission_file['unencryptedIntegrity']['algorithm'],
