@@ -70,7 +70,7 @@ class Configuration(configparser.SafeConfigParser):
         try:
             log_conf = Path(args[ args.index('--log') + 1 ])
             if log_conf.exists():
-                print('Reading the log configuration from:',log_conf)
+                LOG.info('Reading the log configuration from:',log_conf)
                 if log_conf.suffix in ('.yaml', '.yml'):
                     with open(log_conf, 'r') as stream:
                         dictConfig(yaml.load(stream))
@@ -94,7 +94,7 @@ class Configuration(configparser.SafeConfigParser):
         '''Show the configuration files'''
         res = 'Configuration files:\n\t*' + '\n\t* '.join(str(s) for s in _config_files)
         if self.log_conf:
-            res += '\nLogging loaded from ' + self.log_conf
+            res += '\nLogging loaded from ' + str(self.log_conf)
         return res
 
 CONF = Configuration()

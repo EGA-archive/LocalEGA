@@ -30,7 +30,7 @@ The <file> can be in `INI` or `YAML` format.
 ## Prior to running the Local EGA components
 
 It is necessary to have the following, already running:
-* a gpg-agent (with the `--homedir` properly set
+* a gpg-agent (with the `--homedir` properly set)
 * a message broker, and
 * a postgres database
 

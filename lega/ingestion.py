@@ -32,6 +32,8 @@ from concurrent.futures import ProcessPoolExecutor
 from aiohttp import web
 from colorama import Fore
 from aiopg.sa import create_engine
+from aiohttp_swaggerify import swaggerify
+import aiohttp_cors
 
 from .conf import CONF
 from . import utils
@@ -189,7 +191,7 @@ async def ingest(request):
             res = f'[{n:{width}}/{total:{width}}] {filename} {Fore.GREEN}✓{Fore.RESET}\n'
             success += 1 # no race here
         except Exception as e:
-            LOG.error(f'Task in separate process came back with {e!r}')
+            LOG.error(f'Task in separate process raised {e!r}')
             res = f'[{n:{width}}/{total:{width}}] {filename} {Fore.RED}x{Fore.RESET}\n'
 
         # Send the result to the responde as they arrive
@@ -230,6 +232,11 @@ async def cleanup(app):
     for task in asyncio.Task.all_tasks():
         task.cancel()
 
+async def swagger(request):
+    return web.json_response(
+        request.app["_swagger_config"],
+        headers={ "X-Custom-Server-Header": "Custom data",})
+
 def main(args=None):
 
     if not args:
@@ -254,6 +261,19 @@ def main(args=None):
     server.router.add_get('/', index)
     server.router.add_post('/ingest', ingest)
     server.router.add_get('/create-inbox', create_inbox)
+
+    # Swagger endpoint: /swagger.json
+    swaggerify(server)
+    cors = aiohttp_cors.setup(server) # Must enable CORS
+    for route in server.router.routes(): # I don't bother and enable CORS for all routes
+        cors.add(route, {
+            CONF.get('swagger','url') : aiohttp_cors.ResourceOptions(
+                allow_credentials=True,
+                expose_headers=("X-Custom-Server-Header",),
+                allow_headers=("X-Requested-With", "Content-Type"),
+                max_age=3600,
+            )
+        })
 
     # Registering some initialization and cleanup routines
     server.on_startup.append(init)
