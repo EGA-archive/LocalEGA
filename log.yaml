@@ -9,7 +9,7 @@ loggers:
     handlers: [console]
   ingestion:
     level: DEBUG
-    handlers: [console,ingestionRotatingFile]
+    handlers: [ingestionFile] #[console,ingestionRotatingFile]
   worker:
     level: DEBUG
     handlers: [workerFile]
@@ -37,7 +37,7 @@ handlers:
     filename: 'logs/ingestion.log'
   ingestionFile:
     class: logging.FileHandler
-    formatter: lega
+    formatter: legaSmall
     filename: 'logs/ingestion.log'
   workerFile:
     class: logging.handlers.TimedRotatingFileHandler
@@ -68,6 +68,9 @@ handlers:
 formatters:
   lega:
     format: '[{name}][{process:d} {processName:>15}][{levelname}][{asctime:<20}] ({lineno}) {funcName}: {message}'
+    style: '{'
+  legaSmall:
+    format: '[{name}][PID:{process:^5d}][{levelname:^6}] {message}'
     style: '{'
   simple:
     format: '[{name:^10}][{levelname:^6}] {message}'

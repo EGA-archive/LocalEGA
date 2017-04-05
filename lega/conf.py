@@ -52,8 +52,9 @@ class Configuration(configparser.SafeConfigParser):
 
         # Finding the --conf file
         try:
-            self.conf_file = args[ args.index('--conf') + 1 ]
-            _config_files.append( Path(self.conf_file) )
+            self.conf_file = Path(args[ args.index('--conf') + 1 ])
+            if self.conf_file not in _config_files:
+                _config_files.append( self.conf_file )
             LOG.info(f"Overriding configuration settings with {self.conf_file}")
         except ValueError:
             LOG.info("--conf <file> was not mentioned\n"
@@ -68,16 +69,16 @@ class Configuration(configparser.SafeConfigParser):
 
         # Finding the --log file
         try:
-            log_conf = Path(args[ args.index('--log') + 1 ])
-            if log_conf.exists():
-                LOG.info('Reading the log configuration from:',log_conf)
-                if log_conf.suffix in ('.yaml', '.yml'):
-                    with open(log_conf, 'r') as stream:
+            lconf = Path(args[ args.index('--log') + 1 ])
+            if lconf.exists():
+                LOG.info(f'Reading the log configuration from: {lconf}')
+                if lconf.suffix in ('.yaml', '.yml'):
+                    with open(lconf, 'r') as stream:
                         dictConfig(yaml.load(stream))
-                        self.log_conf = log_conf
+                        self.log_conf = lconf
                 else: # It's an ini file
-                    fileConfig(log_conf)
-                    self.log_conf = log_conf
+                    fileConfig(lconf)
+                    self.log_conf = lconf
 
         except ValueError:
             LOG.info("--log <file> was not mentioned")
@@ -94,7 +95,7 @@ class Configuration(configparser.SafeConfigParser):
         '''Show the configuration files'''
         res = 'Configuration files:\n\t*' + '\n\t* '.join(str(s) for s in _config_files)
         if self.log_conf:
-            res += '\nLogging loaded from ' + str(self.log_conf)
+            res += '\nLogging settings loaded from ' + str(self.log_conf)
         return res
 
 CONF = Configuration()
