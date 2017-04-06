@@ -29,34 +29,36 @@ import asyncio
 import json
 from concurrent.futures import ProcessPoolExecutor
 
+from colorama import Fore, Back
 from aiohttp import web
-from colorama import Fore
 from aiopg.sa import create_engine
 from aiohttp_swaggerify import swaggerify
 import aiohttp_cors
 
 from .conf import CONF
-from . import utils
+from .utils import mv as move_to_staging_area, get_data as parse_data, only_central_ega, get_inbox, staging_area as get_staging_area
 from . import checksum
 from . import amqp as broker
 #from lega.db import Database
 
 LOG = logging.getLogger('ingestion')
 
+@only_central_ega
 async def index(request):
     '''Main endpoint
 
     Not really used at the moment.
     However, we could use it as a webpage documentation.
     '''
-    return web.Response(text='GOOOoooooodddd morning, Vietnaaaam!')
+    return web.Response(text=f'\n{Fore.BLACK}{Back.YELLOW}GOOOoooooodddd morning, Vietnaaaam!{Back.RESET}{Fore.RESET}\n\n')
 
+@only_central_ega
 async def create_inbox(request):
     '''Inbox creation endpoint
 
     Not implemented yet.
     '''
-    raise web.HTTPBadRequest(text='Not implemented yet!')
+    raise web.HTTPBadRequest(text=f'\n{Fore.BLACK}{Back.RED}Not implemented yet!{Back.RESET}{Fore.RESET}\n\n')
 
 def process_submission(submission):
     '''Main function to process a submission.
@@ -89,7 +91,7 @@ def process_submission(submission):
     LOG.debug(f'Valid {hash_algo} checksum for {inbox_filepath}')
 
     ################# Moving encrypted file to staging area
-    utils.mv( inbox_filepath, staging_filepath )
+    move_to_staging_area( inbox_filepath, staging_filepath )
     LOG.debug(f'File moved:\n\tfrom {inbox_filepath}\n\tto {staging_filepath}')
 
     ################# Publish internal message for the workers
@@ -107,10 +109,11 @@ def process_submission(submission):
     LOG.debug('Message sent to broker')
 
 
+@only_central_ega
 async def ingest(request):
     '''Ingestion endpoint
 
-    When a request is received, the POST data is parsed by `utils.get_data`,
+    When a request is received, the POST data is parsed by `parse_data`,
     and provides information about the list of files to ingest
 
     The data is of the form:
@@ -129,7 +132,7 @@ async def ingest(request):
     '''
     #assert( request[method == 'POST' )
 
-    data = utils.get_data(await request.read())
+    data = parse_data(await request.read())
 
     if not data:
         raise web.HTTPBadRequest()
@@ -146,13 +149,13 @@ async def ingest(request):
     submission_id = data['submissionId']
     user_id       = data['userId']
 
-    inbox = utils.get_inbox(user_id)
+    inbox = get_inbox(user_id)
     LOG.info(f"Inbox area: {inbox}")
 
-    staging_area = utils.staging_area(submission_id, create=True)
+    staging_area = get_staging_area(submission_id, create=True)
     LOG.info(f"Staging area: {staging_area}")
 
-    staging_area_enc = utils.staging_area(submission_id, create=True, afterEncryption=True)
+    staging_area_enc = get_staging_area(submission_id, create=True, afterEncryption=True)
     LOG.info(f"Staging area (for encryption): {staging_area_enc}")
 
     loop = request.app.loop
