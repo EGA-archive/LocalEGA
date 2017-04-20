@@ -36,14 +36,14 @@ from aiohttp_swaggerify import swaggerify
 import aiohttp_cors
 
 from .conf import CONF
-from . import checksum
 from . import amqp as broker
 from .utils import (
     mv as move_to_staging_area,
     get_data as parse_data,
     only_central_ega,
     get_inbox,
-    staging_area as get_staging_area
+    staging_area as get_staging_area,
+    checksum
 )
 #from lega.db import Database
 
@@ -90,7 +90,7 @@ def process_submission(submission):
     ################# Check integrity of encrypted file
     LOG.debug(f'Verifying the {hash_algo} checksum of encrypted file: {inbox_filepath}')
     with open(inbox_filepath, 'rb') as inbox_file: # Open the file in binary mode. No encoding dance.
-        if not checksum.verify(inbox_file, filehash, hashAlgo = hash_algo):
+        if not checksum(inbox_file, filehash, hashAlgo = hash_algo):
             errmsg = f'Invalid {hash_algo} checksum for {inbox_filepath}'
             LOG.warning(errmsg)
             raise Exception(errmsg)

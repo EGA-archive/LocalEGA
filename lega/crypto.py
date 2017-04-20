@@ -23,9 +23,7 @@ from Crypto.Random import get_random_bytes
 from Crypto.Cipher import AES, PKCS1_OAEP
 
 from .conf import CONF
-from . import checksum
 #from .utils import cache_var
-
 
 HASH_ALGORITHMS = {
     'md5': hashlib.md5,
@@ -289,7 +287,7 @@ if __name__ == '__main__':
     #        hash_algo,
     #        target)
 
-    # with open('org.txt', 'wb') as f:
+    # with open('tmp/org.txt', 'wb') as f:
     #     i = 1<<24
     #     while i > 0:
     #         f.write(str(i).encode())
@@ -298,12 +296,12 @@ if __name__ == '__main__':
     #             f.write(b'\n')
     #         i -= 1
 
-    enc_file = 'org.enc'
+    enc_file = 'tmp/org.enc'
     org_hash = '4325307ccaec085cd84fe04be95ee12f'
     enc_hash = 'b99ad2de78378e798fbc6c7c0bf272af'
     hash_algo = 'md5'
-    target = 'res.enc'
-    final = 'res.dec'
+    target = 'tmp/res.enc'
+    final = 'tmp/res.dec'
 
     ingest(enc_file,
            org_hash,

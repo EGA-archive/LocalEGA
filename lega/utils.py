@@ -68,73 +68,28 @@ def get_data(data):
     return json.loads(b64decode(data))
     #return json.loads(msgpack.unpackb(data))
 
-f_data = {
-    "submissionId": "12345",
-    "userId": "1002",
-    "files": [
-        {  "filename":"test2",
-           "encryptedIntegrity": { "hash": "4c69a65417205d4766afbc18e38a5abd", "algorithm": "md5" },
-           "unencryptedIntegrity": { "hash": "5f8159fcc117ea2cae98ce6e1c1a6261", "algorithm": "md5" },
-        },
-        {  "filename":"test1",
-           "encryptedIntegrity": { "hash": "ef46a1eff5fcc521e0fb5f2da8a78ab8", "algorithm": "md5" },
-           "unencryptedIntegrity": { "hash": "29da20d8dc8ab1a8830c0ea0c4d7e41a84d82cf040ae4c7932145bd5fd7cded3", "algorithm": "sha256" },
-        },
-        {  "filename":"test3",
-           "encryptedIntegrity": { "hash": "d8bd5bf0178691b1dcd8f2a2e212fb188ac4f89c36d3a744b2e2ec157c426eac", "algorithm": "sha256" },
-           "unencryptedIntegrity": { "hash": "ddaad93d5c412b05ecbff8683e9cae32871fb28d5a026dfcd3575b82cd80b320", "algorithm": "sha256" },
-        },
-    ],
-}
 
-f_data2 = {
-    "submissionId": "738",
-    "userId": "1003",
-    "files":[
-        {  "filename":"test-1",
-           "encryptedIntegrity": { "hash": "ef46a1eff5fcc521e0fb5f2da8a78ab8", "algorithm": "md5" },
-           "unencryptedIntegrity": { "hash": "29da20d8dc8ab1a8830c0ea0c4d7e41a84d82cf040ae4c7932145bd5fd7cded3", "algorithm": "sha256" },
-        },
-        {  "filename":"test-2",
-           "encryptedIntegrity": { "hash": "ef46a1eff5fcc521e0fb5f2da8a78ab8", "algorithm": "md5" },
-           "unencryptedIntegrity": { "hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "algorithm": "sha256" },
-        },
-        {  "filename":"test-3",
-           "encryptedIntegrity": { "hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "algorithm": "md5" },
-           "unencryptedIntegrity": { "hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "algorithm": "sha256" },
-        },
-        {  "filename":"test-4",
-           "encryptedIntegrity": { "hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "algorithm": "md5" },
-           "unencryptedIntegrity": { "hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "algorithm": "sha256" },
-        },
-        {  "filename":"test-5",
-           "encryptedIntegrity": { "hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "algorithm": "md5" },
-           "unencryptedIntegrity": { "hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "algorithm": "sha256" },
-        },
-        {  "filename":"test-6",
-           "encryptedIntegrity": { "hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "algorithm": "md5" },
-           "unencryptedIntegrity": { "hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "algorithm": "sha256" },
-        },
-        {  "filename":"test-7",
-           "encryptedIntegrity": { "hash": "0bd39dd908ecee4a97f0c25c1e8e272b6456fa48b09521982008f03b2403bcd", "algorithm": "sha256" },
-           "unencryptedIntegrity": { "hash": "29da20d8dc8ab1a8830c0ea0c4d7e41a84d82cf040ae4c7932145bd5fd7cded3", "algorithm": "sha256" },
-        },
-        {  "filename":"test-8",
-           "encryptedIntegrity": { "hash": "ef46a1eff5fcc521e0fb5f2da8a78ab8", "algorithm": "md5" },
-           "unencryptedIntegrity": { "hash": "29da20d8dc8ab1a8830c0ea0c4d7e41a84d82cf040ae4c7932145bd5fd7cded3", "algorithm": "sha256" },
-        },
-        {  "filename":"test-9",
-           "encryptedIntegrity": { "hash": "0bd39dd908ecee4a97f0c25c1e8e272b6456fa48b09521982008f03b2403bcd6", "algorithm": "sha256" },
-           "unencryptedIntegrity": { "hash": "29da20d8dc8ab1a8830c0ea0c4d7e41a84d82cf040ae4c7932145bd5fd7cded3", "algorithm": "sha256" },
-        },
-    ],
-}
+def checksum(data, digest, hashAlgo = 'md5'):
+    '''Verify the integrity of a bytes-like object against a hash value'''
 
-def fake_data():
-    #return msgpack.packb(json.dumps(f_data).encode())
-    return b64encode(json.dumps(f_data).encode())
+    assert( isinstance(digest,str) )
 
+    try:
+        import hashlib
+        from .crypto import HASH_ALGORITHMS
+        h,hash_block_size = HASH_ALGORITHMS.get(hashAlgo)
+    except KeyError:
+        raise Exception('No support for the secure hashing algorithm')
 
-def small_fake_data():
-    #return msgpack.packb(json.dumps(f_data2).encode())
-    return b64encode(json.dumps(f_data2).encode())
+    m = h()
+    while True:
+        d = data.read(hash_block_size)
+        if not d:
+            break
+        m.update(d)
+
+    res = m.hexdigest() == digest
+    # LOG.debug(' Calculated digest: ' + m.hexdigest())
+    # LOG.debug('Compared to digest: ' + digest)
+    # LOG.debug('\tMatching: ' + str(res))
+    return res
