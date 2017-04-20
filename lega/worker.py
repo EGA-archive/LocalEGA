@@ -8,7 +8,7 @@
 #
 ####################################
 
-It simply consumes message from the message queue configured in the [worker] section.
+It simply consumes message from the message queue configured in the [worker] section of the configuration files.
 
 It defaults to the `tasks` queue.
 

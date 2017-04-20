@@ -22,6 +22,13 @@ loggers:
     level: DEBUG
     handlers: [dbFile]
     propagate: no
+  checksum:
+    level: DEBUG
+    handlers: [checksumFile]
+    propagate: no
+  crypto:
+    level: DEBUG
+    handlers: [cryptoFile]
 
 handlers:
   console:
@@ -39,6 +46,14 @@ handlers:
     class: logging.FileHandler
     formatter: legaSmall
     filename: 'logs/ingestion.log'
+  checksumFile:
+    class: logging.FileHandler
+    formatter: legaSmall
+    filename: 'logs/checksum.log'
+  cryptoFile:
+    class: logging.FileHandler
+    formatter: legaSmall
+    filename: 'logs/crypto.log'
   workerFile:
     class: logging.handlers.TimedRotatingFileHandler
     formatter: lega

@@ -14,62 +14,72 @@
 import logging
 import io
 import os
+import asyncio
+import asyncio.subprocess
+import hashlib
 
-import gpg
-from gpg.constants import PROTOCOL_OpenPGP
 from Crypto.PublicKey import RSA
 from Crypto.Random import get_random_bytes
 from Crypto.Cipher import AES, PKCS1_OAEP
-from Crypto.Hash import SHA256
 
 from .conf import CONF
 from . import checksum
-from .utils import cache_var
+#from .utils import cache_var
+
+
+HASH_ALGORITHMS = {
+    'md5': hashlib.md5,
+    'sha256': hashlib.sha256,
+}
 
 LOG = logging.getLogger('crypto')
 
-@cache_var('MASTER_KEY')
-def _master_key():
-    '''Fetch the RSA master key from file'''
+#@cache_var('MASTER_PUB_KEY')
+def _master_pub_key():
+    '''Fetch the RSA master public key from file'''
     keyfile = CONF.get('worker','master_pub_key')
     LOG.debug(f"Fetching the RSA master key from {keyfile}")
-    with open( keyfile, 'rb') as pubkey:
-        return RSA.import_key(pubkey.read(),
+    with open( keyfile, 'rb') as key:
+        return RSA.import_key(key_h.read(),
                               passphrase = CONF.get('worker','master_key_passphrase'))
 
-@cache_var('GPG_CONTEXT')
-def _gpg_ctx():
-    '''Create the GPG context'''
-    LOG.debug("Creating the GPG context")
-    homedir = CONF.get('worker','gpg_home')
-    armor   = CONF.getboolean('worker','gpg_armor',fallback=False)
-    offline = CONF.getboolean('worker','gpg_offline',fallback=False)
-    LOG.debug(f"\thomedir: {homedir}\n\tarmor: {armor}\n\toffline: {offline}")
-    ctx = gpg.Context(armor=armor, offline=offline)
-    ctx.set_engine_info(gpg.constants.PROTOCOL_OpenPGP, home_dir=homedir)
-    ctx.set_status_cb(lambda x,y: LOG.debug(f'{x!r} {y!r}'))
-    return ctx
+#@cache_var('MASTER_KEY')
+def _master_key():
+    '''Fetch the RSA master public key from file'''
+    keyfile = CONF.get('worker','master_key')
+    LOG.debug(f"Fetching the RSA master key from {keyfile}")
+    with open( keyfile, 'rb') as key_h:
+        return RSA.import_key(key_h.read(),
+                              passphrase = CONF.get('worker','master_key_passphrase'))
 
-def chunker(stream, chunk_size=None):
-    """Lazy function (generator) to read a file one chunk at a time."""
+def make_header(enc_key_size, nonce_size, aes_mode, chunk_size):
+    '''Create the header line for the re-encrypted files
 
-    if not chunk_size:
-        chunk_size = CONF.getint('worker','random_access_chunk_size',fallback=1 << 26) # 67 MB or 2**26
+    The header is simply of the form:
+    Encryption key size (in bytes) | Nonce size | AES mode | Chunk size
+    '''
+    return f'{enc_key_size}|{nonce_size}|{aes_mode}|{chunk_size}\n'
 
-    assert(chunk_size >= 16)
-    #assert(chunk_size % 16 == 0)
-    LOG.debug(f'\tchunk size     = {chunk_size}')
-    yield chunk_size
+def from_header(h):
+    '''Convert the given line into differents values, doing the opposite job as `make_header`'''
+    header = bytearray()
     while True:
-        data = stream.read(chunk_size)
-        if not data:
-            return None # No more data
-        yield data
+        b = h.read(1)
+        if b in (b'\n', b''):
+            break
+        header.extend(b)
 
-def encrypt_engine(padding_character=None):
+    LOG.debug(f'Found header: {header!r}')
+    enc_key_size, nonce_size, aes_mode, chunk_size, *rest = header.split(b'|')
+    assert( not rest )
+    return (int(enc_key_size),int(nonce_size), aes_mode.decode(), int(chunk_size))
 
-    if not padding_character:
-        padding_character = b' '
+def encrypt_engine():
+    '''Generator that takes a block of data as input and encrypts it as output.
+
+    The encryption algorithm is AES (in CTR mode), using a randomly-created session key.
+    The session key is encrypted with RSA.
+    '''
 
     LOG.info('Starting the cipher engine')
     session_key = get_random_bytes(32) # for AES-256
@@ -79,57 +89,78 @@ def encrypt_engine(padding_character=None):
     aes = AES.new(key=session_key, mode=AES.MODE_CTR)
 
     LOG.info('Creating RSA cypher')
-    rsa = PKCS1_OAEP.new(_master_key(), hashAlgo=SHA256)
+    rsa = PKCS1_OAEP.new(_master_key())
 
     encryption_key = rsa.encrypt(session_key)
     LOG.debug(f'\tencryption key = {encryption_key}')
 
-    chunk = yield (encryption_key, 'CTR', aes.block_size)
+    nonce = aes.nonce
+    LOG.debug(f'AES nonce: {nonce}')
+
+    clearchunk = yield (encryption_key, 'CTR', nonce)
 
     while True:
-        chunk_mod_16 = len(chunk) % 16
-        padding = None
-        if chunk_mod_16 != 0:
-            LOG.debug(f'Must pad the block: {chunk_mod_16}')
-            padding = padding_character * (16 - chunk_mod_16)
-            chunk += padding
+        clearchunk = yield aes.encrypt(clearchunk)
+        # if clearchunk is None:
+        #     LOG.info('Exiting the encryption engine')
+        #     break # exit the generator
 
-        chunk = yield (aes.encrypt(chunk),padding)
+class ReEncryptor(asyncio.SubprocessProtocol):
 
+    def __init__(self, hashAlgo, target_h, done):
+        self.done = done
+        self._buffer = bytearray()
+        engine = encrypt_engine()
+        self.chunk_size = CONF.getint('worker','random_access_chunk_size',fallback=1 << 26) # 67 MB or 2**26
+        self.target_handler = target_h
 
-def re_encrypt( stream, target ):
-    try:
-        with open(target, 'wb') as target_h:
+        try:
+            h = HASH_ALGORITHMS.get(hashAlgo)
+        except KeyError:
+            raise ValueError('No support for the secure hashing algorithm')
+        else:
+            self.digest = h()
 
-            engine = encrypt_engine()
-            chunks = chunker(stream)
+        encryption_key, mode, nonce = next(engine)
+        header = make_header(len(encryption_key), len(nonce), mode, self.chunk_size)
+        LOG.info(f'Writing header to file: {header[:-1]}')
+        self.target_handler.write(header.encode('utf-8')) # include \n
+        LOG.debug('Writing key to file')
+        self.target_handler.write(encryption_key)
+        LOG.debug('Writing nonce to file')
+        self.target_handler.write(nonce)
+        self.engine = engine
 
-            encryption_key, mode, block_size = next(engine)
-            chunk_size = next(chunks)
+    def pipe_data_received(self, fd, data):
+        # Data is of size: 32768 bytes
+        if not data:
+            return
+        if fd == 1:
+            self._buffer.extend(data)
+            while True:
+                if len(self._buffer) < self.chunk_size:
+                    break
+                data = self._buffer[:self.chunk_size]
+                self._process_chunk(data)
+                self._buffer = self._buffer[self.chunk_size:]
+        else:
+            LOG.debug(f'ignoring data on fd {fd}: {data}')
 
-            header = f'{len(encryption_key)}|{mode}|{block_size}|{chunk_size}'
-            LOG.info(f'Writing header to file: {header}')
-            target_h.write(header.encode('utf-8'))
-            target_h.write(b'\n')
+    def process_exited(self):
+        self._process_chunk(self._buffer)
+        self._buffer = bytearray()
+        # LOG.info('Closing the encryption engine')
+        # self.engine.send(None) # closing it
+        self.done.set_result(self.digest.hexdigest())
 
-            LOG.info('Writing key to file')
-            target_h.write(encryption_key)
+    def _process_chunk(self,data):
+        assert len(data) <= self.chunk_size, "Chunk too large"
+        LOG.debug('processing {} bytes of data'.format(len(data)))
+        data = bytes(data) # Not good!
+        self.digest.update(data)
+        cipherchunk = self.engine.send(data)
+        self.target_handler.write(cipherchunk)
 
-            LOG.info('Writing blocks to file')
-            for chunk in chunks:
-                cipherchunk, padding = engine.send(chunk)
-                target_h.write(cipherchunk)
-                if padding:
-                    LOG.debug('Padding size: {len(padding)}')
-                    target_h.write(f'\n#Padding size: {len(padding)}'.encode('utf-8'))
-
-        LOG.debug('File re-encrypted')
-        return 0
-    except Exception as e:
-        LOG.warning(f'{e!r}')
-        LOG.warning(f'Removing {target}')
-        os.remove(target)
-        return 1
 
 def ingest(enc_file,
            org_hash,
@@ -148,33 +179,138 @@ def ingest(enc_file,
               f'hash_algo = {hash_algo}\n'
               f'target    = {target}')
 
-    # Open the file in binary mode. No encoding dance.
-    with open(enc_file, 'rb') as enc_file_h:
+    code = [ CONF.get('worker','gpg_exec'),
+             '--homedir', CONF.get('worker','gpg_home'),
+             '--decrypt', enc_file
+    ]
 
-        ################# Decrypting using GPG
-        LOG.debug(f'GPG Decrypting: {enc_file}')
-        decrypted_content, _, _ = _gpg_ctx().decrypt(enc_file_h, verify=False) # passphrase is in gpg-agent
+    with open(target, 'wb') as target_h:
 
-        ################# Check integrity of decrypted content
-        LOG.debug(f'Verifying the {hash_algo} checksum of decrypted content of {enc_file}')
+        loop = asyncio.get_event_loop()
+        done = asyncio.Future(loop=loop)
+        reencrypt_protocol = ReEncryptor(hash_algo, target_h, done)
 
-        decrypted_stream = io.BytesIO(decrypted_content)
-        if not checksum.verify(decrypted_stream, org_hash, hashAlgo = hash_algo):
-            errmsg = f'Invalid {hash_algo} checksum for decrypted content of {enc_file}'
-            LOG.debug(errmsg)
-            raise Exception(errmsg)
+        async def _re_encrypt():
+            gpg_job = loop.subprocess_exec(lambda: reencrypt_protocol, *code,
+                                           stdin=None, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.DEVNULL)
+            transport, _ = await gpg_job
+            await done
+            gpg_retcode = transport.get_returncode()
+            transport.close()
+            return (gpg_retcode, done.result())
 
-        LOG.debug(f'Valid {hash_algo} checksum')
+        gpg_result, calculated_digest = loop.run_until_complete(_re_encrypt())
+        loop.close()
 
-        ################# Re-encrypt the file
-        LOG.debug(f'Re-encrypting into {target}')
-        decrypted_stream.seek(0)
-        return re_encrypt(decrypted_stream, target)
+        LOG.debug(f'Calculated digest: {calculated_digest}')
+        LOG.debug(f'Compared to digest: {org_hash}')
+        correct_digest = (calculated_digest == org_hash)
+
+    if gpg_result != 0 or not correct_digest:
+        errmsg = f'Invalid {hash_algo} checksum for decrypted content of {enc_file} or error re-encrypting it'
+        LOG.error(f'{errmsg!r}')
+        LOG.warning(f'Removing {target}')
+        os.remove(target)
+    else:
+        LOG.info(f'File encrypted')
+
+
+def chunker(stream, chunk_size=None):
+    """Lazy function (generator) to read a stream one chunk at a time."""
+
+    if not chunk_size:
+        chunk_size = CONF.getint('worker','random_access_chunk_size',fallback=1 << 26) # 67 MB or 2**26
+
+    assert(chunk_size >= 16)
+    #assert(chunk_size % 16 == 0)
+    LOG.debug(f'\tchunk size = {chunk_size}')
+    yield chunk_size
+    while True:
+        data = stream.read(chunk_size)
+        if not data:
+            return None # No more data
+        yield data
+
+def decrypt_engine(encrypted_session_key, aes_mode, nonce):
+
+    LOG.info('Starting the decipher engine')
+
+    LOG.info('Creating RSA cypher')
+    rsa = PKCS1_OAEP.new(_master_key())
+    session_key = rsa.decrypt(encrypted_session_key)
+
+    LOG.info(f'Creating AES cypher in mode {aes_mode}')
+    aes = AES.new(key=session_key, mode=getattr(AES, 'MODE_' + aes_mode), nonce=nonce)
+
+    LOG.info(f'Session key: {session_key}')
+    LOG.info(f'Nonce: {nonce}')
+
+    cipherchunk = yield
+
+    while True:
+        cipherchunk = yield aes.decrypt(cipherchunk)
+
+
+def decrypt_from_vault( source_h, target_h ):
+
+    LOG.debug('Decrypting file')
+    enc_key_size, nonce_size, aes_mode, chunk_size = from_header( source_h )
+
+    LOG.debug(f'encrypted_session_key (size): {enc_key_size}')
+    LOG.debug(f'aes mode: {aes_mode}')
+    LOG.debug(f'chunk size: {chunk_size}')
+
+    encrypted_session_key = source_h.read(enc_key_size)
+    nonce = source_h.read(nonce_size)
+
+    engine = decrypt_engine( encrypted_session_key, aes_mode=aes_mode.upper(), nonce=nonce )
+    next(engine) # start it
+
+    chunks = chunker(source_h, # the rest
+                     chunk_size)
+    next(chunks) # start it and ignore its return value
+
+    for chunk in chunks:
+        clearchunk = engine.send(chunk)
+        target_h.write(clearchunk)
+
 
 if __name__ == '__main__':
     import sys
     CONF.setup(sys.argv[1:]) # re-conf
 
-    stream = io.BytesIO(b'Hello ' * 2048)
+    # enc_file = '/Users/daz/Workspace/NBIS/Local-EGA/code/data/inbox/1002/test2'
+    # org_hash = '5f8159fcc117ea2cae98ce6e1c1a6261'
+    # hash_algo = 'md5'
+    # target = 'res.enc'
+    #
+    # ingest(enc_file,
+    #        org_hash,
+    #        hash_algo,
+    #        target)
 
-    re_encrypt( stream, 'res.enc' )
+    # with open('org.txt', 'wb') as f:
+    #     i = 1<<24
+    #     while i > 0:
+    #         f.write(str(i).encode())
+    #         f.write(b' ')
+    #         if i % 10 == 0:
+    #             f.write(b'\n')
+    #         i -= 1
+
+    enc_file = 'org.enc'
+    org_hash = '4325307ccaec085cd84fe04be95ee12f'
+    enc_hash = 'b99ad2de78378e798fbc6c7c0bf272af'
+    hash_algo = 'md5'
+    target = 'res.enc'
+    final = 'res.dec'
+
+    ingest(enc_file,
+           org_hash,
+           hash_algo,
+           target)
+
+    with open(target, 'rb') as enc_h, open(final,'wb') as final_h:
+        decrypt_from_vault( enc_h, final_h )
+
+
