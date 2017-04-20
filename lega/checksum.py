@@ -9,12 +9,14 @@ We will read the files in chunks of n bytes, where n is:
 '''
 
 import hashlib
+import logging
 
 HASH_ALGORITHMS = {
     'md5': (hashlib.md5,128 * 64),
     'sha256': (hashlib.sha256, 256 * 64),
 }
 
+LOG = logging.getLogger('checksum')
 
 def verify(data, digest, hashAlgo = 'md5'):
     '''Verify the integrity of a bytes-like object against a hash value'''
@@ -33,6 +35,10 @@ def verify(data, digest, hashAlgo = 'md5'):
             break
         m.update(d)
 
-    return m.hexdigest() == digest
+    res = m.hexdigest() == digest
+    LOG.debug(' Calculated digest: ' + m.hexdigest())
+    LOG.debug('Compared to digest: ' + digest)
+    LOG.debug('\tMatching: ' + str(res))
+    return res
 
 

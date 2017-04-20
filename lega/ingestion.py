@@ -36,9 +36,15 @@ from aiohttp_swaggerify import swaggerify
 import aiohttp_cors
 
 from .conf import CONF
-from .utils import mv as move_to_staging_area, get_data as parse_data, only_central_ega, get_inbox, staging_area as get_staging_area
 from . import checksum
 from . import amqp as broker
+from .utils import (
+    mv as move_to_staging_area,
+    get_data as parse_data,
+    only_central_ega,
+    get_inbox,
+    staging_area as get_staging_area
+)
 #from lega.db import Database
 
 LOG = logging.getLogger('ingestion')
@@ -101,8 +107,8 @@ def process_submission(submission):
         'user_id': user_id,
         'source': str(staging_filepath),
         'target' : str(staging_encfilepath),
-        'hash': submission_file['unencryptedIntegrity']['hash'],
-        'hash_algo': submission_file['unencryptedIntegrity']['algorithm'],
+        'hash': submission['unencryptedIntegrity']['hash'],
+        'hash_algo': submission['unencryptedIntegrity']['algorithm'],
     }
     _,channel = broker.get_connection()
     broker.publish(channel, json.dumps(msg), routing_to=CONF.get('message.broker','routing_todo'))
@@ -217,8 +223,7 @@ async def init(app):
                                         port=CONF.getint('db','port'),
                                         loop=app.loop) #database=CONF.get('db','uri'),
     except Exception as e:
-        print('Connection error to the Postgres database\n')
-        print(str(e))
+        print('Connection error to the Postgres database\n',str(e))
         app.loop.call_soon(app.loop.stop)
         app.loop.call_soon(app.loop.close)
         sys.exit(2)
@@ -257,8 +262,6 @@ def main(args=None):
 
     loop = asyncio.get_event_loop()
     server = web.Application(loop=loop)
-    executor = ProcessPoolExecutor(max_workers=None) # max_workers=None number of processors on the machine
-    loop.set_default_executor(executor)
 
     # Registering the routes
     server.router.add_get('/', index)
@@ -284,17 +287,20 @@ def main(args=None):
     server.on_cleanup.append(cleanup)
 
     # And ...... cue music!
-    web.run_app(server,
-                host=CONF.get('ingestion','host'),
-                port=CONF.getint('ingestion','port'),
-                shutdown_timeout=0,
-    )
-    # https://github.com/aio-libs/aiohttp/blob/master/aiohttp/web.py
-    # run_app already catches the KeyboardInterrupt and calls loop.close() at the end
+    with ProcessPoolExecutor(max_workers=None) as executor: # max_workers=None number of processors on the machine
+        loop.set_default_executor(executor)
+        web.run_app(server,
+                    host=CONF.get('ingestion','host'),
+                    port=CONF.getint('ingestion','port'),
+                    shutdown_timeout=0,
+        )
+        # https://github.com/aio-libs/aiohttp/blob/master/aiohttp/web.py
+        # run_app already catches the KeyboardInterrupt and calls loop.close() at the end
 
-    LOG.info('Shutting down the executor')
-    executor.shutdown(wait=True)
-    LOG.info('Exiting the Ingestion server')
+        # LOG.info('Shutting down the executor')
+        # executor.shutdown(wait=True)
+
+   LOG.info('Exiting the Ingestion server')
 
 if __name__ == '__main__':
     main()

@@ -52,8 +52,8 @@ def staging_area(submission_id, create=False, afterEncryption=False):
 
 def mv(filepath, target):
     '''Moving the file to the another location'''
-    #shutil.copyfile( filepath, target )
-    filepath.rename( target )
+    shutil.copyfile( str(filepath), str(target) )
+    #filepath.rename( target )
 
 def to_vault(filepath, submission_id, user_id):
     '''Moving the file to the vault'''
@@ -72,38 +72,18 @@ f_data = {
     "submissionId": "12345",
     "userId": "1002",
     "files": [
-        {  "filename":"test.gpg",
-           "encryptedIntegrity": {
-               "hash": "efee20c02c7f51a53652c53cf703ef34",
-               "algorithm": "md5"
-           },
-           "unencryptedIntegrity": {
-               "hash": "8e5cf4650dc93d88b23ca16ee8f08222",
-               "algorithm": "sha256"
-           },
+        {  "filename":"test2",
+           "encryptedIntegrity": { "hash": "4c69a65417205d4766afbc18e38a5abd", "algorithm": "md5" },
+           "unencryptedIntegrity": { "hash": "5f8159fcc117ea2cae98ce6e1c1a6261", "algorithm": "md5" },
         },
-        {
-            "filename":"test2",
-            "encryptedIntegrity": {
-                "hash": "f6b86fe7ddcb72d0471b40663bd31c84e61f474a53b668b6915e81ca8062ff3c",
-                "algorithm": "sha256"
-            },
-            "unencryptedIntegrity": {
-                "hash": "ddaad93d5c412b05ecbff8683e9cae32871fb28d5a026dfcd3575b82cd80b320",
-                "algorithm": "sha256"
-            },
+        {  "filename":"test1",
+           "encryptedIntegrity": { "hash": "ef46a1eff5fcc521e0fb5f2da8a78ab8", "algorithm": "md5" },
+           "unencryptedIntegrity": { "hash": "29da20d8dc8ab1a8830c0ea0c4d7e41a84d82cf040ae4c7932145bd5fd7cded3", "algorithm": "sha256" },
         },
-        {
-            "filename":"test3",
-            "encryptedIntegrity": {
-                "hash": "f6b86fe7ddcb72d0471b40663bd31c84e61f474a53b668b6915e81ca8062ff3c",
-                "algorithm": "sha256"
-            },
-            "unencryptedIntegrity": {
-                "hash": "ddaad93d5c412b05ecbff8683e9cae32871fb28d5a026dfcd3575b82cd80b320",
-                "algorithm": "sha256"
-            },
-        }
+        {  "filename":"test3",
+           "encryptedIntegrity": { "hash": "d8bd5bf0178691b1dcd8f2a2e212fb188ac4f89c36d3a744b2e2ec157c426eac", "algorithm": "sha256" },
+           "unencryptedIntegrity": { "hash": "ddaad93d5c412b05ecbff8683e9cae32871fb28d5a026dfcd3575b82cd80b320", "algorithm": "sha256" },
+        },
     ],
 }
 
@@ -111,72 +91,43 @@ f_data2 = {
     "submissionId": "738",
     "userId": "1003",
     "files":[
-        {
-            "filename":"test-1.gpg",
-            "encryptedIntegrity": { "hash": "8e41457344f195b29cfc4b37148385967c434ffeda958a47d3d7afbcc69323b6", "algorithm": "sha256" },
-            "unencryptedIntegrity": { "hash": "29da20d8dc8ab1a8830c0ea0c4d7e41a84d82cf040ae4c7932145bd5fd7cded3", "algorithm": "sha256" }
-        },{
-            "filename":"test-bla.gpg",
-            "encryptedIntegrity": { "hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "algorithm": "sha256" },
-            "unencryptedIntegrity": { "hash": "29da20d8dc8ab1a8830c0ea0c4d7e41a84d82cf040ae4c7932145bd5fd7cded3", "algorithm": "sha256" }
-        },{
-            "filename":"test-2.gpg",
-            "encryptedIntegrity": { "hash": "8e41457344f195b29cfc4b37148385967c434ffeda958a47d3d7afbcc69323b6", "algorithm": "sha256" },
-            "unencryptedIntegrity": { "hash": "29da20d8dc8ab1a8830c0ea0c4d7e41a84d82cf040ae4c7932145bd5fd7cded3", "algorithm": "sha256" }
-        },{
-            "filename":"test-4.gpg",
-            "encryptedIntegrity": { "hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "algorithm": "sha256" },
-            "unencryptedIntegrity": { "hash": "29da20d8dc8ab1a8830c0ea0c4d7e41a84d82cf040ae4c7932145bd5fd7cded3", "algorithm": "sha256" }
-        },{
-            "filename":"test-5.gpg",
-            "encryptedIntegrity": { "hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "algorithm": "md4" },
-            "unencryptedIntegrity": { "hash": "29da20d8dc8ab1a8830c0ea0c4d7e41a84d82cf040ae4c7932145bd5fd7cded3", "algorithm": "sha1" }
-        },{
-            "filename":"test-6.gpg",
-            "encryptedIntegrity": { "hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "algorithm": "sha256" },
-            "unencryptedIntegrity": { "hash": "29da20d8dc8ab1a8830c0ea0c4d7e41a84d82cf040ae4c7932145bd5fd7cded3", "algorithm": "sha256" }
-        },{
-            "filename":"test-3.gpg",
-            "encryptedIntegrity": { "hash": "8e41457344f195b29cfc4b37148385967c434ffeda958a47d3d7afbcc69323b6", "algorithm": "sha256" },
-            "unencryptedIntegrity": { "hash": "29da20d8dc8ab1a8830c0ea0c4d7e41a84d82cf040ae4c7932145bd5fd7cded3", "algorithm": "sha256" }
-        },{
-            "filename":"test-7.gpg",
-            "encryptedIntegrity": { "hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "algorithm": "sha256" },
-            "unencryptedIntegrity": { "hash": "29da20d8dc8ab1a8830c0ea0c4d7e41a84d82cf040ae4c7932145bd5fd7cded3", "algorithm": "sha256" }
-        },{
-            "filename":"test-8.gpg",
-            "encryptedIntegrity": { "hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "algorithm": "sha256" },
-            "unencryptedIntegrity": { "hash": "29da20d8dc8ab1a8830c0ea0c4d7e41a84d82cf040ae4c7932145bd5fd7cded3", "algorithm": "sha256" }
-        },{
-            "filename":"test-9.gpg",
-            "encryptedIntegrity": { "hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "algorithm": "sha256" },
-            "unencryptedIntegrity": { "hash": "29da20d8dc8ab1a8830c0ea0c4d7e41a84d82cf040ae4c7932145bd5fd7cded3", "algorithm": "sha256" }
-        },{
-            "filename":"test-a.gpg",
-            "encryptedIntegrity": { "hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "algorithm": "sha256" },
-            "unencryptedIntegrity": { "hash": "29da20d8dc8ab1a8830c0ea0c4d7e41a84d82cf040ae4c7932145bd5fd7cded3", "algorithm": "sha256" }
-        },{
-            "filename":"test-b.gpg",
-            "encryptedIntegrity": { "hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "algorithm": "sha256" },
-            "unencryptedIntegrity": { "hash": "29da20d8dc8ab1a8830c0ea0c4d7e41a84d82cf040ae4c7932145bd5fd7cded3", "algorithm": "sha256" }
-        },{
-            "filename":"test-c.gpg",
-            "encryptedIntegrity": { "hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "algorithm": "sha256" },
-            "unencryptedIntegrity": { "hash": "29da20d8dc8ab1a8830c0ea0c4d7e41a84d82cf040ae4c7932145bd5fd7cded3", "algorithm": "sha256" }
-        },{
-            "filename":"test-d.gpg",
-            "encryptedIntegrity": { "hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "algorithm": "sha256" },
-            "unencryptedIntegrity": { "hash": "29da20d8dc8ab1a8830c0ea0c4d7e41a84d82cf040ae4c7932145bd5fd7cded3", "algorithm": "sha256" }
-        },{
-            "filename":"test-e.gpg",
-            "encryptedIntegrity": { "hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "algorithm": "sha256" },
-            "unencryptedIntegrity": { "hash": "29da20d8dc8ab1a8830c0ea0c4d7e41a84d82cf040ae4c7932145bd5fd7cded3", "algorithm": "sha256" }
-        },{
-            "filename":"test-f.gpg",
-            "encryptedIntegrity": { "hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "algorithm": "sha1" },
-            "unencryptedIntegrity": { "hash": "29da20d8dc8ab1a8830c0ea0c4d7e41a84d82cf040ae4c7932145bd5fd7cded3", "algorithm": "sha1" }
-        }
-    ]
+        {  "filename":"test-1",
+           "encryptedIntegrity": { "hash": "ef46a1eff5fcc521e0fb5f2da8a78ab8", "algorithm": "md5" },
+           "unencryptedIntegrity": { "hash": "29da20d8dc8ab1a8830c0ea0c4d7e41a84d82cf040ae4c7932145bd5fd7cded3", "algorithm": "sha256" },
+        },
+        {  "filename":"test-2",
+           "encryptedIntegrity": { "hash": "ef46a1eff5fcc521e0fb5f2da8a78ab8", "algorithm": "md5" },
+           "unencryptedIntegrity": { "hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "algorithm": "sha256" },
+        },
+        {  "filename":"test-3",
+           "encryptedIntegrity": { "hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "algorithm": "md5" },
+           "unencryptedIntegrity": { "hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "algorithm": "sha256" },
+        },
+        {  "filename":"test-4",
+           "encryptedIntegrity": { "hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "algorithm": "md5" },
+           "unencryptedIntegrity": { "hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "algorithm": "sha256" },
+        },
+        {  "filename":"test-5",
+           "encryptedIntegrity": { "hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "algorithm": "md5" },
+           "unencryptedIntegrity": { "hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "algorithm": "sha256" },
+        },
+        {  "filename":"test-6",
+           "encryptedIntegrity": { "hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "algorithm": "md5" },
+           "unencryptedIntegrity": { "hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "algorithm": "sha256" },
+        },
+        {  "filename":"test-7",
+           "encryptedIntegrity": { "hash": "0bd39dd908ecee4a97f0c25c1e8e272b6456fa48b09521982008f03b2403bcd", "algorithm": "sha256" },
+           "unencryptedIntegrity": { "hash": "29da20d8dc8ab1a8830c0ea0c4d7e41a84d82cf040ae4c7932145bd5fd7cded3", "algorithm": "sha256" },
+        },
+        {  "filename":"test-8",
+           "encryptedIntegrity": { "hash": "ef46a1eff5fcc521e0fb5f2da8a78ab8", "algorithm": "md5" },
+           "unencryptedIntegrity": { "hash": "29da20d8dc8ab1a8830c0ea0c4d7e41a84d82cf040ae4c7932145bd5fd7cded3", "algorithm": "sha256" },
+        },
+        {  "filename":"test-9",
+           "encryptedIntegrity": { "hash": "0bd39dd908ecee4a97f0c25c1e8e272b6456fa48b09521982008f03b2403bcd6", "algorithm": "sha256" },
+           "unencryptedIntegrity": { "hash": "29da20d8dc8ab1a8830c0ea0c4d7e41a84d82cf040ae4c7932145bd5fd7cded3", "algorithm": "sha256" },
+        },
+    ],
 }
 
 def fake_data():
