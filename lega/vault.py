@@ -41,13 +41,18 @@ def work(message_id, body):
 
         data = json.loads(body)
 
-        utils.to_vault(
-            filepath      = data['filepath'],
-            submission_id = data['submission_id'],
-            user_id       = data['user_id']
-        )
+        submission_id = data['submission_id']
+        user_id       = data['user_id']
+        filepath      = Path(data['filepath'])
+
+        vault_area = Path( CONF.get('vault','location')) / submission_id
+        vault_area.mkdir(parents=True, exist_ok=True) # re-create
+
+        target = vault_area / filepath.parts[-1]
+        utils.to_vault(filepath, target)
 
         # Mark it as processed in DB
+        # TODO
 
         return None
 
