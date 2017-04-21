@@ -9,7 +9,7 @@ loggers:
     handlers: [console]
   ingestion:
     level: DEBUG
-    handlers: [ingestionFile] #[console,ingestionRotatingFile]
+    handlers: [ingestionFile] #[console,ingestionRotatingFile,ingestionEmail]
   worker:
     level: DEBUG
     handlers: [workerFile]
@@ -42,6 +42,13 @@ handlers:
     interval: 30
     encoding: 'utf-8'
     filename: 'logs/ingestion.log'
+  ingestionEmail:
+    class: logging.handlers.SMTPHandler
+    mailhost: nbis.se
+    fromaddr: logger@ega.se
+    toaddrs: frederic.haziza@nbis.se
+    subject: "Logger info"
+    #credentials=None, secure=None, timeout=1.0
   ingestionFile:
     class: logging.FileHandler
     formatter: legaSmall
