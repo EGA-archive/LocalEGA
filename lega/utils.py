@@ -1,5 +1,6 @@
 import json
 import os
+import stat
 #import logging
 from pathlib import Path
 import shutil
@@ -50,26 +51,29 @@ def staging_area(submission_id, create=False, afterEncryption=False):
         area.mkdir(parents=True, exist_ok=True) # re-create
     return area
 
-def mv(filepath, target):
+def _mv(filepath, target):
     '''Moving the file to the another location'''
     shutil.copyfile( str(filepath), str(target) )
     #filepath.rename( target )
 
-def to_vault(filepath, submission_id, user_id):
-    '''Moving the file to the vault'''
-    vault_area = Path( CONF.get('vault','location')) / submission_id
-    vault_area.mkdir(parents=True, exist_ok=True) # re-create
+def move_to_staging_area(filepath, target):
+    #return _mv(filepath, target)
+    return os.chmod(filepath, mode = stat.S_IRUSR) # 400: Remove write permissions
 
-    filepath = Path(filepath) # In case it's a str
-    target = vault_area / filepath.parts[-1]
+def to_vault(filepath, target):
+    assert isinstance(filepath, Path)
     filepath.rename(target)
 
 def get_data(data):
-    return json.loads(b64decode(data))
+    try:
+        return json.loads(b64decode(data))
+    except Exception as e:
+        print(repr(e))
+        return None
     #return json.loads(msgpack.unpackb(data))
 
 
-def checksum(data, digest, hashAlgo = 'md5'):
+def checksum(data, digest, hashAlgo = 'md5', block_size=8192):
     '''Verify the integrity of a bytes-like object against a hash value'''
 
     assert( isinstance(digest,str) )
@@ -77,13 +81,13 @@ def checksum(data, digest, hashAlgo = 'md5'):
     try:
         import hashlib
         from .crypto import HASH_ALGORITHMS
-        h,hash_block_size = HASH_ALGORITHMS.get(hashAlgo)
+        h = HASH_ALGORITHMS.get(hashAlgo)
     except KeyError:
         raise Exception('No support for the secure hashing algorithm')
 
     m = h()
     while True:
-        d = data.read(hash_block_size)
+        d = data.read(block_size)
         if not d:
             break
         m.update(d)

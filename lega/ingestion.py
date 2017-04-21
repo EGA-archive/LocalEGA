@@ -16,6 +16,7 @@ We provide:
 | [LocalEGA-URL]/              |       GET       |                |
 | [LocalEGA-URL]/ingest        |      POST       | requires login |
 | [LocalEGA-URL]/create-inbox  |       GET       | requires login |
+| [LocalEGA-URL]/status/<name> |       GET       |                |
 |------------------------------|-----------------|----------------|
 
 :author: Frédéric Haziza
@@ -38,7 +39,7 @@ import aiohttp_cors
 from .conf import CONF
 from . import amqp as broker
 from .utils import (
-    mv as move_to_staging_area,
+    move_to_staging_area,
     get_data as parse_data,
     only_central_ega,
     get_inbox,
@@ -65,6 +66,22 @@ async def create_inbox(request):
     Not implemented yet.
     '''
     raise web.HTTPBadRequest(text=f'\n{Fore.BLACK}{Back.RED}Not implemented yet!{Back.RESET}{Fore.RESET}\n\n')
+
+@only_central_ega
+async def outgest(request):
+    '''Outgestion endpoint
+
+    Not implemented yet.
+    '''
+    raise web.HTTPBadRequest(text=f'\n{Fore.BLACK}{Back.RED}Not implemented yet!{Back.RESET}{Fore.RESET}\n\n')
+
+async def status(request):
+    '''Status endpoint
+
+    Not implemented yet.
+    '''
+    filename = request.match_info['file']
+    raise web.HTTPBadRequest(text=f'No info about "{filename}" yet...\n')
 
 def process_submission(submission):
     '''Main function to process a submission.
@@ -97,8 +114,10 @@ def process_submission(submission):
     LOG.debug(f'Valid {hash_algo} checksum for {inbox_filepath}')
 
     ################# Moving encrypted file to staging area
+    LOG.debug(f'Locking the file {inbox_filepath}')
     move_to_staging_area( inbox_filepath, staging_filepath )
-    LOG.debug(f'File moved:\n\tfrom {inbox_filepath}\n\tto {staging_filepath}')
+    staging_filepath = inbox_filepath
+    #LOG.debug(f'File moved:\n\tfrom {inbox_filepath}\n\tto {staging_filepath}')
 
     ################# Publish internal message for the workers
     # In the separate process
@@ -141,8 +160,7 @@ async def ingest(request):
     data = parse_data(await request.read())
 
     if not data:
-        raise web.HTTPBadRequest()
-        #return web.Response(text='"Error: Empty POST data"', status=403)
+        raise web.HTTPBadRequest(text='ERROR with POST data\n')
 
     response = web.StreamResponse(status=200,
                                   reason='OK',
@@ -248,7 +266,6 @@ async def swagger(request):
 def main(args=None):
 
     if not args:
-        import sys
         args = sys.argv[1:]
 
     if '--conf' not in args:
@@ -264,29 +281,35 @@ def main(args=None):
     server = web.Application(loop=loop)
 
     # Registering the routes
-    server.router.add_get('/', index)
-    server.router.add_post('/ingest', ingest)
-    server.router.add_get('/create-inbox', create_inbox)
+    LOG.info('Registering routes')
+    server.router.add_get( '/'             , index        , name='root'       )
+    server.router.add_post('/ingest'       , ingest       , name='ingestion'  )
+    server.router.add_get( '/create-inbox' , create_inbox , name='inbox'      )
+    server.router.add_get( '/status/{file}', status       , name='status'     )
+    server.router.add_post('/outgest'      , outgest      , name='outgestion' )
 
-    # Swagger endpoint: /swagger.json
-    swaggerify(server)
-    cors = aiohttp_cors.setup(server) # Must enable CORS
-    for route in server.router.routes(): # I don't bother and enable CORS for all routes
-        cors.add(route, {
-            CONF.get('swagger','url') : aiohttp_cors.ResourceOptions(
-                allow_credentials=True,
-                expose_headers=("X-Custom-Server-Header",),
-                allow_headers=("X-Requested-With", "Content-Type"),
-                max_age=3600,
-            )
-        })
+    # # Swagger endpoint: /swagger.json
+    # LOG.info('Preparing for Swagger')
+    # swaggerify(server)
+    # cors = aiohttp_cors.setup(server) # Must enable CORS
+    # for route in server.router.routes(): # I don't bother and enable CORS for all routes
+    #     cors.add(route, {
+    #         CONF.get('swagger','url') : aiohttp_cors.ResourceOptions(
+    #             allow_credentials=True,
+    #             expose_headers=("X-Custom-Server-Header",),
+    #             allow_headers=("X-Requested-With", "Content-Type"),
+    #             max_age=3600,
+    #         )
+    #     })
 
     # Registering some initialization and cleanup routines
+    LOG.info('Setting up callbacks')
     server.on_startup.append(init)
     server.on_shutdown.append(shutdown)
     server.on_cleanup.append(cleanup)
 
     # And ...... cue music!
+    LOG.info('Starting the real deal')
     with ProcessPoolExecutor(max_workers=None) as executor: # max_workers=None number of processors on the machine
         loop.set_default_executor(executor)
         web.run_app(server,
@@ -300,9 +323,8 @@ def main(args=None):
         # LOG.info('Shutting down the executor')
         # executor.shutdown(wait=True)
 
-   LOG.info('Exiting the Ingestion server')
+    LOG.info('Exiting the Ingestion server')
 
 if __name__ == '__main__':
     main()
-
 
