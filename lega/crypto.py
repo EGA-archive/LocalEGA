@@ -182,6 +182,8 @@ def ingest(enc_file,
              '--decrypt', enc_file
     ]
 
+    LOG.debug(f'Prepare Decryption with {code}')
+
     with open(target, 'wb') as target_h:
 
         loop = asyncio.get_event_loop()
@@ -190,7 +192,11 @@ def ingest(enc_file,
 
         async def _re_encrypt():
             gpg_job = loop.subprocess_exec(lambda: reencrypt_protocol, *code,
-                                           stdin=None, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.DEVNULL)
+                                           stdin=None,
+                                           stdout=asyncio.subprocess.PIPE,
+                                           stderr=asyncio.subprocess.DEVNULL # This doesn't seem to work
+                                                                             # Adding 2>/dev/null to code works.
+            )
             transport, _ = await gpg_job
             await done
             gpg_retcode = transport.get_returncode()
@@ -198,7 +204,7 @@ def ingest(enc_file,
             return (gpg_retcode, done.result())
 
         gpg_result, calculated_digest = loop.run_until_complete(_re_encrypt())
-        loop.close()
+        #loop.close()
 
         LOG.debug(f'Calculated digest: {calculated_digest}')
         LOG.debug(f'Compared to digest: {org_hash}')
@@ -209,6 +215,7 @@ def ingest(enc_file,
         LOG.error(f'{errmsg!r}')
         LOG.warning(f'Removing {target}')
         os.remove(target)
+        raise Exception(errmsg)
     else:
         LOG.info(f'File encrypted')
 
