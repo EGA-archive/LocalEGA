@@ -30,6 +30,7 @@ file passed to `--conf` as a command-line arguments.
 The `--log <file>` argument is used to configuration where the logs go.
 Without it, there is no logging capabilities.
 The `<file>` can be in `INI` or `YAML` format.
+An example is provided in [log.yaml](./tools/log.yaml).
 
 ## Prior to running the Local EGA components
 
