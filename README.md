@@ -21,6 +21,9 @@ The settings are loaded, in order:
 * from `~/.lega/conf.ini`
 * and finally from the file specified as the `--conf` argument.
 
+Note: it is necessary to either update `~/.lega/conf.ini` or create your own file passed to `--conf` as a command-line arguments.
+The `defaults.ini` contains key/value pairs that should be reset.
+
 ## Logging
 
 The `--log <file>` argument is used to configuration where the logs go.
