@@ -23,7 +23,7 @@ The settings are loaded, in order:
 
 Note: No need to update the `defaults.ini`. Instead, to reset any
 key/value pairs, either update `~/.lega/conf.ini` or create your own
-file passed to `--conf` as a command-line arguments,
+file passed to `--conf` as a command-line arguments.
 
 ## Logging
 
