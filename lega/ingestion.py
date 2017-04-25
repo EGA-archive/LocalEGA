@@ -24,7 +24,6 @@ We provide:
 '''
 
 import sys
-from os import environ as env
 import logging
 import asyncio
 import json
@@ -267,13 +266,6 @@ def main(args=None):
 
     if not args:
         args = sys.argv[1:]
-
-    if '--conf' not in args:
-        conf_file = env.get('LEGA_CONF')
-        if conf_file:
-            print(f'USING {conf_file} as configuration file')
-            args.append('--conf')
-            args.append(conf_file)
 
     CONF.setup(args) # re-conf
 
