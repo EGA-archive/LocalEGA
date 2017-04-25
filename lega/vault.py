@@ -27,6 +27,7 @@ import logging
 import json
 import traceback
 from pathlib import Path
+import requests
 
 from .conf import CONF
 from . import crypto
@@ -46,11 +47,15 @@ def work(message_id, body):
         user_id       = data['user_id']
         filepath      = Path(data['filepath'])
 
-        vault_area = Path( CONF.get('vault','location')) / submission_id
+        vault_area = Path( CONF.get('vault','location') )
         vault_area.mkdir(parents=True, exist_ok=True) # re-create
 
-        target = vault_area / filepath.parts[-1]
-        utils.to_vault(filepath, target)
+        name = requests.get('http://{}:{}/'.format(CONF.get('namer','host',fallback='localhost'),
+                                                   CONF.get('namer','port',fallback=8080)),
+                            headers={'X-LocalEGA-Sweden':'yes'})
+
+        target = vault_area / name
+        filepath.rename(target) # move
 
         # Mark it as processed in DB
         # TODO
