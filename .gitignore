@@ -2,10 +2,12 @@
 .#*
 .DS_Store
 tmp/
-tools/
 private/
 logs/
 *.conf
+tools/start*.sh
+tools/create_data.sh
+tools/*.sql
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -34,67 +34,16 @@ It is necessary to have the following, already running:
 * a message broker, and
 * a postgres database
 
+We provide scripts in the [tools folder](./tools) as suggestions to start the above components.
+Rename the `*.sh.sample` files into their corresponding `*.sh` and update the sensitive data in them.
 
-The following scripts are suggestions to start the above components.
+For the **database**, use `./tools/start_db.sh` which boots a docker container.
+		
+For the **message broker**, use `./tools/start_mq.sh` which boots a docker container with RabbitMQ and its management plugin.
+Note: it also configures the broker's exchange, the 3 queues, and the bindings.
 
-For the **database**, we can use a docker container and boot it with:
+Finally, the **gpg-agent** can be started ahead of time as using `./tools/start_agent.sh`.
+The script kills any other gpg-agent and boots a new one (version 2.0), with the passphrase preset for the EGA gpg-key.
+You should not forget to source the created `[GNUPGHOME]/agent.env` so that the workers find the gpg-agent.
+Note: This will be unnecessary with version `2.1`
 
-        #!/usr/bin/env bash
-
-        CONTAINER=ega-db
-        POSTGRES_USER=postgres
-        POSTGRES_PASSWORD=mysecretpassword
-
-        # Kill the previous container
-        docker kill ${CONTAINER} || true #&& docker rm  ${CONTAINER}
-
-        # Starting RabbitMQ with docker
-        docker run -it --rm -d --hostname localhost -p 5432:5432 --name ${CONTAINER} postgres
-        # The image includes EXPOSE 5432
-
-For the **message broker**, we can use a docker container booting RabbitMQ (with the management plugin)
-
-        #!/usr/bin/env bash
-
-        CONTAINER=ingestion-mq
-        DOCKER_EXEC="docker exec -it ${CONTAINER}"
-
-        # Kill the previous container
-        docker kill ${CONTAINER} || true #&& docker rm  ${CONTAINER}
-
-        # Starting RabbitMQ with docker
-        docker run -it --rm -d --hostname localhost -p 4369:4369 -p 5671:5671 -p 5672:5672 -p 15671:15671 -p 15672:15672 -p 25672:25672 --name ${CONTAINER} rabbitmq:management
-
-        echo "Waiting 10 seconds for the container to start"
-        sleep 10
-
-        # Updating it
-        ${DOCKER_EXEC} rabbitmqctl set_disk_free_limit 1GB
-
-        # Create the exchange
-        curl -i -u guest:guest -H "content-type:application/json" -X PUT -d '{"type":"topic","durable":true}' http://localhost:15672/api/exchanges/%2f/lega
-
-        # Create the queues
-        curl -i -u guest:guest -H "content-type:application/json" -X PUT -d '{"durable":true}' http://localhost:15672/api/queues/%2f/tasks
-        curl -i -u guest:guest -H "content-type:application/json" -X PUT -d '{"durable":true}' http://localhost:15672/api/queues/%2f/completed
-        curl -i -u guest:guest -H "content-type:application/json" -X PUT -d '{"durable":true}' http://localhost:15672/api/queues/%2f/errors
-        #curl -i -u guest:guest -H "content-type:application/json" -X PUT -d '{"durable":true}' http://localhost:15672/api/queues/%2f/vault_errors
-
-        # Binding them to the amq.topic exchange
-        curl -i -u guest:guest -H "content-type:application/json" -X POST -d '{"routing_key":"lega.task.todo"}' http://localhost:15672/api/bindings/%2f/e/lega/q/tasks
-        curl -i -u guest:guest -H "content-type:application/json" -X POST -d '{"routing_key":"lega.task.complete"}' http://localhost:15672/api/bindings/%2f/e/lega/q/completed
-        curl -i -u guest:guest -H "content-type:application/json" -X POST -d '{"routing_key":"lega.errors"}' http://localhost:15672/api/bindings/%2f/e/lega/q/errors
-        #curl -i -u guest:guest -H "content-type:application/json" -X POST -d '{"routing_key":"vault_errors"}' http://localhost:15672/api/bindings/%2f/e/amq.topic/q/vault_errors
-
-
-The above curl calls simply set up the 3 queues, the exchange and the bindings.
-
-Finally, the **gpg-agent** can be started ahead of time as follows:
-
-        export GNUPGHOME=<LEGA_HOME>/private/gpg
-        gpg-agent --daemon --homedir $GNUPGHOME
-        gpg-preset-passphrase -P <PASSPHRASE> --preset <KEYGRIP>
-
-The `KEYGRIP` is the fingerprint of the secret gpg key, and the `PASSPHRASE` is its associated ...hm...passphrase.
-This only matters for the worker agents.
-Note: make `GNUPGHOME` points to the right folder (the one containing the public and secret rings)

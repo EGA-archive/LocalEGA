@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+CONTAINER=ega-db
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD='<password-here>'
+
+# Kill the previous container
+docker kill ${CONTAINER} || true #&& docker rm  ${CONTAINER}
+
+# Starting RabbitMQ with docker
+docker run -it --rm -d --hostname localhost -p 5432:5432 --name ${CONTAINER} postgres
+# The image includes EXPOSE 5432
