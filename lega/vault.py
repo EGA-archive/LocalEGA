@@ -26,6 +26,7 @@ import os
 import logging
 import json
 import traceback
+from pathlib import Path
 
 from .conf import CONF
 from . import crypto
