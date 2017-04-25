@@ -25,7 +25,7 @@ The settings are loaded, in order:
 
 The `--log <file>` argument is used to configuration where the logs go.
 Without it, there is no logging capabilities.
-The <file> can be in `INI` or `YAML` format.
+The `<file>` can be in `INI` or `YAML` format.
 
 ## Prior to running the Local EGA components
 
@@ -37,7 +37,7 @@ It is necessary to have the following, already running:
 
 The following scripts are suggestions to start the above components.
 
-For the database, we can use a docker container and boot it with:
+For the **database**, we can use a docker container and boot it with:
 
         #!/usr/bin/env bash
 
@@ -52,7 +52,7 @@ For the database, we can use a docker container and boot it with:
         docker run -it --rm -d --hostname localhost -p 5432:5432 --name ${CONTAINER} postgres
         # The image includes EXPOSE 5432
 
-For the message broker, we can use a docker container booting RabbitMQ (with the management plugin)
+For the **message broker**, we can use a docker container booting RabbitMQ (with the management plugin)
 
         #!/usr/bin/env bash
 
@@ -89,7 +89,7 @@ For the message broker, we can use a docker container booting RabbitMQ (with the
 
 The above curl calls simply set up the 3 queues, the exchange and the bindings.
 
-Finally, the gpg-agent can be started ahead of time as follows:
+Finally, the **gpg-agent** can be started ahead of time as follows:
 
         export GNUPGHOME=<LEGA_HOME>/private/gpg
         gpg-agent --daemon --homedir $GNUPGHOME
