@@ -135,6 +135,7 @@ class ReEncryptor(asyncio.SubprocessProtocol):
             return
         if fd == 1:
             self._buffer.extend(data)
+            self.digest.update(data)
             while True:
                 if len(self._buffer) < self.chunk_size:
                     break
@@ -145,7 +146,8 @@ class ReEncryptor(asyncio.SubprocessProtocol):
             LOG.debug(f'ignoring data on fd {fd}: {data}')
 
     def process_exited(self):
-        self._process_chunk(self._buffer)
+        if len(self._buffer) > 0:
+            self._process_chunk(self._buffer)
         self._buffer = bytearray()
         # LOG.info('Closing the encryption engine')
         # self.engine.send(None) # closing it
@@ -155,7 +157,6 @@ class ReEncryptor(asyncio.SubprocessProtocol):
         assert len(data) <= self.chunk_size, "Chunk too large"
         LOG.debug('processing {} bytes of data'.format(len(data)))
         data = bytes(data) # Not good!
-        self.digest.update(data)
         cipherchunk = self.engine.send(data)
         self.target_handler.write(cipherchunk)
 

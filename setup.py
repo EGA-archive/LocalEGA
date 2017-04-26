@@ -1,9 +1,10 @@
 from setuptools import setup
 from lega import __version__ as lega_version
 from markdown import markdown
+from pathlib import Path
 
 def readme():
-    with open('README.md') as f:
+    with open(Path(__file__).parent / 'README.md') as f:
         return markdown(f.read())
 
 setup(name='lega',
@@ -15,11 +16,14 @@ setup(name='lega',
       description='Local EGA',
       long_description=readme(),
       packages=['lega'],
+      include_package_data=True,
+      zip_safe=True,
       entry_points={
           'console_scripts': [
               'ega-ingestion = lega.ingestion:main',
               'ega-worker = lega.worker:main',
-              'ega-vault = lega.vault:main'
+              'ega-vault = lega.vault:main',
+              'ega-conf = lega.__main__:main',
           ]
       },
       platforms = 'any',
@@ -33,6 +37,4 @@ setup(name='lega',
           'aiohttp-cors==0.5.2',
           #'Markdown==2.6.8',
       ],
-      include_package_data=True,
-      zip_safe=True,
 )
