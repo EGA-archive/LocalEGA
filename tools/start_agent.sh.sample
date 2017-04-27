@@ -23,7 +23,7 @@ source $GNUPGHOME/agent.env
 
 KEYGRIP=$($GPG_EXEC --homedir $GNUPGHOME --fingerprint --fingerprint ega@nbis.se |\
 	      grep fingerprint | tail -1 | cut -d= -f2 | sed -e 's/ //g')
-${GPG_PRESET} --preset -P $PASSPHRASE $KEYGRIP
+${GPG_PRESET} --preset -P "$PASSPHRASE" "$KEYGRIP"
 
 echo 'All good'
 echo "Don't forget to source the file $GNUPGHOME/agent.env"
