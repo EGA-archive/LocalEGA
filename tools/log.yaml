@@ -14,6 +14,10 @@ loggers:
     level: DEBUG
     handlers: [workerFile]
     propagate: no
+  vault:
+    level: DEBUG
+    handlers: [vaultFile]
+    propagate: no
   amqp:
     level: DEBUG
     handlers: [amqpFile]
@@ -22,19 +26,47 @@ loggers:
     level: DEBUG
     handlers: [dbFile]
     propagate: no
-  checksum:
-    level: DEBUG
-    handlers: [checksumFile]
-    propagate: no
   crypto:
     level: DEBUG
     handlers: [cryptoFile]
 
 handlers:
+  noHandler:
+    class: logging.NullHandler
+    level: NOTSET
   console:
     class: logging.StreamHandler
     formatter: simple
     stream: ext://sys.stdout
+  ingestionFile:
+    class: logging.FileHandler
+    formatter: legaSmall
+    filename: 'logs/ingestion.log'
+  vaultFile:
+    class: logging.FileHandler
+    formatter: legaSmall
+    filename: 'logs/vault.log'
+  workerFile:
+    class: logging.handlers.TimedRotatingFileHandler
+    formatter: lega
+    when: 'D'
+    interval: 30
+    encoding: 'utf-8'
+    filename: 'logs/worker.log'
+  cryptoFile:
+    class: logging.FileHandler
+    formatter: legaSmall
+    filename: 'logs/crypto.log'
+  amqpFile:
+    class: logging.FileHandler
+    formatter: lega
+    filename: 'logs/amqp.log'
+    mode: 'w'
+  dbFile:
+    class: logging.FileHandler
+    formatter: lega
+    filename: 'logs/db.log'
+    mode: 'w'
   ingestionRotatingFile:
     class: logging.handlers.TimedRotatingFileHandler
     formatter: lega
@@ -49,43 +81,6 @@ handlers:
     toaddrs: frederic.haziza@nbis.se
     subject: "Logger info"
     #credentials=None, secure=None, timeout=1.0
-  ingestionFile:
-    class: logging.FileHandler
-    formatter: legaSmall
-    filename: 'logs/ingestion.log'
-  checksumFile:
-    class: logging.FileHandler
-    formatter: legaSmall
-    filename: 'logs/checksum.log'
-  cryptoFile:
-    class: logging.FileHandler
-    formatter: legaSmall
-    filename: 'logs/crypto.log'
-  workerFile:
-    class: logging.handlers.TimedRotatingFileHandler
-    formatter: lega
-    when: 'D'
-    interval: 30
-    encoding: 'utf-8'
-    filename: 'logs/worker.log'
-  mainFile:
-    class: logging.FileHandler
-    formatter: lega
-    filename: 'logs/main.log'
-    mode: 'w'
-  amqpFile:
-    class: logging.FileHandler
-    formatter: lega
-    filename: 'logs/amqp.log'
-    mode: 'w'
-  dbFile:
-    class: logging.FileHandler
-    formatter: lega
-    filename: 'logs/db.log'
-    mode: 'w'
-  noHandler:
-    class: logging.NullHandler
-    level: NOTSET
 
 formatters:
   lega:

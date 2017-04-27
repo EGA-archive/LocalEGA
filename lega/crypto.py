@@ -8,8 +8,6 @@
 #
 ####################################
 '''
-# https://wiki.gnupg.org/APIs
-# https://wiki.python.org/moin/GnuPrivacyGuard
 
 import logging
 import io
@@ -135,6 +133,7 @@ class ReEncryptor(asyncio.SubprocessProtocol):
             return
         if fd == 1:
             self._buffer.extend(data)
+            self.digest.update(data)
             while True:
                 if len(self._buffer) < self.chunk_size:
                     break
@@ -145,7 +144,8 @@ class ReEncryptor(asyncio.SubprocessProtocol):
             LOG.debug(f'ignoring data on fd {fd}: {data}')
 
     def process_exited(self):
-        self._process_chunk(self._buffer)
+        if len(self._buffer) > 0:
+            self._process_chunk(self._buffer)
         self._buffer = bytearray()
         # LOG.info('Closing the encryption engine')
         # self.engine.send(None) # closing it
@@ -155,7 +155,6 @@ class ReEncryptor(asyncio.SubprocessProtocol):
         assert len(data) <= self.chunk_size, "Chunk too large"
         LOG.debug('processing {} bytes of data'.format(len(data)))
         data = bytes(data) # Not good!
-        self.digest.update(data)
         cipherchunk = self.engine.send(data)
         self.target_handler.write(cipherchunk)
 
@@ -184,6 +183,8 @@ def ingest(enc_file,
 
     LOG.debug(f'Prepare Decryption with {code}')
 
+    _errmsg = None
+
     with open(target, 'wb') as target_h:
 
         loop = asyncio.get_event_loop()
@@ -194,8 +195,7 @@ def ingest(enc_file,
             gpg_job = loop.subprocess_exec(lambda: reencrypt_protocol, *code,
                                            stdin=None,
                                            stdout=asyncio.subprocess.PIPE,
-                                           stderr=asyncio.subprocess.DEVNULL # This doesn't seem to work
-                                                                             # Adding 2>/dev/null to code works.
+                                           stderr=asyncio.subprocess.DEVNULL # suppressing progress messages
             )
             transport, _ = await gpg_job
             await done
@@ -210,12 +210,17 @@ def ingest(enc_file,
         LOG.debug(f'Compared to digest: {org_hash}')
         correct_digest = (calculated_digest == org_hash)
 
-    if gpg_result != 0 or not correct_digest:
-        errmsg = f'Invalid {hash_algo} checksum for decrypted content of {enc_file} or error re-encrypting it'
-        LOG.error(f'{errmsg!r}')
+        if gpg_result != 0:
+            _errmsg = f'Error re-encrypting it'
+
+        if gpg_result != 0 or not correct_digest:
+            _errmsg = f'Invalid {hash_algo} checksum for decrypted content of {enc_file}'
+
+    if _errmsg:
+        LOG.error(f'{_errmsg!r}')
         LOG.warning(f'Removing {target}')
         os.remove(target)
-        raise Exception(errmsg)
+        raise Exception(_errmsg)
     else:
         LOG.info(f'File encrypted')
 
@@ -278,44 +283,5 @@ def decrypt_from_vault( source_h, target_h ):
     for chunk in chunks:
         clearchunk = engine.send(chunk)
         target_h.write(clearchunk)
-
-
-if __name__ == '__main__':
-    import sys
-    CONF.setup(sys.argv[1:]) # re-conf
-
-    # enc_file = '/Users/daz/Workspace/NBIS/Local-EGA/code/data/inbox/1002/test2'
-    # org_hash = '5f8159fcc117ea2cae98ce6e1c1a6261'
-    # hash_algo = 'md5'
-    # target = 'res.enc'
-    #
-    # ingest(enc_file,
-    #        org_hash,
-    #        hash_algo,
-    #        target)
-
-    # with open('tmp/org.txt', 'wb') as f:
-    #     i = 1<<24
-    #     while i > 0:
-    #         f.write(str(i).encode())
-    #         f.write(b' ')
-    #         if i % 10 == 0:
-    #             f.write(b'\n')
-    #         i -= 1
-
-    enc_file = 'tmp/org.enc'
-    org_hash = '4325307ccaec085cd84fe04be95ee12f'
-    enc_hash = 'b99ad2de78378e798fbc6c7c0bf272af'
-    hash_algo = 'md5'
-    target = 'tmp/res.enc'
-    final = 'tmp/res.dec'
-
-    ingest(enc_file,
-           org_hash,
-           hash_algo,
-           target)
-
-    with open(target, 'rb') as enc_h, open(final,'wb') as final_h:
-        decrypt_from_vault( enc_h, final_h )
 
 

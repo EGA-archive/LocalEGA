@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+
+set -e
+#set -x
+
+pkill gpg-agent || true
+
+INGESTION_HOME="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"/..
+PASSPHRASE='<your-gpg-passphrase-here>'
+HEXPWD=$(python -c "import binascii; print(binascii.hexlify(b'${PASSPHRASE}'))")
+
+GPG_EXEC=/usr/local/Cellar/gnupg/2.0.30_3/bin/gpg
+GPG_AGENT_EXEC=/usr/local/Cellar/gpg-agent/2.0.30_1/bin/gpg-agent
+GPG_PRESET=/usr/local/Cellar/gpg-agent/2.0.30_1/libexec/gpg-preset-passphrase
+
+export GNUPGHOME=$INGESTION_HOME/private/gpg
+# GPG agent and homedir
+rm -f $GNUPGHOME/agent.env
+${GPG_AGENT_EXEC} --daemon --homedir $GNUPGHOME --write-env-file $GNUPGHOME/agent.env &>/dev/null
+echo "export GPG_AGENT_INFO" >> $GNUPGHOME/agent.env
+echo "export GNUPGHOME=$GNUPGHOME" >> $GNUPGHOME/agent.env
+source $GNUPGHOME/agent.env
+
+KEYGRIP=$($GPG_EXEC --homedir $GNUPGHOME --fingerprint --fingerprint ega@nbis.se |\
+	      grep fingerprint | tail -1 | cut -d= -f2 | sed -e 's/ //g')
+${GPG_PRESET} --preset -P "$PASSPHRASE" "$KEYGRIP"
+
+echo 'All good'
+echo "Don't forget to source the file $GNUPGHOME/agent.env"

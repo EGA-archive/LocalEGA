@@ -1,0 +1,49 @@
+version: 1
+root:
+  level: NOTSET
+  handlers: [noHandler]
+
+loggers:
+  asyncio:
+    level: DEBUG
+    handlers: [console]
+  ingestion:
+    level: DEBUG
+    handlers: [mainFile]
+  worker:
+    level: DEBUG
+    handlers: [mainFile]
+  vault:
+    level: DEBUG
+    handlers: [mainFile]
+  amqp:
+    level: DEBUG
+    handlers: [mainFile]
+  db:
+    level: DEBUG
+    handlers: [mainFile]
+  crypto:
+    level: DEBUG
+    handlers: [mainFile]
+
+handlers:
+  noHandler:
+    class: logging.NullHandler
+    level: NOTSET
+  console:
+    class: logging.StreamHandler
+    formatter: simple
+    stream: ext://sys.stdout
+  mainFile:
+    class: logging.FileHandler
+    formatter: lega
+    filename: '/Users/daz/_ega/logs/main.log'
+    mode: 'w'
+
+formatters:
+  lega:
+    format: '[{name}][{process:d} {processName:>15}][{levelname}][{asctime:<20}] ({lineno}) {funcName}: {message}'
+    style: '{'
+  simple:
+    format: '[{name:^10}][{levelname:^6}] {message}'
+    style: '{'

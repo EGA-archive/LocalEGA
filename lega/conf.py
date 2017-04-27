@@ -70,16 +70,6 @@ class Configuration(configparser.SafeConfigParser):
         # Finding the --log file
         try:
             lconf = Path(args[ args.index('--log') + 1 ])
-            if lconf.exists():
-                LOG.info(f'Reading the log configuration from: {lconf}')
-                if lconf.suffix in ('.yaml', '.yml'):
-                    with open(lconf, 'r') as stream:
-                        dictConfig(yaml.load(stream))
-                        self.log_conf = lconf
-                else: # It's an ini file
-                    fileConfig(lconf)
-                    self.log_conf = lconf
-
         except ValueError:
             LOG.info("--log <file> was not mentioned")
         except (TypeError, AttributeError): # if args = None
@@ -87,9 +77,23 @@ class Configuration(configparser.SafeConfigParser):
         except IndexError:
             LOG.error("Wrong use of --log <file>")
             sys.exit(2)
-        except Exception as e:
-            print(repr(e))
-            sys.exit(2)
+        else:
+            try:
+                #if lconf.exists():
+                LOG.info(f'Reading the log configuration from: {lconf}')
+                if lconf.suffix in ('.yaml', '.yml'):
+                    with open(lconf, 'r') as stream:
+                        dictConfig(yaml.load(stream))
+                        self.log_conf = lconf
+                else: # It's an ini file
+                    print('it is an INI file')
+                    fileConfig(lconf)
+                    self.log_conf = lconf
+                # else:
+                #     print(f'{lconf} not found')
+            except Exception as e:
+                print(repr(e))
+                sys.exit(2)
 
     def __repr__(self):
         '''Show the configuration files'''
@@ -99,4 +103,3 @@ class Configuration(configparser.SafeConfigParser):
         return res
 
 CONF = Configuration()
-

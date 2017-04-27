@@ -60,10 +60,6 @@ def move_to_staging_area(filepath, target):
     #return _mv(filepath, target)
     return os.chmod(filepath, mode = stat.S_IRUSR) # 400: Remove write permissions
 
-def to_vault(filepath, target):
-    assert isinstance(filepath, Path)
-    filepath.rename(target)
-
 def get_data(data):
     try:
         return json.loads(b64decode(data))

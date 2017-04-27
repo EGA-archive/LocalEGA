@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+
+set -e # stop on errors
+set -x # show me the commands
+
+# This script takes ONE file and encrypts it 3 times
+# to fake-create 3 data files in some user inbox.
+# The checksums are re-calculated too.
+# Note: you need to update the following variables
+
+INBOX="<absolute-path-is-simpler>"
+LEGA_USER="<some-number>"
+LEGA_SUBMISSION="<some-other-number>"
+SRC_FILE="<where-the-original-file-is>"
+JSON_FILE="<where-the-json-file-will-be>"
+GPG_EXEC="<path-to-gpg>"
+source "<gnupg-home-folder-for-local-ega>"/agent.env
+
+# Init
+DST_FOLDER=$INBOX/$LEGA_USER
+rm -rf $DST_FOLDER
+mkdir -p $DST_FOLDER
+
+# Encryption
+${GPG_EXEC} -e -r ega@nbis.se -o $DST_FOLDER/data1 $SRC_FILE
+${GPG_EXEC} -e -r ega@nbis.se -o $DST_FOLDER/data2 $SRC_FILE
+${GPG_EXEC} -e -r ega@nbis.se -o $DST_FOLDER/data3 $SRC_FILE
+
+# Calculate the checksums and Create the JSON file
+JSON_FILE=/Users/daz/Workspace/NBIS/Local-EGA/code/src/tmp/data.json
+
+function checksum {
+    if [ $2 = 'md5' ]; then
+	md5 $1 |cut -d= -f2 | sed -e 's/ //g'
+    fi
+    if [ $2 = 'sha256' ]; then
+        shasum -a 256 $1 | cut -d' ' -f1
+    fi
+}
+
+function make_data {
+    cat >> $JSON_FILE <<EOF
+{"filename": "$1",
+ "encryptedIntegrity": { "hash": "$(checksum $DST_FOLDER/$1 $2)", "algorithm": "$2"},
+ "unencryptedIntegrity": { "hash": "$(checksum $SRC_FILE $3)", "algorithm": "$3" }
+}
+EOF
+}
+
+cat > $JSON_FILE <<EOF
+{ "submissionId": "$LEGA_SUBMISSION",
+  "userId": "$LEGA_USER",
+  "files": [
+EOF
+
+make_data data1 md5 sha256
+echo ',' >> $JSON_FILE
+make_data data2 md5 md5
+echo ',' >> $JSON_FILE
+make_data data3 sha256 sha256
+echo ']}' >> $JSON_FILE
