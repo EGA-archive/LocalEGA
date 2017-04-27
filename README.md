@@ -52,3 +52,9 @@ The script kills any other gpg-agent and boots a new one (version 2.0), with the
 You should not forget to source the created `[GNUPGHOME]/agent.env` so that the workers find the gpg-agent.
 Note: This will be unnecessary with version `2.1`
 
+We also start another particular component: the fake *file-namer*, to
+pose as CentralEGA. It is supposed to return a stable id which we'll
+use as the name for a file in the vault. This component is started
+with `python namer.py` (with `--log <file> --conf <file>` if
+necessary). It uses a file called `namer.counter` in the same folder
+as the script, which contains a number.
