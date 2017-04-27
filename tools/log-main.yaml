@@ -27,6 +27,9 @@ loggers:
     handlers: [mainFile]
 
 handlers:
+  noHandler:
+    class: logging.NullHandler
+    level: NOTSET
   console:
     class: logging.StreamHandler
     formatter: simple
@@ -36,9 +39,6 @@ handlers:
     formatter: lega
     filename: '/Users/daz/_ega/logs/main.log'
     mode: 'w'
-  noHandler:
-    class: logging.NullHandler
-    level: NOTSET
 
 formatters:
   lega:

@@ -48,14 +48,19 @@ def work(message_id, body):
         filepath      = Path(data['filepath'])
 
         vault_area = Path( CONF.get('vault','location') )
-        vault_area.mkdir(parents=True, exist_ok=True) # re-create
+        
+        req = requests.get('http://{}:{}/'.format(CONF.get('namer','host',fallback='localhost'),
+                                                  CONF.get('namer','port',fallback=8080)),
+                           headers={'X-LocalEGA-Sweden':'yes'})
+        name = req.text.strip()
+        name_bits = [name[i:i+3] for i in range(0, len(name), 3)]
 
-        name = requests.get('http://{}:{}/'.format(CONF.get('namer','host',fallback='localhost'),
-                                                   CONF.get('namer','port',fallback=8080)),
-                            headers={'X-LocalEGA-Sweden':'yes'})
-
-        target = vault_area / name
-        filepath.rename(target) # move
+        LOG.debug(f'Name bits: {name_bits!r}')
+        target = vault_area.joinpath(*name_bits)
+        LOG.debug(f'Target: {target}')
+        target.parent.mkdir(parents=True, exist_ok=True)
+        LOG.debug('Target parent: {}'.format(target.parent))
+        filepath.rename( target ) # move
 
         # Mark it as processed in DB
         # TODO
@@ -81,6 +86,21 @@ def main(args=None):
         from_queue = CONF.get('vault','message_queue')
     )
     return 0
+
+def test():
+    print('==== Test ====')
+    CONF.setup(sys.argv) # re-conf
+    vault_area = Path( CONF.get('vault','location') )
+    print('==== Vault ====', vault_area)
+    name = '{0:021d}'.format(12345)
+    print('==== Name  ====', name)
+    name_bits = [Path(name[i:i+3]) for i in range(0, len(name), 3)]
+    print('==== Name bits=', name_bits)
+    target = vault_area.joinpath(*name_bits)
+    print('==== Target ===', target)
+    print('==== Folder ===', target.parent)
+    target.parent.mkdir(parents=True, exist_ok=True)
+
 
 if __name__ == '__main__':
     sys.exit( main() )
