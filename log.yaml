@@ -1,0 +1,99 @@
+version: 1
+root:
+  level: NOTSET
+  handlers: [noHandler]
+
+loggers:
+  asyncio:
+    level: DEBUG
+    handlers: [console]
+  ingestion:
+    level: DEBUG
+    handlers: [ingestionFile] #[console,ingestionRotatingFile,ingestionEmail]
+  worker:
+    level: DEBUG
+    handlers: [workerFile]
+    propagate: no
+  amqp:
+    level: DEBUG
+    handlers: [amqpFile]
+    propagate: no
+  db:
+    level: DEBUG
+    handlers: [dbFile]
+    propagate: no
+  checksum:
+    level: DEBUG
+    handlers: [checksumFile]
+    propagate: no
+  crypto:
+    level: DEBUG
+    handlers: [cryptoFile]
+
+handlers:
+  console:
+    class: logging.StreamHandler
+    formatter: simple
+    stream: ext://sys.stdout
+  ingestionRotatingFile:
+    class: logging.handlers.TimedRotatingFileHandler
+    formatter: lega
+    when: 'D'
+    interval: 30
+    encoding: 'utf-8'
+    filename: 'logs/ingestion.log'
+  ingestionEmail:
+    class: logging.handlers.SMTPHandler
+    mailhost: nbis.se
+    fromaddr: logger@ega.se
+    toaddrs: frederic.haziza@nbis.se
+    subject: "Logger info"
+    #credentials=None, secure=None, timeout=1.0
+  ingestionFile:
+    class: logging.FileHandler
+    formatter: legaSmall
+    filename: 'logs/ingestion.log'
+  checksumFile:
+    class: logging.FileHandler
+    formatter: legaSmall
+    filename: 'logs/checksum.log'
+  cryptoFile:
+    class: logging.FileHandler
+    formatter: legaSmall
+    filename: 'logs/crypto.log'
+  workerFile:
+    class: logging.handlers.TimedRotatingFileHandler
+    formatter: lega
+    when: 'D'
+    interval: 30
+    encoding: 'utf-8'
+    filename: 'logs/worker.log'
+  mainFile:
+    class: logging.FileHandler
+    formatter: lega
+    filename: 'logs/main.log'
+    mode: 'w'
+  amqpFile:
+    class: logging.FileHandler
+    formatter: lega
+    filename: 'logs/amqp.log'
+    mode: 'w'
+  dbFile:
+    class: logging.FileHandler
+    formatter: lega
+    filename: 'logs/db.log'
+    mode: 'w'
+  noHandler:
+    class: logging.NullHandler
+    level: NOTSET
+
+formatters:
+  lega:
+    format: '[{name}][{process:d} {processName:>15}][{levelname}][{asctime:<20}] ({lineno}) {funcName}: {message}'
+    style: '{'
+  legaSmall:
+    format: '[{name}][PID:{process:^5d}][{levelname:^6}] {message}'
+    style: '{'
+  simple:
+    format: '[{name:^10}][{levelname:^6}] {message}'
+    style: '{'
