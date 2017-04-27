@@ -49,8 +49,7 @@ def work(message_id, body):
 
         vault_area = Path( CONF.get('vault','location') )
         
-        req = requests.get('http://{}:{}/'.format(CONF.get('namer','host',fallback='localhost'),
-                                                  CONF.get('namer','port',fallback=8080)),
+        req = requests.get(CONF.get('namer','location'),
                            headers={'X-LocalEGA-Sweden':'yes'})
         name = req.text.strip()
         name_bits = [name[i:i+3] for i in range(0, len(name), 3)]

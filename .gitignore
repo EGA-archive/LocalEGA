@@ -9,6 +9,7 @@ tools/start*.sh
 tools/create_data.sh
 tools/*.sql
 tools/namer.counter
+tests/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
