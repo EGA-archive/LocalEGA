@@ -4,29 +4,36 @@ root:
   handlers: [noHandler]
 
 loggers:
+  asyncio:
+    level: DEBUG
+    handlers: [console]
   ingestion:
-    level: INFO
-    handlers: [mainFile]
+    level: DEBUG
+    handlers: [mainFile,console]
   worker:
-    level: INFO
+    level: DEBUG
     handlers: [mainFile]
   vault:
-    level: INFO
+    level: DEBUG
     handlers: [mainFile]
   amqp:
-    level: WARNING
+    level: DEBUG
     handlers: [mainFile]
   db:
-    level: WARNING
+    level: DEBUG
     handlers: [mainFile]
   crypto:
-    level: WARNING
+    level: DEBUG
     handlers: [mainFile]
 
 handlers:
   noHandler:
     class: logging.NullHandler
     level: NOTSET
+  console:
+    class: logging.StreamHandler
+    formatter: simple
+    stream: ext://sys.stdout
   mainFile:
     class: logging.FileHandler
     formatter: lega
@@ -36,4 +43,7 @@ handlers:
 formatters:
   lega:
     format: '[{name}][{process:d} {processName:>15}][{levelname}][{asctime:<20}] ({lineno}) {funcName}: {message}'
+    style: '{'
+  simple:
+    format: '[{name:^10}][{levelname:^6}] {message}'
     style: '{'

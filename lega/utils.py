@@ -1,6 +1,4 @@
 import json
-import os
-import stat
 #import logging
 from pathlib import Path
 import shutil
@@ -42,23 +40,18 @@ def only_central_ega(async_func):
 def get_inbox(userId):
     return Path( CONF.get('ingestion','inbox',raw=True) % { 'userId': userId } )
 
-def staging_area(submission_id, create=False, afterEncryption=False):
+def get_staging_area(submission_id, create=False):
     '''Build the staging area'''
-    group = '_enc' if afterEncryption else ''
-    area = Path( CONF.get('ingestion','staging',raw=True) % { 'submission': submission_id } + group)
+    area = Path( CONF.get('ingestion','staging',raw=True) % { 'submission': submission_id } )
     if create:
         shutil.rmtree(area, ignore_errors=True) # delete
         area.mkdir(parents=True, exist_ok=True) # re-create
     return area
 
-def _mv(filepath, target):
-    '''Moving the file to the another location'''
-    shutil.copyfile( str(filepath), str(target) )
-    #filepath.rename( target )
-
-def move_to_staging_area(filepath, target):
-    #return _mv(filepath, target)
-    return os.chmod(filepath, mode = stat.S_IRUSR) # 400: Remove write permissions
+def clean_staging_area(submission_id):
+    '''Removes the staging area'''
+    area = Path( CONF.get('ingestion','staging',raw=True) % { 'submission': submission_id } )
+    shutil.rmtree(area, ignore_errors=True) # delete
 
 def get_data(data):
     try:
@@ -67,7 +60,6 @@ def get_data(data):
         print(repr(e))
         return None
     #return json.loads(msgpack.unpackb(data))
-
 
 def checksum(data, digest, hashAlgo = 'md5', block_size=8192):
     '''Verify the integrity of a bytes-like object against a hash value'''
