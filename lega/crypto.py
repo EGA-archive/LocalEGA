@@ -102,6 +102,13 @@ def encrypt_engine():
         #     break # exit the generator
 
 class ReEncryptor(asyncio.SubprocessProtocol):
+    '''Re-encryption protocol.
+
+    Each block of data received from the pipe is added to a buffer.
+    When the buffer grows over a certain size `s`, the `s` first bytes of the buffer are re-encrypted using RSA/AES.
+
+    We also calculate the checksum of the data received in the pipe.
+    '''
 
     def __init__(self, hashAlgo, target_h, done):
         self.done = done

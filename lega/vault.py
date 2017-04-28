@@ -37,6 +37,7 @@ from . import utils
 LOG = logging.getLogger('vault')
 
 def work(message_id, body):
+    '''Procedure to handle a message'''
 
     LOG.debug(f"Processing message: {message_id}")
     try:
@@ -80,26 +81,8 @@ def main(args=None):
 
     CONF.setup(args) # re-conf
 
-    broker.consume(
-        broker.process(work),
-        from_queue = CONF.get('vault','message_queue')
-    )
-    return 0
-
-def test():
-    print('==== Test ====')
-    CONF.setup(sys.argv) # re-conf
-    vault_area = Path( CONF.get('vault','location') )
-    print('==== Vault ====', vault_area)
-    name = '{0:021d}'.format(12345)
-    print('==== Name  ====', name)
-    name_bits = [Path(name[i:i+3]) for i in range(0, len(name), 3)]
-    print('==== Name bits=', name_bits)
-    target = vault_area.joinpath(*name_bits)
-    print('==== Target ===', target)
-    print('==== Folder ===', target.parent)
-    target.parent.mkdir(parents=True, exist_ok=True)
-
+    broker.consume( work,
+                    from_queue = CONF.get('vault','message_queue'))
 
 if __name__ == '__main__':
-    sys.exit( main() )
+    main()
