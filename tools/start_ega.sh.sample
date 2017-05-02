@@ -3,21 +3,17 @@
 set -e
 #set -x
 
-
 EGA='<ega-folder>'
 [ -n "$1" ] && [ -d "$1" ] && EGA=$1
-
-EGA_AGENT=$EGA/private/gpg/agent.env
-[ ! -f $EGA_AGENT ] && $EGA/tools/start_agent.sh
 
 LOG=""
 [ "$2" = '--log' ] && LOG="--log <file>"
 
-
 declare -A JOB_PIDS
 function cleanup {
     echo -e "\nStopping background jobs"
-    kill -9 $(jobs -p) &>/dev/null
+    #kill -9 $(jobs -p) &>/dev/null
+    for job in ${JOB_PIDS[@]}; do kill -9 $job &>/dev/null; done
     #exit 1
 }
 trap 'cleanup' INT TERM #EXIT #HUP ERR
@@ -28,23 +24,29 @@ echo "Starting EGA in $EGA"
 
 pushd $EGA
 
+# Start the frontend
 ega-ingestion $LOG &
 JOB_PIDS['ingestion']=$!
 
+# Start the naming service
 python $EGA/tools/namer.py &
 JOB_PIDS['namer']=$!
 
+# Start the vault listener
 ega-vault $LOG &
 JOB_PIDS['vault']=$!
 
-source $EGA_AGENT && ega-worker $LOG &
+# re-start the GPG agent
+$EGA/tools/start_agent.sh
+# Start 2 workers
+source $EGA/private/gpg/agent.env && ega-worker $LOG &
 JOB_PIDS['worker-1']=$!
-source $EGA_AGENT && ega-worker $LOG &
+source $EGA/private/gpg/agent.env && ega-worker $LOG &
 JOB_PIDS['worker-2']=$!
 
 
+# Wait for everyone to finish
 for job in ${JOB_PIDS[@]}; do wait $job; done
 
 popd
-
 echo "EGA is closing down"
