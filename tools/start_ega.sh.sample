@@ -12,9 +12,15 @@ LOG=""
 declare -A JOB_PIDS
 function cleanup {
     echo -e "\nStopping background jobs"
-    #kill -9 $(jobs -p) &>/dev/null
-    for job in ${JOB_PIDS[@]}; do kill -9 $job &>/dev/null; done
-    #exit 1
+    kill -9 -"$$"
+    # for job in ${!JOB_PIDS[@]}
+    # do
+    # 	SIGNAL=9
+    # 	if [ "$job" = "ingestion" ]; then SIGNAL=2; fi
+    # 	echo "Killing $job (pid: ${JOB_PIDS[$job]})"
+    # 	kill -$SIGNAL ${JOB_PIDS[$job]} #&>/dev/null
+    # done
+    exit 1
 }
 trap 'cleanup' INT TERM #EXIT #HUP ERR
 # Or just kill the parent. That should kill the processes in that process group
@@ -25,28 +31,26 @@ echo "Starting EGA in $EGA"
 pushd $EGA
 
 # Start the frontend
-ega-ingestion $LOG &
-JOB_PIDS['ingestion']=$!
+ega-ingestion $LOG & JOB_PIDS['ingestion']=$!
 
 # Start the naming service
-python $EGA/tools/namer.py &
-JOB_PIDS['namer']=$!
+python $EGA/tools/namer.py & JOB_PIDS['namer']=$!
 
 # Start the vault listener
-ega-vault $LOG &
-JOB_PIDS['vault']=$!
+ega-vault $LOG & JOB_PIDS['vault']=$!
 
 # re-start the GPG agent
 $EGA/tools/start_agent.sh
 # Start 2 workers
-source $EGA/private/gpg/agent.env && ega-worker $LOG &
-JOB_PIDS['worker-1']=$!
-source $EGA/private/gpg/agent.env && ega-worker $LOG &
-JOB_PIDS['worker-2']=$!
-
+source $EGA/private/gpg/agent.env && ega-worker $LOG & JOB_PIDS['worker-1']=$!
+source $EGA/private/gpg/agent.env && ega-worker $LOG & JOB_PIDS['worker-2']=$!
 
 # Wait for everyone to finish
-for job in ${JOB_PIDS[@]}; do wait $job; done
+for job in ${!JOB_PIDS[@]}
+do
+    echo "Waiting for $job (pid: ${JOB_PIDS[$job]})"
+    wait ${JOB_PIDS[$job]}
+done
 
 popd
 echo "EGA is closing down"
