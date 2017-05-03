@@ -7,6 +7,13 @@ from .conf import CONF
 LOG = logging.getLogger('amqp')
 
 def get_connection():
+    '''Returns a pair of blocking (connection,channel)
+       to the Message Broker supporting AMQP
+
+       The host, portm virtual_host, username, password and
+       heartbeat values are set from the configuration files.
+    '''
+
     params = {
         'host': CONF.get('message.broker','host',fallback='localhost'),
         'port': CONF.getint('message.broker','port',fallback=5672),
@@ -29,7 +36,8 @@ def get_connection():
     return (connection,channel)
 
 
-def process(work):
+def _process(work):
+    '''Doc TODO'''
     def process_request(channel, method_frame, props, body):
         correlation_id = props.correlation_id
         message_id = method_frame.delivery_tag
@@ -59,10 +67,13 @@ def process(work):
     return process_request
 
 
-def consume(on_request, from_queue):
+def consume(work, from_queue):
+    '''Blocking function, registering callback to be called, on each message from the queue `from_queue`
+
+    If there are no message in `from_queue`, the function blocks and waits for new messages'''
 
     connection, channel = get_connection()
-    channel.basic_consume(on_request, queue=from_queue)
+    channel.basic_consume(_process(work), queue=from_queue)
 
     try:
         channel.start_consuming()
@@ -73,6 +84,7 @@ def consume(on_request, from_queue):
 
 
 def publish(channel, message, routing_to):
+    '''Publish a message to the exchange using a routing key `routing_to`'''
 
     args = { 'correlation_id': str(uuid.uuid4()),
              'delivery_mode': 2, # make message persistent

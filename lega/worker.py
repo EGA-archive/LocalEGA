@@ -36,6 +36,7 @@ from . import amqp as broker
 LOG = logging.getLogger('worker')
 
 def work(message_id, body):
+    '''Procedure to handle a message'''
 
     LOG.debug("Processing message: {}".format(message_id))
     try:
@@ -72,12 +73,8 @@ def main(args=None):
 
     CONF.setup(args) # re-conf
 
-    broker.consume(
-        broker.process(work),
-        from_queue = CONF.get('worker','message_queue')
-    )
-    return 0
+    broker.consume( work,
+                    from_queue = CONF.get('worker','message_queue') )
 
 if __name__ == '__main__':
-    sys.exit( main() )
-
+    main()
