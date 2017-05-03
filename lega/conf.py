@@ -38,7 +38,7 @@ class Configuration(configparser.SafeConfigParser):
     conf_file = None
     log_conf = None
 
-    def setup(self,args=None, encoding='utf-8'):
+    def _load_conf(self,args=None, encoding='utf-8'):
         f'''Loads the configuration files in order:
            1) {_config_files[0]}
            2) {_config_files[1]}
@@ -67,33 +67,41 @@ class Configuration(configparser.SafeConfigParser):
 
         self.read(_config_files, encoding=encoding)
 
+    def _load_log_file(self,filename):
+        try:
+            #if lconf.exists():
+            LOG.info(f'Reading the log configuration from: {filename}')
+            if filename.suffix in ('.yaml', '.yml'):
+                with open(filename, 'r') as stream:
+                    dictConfig(yaml.load(stream))
+                    self.log_conf = filename
+            else: # It's an ini file
+                fileConfig(filename)
+                self.log_conf = filename
+        except Exception as e:
+            print(e)
+            sys.exit(2)
+
+    def _load_log_conf(self,args=None):
         # Finding the --log file
         try:
             lconf = Path(args[ args.index('--log') + 1 ])
+            self._load_log_file(lconf)
         except ValueError:
             LOG.info("--log <file> was not mentioned")
+            default_log_conf = Path(self.get('DEFAULT','log_conf',fallback=None))
+            if default_log_conf:
+                self._load_log_file(default_log_conf)
         except (TypeError, AttributeError): # if args = None
             pass # No log conf
         except IndexError:
             LOG.error("Wrong use of --log <file>")
             sys.exit(2)
-        else:
-            try:
-                #if lconf.exists():
-                LOG.info(f'Reading the log configuration from: {lconf}')
-                if lconf.suffix in ('.yaml', '.yml'):
-                    with open(lconf, 'r') as stream:
-                        dictConfig(yaml.load(stream))
-                        self.log_conf = lconf
-                else: # It's an ini file
-                    print('it is an INI file')
-                    fileConfig(lconf)
-                    self.log_conf = lconf
-                # else:
-                #     print(f'{lconf} not found')
-            except Exception as e:
-                print(repr(e))
-                sys.exit(2)
+
+    def setup(self,args=None, encoding='utf-8'):
+        self._load_conf(args,encoding)
+        self._load_log_conf(args)
+
 
     def __repr__(self):
         '''Show the configuration files'''

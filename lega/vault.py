@@ -62,6 +62,13 @@ def work(message_id, body):
         LOG.debug('Target parent: {}'.format(target.parent))
         filepath.rename( target ) # move
 
+        # remove it empty
+        try:
+            filepath.parent.rmdir()
+            LOG.debug('Removing {}'.format(filepath.parent))
+        except OSError:
+            pass
+            
         # Mark it as processed in DB
         # TODO
 

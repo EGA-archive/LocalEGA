@@ -311,6 +311,8 @@ def main(args=None):
 
         # LOG.info('Shutting down the executor')
         # executor.shutdown(wait=True)
+        # # Done on exit of the with statement
+        # # https://github.com/python/cpython/blob/master/Lib/concurrent/futures/_base.py#L580-L582
 
     LOG.info('Exiting the Ingestion server')
 
