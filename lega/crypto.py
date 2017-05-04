@@ -217,11 +217,11 @@ def ingest(enc_file,
         LOG.debug(f'Compared to digest: {org_hash}')
         correct_digest = (calculated_digest == org_hash)
 
-        if gpg_result != 0:
-            _errmsg = f'Error re-encrypting it'
-
-        if gpg_result != 0 or not correct_digest:
+        if not correct_digest:
             _errmsg = f'Invalid {hash_algo} checksum for decrypted content of {enc_file}'
+        if gpg_result != 0: # Swapped order on purpose
+            _errmsg = f'Error decrypting the file'
+
 
     if _errmsg:
         LOG.error(f'{_errmsg!r}')
