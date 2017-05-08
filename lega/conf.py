@@ -105,7 +105,7 @@ class Configuration(configparser.SafeConfigParser):
 
     def __repr__(self):
         '''Show the configuration files'''
-        res = 'Configuration files:\n\t*' + '\n\t* '.join(str(s) for s in _config_files)
+        res = 'Configuration files:\n\t* ' + '\n\t* '.join(str(s) for s in _config_files)
         if self.log_conf:
             res += '\nLogging settings loaded from ' + str(self.log_conf)
         return res

@@ -1,12 +1,20 @@
 #!/usr/bin/env bash
 
 CONTAINER=ega-db
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD='<password-here>'
+# POSTGRES_USER=postgres
+# POSTGRES_PASSWORD='<password-here>'
+HERE="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 # Kill the previous container
 docker kill ${CONTAINER} || true #&& docker rm  ${CONTAINER}
 
 # Starting RabbitMQ with docker
-docker run -it --rm -d --hostname localhost -p 5432:5432 --name ${CONTAINER} postgres
+docker run -it $* -d --hostname localhost     \
+       -e POSTGRES_PASSWORD='<password-here>'    \
+       -e POSTGRES_USER=postgres                \
+       -p 5432:5432 --name ${CONTAINER}         \
+       -v $HERE/db.sql:/docker-entrypoint-initdb.d/db.sql \
+       postgres
 # The image includes EXPOSE 5432
+
+#docker cp $HERE/db.sql ${CONTAINER}:/docker-entrypoint-initdb.d/db.sql

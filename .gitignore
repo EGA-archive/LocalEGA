@@ -7,7 +7,6 @@ logs/
 *.conf
 tools/start*.sh
 tools/create_data.sh
-tools/*.sql
 tools/namer.counter
 tests/
 

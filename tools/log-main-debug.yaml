@@ -21,10 +21,20 @@ loggers:
     handlers: [mainFile]
   db:
     level: DEBUG
-    handlers: [mainFile]
+    handlers: [mainFile,console]
   crypto:
     level: DEBUG
     handlers: [mainFile]
+  sqlalchemy:
+    level: DEBUG
+    handlers: [console]
+  aiopg:
+    level: DEBUG
+    handlers: [console]
+  sqlalchemy.engine:
+    level: DEBUG
+    handlers: [console]
+    propagate: False
 
 handlers:
   noHandler:
