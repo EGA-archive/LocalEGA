@@ -25,16 +25,28 @@ loggers:
   crypto:
     level: DEBUG
     handlers: [mainFile]
-  sqlalchemy:
-    level: DEBUG
-    handlers: [console]
   aiopg:
     level: DEBUG
     handlers: [console]
-  sqlalchemy.engine:
-    level: DEBUG
-    handlers: [console]
-    propagate: False
+  # aiohttp.access:
+  #   level: DEBUG
+  #   handlers: [console]
+  # aiohttp.client:
+  #   level: DEBUG
+  #   handlers: [console]
+  # aiohttp.internal:
+  #   level: DEBUG
+  #   handlers: [console]
+  # aiohttp.server:
+  #   level: DEBUG
+  #   handlers: [console]
+  # aiohttp.web:
+  #   level: DEBUG
+  #   handlers: [console]
+  # aiohttp.websocket:
+  #   level: DEBUG
+  #   handlers: [console]
+
 
 handlers:
   noHandler:
