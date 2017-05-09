@@ -294,7 +294,7 @@ def main(args=None):
     server = web.Application(loop=loop)
 
     # Where the templates are
-    template_loader = jinja2.FileSystemLoader(CONF.get('ingestion','templates',fallback=Path(__file__).parent / 'templates'))
+    template_loader = jinja2.FileSystemLoader(CONF.get('ingestion','templates',fallback=str(Path(__file__).parent / 'templates')))
     aiohttp_jinja2.setup(server, loader=template_loader)
 
     # Registering the routes
