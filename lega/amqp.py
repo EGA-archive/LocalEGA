@@ -1,8 +1,10 @@
 import logging
 import pika
 import uuid
+import json
 
 from .conf import CONF
+from .db import base as db
 
 LOG = logging.getLogger('amqp')
 
@@ -43,16 +45,21 @@ def _process(work):
         message_id = method_frame.delivery_tag
         LOG.debug(f'Consuming message {message_id} (Correlation ID: {correlation_id})')
 
+
+        data = json.loads(body)
+        LOG.debug(f'Message converted to JSON:\n{data}')
         try:
-            answer = work(props.correlation_id, body)
+            answer = work(data) # Might raise exceptions
             answer_to = CONF.get('message.broker','routing_complete')
             LOG.debug(f'Message processed (Correlation ID: {correlation_id})')
         except Exception as e:
+            answer = f"{e.__class__.__name__}: {e!r}"
+            LOG.debug(answer)
+            db.set_error(data['file_id'], answer) # I think it will have data['file_id'] at that point
+
             # Send message to error queue
-            answer = '{}: {!r}'.format(e.__class__.__name__, e)
             answer_to = CONF.get('message.broker','routing_error')
             LOG.debug('Error processing message (Correlation ID: {correlation_id})\n')
-
 
         # Publish the answer
         if answer:

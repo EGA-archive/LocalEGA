@@ -39,4 +39,8 @@ Statements = {
 
     'get_info'          : 'SELECT filename, status, created_at, last_modified FROM files WHERE id = %(file_id)s',
 
+    'set_encryption'    : 'UPDATE files SET reencryption = %(enc)s WHERE id = %(file_id)s;',
+
+    'set_stable_id'     : 'UPDATE files SET stable_id = %(stable_id)s WHERE id = %(file_id)s;',
+
 }

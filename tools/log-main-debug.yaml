@@ -28,24 +28,24 @@ loggers:
   aiopg:
     level: DEBUG
     handlers: [console]
-  # aiohttp.access:
-  #   level: DEBUG
-  #   handlers: [console]
-  # aiohttp.client:
-  #   level: DEBUG
-  #   handlers: [console]
-  # aiohttp.internal:
-  #   level: DEBUG
-  #   handlers: [console]
-  # aiohttp.server:
-  #   level: DEBUG
-  #   handlers: [console]
-  # aiohttp.web:
-  #   level: DEBUG
-  #   handlers: [console]
-  # aiohttp.websocket:
-  #   level: DEBUG
-  #   handlers: [console]
+  aiohttp.access:
+    level: DEBUG
+    handlers: [console]
+  aiohttp.client:
+    level: DEBUG
+    handlers: [console]
+  aiohttp.internal:
+    level: DEBUG
+    handlers: [console]
+  aiohttp.server:
+    level: DEBUG
+    handlers: [console]
+  aiohttp.web:
+    level: DEBUG
+    handlers: [console]
+  aiohttp.websocket:
+    level: DEBUG
+    handlers: [console]
 
 
 handlers:

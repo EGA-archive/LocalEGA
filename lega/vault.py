@@ -24,62 +24,53 @@ and input that in the database.
 import sys
 import os
 import logging
-import json
 import traceback
 from pathlib import Path
 import requests
 
 from .conf import CONF
+from .db import (base as db,
+                 Status)
 from . import crypto
 from . import amqp as broker
 from . import utils
 
 LOG = logging.getLogger('vault')
 
-def work(message_id, body):
+def work(data):
     '''Procedure to handle a message'''
 
-    LOG.debug(f"Processing message: {message_id}")
+    file_id       = data['file_id']
+    submission_id = data['submission_id']
+    user_id       = data['user_id']
+    filepath      = Path(data['filepath'])
+    
+    vault_area = Path( CONF.get('vault','location') )
+    
+    req = requests.get(CONF.get('namer','location'),
+                       headers={'X-LocalEGA-Sweden':'yes'})
+    name = req.text.strip()
+    name_bits = [name[i:i+3] for i in range(0, len(name), 3)]
+    
+    LOG.debug(f'Name bits: {name_bits!r}')
+    target = vault_area.joinpath(*name_bits)
+    LOG.debug(f'Target: {target}')
+    target.parent.mkdir(parents=True, exist_ok=True)
+    LOG.debug('Target parent: {}'.format(target.parent))
+    filepath.rename( target ) # move
+    
+    # remove it empty
     try:
-
-        data = json.loads(body)
-
-        submission_id = data['submission_id']
-        user_id       = data['user_id']
-        filepath      = Path(data['filepath'])
-
-        vault_area = Path( CONF.get('vault','location') )
-        
-        req = requests.get(CONF.get('namer','location'),
-                           headers={'X-LocalEGA-Sweden':'yes'})
-        name = req.text.strip()
-        name_bits = [name[i:i+3] for i in range(0, len(name), 3)]
-
-        LOG.debug(f'Name bits: {name_bits!r}')
-        target = vault_area.joinpath(*name_bits)
-        LOG.debug(f'Target: {target}')
-        target.parent.mkdir(parents=True, exist_ok=True)
-        LOG.debug('Target parent: {}'.format(target.parent))
-        filepath.rename( target ) # move
-
-        # remove it empty
-        try:
-            filepath.parent.rmdir()
-            LOG.debug('Removing {}'.format(filepath.parent))
-        except OSError:
-            pass
-            
-        # Mark it as processed in DB
-        # TODO
-
-        return None
-
-    except Exception as e:
-        LOG.debug(f"{e.__class__.__name__}: {e!s}")
-        #if isinstance(e,crypto.Error) or isinstance(e,OSError):
-        traceback.print_exc()
-        raise e
-
+        filepath.parent.rmdir()
+        LOG.debug('Removing {}'.format(filepath.parent))
+    except OSError:
+        pass
+    
+    # Mark it as processed in DB
+    db.update_status(file_id, Status.Archived)
+    db.set_stable_id(file_id, name)
+    
+    return None
 
 def main(args=None):
 

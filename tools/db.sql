@@ -26,7 +26,7 @@ CREATE TABLE files (
 	hash_algo    hash_algo,
 	status       status,
 	error        TEXT,
-	stable_id    INTEGER,
+	stable_id    TEXT,
 	reencryption TEXT,
 	created_at   TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT clock_timestamp(),
 	last_modified TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT clock_timestamp()
@@ -37,7 +37,7 @@ CREATE FUNCTION update_date_modified() RETURNS TRIGGER
     LANGUAGE plpgsql
     AS $$
 BEGIN
-  NEW.last_modified := current_date;
+  NEW.last_modified := current_timestamp;
   RETURN NEW;
 END;
 $$;
@@ -47,5 +47,21 @@ CREATE TRIGGER trigger_status_updated
   FOR EACH ROW
   WHEN (OLD.status IS DISTINCT FROM NEW.status)
   EXECUTE PROCEDURE update_date_modified();
+
+-- Mark submissions as completed
+CREATE FUNCTION mark_completed() RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+  NEW.completed_at := current_timestamp;
+  RETURN NEW;
+END;
+$$;
+
+-- CREATE TRIGGER trigger_submission_completed
+--   AFTER UPDATE ON files
+--   FOR EACH ROW
+--   WHEN (NEW.status IS 'Archived' AND )
+--   EXECUTE PROCEDURE mark_completed();
 
 

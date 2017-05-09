@@ -26,45 +26,44 @@ When a message is consumed, it must be of the form:
 import sys
 import os
 import logging
-import json
 import traceback
+import json
 
 from .conf import CONF
 from . import crypto
 from . import amqp as broker
+from .db import (base as db,
+                 Status)
 
 LOG = logging.getLogger('worker')
 
-def work(message_id, body):
+def work(data):
     '''Procedure to handle a message'''
 
-    LOG.debug("Processing message: {}".format(message_id))
+    file_id = data['file_id']
+    db.update_status(file_id, Status.In_Progress)
+
     try:
-
-        data = json.loads(body)
-
-        crypto.ingest( data['source'],
-                       data['hash'],
-                       hash_algo = data['hash_algo'],
-                       target = data['target']
-        )
-
-        LOG.debug("Done with message {}".format(message_id))
-
-        reply = {
-            'filepath': data['target'],
-            'submission_id': data['submission_id'],
-            'user_id': data['user_id'],
-        }
-        LOG.debug(f"Reply message: {reply!r}")
-        return json.dumps(reply)
-
+        details = crypto.ingest( data['source'],
+                                 data['hash'],
+                                 hash_algo = data['hash_algo'],
+                                 target = data['target'])
+        db.set_encryption(file_id, details)
     except Exception as e:
-        LOG.debug(f"{e.__class__.__name__}: {e!s}")
-        #if isinstance(e,crypto.Error) or isinstance(e,OSError):
+        errmsg = f"{e.__class__.__name__}: {e!s}"
+        LOG.debug(errmsg)
+        db.set_error(file_id, errmsg)
         traceback.print_exc()
         raise e
 
+    reply = {
+        'file_id' : file_id,
+        'filepath': data['target'],
+        'submission_id': data['submission_id'],
+        'user_id': data['user_id'],
+    }
+    LOG.debug(f"Reply message: {reply!r}")
+    return json.dumps(reply)
 
 def main(args=None):
 
