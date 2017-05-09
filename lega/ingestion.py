@@ -177,8 +177,8 @@ async def ingest(request):
     response.write(b'Preparing for Ingestion\n')
     await response.drain()
 
-    submission_id = data['submissionId']
-    user_id       = data['userId']
+    submission_id = int(data['submissionId'])
+    user_id       = int(data['userId'])
 
     inbox = get_inbox(user_id)
     LOG.info(f"Inbox area: {inbox}")
@@ -294,7 +294,10 @@ def main(args=None):
     server = web.Application(loop=loop)
 
     # Where the templates are
-    template_loader = jinja2.FileSystemLoader(CONF.get('ingestion','templates',fallback=Path(__file__).parent / 'templates'))
+    default_templates = str(Path(__file__).parent / 'templates')
+    template_folder = CONF.get('ingestion','templates',fallback=default_templates)
+    LOG.debug(f'Template folder: {template_folder}')
+    template_loader = jinja2.FileSystemLoader(template_folder)
     aiohttp_jinja2.setup(server, loader=template_loader)
 
     # Registering the routes
