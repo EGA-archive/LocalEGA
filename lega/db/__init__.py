@@ -14,7 +14,7 @@ from enum import Enum
 import sqlalchemy
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime
-
+from sqlalchemy.dialects import postgresql
 from ..conf import CONF
 
 LOG = logging.getLogger('db')
@@ -36,8 +36,8 @@ files = sqlalchemy.Table('files', metadata,
                          Column('submission_id', None, ForeignKey('submissions.id')),
                   	 Column('filename',     Text,    nullable=False  ),
 	                 Column('filehash',     Text,    nullable=False  ),
-	                 Column('hash_algo',    String,  nullable=False  ),
-	                 Column('status',       String                   ),
+	                 Column('hash_algo',    postgresql.ARRAY(String) ), # Enum
+	                 Column('status',       postgresql.ARRAY(String) ), # Enum
 	                 Column('error',        Text                     ),
 	                 Column('stable_id',    Integer                  ),
 	                 Column('reencryption', Text                     )
@@ -47,7 +47,7 @@ submissions = sqlalchemy.Table('submissions', metadata,
                          Column('id',           Integer, primary_key=True, autoincrement=True),
                          Column('user_id',      Integer, nullable=False  ),
                   	 Column('created_at',   DateTime(timezone=True), nullable=False ),
-	                 Column('completed_at', Text,                    )
+	                 Column('completed_at', DateTime(timezone=True),                )
 )
 
 # Base = declarative_base()
