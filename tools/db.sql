@@ -6,6 +6,9 @@ CREATE DATABASE lega;
 DROP TABLE IF EXISTS files;
 DROP TABLE IF EXISTS submissions;
 
+CREATE TYPE status AS ENUM ('Received', 'In progress', 'Archived', 'Error');
+CREATE TYPE hashAlgo AS ENUM ('md5', 'sha256');
+
 CREATE TABLE submissions (
         id            INTEGER NOT NULL, PRIMARY KEY(id), UNIQUE (id),
 	user_id       INTEGER NOT NULL,
@@ -18,8 +21,8 @@ CREATE TABLE files (
 	submission_id INTEGER REFERENCES submissions (id) ON DELETE CASCADE,
 	filename     TEXT NOT NULL,
 	filehash     TEXT NOT NULL,
-	hash_algo    TEXT NOT NULL,
-	status       VARCHAR(20),
+	hash_algo    hashAlgo,
+	status       status,
 	error        TEXT,
 	stable_id    INTEGER,
 	reencryption TEXT,
@@ -27,6 +30,7 @@ CREATE TABLE files (
 	last_modified TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT clock_timestamp()
 );
 
+-- Updating the timestamp when the status is modified
 CREATE FUNCTION status_updated() RETURNS TRIGGER
     LANGUAGE plpgsql
     AS $$

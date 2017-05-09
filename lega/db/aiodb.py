@@ -35,17 +35,20 @@ async def insert_file(engine, **kwargs):
 
 async def update_status(engine, file_id, status):
     async with engine.acquire() as conn:
-        query = f'UPDATE files SET status = {status.value} WHERE id = {file_id}'
+        #query = f'UPDATE files SET status = "{status.value}" WHERE id = {file_id}'
+        query = files.update().values(status=status.value).where(id==file_id)
         await conn.execute(query, echo=True)
 
 async def get_info(engine, file_id):
     async with engine.acquire() as conn:
-        query = f'SELECT filename, status, created_at, last_modified FROM files WHERE id = {file_id}'
-        return await conn.execute(query, echo=True)
+        #query = f'SELECT filename, status, created_at, last_modified FROM files WHERE id = {file_id}'
+        query = files.select(['filename', 'status', 'created_at', 'last_modified']).where(id==file_id)
+        res = await conn.execute(query, echo=True)
+        return (res['filename'], res['status'], res['created_at'], res['last_modified'])
 
 async def set_error(engine, file_id, error):
     async with engine.acquire() as conn:
-        query = f'UPDATE files SET status = {Status.Error.value}, error = {error} WHERE id = {file_id}'
+        query = f'UPDATE files SET status = "{Status.Error.value}", error = "{error}" WHERE id = {file_id}'
         await conn.execute(query, echo=True)
 
     
