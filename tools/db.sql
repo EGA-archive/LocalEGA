@@ -3,11 +3,11 @@ CREATE DATABASE lega;
 
 \connect lega
 
-DROP TABLE IF EXISTS files;
-DROP TABLE IF EXISTS submissions;
+-- DROP TABLE IF EXISTS files;
+-- DROP TABLE IF EXISTS submissions;
 
 CREATE TYPE status AS ENUM ('Received', 'In progress', 'Archived', 'Error');
-CREATE TYPE hashAlgo AS ENUM ('md5', 'sha256');
+CREATE TYPE hash_algo AS ENUM ('md5', 'sha256');
 
 CREATE TABLE submissions (
         id            INTEGER NOT NULL, PRIMARY KEY(id), UNIQUE (id),
@@ -21,7 +21,7 @@ CREATE TABLE files (
 	submission_id INTEGER REFERENCES submissions (id) ON DELETE CASCADE,
 	filename     TEXT NOT NULL,
 	filehash     TEXT NOT NULL,
-	hash_algo    hashAlgo,
+	hash_algo    hash_algo,
 	status       status,
 	error        TEXT,
 	stable_id    INTEGER,
@@ -31,7 +31,7 @@ CREATE TABLE files (
 );
 
 -- Updating the timestamp when the status is modified
-CREATE FUNCTION status_updated() RETURNS TRIGGER
+CREATE FUNCTION update_date_modified() RETURNS TRIGGER
     LANGUAGE plpgsql
     AS $$
 BEGIN
@@ -44,4 +44,19 @@ CREATE TRIGGER trigger_status_updated
   BEFORE UPDATE ON files
   FOR EACH ROW
   WHEN (OLD.status IS DISTINCT FROM NEW.status)
-  EXECUTE PROCEDURE status_updated();
+  EXECUTE PROCEDURE update_date_modified();
+
+-- Prepared Statements
+PREPARE insert_submission (int, int) AS
+   INSERT INTO submissions (id, user_id) VALUES($1,$2) ON CONFLICT (id) DO UPDATE SET created_at = DEFAULT;
+
+PREPARE insert_file (int,text,text,hash_algo,status) AS
+   INSERT INTO files (submission_id,filename,filehash,hash_algo,status) VALUES($1,$2,$3,$4,$5) 
+   RETURNING files.id;
+
+PREPARE update_status (int,status) AS
+   UPDATE files SET status = $2 WHERE id = $1;
+
+PREPARE set_error (int,status,text) AS
+   UPDATE files SET status = $2, error = $3 WHERE id = $1;
+
