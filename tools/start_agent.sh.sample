@@ -14,6 +14,33 @@ GPG_AGENT_EXEC=/usr/local/Cellar/gpg-agent/2.0.30_1/bin/gpg-agent
 GPG_PRESET=/usr/local/Cellar/gpg-agent/2.0.30_1/libexec/gpg-preset-passphrase
 
 export GNUPGHOME=$INGESTION_HOME/private/gpg
+
+[ -f $GNUPGHOME/gpg-agent.conf ] || cat > $GNUPGHOME/gpg-agent.conf <<EOF
+allow-preset-passphrase
+default-cache-ttl 2592000 # one month
+max-cache-ttl 31536000    # one year
+#
+#debug-level guru
+EOF
+
+[ -f $GNUPGHOME/gpg.conf ] || cat > $GNUPGHOME/gpg.conf <<EOF
+# debug-all
+# debug-level guru
+#
+# no-textmode
+# batch
+no-tty
+keyring pubring.gpg
+display-charset utf-8
+utf8-strings
+keyid-format long
+#cipher-algo AES256
+#s2k-digest-algo SHA256
+#personal-cipher-preferences AES256,AES192,AES
+#personal-digest-preferences SHA256,SHA1,MD5
+EOF
+
+
 # GPG agent and homedir
 rm -f $GNUPGHOME/agent.env
 ${GPG_AGENT_EXEC} --daemon --homedir $GNUPGHOME --write-env-file $GNUPGHOME/agent.env &>/dev/null

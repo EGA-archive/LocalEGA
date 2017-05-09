@@ -34,7 +34,6 @@ from pathlib import Path
 
 from colorama import Fore, Back
 from aiohttp import web
-from aiopg.sa import create_engine
 from aiohttp_swaggerify import swaggerify
 import aiohttp_cors
 import jinja2
@@ -42,6 +41,8 @@ import aiohttp_jinja2
 
 from .conf import CONF
 from . import amqp as broker
+from .db import (Status as db_status,
+                 aiodb)
 from .utils import (
     get_data as parse_data,
     only_central_ega,
@@ -49,7 +50,6 @@ from .utils import (
     get_staging_area,
     checksum
 )
-#from lega.db import Database
 
 LOG = logging.getLogger('ingestion')
 
@@ -82,11 +82,18 @@ async def outgest(request):
 
 async def status(request):
     '''Status endpoint
-
-    Not implemented yet.
     '''
-    filename = request.match_info['name']
-    raise web.HTTPBadRequest(text=f'No info about "{filename}" yet...\n')
+    file_id = request.match_info['name']
+    LOG.info(f'Getting info for file_id {file_id}')
+    res = await aiodb.get_info(request.app['db'], file_id)
+    LOG.debug(f'RES: {res}')
+    if not res:
+        raise web.HTTPBadRequest(text=f'No info about "{filename}" yet...\n')
+    filename, status, created_at, last_modified = res
+    return web.Response(text=f'Status for {file_id}: {status}'
+                        f'\n\t* Created at: {created_at}'
+                        f'\n\t* Last updated: {last_modified}'
+                        f'\n\t* Real file name: {filename}\n')
 
 def process_submission(submission,
                        inbox,
@@ -179,15 +186,26 @@ async def ingest(request):
     staging_area = get_staging_area(submission_id, create=True)
     LOG.info(f"Staging area: {staging_area}")
 
+    await aiodb.insert_submission(request.app['db'],
+                                  submission_id = submission_id,
+                                  user_id = user_id)
+
     # Creating a listing of the tasks to run.
     loop = request.app.loop
     success = 0
     total = len(data['files'])
     width = len(str(total))
-    tasks = {} # (task -> str) mapping
+    tasks = {} # (task -> file_id * str) mapping
     done = asyncio.Queue()
 
     for submission in data['files']:
+        LOG.info(f"Submitting {submission['filename']}")
+        file_id = await aiodb.insert_file(request.app['db'],
+                                          filename  = submission['filename'],
+                                          filehash  = submission['encryptedIntegrity']['hash'],
+                                          hash_algo = submission['encryptedIntegrity']['algorithm'],
+                                          submission_id = submission_id)
+        LOG.debug(f'Created id {file_id} for {submission["filename"]}')
         task = asyncio.ensure_future(
             loop.run_in_executor(None, process_submission,
                                  submission,
@@ -197,21 +215,27 @@ async def ingest(request):
                                  user_id) # default executor, set to ProcessPoolExecutor in main()
         ) # That will start running the task
         task.add_done_callback(lambda f: done.put_nowait(f))
-        tasks[task] = submission['filename']
+        tasks[task] = (file_id, submission['filename'])
 
     # Running the tasks and getting the results as they arrive.
     for n in range(1,total+1):
 
         task = await done.get()
-        filename = tasks[task]
+        file_id,filename = tasks[task]
         try:
             task.result() # May raise the exception caught in the separate process
             res = f'[{n:{width}}/{total:{width}}] {filename} {Fore.GREEN}✓{Fore.RESET}\n'
             success += 1 # no race here
+            LOG.info('Success!')
+            await aiodb.update_status(request.app['db'], file_id, status = db_status.In_Progress)
+
         except Exception as e:
-            LOG.error(f'Task in separate process raised {e!r}')
+            errmsg = f'Task in separate process raised {e!r}'
+            LOG.error(errmsg)
             os.chmod(inbox / filename, mode = stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP) # Permission 660
             res = f'[{n:{width}}/{total:{width}}] {filename} {Fore.RED}x{Fore.RESET}\n'
+            await aiodb.set_error(request.app['db'], file_id, errmsg)
+            
 
         # Send the result to the responde as they arrive
         await response.write(res.encode())
@@ -227,11 +251,15 @@ async def ingest(request):
 async def init(app):
     '''Initialization running before the loop.run_forever'''
     try:
-        app['db'] = await create_engine(user=CONF.get('db','username'),
-                                        password=CONF.get('db','password'),
-                                        host=CONF.get('db','host'),
-                                        port=CONF.getint('db','port'),
-                                        loop=app.loop) #database=CONF.get('db','uri'),
+        app['db'] = await aiodb.create_engine(loop=app.loop,
+                                              user=CONF.get('db','username'),
+                                              password=CONF.get('db','password'),
+                                              database=CONF.get('db','dbname'),
+                                              host=CONF.get('db','host'),
+                                              port=CONF.getint('db','port'))
+
+        LOG.info('DB Engine created')
+
     except Exception as e:
         print('Connection error to the Postgres database\n',str(e))
         app.loop.call_soon(app.loop.stop)
@@ -311,6 +339,8 @@ def main(args=None):
 
         # LOG.info('Shutting down the executor')
         # executor.shutdown(wait=True)
+        # # Done on exit of the with statement
+        # # https://github.com/python/cpython/blob/master/Lib/concurrent/futures/_base.py#L580-L582
 
     LOG.info('Exiting the Ingestion server')
 
