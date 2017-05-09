@@ -86,7 +86,6 @@ async def status(request):
     file_id = request.match_info['name']
     LOG.info(f'Getting info for file_id {file_id}')
     res = await aiodb.get_info(request.app['db'], file_id)
-    LOG.debug(f'RES: {res}')
     if not res:
         raise web.HTTPBadRequest(text=f'No info about "{filename}" yet...\n')
     filename, status, created_at, last_modified = res
@@ -206,6 +205,7 @@ async def ingest(request):
                                           hash_algo = submission['encryptedIntegrity']['algorithm'],
                                           submission_id = submission_id)
         LOG.debug(f'Created id {file_id} for {submission["filename"]}')
+        assert file_id is not None, 'Ouch...db pb!'
         task = asyncio.ensure_future(
             loop.run_in_executor(None, process_submission,
                                  submission,
@@ -227,7 +227,7 @@ async def ingest(request):
             res = f'[{n:{width}}/{total:{width}}] {filename} {Fore.GREEN}✓{Fore.RESET}\n'
             success += 1 # no race here
             LOG.info('Success!')
-            await aiodb.update_status(request.app['db'], file_id, status = db_status.In_Progress)
+            await aiodb.update_status(request.app['db'], file_id, db_status.In_Progress)
 
         except Exception as e:
             errmsg = f'Task in separate process raised {e!r}'
@@ -251,12 +251,12 @@ async def ingest(request):
 async def init(app):
     '''Initialization running before the loop.run_forever'''
     try:
-        app['db'] = await aiodb.create_engine(loop=app.loop,
-                                              user=CONF.get('db','username'),
-                                              password=CONF.get('db','password'),
-                                              database=CONF.get('db','dbname'),
-                                              host=CONF.get('db','host'),
-                                              port=CONF.getint('db','port'))
+        app['db'] = await aiodb.create_pool(loop=app.loop,
+                                            user=CONF.get('db','username'),
+                                            password=CONF.get('db','password'),
+                                            database=CONF.get('db','dbname'),
+                                            host=CONF.get('db','host'),
+                                            port=CONF.getint('db','port'))
 
         LOG.info('DB Engine created')
 
@@ -294,8 +294,9 @@ def main(args=None):
     server = web.Application(loop=loop)
 
     # Where the templates are
-    default_templates = str(Path(__file__).parent / 'templates')
-    template_folder = CONF.get('ingestion','templates',fallback=default_templates)
+    template_folder = CONF.get('ingestion','templates',fallback=None) # lazy fallback
+    if not template_folder:
+        template_folder = str(Path(__file__).parent / 'templates')
     LOG.debug(f'Template folder: {template_folder}')
     template_loader = jinja2.FileSystemLoader(template_folder)
     aiohttp_jinja2.setup(server, loader=template_loader)

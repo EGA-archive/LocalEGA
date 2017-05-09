@@ -6,6 +6,8 @@ CREATE DATABASE lega;
 -- DROP TABLE IF EXISTS files;
 -- DROP TABLE IF EXISTS submissions;
 
+SET TIME ZONE 'Europe/Stockholm';
+
 CREATE TYPE status AS ENUM ('Received', 'In progress', 'Archived', 'Error');
 CREATE TYPE hash_algo AS ENUM ('md5', 'sha256');
 
@@ -46,17 +48,4 @@ CREATE TRIGGER trigger_status_updated
   WHEN (OLD.status IS DISTINCT FROM NEW.status)
   EXECUTE PROCEDURE update_date_modified();
 
--- Prepared Statements
-PREPARE insert_submission (int, int) AS
-   INSERT INTO submissions (id, user_id) VALUES($1,$2) ON CONFLICT (id) DO UPDATE SET created_at = DEFAULT;
-
-PREPARE insert_file (int,text,text,hash_algo,status) AS
-   INSERT INTO files (submission_id,filename,filehash,hash_algo,status) VALUES($1,$2,$3,$4,$5) 
-   RETURNING files.id;
-
-PREPARE update_status (int,status) AS
-   UPDATE files SET status = $2 WHERE id = $1;
-
-PREPARE set_error (int,status,text) AS
-   UPDATE files SET status = $2, error = $3 WHERE id = $1;
 
