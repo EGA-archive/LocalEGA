@@ -44,7 +44,7 @@ Statements = {
 
     'get_info'          : 'SELECT filename, status, created_at, last_modified FROM files WHERE id = %(file_id)s',
 
-    'set_encryption'    : 'UPDATE files SET reencryption = %(enc)s WHERE id = %(file_id)s;',
+    'set_encryption'    : 'UPDATE files SET reenc_info = %(reenc_info)s, reenc_key = %(reenc_key)s WHERE id = %(file_id)s;',
 
     'set_stable_id'     : 'UPDATE files SET stable_id = %(stable_id)s WHERE id = %(file_id)s;',
 
@@ -118,11 +118,11 @@ def set_error(file_id, error):
             query = Statements['set_error']
             cur.execute(query, {'status': Status.Error.value, 'error':error, 'file_id': file_id})
 
-def set_encryption(file_id, enc_info):
+def set_encryption(file_id, info, key):
     with connect() as conn:
         with conn.cursor() as cur:
             query = Statements['set_encryption']
-            cur.execute(query, {'enc': enc_info, 'file_id': file_id})
+            cur.execute(query, {'reenc_info': info, 'reenc_key': key, 'file_id': file_id})
 
 def set_stable_id(file_id, stable_id):
     with connect() as conn:

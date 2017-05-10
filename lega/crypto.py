@@ -231,8 +231,8 @@ def ingest(enc_file,
         raise Exception(_errmsg)
     else:
         LOG.info(f'File encrypted')
-        return reencrypt_protocol.header # returning the header for that file
-
+        return (reencrypt_protocol.header, # returning the header for that file
+                CONF.get('worker','master_key'))  # That was the key used at that moment
 
 def chunker(stream, chunk_size=None):
     """Lazy function (generator) to read a stream one chunk at a time."""
