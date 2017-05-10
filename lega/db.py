@@ -109,6 +109,7 @@ def connect():
 def update_status(file_id, status):
     assert file_id, 'Eh? No file_id?'
     assert status, 'Eh? No status?'
+    LOG.debug(f'Updating status file_id {file_id}: {status!r}')
     with connect() as conn:
         with conn.cursor() as cur:
             query = Statements['update_status']
@@ -137,6 +138,7 @@ def set_encryption(file_id, info, key):
 def set_stable_id(file_id, stable_id):
     assert file_id, 'Eh? No file_id?'
     assert stable_id, 'Eh? No stable_id?'
+    LOG.debug(f'Setting final name for file_id {file_id}: {stable_id}')
     with connect() as conn:
         with conn.cursor() as cur:
             query = Statements['set_stable_id']
