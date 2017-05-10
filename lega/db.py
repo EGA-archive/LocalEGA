@@ -107,8 +107,9 @@ def update_status(file_id, status):
         with conn.cursor() as cur:
             query = Statements['update_status']
             cur.execute(query, {'status': status.value, 'file_id': file_id})
-
-            # Mark submission as completed is status = Archived for all the other files belonging to the same submission id
+            #
+            # Marking submission as completed is done as a DB trigger
+            # We save a few round trips with queries and connections
             
     
 def set_error(file_id, error):
