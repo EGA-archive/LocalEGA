@@ -67,7 +67,7 @@ def work(data):
     
     # Mark it as processed in DB
     db.update_status(file_id, db.Status.Archived)
-    db.set_stable_id(file_id, name)
+    db.set_stable_id(file_id, str(target))
     
     return None
 

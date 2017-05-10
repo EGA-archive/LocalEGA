@@ -24,7 +24,8 @@ CREATE TABLE files (
 	status       status,
 	error        TEXT,
 	stable_id    TEXT,
-	reencryption TEXT,
+	reenc_key    TEXT,
+	reenc_info   TEXT,
 	created_at   TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT clock_timestamp(),
 	last_modified TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT clock_timestamp()
 );
