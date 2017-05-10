@@ -29,8 +29,7 @@ from pathlib import Path
 import requests
 
 from .conf import CONF
-from .db import (base as db,
-                 Status)
+from . import db
 from . import crypto
 from . import amqp as broker
 from . import utils
@@ -67,7 +66,7 @@ def work(data):
         pass
     
     # Mark it as processed in DB
-    db.update_status(file_id, Status.Archived)
+    db.update_status(file_id, db.Status.Archived)
     db.set_stable_id(file_id, name)
     
     return None

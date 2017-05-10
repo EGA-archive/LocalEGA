@@ -32,8 +32,7 @@ import json
 from .conf import CONF
 from . import crypto
 from . import amqp as broker
-from .db import (base as db,
-                 Status)
+from . import db
 
 LOG = logging.getLogger('worker')
 
@@ -41,7 +40,7 @@ def work(data):
     '''Procedure to handle a message'''
 
     file_id = data['file_id']
-    db.update_status(file_id, Status.In_Progress)
+    db.update_status(file_id, db.Status.In_Progress)
 
     try:
         details = crypto.ingest( data['source'],

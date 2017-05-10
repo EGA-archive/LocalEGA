@@ -41,8 +41,7 @@ import aiohttp_jinja2
 
 from .conf import CONF
 from . import amqp as broker
-from .db import (Status as db_status,
-                 aiodb)
+from . import db
 from .utils import (
     get_data as parse_data,
     only_central_ega,
@@ -85,7 +84,7 @@ async def status(request):
     '''
     file_id = request.match_info['name']
     LOG.info(f'Getting info for file_id {file_id}')
-    res = await aiodb.get_info(request.app['db'], file_id)
+    res = await db.get_info(request.app['db'], file_id)
     if not res:
         raise web.HTTPBadRequest(text=f'No info about file with id {file_id}... yet\n')
     filename, status, created_at, last_modified, stable_id = res
@@ -188,9 +187,9 @@ async def ingest(request):
     staging_area = get_staging_area(submission_id, create=True)
     LOG.info(f"Staging area: {staging_area}")
 
-    await aiodb.insert_submission(request.app['db'],
-                                  submission_id = submission_id,
-                                  user_id = user_id)
+    await db.insert_submission(request.app['db'],
+                               submission_id = submission_id,
+                               user_id = user_id)
 
     # Creating a listing of the tasks to run.
     loop = request.app.loop
@@ -202,11 +201,11 @@ async def ingest(request):
 
     for submission in data['files']:
         LOG.info(f"Submitting {submission['filename']}")
-        file_id = await aiodb.insert_file(request.app['db'],
-                                          filename  = submission['filename'],
-                                          filehash  = submission['encryptedIntegrity']['hash'],
-                                          hash_algo = submission['encryptedIntegrity']['algorithm'],
-                                          submission_id = submission_id)
+        file_id = await db.insert_file(request.app['db'],
+                                       filename  = submission['filename'],
+                                       filehash  = submission['encryptedIntegrity']['hash'],
+                                       hash_algo = submission['encryptedIntegrity']['algorithm'],
+                                       submission_id = submission_id)
         LOG.debug(f'Created id {file_id} for {submission["filename"]}')
         assert file_id is not None, 'Ouch...database problem!'
         task = asyncio.ensure_future(
@@ -236,7 +235,7 @@ async def ingest(request):
             LOG.error(errmsg)
             os.chmod(inbox / filename, mode = stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP) # Permission 660
             res = f'[{n:{width}}/{total:{width}}] {filename} {Fore.RED}x{Fore.RESET}\n'
-            await aiodb.set_error(request.app['db'], file_id, errmsg)
+            await db.aio_set_error(request.app['db'], file_id, errmsg)
             
 
         # Send the result to the responde as they arrive
@@ -253,12 +252,12 @@ async def ingest(request):
 async def init(app):
     '''Initialization running before the loop.run_forever'''
     try:
-        app['db'] = await aiodb.create_pool(loop=app.loop,
-                                            user=CONF.get('db','username'),
-                                            password=CONF.get('db','password'),
-                                            database=CONF.get('db','dbname'),
-                                            host=CONF.get('db','host'),
-                                            port=CONF.getint('db','port'))
+        app['db'] = await db.create_pool(loop=app.loop,
+                                         user=CONF.get('db','username'),
+                                         password=CONF.get('db','password'),
+                                         database=CONF.get('db','dbname'),
+                                         host=CONF.get('db','host'),
+                                         port=CONF.getint('db','port'))
 
         LOG.info('DB Engine created')
 
