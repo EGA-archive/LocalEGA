@@ -125,9 +125,9 @@ class ReEncryptor(asyncio.SubprocessProtocol):
             self.digest = h()
 
         encryption_key, mode, nonce = next(engine)
-        header = make_header(len(encryption_key), len(nonce), mode, self.chunk_size)
-        LOG.info(f'Writing header to file: {header[:-1]}')
-        self.target_handler.write(header.encode('utf-8')) # include \n
+        self.header = make_header(len(encryption_key), len(nonce), mode, self.chunk_size)
+        LOG.info(f'Writing header to file: {self.header[:-1]}')
+        self.target_handler.write(self.header.encode('utf-8')) # include \n
         LOG.debug('Writing key to file')
         self.target_handler.write(encryption_key)
         LOG.debug('Writing nonce to file')
@@ -177,7 +177,8 @@ def ingest(enc_file,
     assert( isinstance(org_hash,str) )
 
     #return ('File: {} and {}: {}'.format(filepath, hashAlgo, filehash))
-    LOG.debug(f'Processing file\n==============\n'
+    LOG.debug(f'Processing file\n'
+              f'==============\n'
               f'enc_file  = {enc_file}\n'
               f'org_hash  = {org_hash}\n'
               f'hash_algo = {hash_algo}\n'
@@ -230,6 +231,7 @@ def ingest(enc_file,
         raise Exception(_errmsg)
     else:
         LOG.info(f'File encrypted')
+        return reencrypt_protocol.header # returning the header for that file
 
 
 def chunker(stream, chunk_size=None):

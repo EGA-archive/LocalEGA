@@ -11,11 +11,6 @@
 
 import logging
 from enum import Enum
-import sqlalchemy
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime
-
-from ..conf import CONF
 
 LOG = logging.getLogger('db')
 
@@ -29,48 +24,23 @@ class Status(Enum):
     # Archived = 3
     # Error = 4
 
-metadata = sqlalchemy.MetaData()
+Statements = {
+    'insert_submission' : ('INSERT INTO submissions (id, user_id) '
+                           'VALUES(%(submission_id)s, %(user_id)s) '
+                           'ON CONFLICT (id) DO UPDATE SET created_at = DEFAULT;'),
 
-files = sqlalchemy.Table('files', metadata,
-                         Column('id',           Integer, primary_key=True, autoincrement=True),
-                         Column('submission_id', None, ForeignKey('submissions.id')),
-                  	 Column('filename',     Text,    nullable=False  ),
-	                 Column('filehash',     Text,    nullable=False  ),
-	                 Column('hash_algo',    Text,    nullable=False  ),
-	                 Column('status',       String                   ),
-	                 Column('error',        Text                     ),
-	                 Column('stable_id',    Integer                  ),
-	                 Column('reencryption', Text                     )
-)
+    'insert_file'       : ('INSERT INTO files (submission_id,filename,filehash,hash_algo,status) '
+                           'VALUES(%(submission_id)s,%(filename)s,%(filehash)s,%(hash_algo)s,%(status)s) '
+                           'RETURNING files.id;'),
 
-submissions = sqlalchemy.Table('submissions', metadata,
-                         Column('id',           Integer, primary_key=True, autoincrement=True),
-                         Column('user_id',      Integer, nullable=False  ),
-                  	 Column('created_at',   DateTime(timezone=True), nullable=False ),
-	                 Column('completed_at', Text,                    )
-)
+    'update_status'     : 'UPDATE files SET status = %(status)s WHERE id = %(file_id)s;',
 
-# Base = declarative_base()
-# class EGAFile(Base):
-#     __tablename__ = 'files'
-#     id = Column(Integer, primary_key=True, autoincrement=True)
-#     filename = Column(Text, nullable=False)
-#     filehash = Column(Text, nullable=False)
-#     hash_algo= Column(Text, nullable=False)
-#     status   = Column(Integer)
-#     error   = Column(Text)
-#     stable_id = Column(Integer)
-#     reencryption = Column(Text)
+    'set_error'         : 'UPDATE files SET status = %(status)s, error = %(error)s WHERE id = %(file_id)s;',
 
-#     def __repr__(self):
-#         return f"<{self.id} | {self.filepath} | {self.status}>"
+    'get_info'          : 'SELECT filename, status, created_at, last_modified FROM files WHERE id = %(file_id)s',
 
-# class EGASubmission(Base):
-#     __tablename__ = 'submissions'
-#     id = Column(Integer, primary_key=True, autoincrement=True)
-#     user_id = Column(Integer, nullable=False)
-#     created_at = Column(Text, nullable=False)
-#     completed_at = Column(Text)
+    'set_encryption'    : 'UPDATE files SET reencryption = %(enc)s WHERE id = %(file_id)s;',
 
-#     def __repr__(self):
-#         return f"<{self.id} | {self.user_id} | {self.created_at}>"
+    'set_stable_id'     : 'UPDATE files SET stable_id = %(stable_id)s WHERE id = %(file_id)s;',
+
+}
