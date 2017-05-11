@@ -4,7 +4,7 @@ import uuid
 import json
 
 from .conf import CONF
-from .db import base as db
+from . import db
 
 LOG = logging.getLogger('amqp')
 

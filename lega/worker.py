@@ -32,8 +32,7 @@ import json
 from .conf import CONF
 from . import crypto
 from . import amqp as broker
-from .db import (base as db,
-                 Status)
+from . import db
 
 LOG = logging.getLogger('worker')
 
@@ -41,14 +40,14 @@ def work(data):
     '''Procedure to handle a message'''
 
     file_id = data['file_id']
-    db.update_status(file_id, Status.In_Progress)
+    db.update_status(file_id, db.Status.In_Progress)
 
     try:
-        details = crypto.ingest( data['source'],
-                                 data['hash'],
-                                 hash_algo = data['hash_algo'],
-                                 target = data['target'])
-        db.set_encryption(file_id, details)
+        details, reenc_key = crypto.ingest( data['source'],
+                                            data['hash'],
+                                            hash_algo = data['hash_algo'],
+                                            target = data['target'])
+        db.set_encryption(file_id, details, reenc_key)
     except Exception as e:
         errmsg = f"{e.__class__.__name__}: {e!s}"
         LOG.debug(errmsg)
