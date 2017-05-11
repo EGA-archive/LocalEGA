@@ -5,6 +5,7 @@ import json
 
 from .conf import CONF
 from . import db
+from .exceptions import FromUser as ErrorFromUser
 
 LOG = logging.getLogger('amqp')
 
@@ -58,7 +59,8 @@ def _process(work):
             db.set_error(data['file_id'], answer) # I think it will have data['file_id'] at that point
 
             # Send message to error queue
-            answer_to = CONF.get('message.broker','routing_error')
+            routing_error_key = 'routing_error_user' if isinstance(e,FromUser) else 'routing_error_main'
+            answer_to = CONF.get('message.broker', routing_error_key)
             LOG.debug('Error processing message (Correlation ID: {correlation_id})\n')
 
         # Publish the answer

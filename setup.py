@@ -23,6 +23,7 @@ setup(name='lega',
               'ega-ingestion = lega.ingestion:main',
               'ega-worker = lega.worker:main',
               'ega-vault = lega.vault:main',
+              'ega-monitor = lega.monitor:main',
               'ega-conf = lega.__main__:main',
           ]
       },

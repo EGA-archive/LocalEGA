@@ -7,20 +7,30 @@ SET TIME ZONE 'Europe/Stockholm';
 
 CREATE TYPE status AS ENUM ('Received', 'In progress', 'Archived', 'Error');
 CREATE TYPE hash_algo AS ENUM ('md5', 'sha256');
+CREATE TYPE checksum_status AS ENUM ('ok', 'not_ok');
 
 CREATE TABLE submissions (
         id            INTEGER NOT NULL, PRIMARY KEY(id), UNIQUE (id),
 	user_id       INTEGER NOT NULL,
 	created_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT clock_timestamp(),
-	completed_at  TIMESTAMP WITH TIME ZONE
+	completed_at  TIMESTAMP WITH TIME ZONE,
+	status        status
+);
+
+CREATE TABLE checksums (
+        id            SERIAL, PRIMARY KEY(id), UNIQUE (id),
+	val           TEXT, UNIQUE (val),
+	hash_algo     hash_algo,
+	status        checksum_status DEFAULT NULL,
+	created_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT clock_timestamp()
 );
 
 CREATE TABLE files (
         id           SERIAL, PRIMARY KEY(id), UNIQUE (id),
 	submission_id INTEGER REFERENCES submissions (id) ON DELETE CASCADE,
 	filename     TEXT NOT NULL,
-	filehash     TEXT NOT NULL,
-	hash_algo    hash_algo,
+	enc_checksum_id INTEGER REFERENCES checksums (id) ON DELETE CASCADE,
+	org_checksum_id INTEGER REFERENCES checksums (id) ON DELETE CASCADE,
 	status       status,
 	stable_id    TEXT,
 	reenc_key    TEXT,
@@ -36,6 +46,7 @@ CREATE TABLE errors (
 	occured_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT clock_timestamp()
 );
 
+
 -- The filehash is the checksum value of the original unencrypted file.
 -- We do not store the checksum of the encrypted file from the inbox, as it is 
 -- only interesting to check if we really received the whole file.
@@ -50,7 +61,7 @@ CREATE TABLE errors (
 
 -- Updating the timestamp when the status is modified
 -- Moreover, when the status is Archived, check if we should update the associated submission completed_at
-CREATE FUNCTION update_last_modified() RETURNS TRIGGER AS $update_trigger$
+CREATE FUNCTION file_status_updated() RETURNS TRIGGER AS $update_trigger$
     DECLARE
          c INTEGER;
     BEGIN
@@ -61,7 +72,7 @@ CREATE FUNCTION update_last_modified() RETURNS TRIGGER AS $update_trigger$
           IF NEW.status = 'Archived' THEN
               SELECT COUNT(id) INTO c FROM files WHERE submission_id = NEW.submission_id and status != 'Archived';
               IF c = 0 THEN -- they are all archived
-                 UPDATE submissions SET completed_at = current_timestamp WHERE id = NEW.submission_id;
+                 UPDATE submissions SET completed_at = current_timestamp, status = 'Archived' WHERE id = NEW.submission_id;
               END IF;
           END IF;
        END IF;
@@ -72,12 +83,13 @@ $update_trigger$ LANGUAGE plpgsql;
 -- "Zee" Trigger... bada boom!
 CREATE TRIGGER trigger_status_updated
   AFTER UPDATE ON files
-  FOR EACH ROW EXECUTE PROCEDURE update_last_modified();
+  FOR EACH ROW EXECUTE PROCEDURE file_status_updated();
     
 -- FOR THE ERRORS
 CREATE FUNCTION set_error() RETURNS TRIGGER AS $error_trigger$
     BEGIN
        UPDATE files SET status = 'Error' WHERE id = NEW.file_id;
+       UPDATE submissions SET status = 'Error' WHERE id = NEW.submission_id;
        RETURN NEW;
     END;
 $error_trigger$ LANGUAGE plpgsql;
