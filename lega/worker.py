@@ -26,8 +26,8 @@ When a message is consumed, it must be of the form:
 import sys
 import os
 import logging
-import traceback
 import json
+#import traceback
 
 from .conf import CONF
 from . import crypto
@@ -52,7 +52,7 @@ def work(data):
         errmsg = f"{e.__class__.__name__}: {e!s}"
         LOG.debug(errmsg)
         db.set_error(file_id, errmsg)
-        traceback.print_exc()
+        #traceback.print_exc()
         raise e
 
     reply = {

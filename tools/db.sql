@@ -22,12 +22,18 @@ CREATE TABLE files (
 	filehash     TEXT NOT NULL,
 	hash_algo    hash_algo,
 	status       status,
-	error        TEXT,
 	stable_id    TEXT,
 	reenc_key    TEXT,
 	reenc_info   TEXT,
 	created_at   TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT clock_timestamp(),
 	last_modified TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT clock_timestamp()
+);
+
+CREATE TABLE errors (
+        id            SERIAL, PRIMARY KEY(id), UNIQUE (id),
+	file_id       INTEGER REFERENCES files (id) ON DELETE CASCADE,
+	msg           TEXT NOT NULL,
+	occured_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT clock_timestamp()
 );
 
 -- The filehash is the checksum value of the original unencrypted file.
@@ -68,3 +74,14 @@ CREATE TRIGGER trigger_status_updated
   AFTER UPDATE ON files
   FOR EACH ROW EXECUTE PROCEDURE update_last_modified();
     
+-- FOR THE ERRORS
+CREATE FUNCTION set_error() RETURNS TRIGGER AS $error_trigger$
+    BEGIN
+       UPDATE files SET status = 'Error' WHERE id = NEW.file_id;
+       RETURN NEW;
+    END;
+$error_trigger$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_on_error
+  AFTER INSERT ON errors
+  FOR EACH ROW EXECUTE PROCEDURE set_error(); 

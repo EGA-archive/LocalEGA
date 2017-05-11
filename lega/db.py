@@ -40,7 +40,7 @@ Statements = {
 
     'update_status'     : 'UPDATE files SET status = %(status)s WHERE id = %(file_id)s;',
 
-    'set_error'         : 'UPDATE files SET status = %(status)s, error = %(error)s WHERE id = %(file_id)s;',
+    'set_error'         : 'INSERT INTO errors (file_id,msg) VALUES(%(file_id)s,%(msg)s) RETURNING errors.id;',
 
     'get_info'          : 'SELECT filename, status, created_at, last_modified FROM files WHERE id = %(file_id)s',
 
@@ -72,6 +72,7 @@ async def insert_file(pool, **kwargs):
         return (await cur.fetchone())[0] # returning the id
 
 async def aio_get_info(pool, file_id):
+    assert file_id, 'Eh? No file_id?'
     with (await pool.cursor()) as cur:
         query = Statements['get_info']
         await cur.execute(query, {'file_id': file_id})
@@ -83,9 +84,12 @@ async def aio_get_info(pool, file_id):
 #         await cur.execute(query, {'status': status.value, 'file_id': file_id})
     
 async def aio_set_error(pool, file_id, error):
+    assert file_id, 'Eh? No file_id?'
+    assert error, 'Eh? No error?'
+    LOG.debug(f'Async Setting error for {file_id}: {error}')
     with (await pool.cursor()) as cur:
         query = Statements['set_error']
-        await cur.execute(query, {'status': Status.Error.value, 'error':error, 'file_id': file_id})
+        await cur.execute(query, {'msg':error, 'file_id': file_id})
 
 ######################################
 ##         "Classic" code           ##
@@ -103,6 +107,9 @@ def connect():
     return db_connect(user=user, password=password, database=database, host=host, port=port)
 
 def update_status(file_id, status):
+    assert file_id, 'Eh? No file_id?'
+    assert status, 'Eh? No status?'
+    LOG.debug(f'Updating status file_id {file_id}: {status!r}')
     with connect() as conn:
         with conn.cursor() as cur:
             query = Statements['update_status']
@@ -113,18 +120,25 @@ def update_status(file_id, status):
             
     
 def set_error(file_id, error):
+    assert file_id, 'Eh? No file_id?'
+    assert error, 'Eh? No error?'
+    LOG.debug(f'Setting error for {file_id}: {error}')
     with connect() as conn:
         with conn.cursor() as cur:
             query = Statements['set_error']
-            cur.execute(query, {'status': Status.Error.value, 'error':error, 'file_id': file_id})
+            cur.execute(query, {'msg':error, 'file_id': file_id})
 
 def set_encryption(file_id, info, key):
+    assert file_id, 'Eh? No file_id?'
     with connect() as conn:
         with conn.cursor() as cur:
             query = Statements['set_encryption']
             cur.execute(query, {'reenc_info': info, 'reenc_key': key, 'file_id': file_id})
 
 def set_stable_id(file_id, stable_id):
+    assert file_id, 'Eh? No file_id?'
+    assert stable_id, 'Eh? No stable_id?'
+    LOG.debug(f'Setting final name for file_id {file_id}: {stable_id}')
     with connect() as conn:
         with conn.cursor() as cur:
             query = Statements['set_stable_id']

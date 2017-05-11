@@ -233,8 +233,10 @@ async def ingest(request):
         except Exception as e:
             errmsg = f'Task in separate process raised {e!r}'
             LOG.error(errmsg)
-            os.chmod(inbox / filename, mode = stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP) # Permission 660
-            res = f'[{n:{width}}/{total:{width}}] {filename} {Fore.RED}x{Fore.RESET}\n'
+            inbox_filepath = inbox / filename
+            if inbox_filepath.exists():
+                os.chmod(inbox_filepath, mode = stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP) # Permission 660
+            res = f'[{n:{width}}/{total:{width}}] {filename} {Fore.RED}x{Fore.RESET} {e!s}\n'
             await db.aio_set_error(request.app['db'], file_id, errmsg)
             
 

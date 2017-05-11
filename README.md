@@ -58,3 +58,14 @@ use as the name for a file in the vault. This component is started
 with `python namer.py` (with `--log <file> --conf <file>` if
 necessary). It uses a file called `namer.counter` in the same folder
 as the script, which contains a number.
+
+## Alternative
+
+The script `tools/start_ega.sh` can be used to start the necessary
+components of Local EGA.  It starts the ingestion frontend, 2 workers,
+the vault listener, a file 'namer' that acts as the CentralEGA
+instance. The gpg-agent is also started and the 2 workers source the
+env file first.
+
+A trap is added so that `Ctrl-C` kills all the background processes that
+the script started.
