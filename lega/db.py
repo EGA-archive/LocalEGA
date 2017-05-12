@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# -*- coding: utf-8 -*-
 
 '''
 ####################################
@@ -16,6 +15,7 @@ from psycopg2 import connect as db_connect
 
 from .conf import CONF
 from .utils import cache_var
+from .exceptions import AlreadyProcessed
 
 LOG = logging.getLogger('db')
 
@@ -24,18 +24,16 @@ class Status(Enum):
     In_Progress = 'In progress'
     Archived = 'Archived'
     Error = 'Error'
-    # Received = 1
-    # In_Progress = 2
-    # Archived = 3
-    # Error = 4
+    OK = 'ok'
+    NotOK = 'not_ok'
 
 Statements = {
     'insert_submission' : ('INSERT INTO submissions (id, user_id) '
                            'VALUES(%(submission_id)s, %(user_id)s) '
                            'ON CONFLICT (id) DO UPDATE SET created_at = DEFAULT;'),
 
-    'insert_file'       : ('INSERT INTO files (submission_id,filename,filehash,hash_algo,status) '
-                           'VALUES(%(submission_id)s,%(filename)s,%(filehash)s,%(hash_algo)s,%(status)s) '
+    'insert_file'       : ('INSERT INTO files (submission_id,filename,enc_checksum,enc_checksum_algo,org_checksum,org_checksum_algo,status) '
+                           'VALUES(%(submission_id)s,%(filename)s,%(enc_checksum)s,%(enc_checksum_algo)s,%(org_checksum)s,%(org_checksum_algo)s,%(status)s) '
                            'RETURNING files.id;'),
 
     'update_status'     : 'UPDATE files SET status = %(status)s WHERE id = %(file_id)s;',
@@ -43,6 +41,7 @@ Statements = {
     'set_error'         : 'INSERT INTO errors (file_id,msg) VALUES(%(file_id)s,%(msg)s) RETURNING errors.id;',
 
     'get_info'          : 'SELECT filename, status, created_at, last_modified FROM files WHERE id = %(file_id)s',
+    'get_submission_info': 'SELECT created_at,completed_at, status FROM submissions WHERE id = %(submission_id)s',
 
     'set_encryption'    : 'UPDATE files SET reenc_info = %(reenc_info)s, reenc_key = %(reenc_key)s WHERE id = %(file_id)s;',
 
@@ -62,27 +61,45 @@ async def insert_submission(pool, **kwargs):
         query = Statements['insert_submission']
         await cur.execute(query, kwargs)
 
-async def insert_file(pool, **kwargs):
-    if not kwargs.pop('status', None):
-        kwargs['status'] = Status.Received.value
-    LOG.debug(kwargs)
+async def insert_file(pool,
+                      filename,
+                      enc_checksum,
+                      org_checksum,
+                      submission_id
+):
     with (await pool.cursor()) as cur:
+        # Inserting the file
         query = Statements['insert_file']
-        await cur.execute(query, kwargs)
-        return (await cur.fetchone())[0] # returning the id
+        await cur.execute(query, {'submission_id':submission_id,
+                                  'filename': filename,
+                                  'enc_checksum': enc_checksum['hash'],
+                                  'enc_checksum_algo': enc_checksum['algorithm'],
+                                  'org_checksum': org_checksum['hash'],
+                                  'org_checksum_algo': org_checksum['algorithm'],
+                                  'status' : Status.Received.value })
+        return (await cur.fetchone())[0]
 
-async def aio_get_info(pool, file_id):
+async def get_info(pool, file_id):
     assert file_id, 'Eh? No file_id?'
     with (await pool.cursor()) as cur:
         query = Statements['get_info']
         await cur.execute(query, {'file_id': file_id})
         return await cur.fetchone()
 
-# async def aio_update_status(pool, file_id, status):
-#     with (await pool.cursor()) as cur:
-#         query = Statements['update_status']
-#         await cur.execute(query, {'status': status.value, 'file_id': file_id})
-    
+async def get_submission_info(pool, submission_id):
+    assert submission_id, 'Eh? No submission_id?'
+    with (await pool.cursor()) as cur:
+        query = Statements['get_submission_info']
+        await cur.execute(query, {'submission_id': submission_id})
+        res = await cur.fetchone()
+        if res is None:
+            return None
+        created_at, completed_at, status = res
+        if status == Status.Archived.value:
+            return (created_at, f'Status: Completed at {completed_at}')
+        else:
+            return (created_at, f'Status: Not yet completed')
+
 async def aio_set_error(pool, file_id, error):
     assert file_id, 'Eh? No file_id?'
     assert error, 'Eh? No error?'
@@ -117,8 +134,7 @@ def update_status(file_id, status):
             #
             # Marking submission as completed is done as a DB trigger
             # We save a few round trips with queries and connections
-            
-    
+
 def set_error(file_id, error):
     assert file_id, 'Eh? No file_id?'
     assert error, 'Eh? No error?'

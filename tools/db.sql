@@ -7,7 +7,6 @@ SET TIME ZONE 'Europe/Stockholm';
 
 CREATE TYPE status AS ENUM ('Received', 'In progress', 'Archived', 'Error');
 CREATE TYPE hash_algo AS ENUM ('md5', 'sha256');
-CREATE TYPE checksum_status AS ENUM ('ok', 'not_ok');
 
 CREATE TABLE submissions (
         id            INTEGER NOT NULL, PRIMARY KEY(id), UNIQUE (id),
@@ -17,20 +16,14 @@ CREATE TABLE submissions (
 	status        status
 );
 
-CREATE TABLE checksums (
-        id            SERIAL, PRIMARY KEY(id), UNIQUE (id),
-	val           TEXT, UNIQUE (val),
-	hash_algo     hash_algo,
-	status        checksum_status DEFAULT NULL,
-	created_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT clock_timestamp()
-);
-
 CREATE TABLE files (
         id           SERIAL, PRIMARY KEY(id), UNIQUE (id),
 	submission_id INTEGER REFERENCES submissions (id) ON DELETE CASCADE,
 	filename     TEXT NOT NULL,
-	enc_checksum_id INTEGER REFERENCES checksums (id) ON DELETE CASCADE,
-	org_checksum_id INTEGER REFERENCES checksums (id) ON DELETE CASCADE,
+	enc_checksum TEXT,
+	enc_checksum_algo hash_algo,
+	org_checksum TEXT,
+	org_checksum_algo hash_algo,
 	status       status,
 	stable_id    TEXT,
 	reenc_key    TEXT,
@@ -46,12 +39,6 @@ CREATE TABLE errors (
 	occured_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT clock_timestamp()
 );
 
-
--- The filehash is the checksum value of the original unencrypted file.
--- We do not store the checksum of the encrypted file from the inbox, as it is 
--- only interesting to check if we really received the whole file.
--- We already have that test in place, so when the latter test passes,
--- we are not any longer interested in the checksum of the encrypted file.
 
 -- The reencryption field is used to store how the original unencrypted file was re-encrypted.
 -- We gpg-decrypt the encrypted file and send the output, by blocks, to the re-encryptor.

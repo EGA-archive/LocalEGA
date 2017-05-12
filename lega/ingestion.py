@@ -10,14 +10,15 @@
 
 We provide:
 
-|------------------------------|-----------------|----------------|
-| endpoint                     | accepted method |     Note       |
-|------------------------------|-----------------|----------------|
-| [LocalEGA-URL]/              |       GET       |                |
-| [LocalEGA-URL]/ingest        |      POST       | requires login |
-| [LocalEGA-URL]/create-inbox  |       GET       | requires login |
-| [LocalEGA-URL]/status/<name> |       GET       |                |
-|------------------------------|-----------------|----------------|
+|---------------------------------------|-----------------|----------------|
+| endpoint                              | accepted method |     Note       |
+|---------------------------------------|-----------------|----------------|
+| [LocalEGA-URL]/                       |       GET       |                |
+| [LocalEGA-URL]/ingest                 |      POST       | requires login |
+| [LocalEGA-URL]/create-inbox           |       GET       | requires login |
+| [LocalEGA-URL]/status/file/<id>       |       GET       |                |
+| [LocalEGA-URL]/status/submission/<id> |       GET       |                |
+|---------------------------------------|-----------------|----------------|
 
 :author: Frédéric Haziza
 :copyright: (c) 2017, NBIS System Developers.
@@ -42,6 +43,9 @@ import aiohttp_jinja2
 from .conf import CONF
 from . import amqp as broker
 from . import db
+from .exceptions import (NotFoundInInbox, 
+                         Checksum as ChecksumException,
+                         AlreadyProcessed)
 from .utils import (
     get_data as parse_data,
     only_central_ega,
@@ -79,10 +83,9 @@ async def outgest(request):
     '''
     raise web.HTTPBadRequest(text=f'\n{Fore.BLACK}{Back.RED}Not implemented yet!{Back.RESET}{Fore.RESET}\n\n')
 
-async def status(request):
-    '''Status endpoint
-    '''
-    file_id = request.match_info['name']
+async def status_file(request):
+    '''Status endpoint for a given file'''
+    file_id = request.match_info['id']
     LOG.info(f'Getting info for file_id {file_id}')
     res = await db.get_info(request.app['db'], file_id)
     if not res:
@@ -94,8 +97,20 @@ async def status(request):
                         f'\n\t* Submitted file name: {filename}\n'
                         f'\n\t* Stable file name: {stable_id}\n')
 
-def process_submission(file_id,
-                       submission,
+async def status_submission(request):
+    '''Status endpoint for a given whole submission'''
+    submission_id = request.match_info['id']
+    LOG.info(f'Getting info for submission {submission_id}')
+    res = await db.get_submission_info(request.app['db'], submission_id)
+    if not res:
+        raise web.HTTPBadRequest(text=f'No info about submission id {submission_id}... yet\n')
+    created_at, completed_at = res
+    return web.Response(text=f'Status for submission {submission_id}:'
+                        f'\n\t* Created at: {created_at}'
+                        f'\n\t* {completed_at}\n')
+
+def process_submission(submission,
+                       file_id,
                        inbox,
                        staging_area,
                        submission_id,
@@ -113,14 +128,21 @@ def process_submission(file_id,
     inbox_filepath = inbox / filename
     staging_filepath = staging_area / filename
 
+    if not inbox_filepath.exists():
+        raise NotFoundInInbox(filename)
+
     ################# Check integrity of encrypted file
     LOG.debug(f'Verifying the {hash_algo} checksum of encrypted file: {inbox_filepath}')
     with open(inbox_filepath, 'rb') as inbox_file: # Open the file in binary mode. No encoding dance.
         if not checksum(inbox_file, filehash, hashAlgo = hash_algo):
             errmsg = f'Invalid {hash_algo} checksum for {inbox_filepath}'
             LOG.warning(errmsg)
-            raise Exception(errmsg)
+            raise ChecksumException(errmsg)
     LOG.debug(f'Valid {hash_algo} checksum for {inbox_filepath}')
+
+    # if already_processed:
+    #     LOG.debug(f'Checksum already marked as processed. ID: {checksum_id}')
+    #     raise AlreadyProcessed(...)
 
     ################# Moving encrypted file to staging area
     LOG.debug(f'Locking the file {inbox_filepath}')
@@ -201,17 +223,20 @@ async def ingest(request):
 
     for submission in data['files']:
         LOG.info(f"Submitting {submission['filename']}")
+
         file_id = await db.insert_file(request.app['db'],
                                        filename  = submission['filename'],
-                                       filehash  = submission['encryptedIntegrity']['hash'],
-                                       hash_algo = submission['encryptedIntegrity']['algorithm'],
+                                       enc_checksum  = submission['encryptedIntegrity'],
+                                       org_checksum  = submission['unencryptedIntegrity'],
                                        submission_id = submission_id)
+
         LOG.debug(f'Created id {file_id} for {submission["filename"]}')
         assert file_id is not None, 'Ouch...database problem!'
+
         task = asyncio.ensure_future(
             loop.run_in_executor(None, process_submission,
-                                 file_id,
                                  submission,
+                                 file_id,
                                  inbox,
                                  staging_area,
                                  submission_id,
@@ -308,11 +333,12 @@ def main(args=None):
 
     # Registering the routes
     LOG.info('Registering routes')
-    server.router.add_get( '/'             , index        , name='root'       )
-    server.router.add_post('/ingest'       , ingest       , name='ingestion'  )
-    server.router.add_get( '/create-inbox' , create_inbox , name='inbox'      )
-    server.router.add_get( '/status/{name}', status       , name='status'     )
-    server.router.add_post('/outgest'      , outgest      , name='outgestion' )
+    server.router.add_get( '/'                      , index             , name='root'             )
+    server.router.add_post('/ingest'                , ingest            , name='ingestion'        )
+    server.router.add_get( '/create-inbox'          , create_inbox      , name='inbox'            )
+    server.router.add_get( '/status/file/{id}'      , status_file       , name='status_file'      )
+    server.router.add_get( '/status/submission/{id}', status_submission , name='status_submission')
+    server.router.add_post('/outgest'               , outgest           , name='outgestion'       )
 
     # # Swagger endpoint: /swagger.json
     # LOG.info('Preparing for Swagger')
