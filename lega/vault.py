@@ -46,9 +46,10 @@ def work(data):
     
     vault_area = Path( CONF.get('vault','location') )
     
-    req = requests.get(CONF.get('namer','location'),
-                       headers={'X-LocalEGA-Sweden':'yes'})
-    name = req.text.strip()
+    # req = requests.get(CONF.get('namer','location'),
+    #                    headers={'X-LocalEGA-Sweden':'yes'})
+    # name = req.text.strip()
+    name = data['target_name']
     name_bits = [name[i:i+3] for i in range(0, len(name), 3)]
     
     LOG.debug(f'Name bits: {name_bits!r}')
@@ -68,6 +69,8 @@ def work(data):
     # Mark it as processed in DB
     db.update_status(file_id, db.Status.Archived)
     db.set_stable_id(file_id, str(target))
+
+    # TODO: Mark the checksums as good, so we don't re-process this file
     
     return None
 

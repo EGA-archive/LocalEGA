@@ -54,7 +54,8 @@ def make_header(enc_key_size, nonce_size, aes_mode, chunk_size):
     The header is simply of the form:
     Encryption key size (in bytes) | Nonce size | AES mode | Chunk size
     '''
-    return f'{enc_key_size}|{nonce_size}|{aes_mode}|{chunk_size}\n'
+    header = f'{enc_key_size}|{nonce_size}|{aes_mode}|{chunk_size}\n'
+    return header.encode('utf-8')
 
 def from_header(h):
     '''Convert the given line into differents values, doing the opposite job as `make_header`'''
@@ -123,15 +124,19 @@ class ReEncryptor(asyncio.SubprocessProtocol):
             raise ValueError('No support for the secure hashing algorithm')
         else:
             self.digest = h()
+            self.target_digest = hashlib.sha256()
 
         encryption_key, mode, nonce = next(engine)
         self.header = make_header(len(encryption_key), len(nonce), mode, self.chunk_size)
         LOG.info(f'Writing header to file: {self.header[:-1]}')
-        self.target_handler.write(self.header.encode('utf-8')) # include \n
+        self.target_handler.write(self.header) # includes \n
+        self.target_digest.update(self.header)
         LOG.debug('Writing key to file')
         self.target_handler.write(encryption_key)
+        self.target_digest.update(encryption_key)
         LOG.debug('Writing nonce to file')
         self.target_handler.write(nonce)
+        self.target_digest.update(nonce)
         self.engine = engine
 
     def pipe_data_received(self, fd, data):
@@ -164,6 +169,7 @@ class ReEncryptor(asyncio.SubprocessProtocol):
         data = bytes(data) # Not good!
         cipherchunk = self.engine.send(data)
         self.target_handler.write(cipherchunk)
+        self.target_digest.update(cipherchunk)
 
 
 def ingest(enc_file,
@@ -212,7 +218,6 @@ def ingest(enc_file,
             return (gpg_retcode, done.result())
 
         gpg_result, calculated_digest = loop.run_until_complete(_re_encrypt())
-        #loop.close()
 
         LOG.debug(f'Calculated digest: {calculated_digest}')
         LOG.debug(f'Compared to digest: {org_hash}')
@@ -232,6 +237,7 @@ def ingest(enc_file,
     else:
         LOG.info(f'File encrypted')
         return (reencrypt_protocol.header, # returning the header for that file
+                reencrypt_protocol.target_digest.hexdigest(),
                 CONF.get('worker','master_key'))  # That was the key used at that moment
 
 def chunker(stream, chunk_size=None):

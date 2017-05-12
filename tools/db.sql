@@ -73,14 +73,48 @@ CREATE TRIGGER trigger_status_updated
   FOR EACH ROW EXECUTE PROCEDURE file_status_updated();
     
 -- FOR THE ERRORS
-CREATE FUNCTION set_error() RETURNS TRIGGER AS $error_trigger$
+CREATE FUNCTION set_error(file_id errors.file_id%TYPE,
+                          msg     errors.msg%TYPE)
+    RETURNS void AS $set_error$
+    DECLARE 
+        submission_id submissions.id%TYPE;
     BEGIN
-       UPDATE files SET status = 'Error' WHERE id = NEW.file_id;
-       UPDATE submissions SET status = 'Error' WHERE id = NEW.submission_id;
-       RETURN NEW;
+       INSERT INTO errors (file_id,msg) VALUES(file_id,msg);
+       WITH submission_id AS (
+            UPDATE files SET status = 'Error' WHERE id = file_id RETURNING files.submission_id
+       )
+       UPDATE submissions SET status = 'Error' WHERE id = submission_id;
     END;
-$error_trigger$ LANGUAGE plpgsql;
+$set_error$ LANGUAGE plpgsql;
 
-CREATE TRIGGER trigger_on_error
-  AFTER INSERT ON errors
-  FOR EACH ROW EXECUTE PROCEDURE set_error(); 
+
+CREATE FUNCTION insert_submission(sid submissions.id%TYPE,
+                                  uid submissions.user_id%TYPE)
+    RETURNS void AS $insert_submission$
+    BEGIN
+	INSERT INTO submissions (id, user_id) VALUES(sid, uid) ON CONFLICT (id) DO UPDATE SET created_at = DEFAULT;
+    END;
+$insert_submission$ LANGUAGE plpgsql;
+
+CREATE FUNCTION insert_file(submission_id     files.submission_id%TYPE,
+                            filename          files.filename%TYPE,
+			    enc_checksum      files.enc_checksum%TYPE,
+			    enc_checksum_algo files.enc_checksum_algo%TYPE,
+			    org_checksum      files.org_checksum%TYPE,
+			    org_checksum_algo files.org_checksum_algo%TYPE,
+			    status            files.status%TYPE)
+    RETURNS files.id%TYPE AS $insert_file$
+    #variable_conflict use_column
+    DECLARE
+        file_id files.id%TYPE;
+    BEGIN
+	INSERT INTO files (submission_id,filename,enc_checksum,enc_checksum_algo,org_checksum,org_checksum_algo,status)
+	VALUES(submission_id,filename,enc_checksum,enc_checksum_algo,org_checksum,org_checksum_algo,status) RETURNING files.id
+	INTO file_id;
+	RETURN file_id;
+    END;
+$insert_file$ LANGUAGE plpgsql;
+
+
+-- 'get_info'          : 'SELECT filename, status, created_at, last_modified FROM files WHERE id = %(file_id)s',
+-- 'get_submission_info': 'SELECT created_at,completed_at, status FROM submissions WHERE id = %(submission_id)s',

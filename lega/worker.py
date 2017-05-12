@@ -43,10 +43,10 @@ def work(data):
     db.update_status(file_id, db.Status.In_Progress)
 
     try:
-        details, reenc_key = crypto.ingest( data['source'],
-                                            data['hash'],
-                                            hash_algo = data['hash_algo'],
-                                            target = data['target'])
+        details, target_digest, reenc_key = crypto.ingest( data['source'],
+                                                           data['hash'],
+                                                           hash_algo = data['hash_algo'],
+                                                           target = data['target'])
         db.set_encryption(file_id, details, reenc_key)
     except Exception as e:
         errmsg = f"{e.__class__.__name__}: {e!s}"
@@ -60,6 +60,7 @@ def work(data):
         'filepath': data['target'],
         'submission_id': data['submission_id'],
         'user_id': data['user_id'],
+        'target_name': target_digest,
     }
     LOG.debug(f"Reply message: {reply!r}")
     return json.dumps(reply)
@@ -72,7 +73,8 @@ def main(args=None):
     CONF.setup(args) # re-conf
 
     broker.consume( work,
-                    from_queue = CONF.get('worker','message_queue') )
+                    from_queue = CONF.get('worker','message_queue'),
+                    answer_to = CONF.get('message.broker','routing_complete'))
 
 if __name__ == '__main__':
     main()

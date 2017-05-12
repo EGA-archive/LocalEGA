@@ -144,7 +144,7 @@ def process_submission(submission,
     #     LOG.debug(f'Checksum already marked as processed. ID: {checksum_id}')
     #     raise AlreadyProcessed(...)
 
-    ################# Moving encrypted file to staging area
+    ################# Locking the file in the inbox
     LOG.debug(f'Locking the file {inbox_filepath}')
     os.chmod(inbox_filepath, mode = stat.S_IRUSR) # 400: Remove write permissions
 
@@ -209,9 +209,9 @@ async def ingest(request):
     staging_area = get_staging_area(submission_id, create=True)
     LOG.info(f"Staging area: {staging_area}")
 
-    await db.insert_submission(request.app['db'],
-                               submission_id = submission_id,
-                               user_id = user_id)
+    db_sid = await db.insert_submission(request.app['db'],
+                                        submission_id = submission_id,
+                                        user_id = user_id)
 
     # Creating a listing of the tasks to run.
     loop = request.app.loop
