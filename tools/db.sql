@@ -36,6 +36,7 @@ CREATE TABLE errors (
         id            SERIAL, PRIMARY KEY(id), UNIQUE (id),
 	file_id       INTEGER REFERENCES files (id) ON DELETE CASCADE,
 	msg           TEXT NOT NULL,
+	from_user     BOOLEAN DEFAULT FALSE,
 	occured_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT clock_timestamp()
 );
 
@@ -72,14 +73,15 @@ CREATE TRIGGER trigger_status_updated
   AFTER UPDATE ON files
   FOR EACH ROW EXECUTE PROCEDURE file_status_updated();
     
--- FOR THE ERRORS
-CREATE FUNCTION set_error(file_id errors.file_id%TYPE,
-                          msg     errors.msg%TYPE)
+-- For an error
+CREATE FUNCTION insert_error(file_id    errors.file_id%TYPE,
+                             msg        errors.msg%TYPE,
+                             from_user  errors.from_user%TYPE)
     RETURNS void AS $set_error$
     DECLARE 
         submission_id submissions.id%TYPE;
     BEGIN
-       INSERT INTO errors (file_id,msg) VALUES(file_id,msg);
+       INSERT INTO errors (file_id,msg,from_user) VALUES(file_id,msg,from_user);
        WITH submission_id AS (
             UPDATE files SET status = 'Error' WHERE id = file_id RETURNING files.submission_id
        )
@@ -87,7 +89,7 @@ CREATE FUNCTION set_error(file_id errors.file_id%TYPE,
     END;
 $set_error$ LANGUAGE plpgsql;
 
-
+-- For a submission
 CREATE FUNCTION insert_submission(sid submissions.id%TYPE,
                                   uid submissions.user_id%TYPE)
     RETURNS void AS $insert_submission$
@@ -96,6 +98,7 @@ CREATE FUNCTION insert_submission(sid submissions.id%TYPE,
     END;
 $insert_submission$ LANGUAGE plpgsql;
 
+-- For a file
 CREATE FUNCTION insert_file(submission_id     files.submission_id%TYPE,
                             filename          files.filename%TYPE,
 			    enc_checksum      files.enc_checksum%TYPE,
@@ -114,7 +117,3 @@ CREATE FUNCTION insert_file(submission_id     files.submission_id%TYPE,
 	RETURN file_id;
     END;
 $insert_file$ LANGUAGE plpgsql;
-
-
--- 'get_info'          : 'SELECT filename, status, created_at, last_modified FROM files WHERE id = %(file_id)s',
--- 'get_submission_info': 'SELECT created_at,completed_at, status FROM submissions WHERE id = %(submission_id)s',

@@ -84,13 +84,13 @@ async def get_submission_info(pool, submission_id):
         else:
             return (created_at, f'Status: Not yet completed')
 
-async def aio_set_error(pool, file_id, error):
+async def aio_set_error(pool, file_id, error, from_user=False):
     assert file_id, 'Eh? No file_id?'
     assert error, 'Eh? No error?'
     LOG.debug(f'Async Setting error for {file_id}: {error}')
     with (await pool.cursor()) as cur:
-        await cur.execute('SELECT set_error(%(file_id)s,%(msg)s);',
-                          {'msg':error, 'file_id': file_id})
+        await cur.execute('SELECT insert_error(%(file_id)s,%(msg)s,%(from_user)s);',
+                          {'msg':error, 'file_id': file_id, 'from_user': from_user})
 
 ######################################
 ##         "Classic" code           ##
@@ -119,14 +119,21 @@ def update_status(file_id, status):
             # Marking submission as completed is done as a DB trigger
             # We save a few round trips with queries and connections
 
-def set_error(file_id, error):
+def set_error(file_id, error, from_user=False):
     assert file_id, 'Eh? No file_id?'
     assert error, 'Eh? No error?'
     LOG.debug(f'Setting error for {file_id}: {error}')
     with connect() as conn:
         with conn.cursor() as cur:
-            cur.execute('SELECT set_error(%(file_id)s,%(msg)s);',
-                        {'msg':error, 'file_id': file_id})
+            cur.execute('SELECT insert_error(%(file_id)s,%(msg)s,%(from_user)s);',
+                        {'msg':error, 'file_id': file_id, 'from_user':from_user})
+
+def get_errors(from_user=False):
+    query = 'SELECT * from errors WHERE from_user = true;' if from_user else 'SELECT * from errors;'
+    with connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute(query)
+            return cur.fetchall()
 
 def set_encryption(file_id, info, key):
     assert file_id, 'Eh? No file_id?'

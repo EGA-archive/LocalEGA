@@ -4,7 +4,7 @@
 '''
 ####################################
 #
-# Monitoring the error queues
+# Monitoring the errors
 #
 ####################################
 
@@ -16,9 +16,10 @@ Note: we can configure the logger to send emails :-)
 import sys
 import logging
 import argparse
+from time import sleep
     
 from .conf import CONF
-from . import amqp as broker
+from . import db
 
 LOG = None
 
@@ -32,8 +33,15 @@ def user_work(data):
     LOG.debug(data)
     return None
 
-def main():
+def check_errors(handle_error,interval):
+    while True:
+        errors = db.get_errors()
+        for error in errors:
+            LOG.info(repr(error))
+        sleep(interval)
 
+def main():
+    global LOG
     CONF.setup(sys.argv[1:]) # re-conf
 
     parser = argparse.ArgumentParser()
@@ -44,11 +52,14 @@ def main():
     group.add_argument('--user', action='store_true', help='Monitor errors from the users' )
     args = parser.parse_args()
 
+
+    interval = CONF.getint('monitor','interval', fallback=600) # default 10min
     if args.sys:
         LOG = logging.getLogger('sys-monitor')
-        broker.consume( sys_work, from_queue = CONF.get('monitor','sys_errors'))
-
+        handle_error = sys_work
+        
     if args.user:
         LOG = logging.getLogger('user-monitor')
-        broker.consume( user_work, from_queue = CONF.get('monitor','user_errors'))
+        handle_error = user_work
 
+    check_errors(handle_error,interval)

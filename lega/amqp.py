@@ -39,28 +39,31 @@ def get_connection():
     return (connection,channel)
 
 
-def consume(work, from_queue, answer_to=None):
+def consume(work, from_queue, routing_to=None):
     '''Blocking function, registering callback to be called, on each message from the queue `from_queue`
 
-    If there are no message in `from_queue`, the function blocks and waits for new messages'''
+    If there are no message in `from_queue`, the function blocks and waits for new messages.
+
+    If `routing_to` is supplied, and the function `work` returns a non-None message,
+    the new message is published to the exchange with `routing_to` as the routing key.
+    '''
 
     connection, channel = get_connection()
+    exchange = CONF.get('message.broker','exchange', fallback='')
 
     def process_request(channel, method_frame, props, body):
         correlation_id = props.correlation_id
         message_id = method_frame.delivery_tag
         LOG.debug(f'Consuming message {message_id} (Correlation ID: {correlation_id})')
 
-        data = json.loads(body)
-        LOG.debug(f'Message converted to JSON:\n{data}')
-        answer = work(data) # Might raise exceptions
+        # Process message in JSON format
+        answer = work( json.loads(body) ) # Exceptions should be already caught
 
         # Publish the answer
-        if answer_to:
-            assert answer, 'We should process the message and return a new one'
-            LOG.debug(f'Replying to {answer_to}')
-            channel.basic_publish(exchange    = CONF.get('message.broker','exchange', fallback=''),
-                                  routing_key = answer_to,
+        if answer and routing_to:
+            LOG.debug(f'Replying to {routing_to}')
+            channel.basic_publish(exchange    = exchange,
+                                  routing_key = routing_to,
                                   properties  = pika.BasicProperties( correlation_id = props.correlation_id ),
                                   body        = answer)
         # Acknowledgment: Cancel the message resend in case MQ crashes

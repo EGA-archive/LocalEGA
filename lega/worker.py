@@ -33,6 +33,7 @@ from .conf import CONF
 from . import crypto
 from . import amqp as broker
 from . import db
+from .exceptions import FromUser
 
 LOG = logging.getLogger('worker')
 
@@ -48,22 +49,23 @@ def work(data):
                                                            hash_algo = data['hash_algo'],
                                                            target = data['target'])
         db.set_encryption(file_id, details, reenc_key)
+
+        reply = {
+            'file_id' : file_id,
+            'filepath': data['target'],
+            'submission_id': data['submission_id'],
+            'user_id': data['user_id'],
+            'target_name': target_digest,
+        }
+        LOG.debug(f"Reply message: {reply!r}")
+        return json.dumps(reply)
+
     except Exception as e:
         errmsg = f"{e.__class__.__name__}: {e!s}"
         LOG.debug(errmsg)
-        db.set_error(file_id, errmsg)
-        #traceback.print_exc()
-        raise e
-
-    reply = {
-        'file_id' : file_id,
-        'filepath': data['target'],
-        'submission_id': data['submission_id'],
-        'user_id': data['user_id'],
-        'target_name': target_digest,
-    }
-    LOG.debug(f"Reply message: {reply!r}")
-    return json.dumps(reply)
+        db.set_error(file_id, errmsg, isinstance(e,FromUser))
+        # #traceback.print_exc()
+        # raise e
 
 def main(args=None):
 
@@ -74,7 +76,7 @@ def main(args=None):
 
     broker.consume( work,
                     from_queue = CONF.get('worker','message_queue'),
-                    answer_to = CONF.get('message.broker','routing_complete'))
+                    routing_to = CONF.get('message.broker','routing_complete'))
 
 if __name__ == '__main__':
     main()

@@ -45,7 +45,8 @@ from . import amqp as broker
 from . import db
 from .exceptions import (NotFoundInInbox, 
                          Checksum as ChecksumException,
-                         AlreadyProcessed)
+                         AlreadyProcessed,
+                         FromUser)
 from .utils import (
     get_data as parse_data,
     only_central_ega,
@@ -137,7 +138,7 @@ def process_submission(submission,
         if not checksum(inbox_file, filehash, hashAlgo = hash_algo):
             errmsg = f'Invalid {hash_algo} checksum for {inbox_filepath}'
             LOG.warning(errmsg)
-            raise ChecksumException(errmsg)
+            raise ChecksumException(filename, submission_id, user_id)
     LOG.debug(f'Valid {hash_algo} checksum for {inbox_filepath}')
 
     # if already_processed:
@@ -256,13 +257,14 @@ async def ingest(request):
             success += 1 # no race here
             # It is already in state Received in the database
         except Exception as e:
-            errmsg = f'Task in separate process raised {e!r}'
+            #errmsg = f'Task in separate process raised {e!r}'
+            errmsg = str(e)
             LOG.error(errmsg)
             inbox_filepath = inbox / filename
             if inbox_filepath.exists():
                 os.chmod(inbox_filepath, mode = stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP) # Permission 660
             res = f'[{n:{width}}/{total:{width}}] {filename} {Fore.RED}x{Fore.RESET} {e!s}\n'
-            await db.aio_set_error(request.app['db'], file_id, errmsg)
+            await db.aio_set_error(request.app['db'], file_id, errmsg, isinstance(e,FromUser))
             
 
         # Send the result to the responde as they arrive
