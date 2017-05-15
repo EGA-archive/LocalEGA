@@ -45,12 +45,8 @@ def work(data):
     filepath      = Path(data['filepath'])
     
     vault_area = Path( CONF.get('vault','location') )
-    
-    req = requests.get(CONF.get('namer','location'),
-                       headers={'X-LocalEGA-Sweden':'yes'})
-    name = req.text.strip()
+    name = data['target_name']
     name_bits = [name[i:i+3] for i in range(0, len(name), 3)]
-    
     LOG.debug(f'Name bits: {name_bits!r}')
     target = vault_area.joinpath(*name_bits)
     LOG.debug(f'Target: {target}')
@@ -58,18 +54,19 @@ def work(data):
     LOG.debug('Target parent: {}'.format(target.parent))
     filepath.rename( target ) # move
     
-    # remove it empty
+    # remove if empty
     try:
-        filepath.parent.rmdir()
-        LOG.debug('Removing {}'.format(filepath.parent))
+        filepath.parent.rmdir() # raise exception is not empty
+        LOG.debug(f'Removing {filepath.parent!s}')
     except OSError:
+        LOG.debug(f'{filepath.parent!s} is not empty')
         pass
     
     # Mark it as processed in DB
     db.update_status(file_id, db.Status.Archived)
     db.set_stable_id(file_id, str(target))
-    
-    return None
+
+    # TODO: Mark the checksums as good, so we don't re-process this file
 
 def main(args=None):
 

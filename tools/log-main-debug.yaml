@@ -16,6 +16,12 @@ loggers:
   vault:
     level: DEBUG
     handlers: [mainFile]
+  sys-monitor:
+    level: DEBUG
+    handlers: [mainFile,console]
+  user-monitor:
+    level: DEBUG
+    handlers: [mainFile,console]
   amqp:
     level: DEBUG
     handlers: [mainFile]

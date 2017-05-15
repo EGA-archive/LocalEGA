@@ -27,7 +27,6 @@ import sys
 import os
 import logging
 import json
-#import traceback
 
 from .conf import CONF
 from . import crypto
@@ -43,26 +42,25 @@ def work(data):
     db.update_status(file_id, db.Status.In_Progress)
 
     try:
-        details, reenc_key = crypto.ingest( data['source'],
-                                            data['hash'],
-                                            hash_algo = data['hash_algo'],
-                                            target = data['target'])
+        details, target_digest, reenc_key = crypto.ingest( data['source'],
+                                                           data['hash'],
+                                                           hash_algo = data['hash_algo'],
+                                                           target = data['target'])
         db.set_encryption(file_id, details, reenc_key)
-    except Exception as e:
-        errmsg = f"{e.__class__.__name__}: {e!s}"
-        LOG.debug(errmsg)
-        db.set_error(file_id, errmsg)
-        #traceback.print_exc()
-        raise e
 
-    reply = {
-        'file_id' : file_id,
-        'filepath': data['target'],
-        'submission_id': data['submission_id'],
-        'user_id': data['user_id'],
-    }
-    LOG.debug(f"Reply message: {reply!r}")
-    return json.dumps(reply)
+        reply = {
+            'file_id' : file_id,
+            'filepath': data['target'],
+            'target_name': target_digest,
+            'submission_id': data['submission_id'],
+            'user_id': data['user_id'],
+        }
+        LOG.debug(f"Reply message: {reply!r}")
+        return json.dumps(reply)
+
+    except Exception as e:
+        LOG.debug(f"{e.__class__.__name__}: {e!s}")
+        db.set_error(file_id, e)
 
 def main(args=None):
 
@@ -72,7 +70,8 @@ def main(args=None):
     CONF.setup(args) # re-conf
 
     broker.consume( work,
-                    from_queue = CONF.get('worker','message_queue') )
+                    from_queue = CONF.get('worker','message_queue'),
+                    routing_to = CONF.get('message.broker','routing_complete'))
 
 if __name__ == '__main__':
     main()

@@ -5,6 +5,7 @@ import json
 
 from .conf import CONF
 from . import db
+from .exceptions import FromUser as ErrorFromUser
 
 LOG = logging.getLogger('amqp')
 
@@ -38,49 +39,39 @@ def get_connection():
     return (connection,channel)
 
 
-def _process(work):
-    '''Doc TODO'''
+def consume(work, from_queue, routing_to=None):
+    '''Blocking function, registering callback to be called, on each message from the queue `from_queue`
+
+    If there are no message in `from_queue`, the function blocks and waits for new messages.
+
+    If `routing_to` is supplied, and the function `work` returns a non-None message,
+    the new message is published to the exchange with `routing_to` as the routing key.
+    '''
+
+    connection, channel = get_connection()
+    exchange = CONF.get('message.broker','exchange', fallback='')
+
     def process_request(channel, method_frame, props, body):
         correlation_id = props.correlation_id
         message_id = method_frame.delivery_tag
         LOG.debug(f'Consuming message {message_id} (Correlation ID: {correlation_id})')
 
-
-        data = json.loads(body)
-        LOG.debug(f'Message converted to JSON:\n{data}')
-        try:
-            answer = work(data) # Might raise exceptions
-            answer_to = CONF.get('message.broker','routing_complete')
-            LOG.debug(f'Message processed (Correlation ID: {correlation_id})')
-        except Exception as e:
-            answer = f"{e.__class__.__name__}: {e!r}"
-            LOG.debug(answer)
-            db.set_error(data['file_id'], answer) # I think it will have data['file_id'] at that point
-
-            # Send message to error queue
-            answer_to = CONF.get('message.broker','routing_error')
-            LOG.debug('Error processing message (Correlation ID: {correlation_id})\n')
+        # Process message in JSON format
+        answer = work( json.loads(body) ) # Exceptions should be already caught
 
         # Publish the answer
-        if answer:
-            LOG.debug(f'Replying to {answer_to} (Correlation ID: {correlation_id})')
-            channel.basic_publish(exchange    = CONF.get('message.broker','exchange', fallback=''),
-                                  routing_key = answer_to,
+        if answer and routing_to:
+            LOG.debug(f'Replying to {routing_to}')
+            channel.basic_publish(exchange    = exchange,
+                                  routing_key = routing_to,
                                   properties  = pika.BasicProperties( correlation_id = props.correlation_id ),
                                   body        = answer)
         # Acknowledgment: Cancel the message resend in case MQ crashes
         LOG.debug(f'Sending ACK for message {message_id} (Correlation ID: {correlation_id})')
         channel.basic_ack(delivery_tag=method_frame.delivery_tag)
-    return process_request
-
-
-def consume(work, from_queue):
-    '''Blocking function, registering callback to be called, on each message from the queue `from_queue`
-
-    If there are no message in `from_queue`, the function blocks and waits for new messages'''
-
-    connection, channel = get_connection()
-    channel.basic_consume(_process(work), queue=from_queue)
+    
+    # Let's do this
+    channel.basic_consume(process_request, queue=from_queue)
 
     try:
         channel.start_consuming()
