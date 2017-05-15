@@ -3,11 +3,9 @@
 set -e
 #set -x
 
-EGA='<ega-folder>'
+HERE="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+EGA=$HERE/..
 [ -n "$1" ] && [ -d "$1" ] && EGA=$1
-
-LOG=""
-[ "$2" = '--log' ] && LOG="--log <file>"
 
 function cleanup {
     echo -e "\nStopping background jobs"
@@ -17,21 +15,23 @@ function cleanup {
 trap 'cleanup' INT TERM
 
 echo "Starting EGA in $EGA"
-pushd $EGA  >/dev/null
+pushd $EGA >/dev/null
 
 # Start the frontend
-ega-ingestion $LOG &
-# Start the naming service
-python $EGA/tools/namer.py &
+ega-ingestion &
 # Start the vault listener
-ega-vault $LOG &
+ega-vault &
 # re-start the GPG agent
 $EGA/tools/start_agent.sh
 # Start 2 workers
-source $EGA/private/gpg/agent.env && ega-worker $LOG &
-source $EGA/private/gpg/agent.env && ega-worker $LOG &
+source $EGA/private/gpg/agent.env && ega-worker &
+source $EGA/private/gpg/agent.env && ega-worker &
+# Start the monitors
+ega-monitor --sys &
+ega-monitor --user &
 
 popd >/dev/null
+sleep 3
 echo "EGA running..."
 
 # Wait for everyone to finish

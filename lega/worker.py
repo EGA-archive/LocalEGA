@@ -35,13 +35,22 @@ from . import db
 
 LOG = logging.getLogger('worker')
 
-def work(data):
-    '''Procedure to handle a message'''
 
+def clean(folder):
+    # remove parent folder if empty
+    try:
+        os.rmdir(folder) # raise exception is not empty
+        LOG.debug(f'Removing {folder}')
+    except OSError:
+        #LOG.debug(f'{filepath.parent!s} is not empty')
+        pass
+    return None
+
+def ingest(data):
     file_id = data['file_id']
     db.update_status(file_id, db.Status.In_Progress)
-
     try:
+
         details, target_digest, reenc_key = crypto.ingest( data['source'],
                                                            data['hash'],
                                                            hash_algo = data['hash_algo'],
@@ -61,6 +70,17 @@ def work(data):
     except Exception as e:
         LOG.debug(f"{e.__class__.__name__}: {e!s}")
         db.set_error(file_id, e)
+
+
+def work(data):
+    '''Procedure to handle a message'''
+    task = data['task']
+    if task == 'clean':
+        return clean(data['folder'])
+    if task == 'ingest':
+        return ingest(data)
+
+    raise exceptions.UnsupportedTask(task)
 
 def main(args=None):
 

@@ -60,8 +60,8 @@ def consume(work, from_queue, routing_to=None):
         answer = work( json.loads(body) ) # Exceptions should be already caught
 
         # Publish the answer
-        if answer and routing_to:
-            LOG.debug(f'Replying to {routing_to}')
+        if routing_to and answer:
+            LOG.debug(f'Replying to {routing_to} with {answer}')
             channel.basic_publish(exchange    = exchange,
                                   routing_key = routing_to,
                                   properties  = pika.BasicProperties( correlation_id = props.correlation_id ),

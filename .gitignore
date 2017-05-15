@@ -5,7 +5,7 @@ tmp/
 private/
 logs/
 *.conf
-tools/start*.sh
+tools/details/*
 tools/create_data.sh
 tools/namer.counter
 tests/
