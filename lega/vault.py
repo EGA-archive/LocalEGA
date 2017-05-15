@@ -22,17 +22,12 @@ and input that in the database.
 '''
 
 import sys
-import os
 import logging
-import traceback
 from pathlib import Path
-import requests
 
 from .conf import CONF
 from . import db
-from . import crypto
 from . import amqp as broker
-from . import utils
 
 LOG = logging.getLogger('vault')
 
@@ -54,12 +49,12 @@ def work(data):
     LOG.debug('Target parent: {}'.format(target.parent))
     filepath.rename( target ) # move
     
-    # remove if empty
+    # remove parent folder if empty
     try:
         filepath.parent.rmdir() # raise exception is not empty
         LOG.debug(f'Removing {filepath.parent!s}')
     except OSError:
-        LOG.debug(f'{filepath.parent!s} is not empty')
+        #LOG.debug(f'{filepath.parent!s} is not empty')
         pass
     
     # Mark it as processed in DB
