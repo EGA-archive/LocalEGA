@@ -15,7 +15,7 @@ from psycopg2 import connect as db_connect
 
 from .conf import CONF
 from .utils import cache_var
-from .exceptions import AlreadyProcessed
+from .exceptions import FromUser
 
 LOG = logging.getLogger('db')
 
@@ -84,13 +84,14 @@ async def get_submission_info(pool, submission_id):
         else:
             return (created_at, f'Status: Not yet completed')
 
-async def aio_set_error(pool, file_id, error, from_user=False):
+async def aio_set_error(pool, file_id, error):
     assert file_id, 'Eh? No file_id?'
     assert error, 'Eh? No error?'
-    LOG.debug(f'Async Setting error for {file_id}: {error}')
+    LOG.debug(f'Async Setting error for {file_id}: {error!s}')
+    from_user = isinstance(error,FromUser)
     with (await pool.cursor()) as cur:
         await cur.execute('SELECT insert_error(%(file_id)s,%(msg)s,%(from_user)s);',
-                          {'msg':error, 'file_id': file_id, 'from_user': from_user})
+                          {'msg':f"{error.__class__.__name__}: {error!s}", 'file_id': file_id, 'from_user': from_user})
 
 ######################################
 ##         "Classic" code           ##
@@ -119,14 +120,15 @@ def update_status(file_id, status):
             # Marking submission as completed is done as a DB trigger
             # We save a few round trips with queries and connections
 
-def set_error(file_id, error, from_user=False):
+def set_error(file_id, error):
     assert file_id, 'Eh? No file_id?'
     assert error, 'Eh? No error?'
-    LOG.debug(f'Setting error for {file_id}: {error}')
+    LOG.debug(f'Setting error for {file_id}: {error!s}')
+    from_user = isinstance(error,FromUser)
     with connect() as conn:
         with conn.cursor() as cur:
             cur.execute('SELECT insert_error(%(file_id)s,%(msg)s,%(from_user)s);',
-                        {'msg':error, 'file_id': file_id, 'from_user':from_user})
+                        {'msg':f"{error.__class__.__name__}: {error!s}", 'file_id': file_id, 'from_user': from_user})
 
 def get_errors(from_user=False):
     query = 'SELECT * from errors WHERE from_user = true;' if from_user else 'SELECT * from errors;'

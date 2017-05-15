@@ -22,6 +22,7 @@ from Cryptodome.Cipher import AES, PKCS1_OAEP
 
 from .conf import CONF
 #from .utils import cache_var
+from . import exceptions
 
 HASH_ALGORITHMS = {
     'md5': hashlib.md5,
@@ -197,7 +198,7 @@ def ingest(enc_file,
 
     LOG.debug(f'Prepare Decryption with {code}')
 
-    _errmsg = None
+    _err = None
 
     with open(target, 'wb') as target_h:
 
@@ -222,18 +223,19 @@ def ingest(enc_file,
         LOG.debug(f'Calculated digest: {calculated_digest}')
         LOG.debug(f'Compared to digest: {org_hash}')
         correct_digest = (calculated_digest == org_hash)
-
+        
         if not correct_digest:
-            _errmsg = f'Invalid {hash_algo} checksum for decrypted content of {enc_file}'
+            _err = exceptions.Checksum(f'Invalid {hash_algo} checksum for decrypted content of {enc_file}')
+            LOG.error(str(_err))
         if gpg_result != 0: # Swapped order on purpose
-            _errmsg = f'Error decrypting the file'
+            _err = exceptions.GPGDecryption(f'Error {gpg_result} while decrypting {enc_file}')
+            LOG.error(str(_err))
 
 
-    if _errmsg:
-        LOG.error(f'{_errmsg!r}')
+    if _err:
         LOG.warning(f'Removing {target}')
         os.remove(target)
-        raise Exception(_errmsg)
+        raise _err
     else:
         LOG.info(f'File encrypted')
         return (reencrypt_protocol.header, # returning the header for that file

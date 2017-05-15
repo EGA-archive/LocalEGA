@@ -27,13 +27,11 @@ import sys
 import os
 import logging
 import json
-#import traceback
 
 from .conf import CONF
 from . import crypto
 from . import amqp as broker
 from . import db
-from .exceptions import FromUser
 
 LOG = logging.getLogger('worker')
 
@@ -53,19 +51,16 @@ def work(data):
         reply = {
             'file_id' : file_id,
             'filepath': data['target'],
+            'target_name': target_digest,
             'submission_id': data['submission_id'],
             'user_id': data['user_id'],
-            'target_name': target_digest,
         }
         LOG.debug(f"Reply message: {reply!r}")
         return json.dumps(reply)
 
     except Exception as e:
-        errmsg = f"{e.__class__.__name__}: {e!s}"
-        LOG.debug(errmsg)
-        db.set_error(file_id, errmsg, isinstance(e,FromUser))
-        # #traceback.print_exc()
-        # raise e
+        LOG.debug(f"{e.__class__.__name__}: {e!s}")
+        db.set_error(file_id, e)
 
 def main(args=None):
 

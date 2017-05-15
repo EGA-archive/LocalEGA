@@ -43,10 +43,7 @@ import aiohttp_jinja2
 from .conf import CONF
 from . import amqp as broker
 from . import db
-from .exceptions import (NotFoundInInbox, 
-                         Checksum as ChecksumException,
-                         AlreadyProcessed,
-                         FromUser)
+from . import exceptions
 from .utils import (
     get_data as parse_data,
     only_central_ega,
@@ -113,9 +110,7 @@ async def status_submission(request):
 def process_submission(submission,
                        file_id,
                        inbox,
-                       staging_area,
-                       submission_id,
-                       user_id):
+                       staging_area):
     '''Main function to process a submission.
 
     The argument is a dictionnary with information regarding one file submission.
@@ -130,7 +125,7 @@ def process_submission(submission,
     staging_filepath = staging_area / filename
 
     if not inbox_filepath.exists():
-        raise NotFoundInInbox(filename)
+        raise exceptions.NotFoundInInbox(filename)
 
     ################# Check integrity of encrypted file
     LOG.debug(f'Verifying the {hash_algo} checksum of encrypted file: {inbox_filepath}')
@@ -138,12 +133,12 @@ def process_submission(submission,
         if not checksum(inbox_file, filehash, hashAlgo = hash_algo):
             errmsg = f'Invalid {hash_algo} checksum for {inbox_filepath}'
             LOG.warning(errmsg)
-            raise ChecksumException(filename, submission_id, user_id)
+            raise exceptions.Checksum(filename)
     LOG.debug(f'Valid {hash_algo} checksum for {inbox_filepath}')
 
     # if already_processed:
     #     LOG.debug(f'Checksum already marked as processed. ID: {checksum_id}')
-    #     raise AlreadyProcessed(...)
+    #     raise exceptions.AlreadyProcessed(...)
 
     ################# Locking the file in the inbox
     LOG.debug(f'Locking the file {inbox_filepath}')
@@ -153,8 +148,8 @@ def process_submission(submission,
     # In the separate process
     msg = {
         'file_id': file_id,
-        'submission_id': submission_id,
-        'user_id': user_id,
+        'submission_id': submission['submission_id'],
+        'user_id': submission['user_id'],
         'source': str(inbox_filepath),
         'target' : str(staging_filepath),
         'hash': submission['unencryptedIntegrity']['hash'],
@@ -224,6 +219,8 @@ async def ingest(request):
 
     for submission in data['files']:
         LOG.info(f"Submitting {submission['filename']}")
+        submission['submission_id'] = submission_id
+        submission['user_id'] = user_id
 
         file_id = await db.insert_file(request.app['db'],
                                        filename  = submission['filename'],
@@ -239,9 +236,7 @@ async def ingest(request):
                                  submission,
                                  file_id,
                                  inbox,
-                                 staging_area,
-                                 submission_id,
-                                 user_id) # default executor, set to ProcessPoolExecutor in main()
+                                 staging_area) # default executor, set to ProcessPoolExecutor in main()
         ) # That will start running the task
         task.add_done_callback(lambda f: done.put_nowait(f))
         tasks[task] = (file_id, submission['filename'])
@@ -258,13 +253,13 @@ async def ingest(request):
             # It is already in state Received in the database
         except Exception as e:
             #errmsg = f'Task in separate process raised {e!r}'
-            errmsg = str(e)
+            errmsg = f'{e.__class__.__name__}: {e!s} | submission id: {submission_id} | user id: {user_id}'
             LOG.error(errmsg)
             inbox_filepath = inbox / filename
             if inbox_filepath.exists():
                 os.chmod(inbox_filepath, mode = stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP) # Permission 660
             res = f'[{n:{width}}/{total:{width}}] {filename} {Fore.RED}x{Fore.RESET} {e!s}\n'
-            await db.aio_set_error(request.app['db'], file_id, errmsg, isinstance(e,FromUser))
+            await db.aio_set_error(request.app['db'], file_id, e)
             
 
         # Send the result to the responde as they arrive

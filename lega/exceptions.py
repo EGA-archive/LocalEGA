@@ -6,29 +6,25 @@ class FromUser(Exception):
     def __str__(self):
         return repr(self)
     def __repr__(self):
-        return 'Error with the user input'
+        return 'Incorrect user input'
 
 class NotFoundInInbox(FromUser):
     def __init__(self, filename):
         self.filename = filename
     def __str__(self):
-        return f'Error: {self.filename} not found in inbox'
+        return f'File not found in inbox'
         
 class GPGDecryption(FromUser):
-    def __init__(self, filename, submission_id, user_id):
+    def __init__(self, filename):
         self.filename = filename
-        self.submission_id = submission_id
-        self.user_id = user_id
     def __str__(self):
-        return f'Error decrypting {self.filename} (submission id: {self.submission_id} | user id: {self.user_id})'
+        return f'Decrypting {self.filename} failed'
 
 class Checksum(FromUser):
-    def __init__(self, filename, submission_id, user_id):
+    def __init__(self, filename):
         self.filename = filename
-        self.submission_id = submission_id
-        self.user_id = user_id
     def __str__(self):
-        return f'Error decrypting {self.filename} (submission id: {self.submission_id} | user id: {self.user_id})'
+        return f'Invalid checksum for {self.filename}'
 
 class Unauthorized(FromUser):
     def __init__(self, user_id):
