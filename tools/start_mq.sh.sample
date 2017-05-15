@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-CONTAINER=ingestion-mq
+CONTAINER=ega-mq
 DOCKER_EXEC="docker exec -it ${CONTAINER}"
 
 # Kill the previous container
@@ -15,21 +15,16 @@ sleep 10
 # Updating it
 ${DOCKER_EXEC} rabbitmqctl set_disk_free_limit 1GB
 
+PARAMS='-i -u guest:guest -H "content-type:application/json"'
 # Create the exchange
-curl -i -u guest:guest -H "content-type:application/json" -X PUT -d '{"type":"topic","durable":true}' http://localhost:15672/api/exchanges/%2f/lega
+curl $PARAMS -X PUT -d '{"type":"topic","durable":true}' http://localhost:15672/api/exchanges/%2f/lega
 
 # Create the queues
-curl -i -u guest:guest -H "content-type:application/json" -X PUT -d '{"durable":true}' http://localhost:15672/api/queues/%2f/tasks
-curl -i -u guest:guest -H "content-type:application/json" -X PUT -d '{"durable":true}' http://localhost:15672/api/queues/%2f/completed
-curl -i -u guest:guest -H "content-type:application/json" -X PUT -d '{"durable":true}' http://localhost:15672/api/queues/%2f/errors
-#curl -i -u guest:guest -H "content-type:application/json" -X PUT -d '{"durable":true}' http://localhost:15672/api/queues/%2f/vault_errors
+curl $PARAMS -X PUT -d '{"durable":true}' http://localhost:15672/api/queues/%2f/tasks
+curl $PARAMS -X PUT -d '{"durable":true}' http://localhost:15672/api/queues/%2f/completed
 
 # Binding them to the amq.topic exchange
-curl -i -u guest:guest -H "content-type:application/json" -X POST -d '{"routing_key":"lega.task.todo"}' http://localhost:15672/api/bindings/%2f/e/lega/q/tasks
-curl -i -u guest:guest -H "content-type:application/json" -X POST -d '{"routing_key":"lega.task.complete"}' http://localhost:15672/api/bindings/%2f/e/lega/q/completed
-curl -i -u guest:guest -H "content-type:application/json" -X POST -d '{"routing_key":"lega.errors"}' http://localhost:15672/api/bindings/%2f/e/lega/q/errors
-#curl -i -u guest:guest -H "content-type:application/json" -X POST -d '{"routing_key":"vault_errors"}' http://localhost:15672/api/bindings/%2f/e/amq.topic/q/vault_errors
-
-
-
+curl $PARAMS -X POST -d '{"routing_key":"lega.task"}' http://localhost:15672/api/bindings/%2f/e/lega/q/tasks
+curl $PARAMS -X POST -d '{"routing_key":"lega.complete"}' http://localhost:15672/api/bindings/%2f/e/lega/q/completed
+curl $PARAMS -X POST -d '{"routing_key":"lega.done"}' http://localhost:15672/api/bindings/%2f/e/lega/q/tasks
 
