@@ -36,7 +36,7 @@ from . import db
 LOG = logging.getLogger('worker')
 
 
-def clean_task(folder):
+def clean(folder):
     # remove parent folder if empty
     try:
         os.rmdir(folder) # raise exception is not empty
@@ -46,7 +46,7 @@ def clean_task(folder):
         pass
     return None
 
-def process_task(data):
+def ingest(data):
     file_id = data['file_id']
     db.update_status(file_id, db.Status.In_Progress)
     try:
@@ -76,9 +76,9 @@ def work(data):
     '''Procedure to handle a message'''
     task = data['task']
     if task == 'clean':
-        return clean_task(data['folder'])
-    if task == 'process':
-        return process_task(data)
+        return clean(data['folder'])
+    if task == 'ingest':
+        return ingest(data)
 
     raise exceptions.UnsupportedTask(task)
 

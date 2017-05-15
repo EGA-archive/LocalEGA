@@ -148,7 +148,7 @@ def process_submission(submission,
     ################# Publish internal message for the workers
     # In the separate process
     msg = {
-        'task': 'process',
+        'task': 'ingest',
         'file_id': file_id,
         'submission_id': submission['submission_id'],
         'user_id': submission['user_id'],

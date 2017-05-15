@@ -4,7 +4,7 @@ set -e
 #set -x
 
 HERE="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-source $HERE/details/ega.folder
+EGA=$HERE/..
 [ -n "$1" ] && [ -d "$1" ] && EGA=$1
 
 function cleanup {
