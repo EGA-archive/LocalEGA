@@ -3,7 +3,8 @@
 set -e
 #set -x
 
-EGA='<ega-folder>'
+HERE="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+source $HERE/details/ega.folder
 [ -n "$1" ] && [ -d "$1" ] && EGA=$1
 
 function cleanup {
@@ -14,7 +15,7 @@ function cleanup {
 trap 'cleanup' INT TERM
 
 echo "Starting EGA in $EGA"
-pushd $EGA  >/dev/null
+pushd $EGA >/dev/null
 
 # Start the frontend
 ega-ingestion &

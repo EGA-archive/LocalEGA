@@ -22,9 +22,13 @@ curl $PARAMS -X PUT -d '{"type":"topic","durable":true}' http://localhost:15672/
 # Create the queues
 curl $PARAMS -X PUT -d '{"durable":true}' http://localhost:15672/api/queues/%2f/tasks
 curl $PARAMS -X PUT -d '{"durable":true}' http://localhost:15672/api/queues/%2f/completed
+# curl $PARAMS -X PUT -d '{"durable":true}' http://localhost:15672/api/queues/%2f/errors-ega
+# curl $PARAMS -X PUT -d '{"durable":true}' http://localhost:15672/api/queues/%2f/errors-users
 
 # Binding them to the amq.topic exchange
 curl $PARAMS -X POST -d '{"routing_key":"lega.task"}' http://localhost:15672/api/bindings/%2f/e/lega/q/tasks
 curl $PARAMS -X POST -d '{"routing_key":"lega.complete"}' http://localhost:15672/api/bindings/%2f/e/lega/q/completed
 curl $PARAMS -X POST -d '{"routing_key":"lega.done"}' http://localhost:15672/api/bindings/%2f/e/lega/q/tasks
+# curl $PARAMS -X POST -d '{"routing_key":"lega.error.all"}' http://localhost:15672/api/bindings/%2f/e/lega/q/errors-ega
+# curl $PARAMS -X POST -d '{"routing_key":"lega.error.user"}' http://localhost:15672/api/bindings/%2f/e/lega/q/errors-users
 
