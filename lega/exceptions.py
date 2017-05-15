@@ -33,6 +33,8 @@ class Unauthorized(FromUser):
         return f'Error: Unauthorized user {self.user_id}'
 
 # Any other exception is caught by us
+class UnsupportedTask(Exception):
+    pass
 
 class AlreadyProcessed(Warning):
     def __init__(self, filename, enc_checksum_hash, enc_checksum_algorithm, submission_id):

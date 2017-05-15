@@ -23,6 +23,7 @@ and input that in the database.
 
 import sys
 import logging
+import json
 from pathlib import Path
 
 from .conf import CONF
@@ -49,19 +50,17 @@ def work(data):
     LOG.debug('Target parent: {}'.format(target.parent))
     filepath.rename( target ) # move
     
-    # remove parent folder if empty
-    try:
-        filepath.parent.rmdir() # raise exception is not empty
-        LOG.debug(f'Removing {filepath.parent!s}')
-    except OSError:
-        #LOG.debug(f'{filepath.parent!s} is not empty')
-        pass
-    
     # Mark it as processed in DB
     db.update_status(file_id, db.Status.Archived)
     db.set_stable_id(file_id, str(target))
 
     # TODO: Mark the checksums as good, so we don't re-process this file
+
+    # Make the workers clean the folder
+    reply = { 'task' : 'clean', 'folder': str(filepath.parent) }
+    LOG.debug(f"Reply message: {reply!r}")
+    return json.dumps(reply)
+
 
 def main(args=None):
 
@@ -71,7 +70,8 @@ def main(args=None):
     CONF.setup(args) # re-conf
 
     broker.consume( work,
-                    from_queue = CONF.get('vault','message_queue'))
+                    from_queue = CONF.get('vault','message_queue'),
+                    routing_to = CONF.get('message.broker','routing_done'))
 
 if __name__ == '__main__':
     main()

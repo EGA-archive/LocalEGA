@@ -110,7 +110,8 @@ async def status_submission(request):
 def process_submission(submission,
                        file_id,
                        inbox,
-                       staging_area):
+                       staging_area,
+                       routing_to):
     '''Main function to process a submission.
 
     The argument is a dictionnary with information regarding one file submission.
@@ -147,6 +148,7 @@ def process_submission(submission,
     ################# Publish internal message for the workers
     # In the separate process
     msg = {
+        'task': 'process',
         'file_id': file_id,
         'submission_id': submission['submission_id'],
         'user_id': submission['user_id'],
@@ -156,7 +158,7 @@ def process_submission(submission,
         'hash_algo': submission['unencryptedIntegrity']['algorithm'],
     }
     _,channel = broker.get_connection()
-    broker.publish(channel, json.dumps(msg), routing_to=CONF.get('message.broker','routing_todo'))
+    broker.publish(channel, json.dumps(msg), routing_to=routing_to)
     LOG.debug('Message sent to broker')
 
 
@@ -216,6 +218,7 @@ async def ingest(request):
     width = len(str(total))
     tasks = {} # (task -> file_id * str) mapping
     done = asyncio.Queue()
+    routing_to = CONF.get('message.broker','routing_task')
 
     for submission in data['files']:
         LOG.info(f"Submitting {submission['filename']}")
@@ -236,7 +239,8 @@ async def ingest(request):
                                  submission,
                                  file_id,
                                  inbox,
-                                 staging_area) # default executor, set to ProcessPoolExecutor in main()
+                                 staging_area,
+                                 routing_to) # default executor, set to ProcessPoolExecutor in main()
         ) # That will start running the task
         task.add_done_callback(lambda f: done.put_nowait(f))
         tasks[task] = (file_id, submission['filename'])
