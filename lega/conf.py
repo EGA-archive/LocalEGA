@@ -89,9 +89,9 @@ class Configuration(configparser.SafeConfigParser):
             self._load_log_file(lconf)
         except ValueError:
             LOG.info("--log <file> was not mentioned")
-            default_log_conf = Path(self.get('DEFAULT','log_conf',fallback=None))
+            default_log_conf = self.get('DEFAULT','log_conf',fallback=None)
             if default_log_conf:
-                self._load_log_file(default_log_conf)
+                self._load_log_file(Path(default_log_conf))
         except (TypeError, AttributeError): # if args = None
             pass # No log conf
         except IndexError:
