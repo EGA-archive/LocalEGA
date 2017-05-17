@@ -48,15 +48,13 @@ async def insert_submission(pool, **kwargs):
 async def insert_file(pool,
                       filename,
                       enc_checksum,
-                      org_checksum,
-                      submission_id
+                      org_checksum
 ):
     with (await pool.cursor()) as cur:
         # Inserting the file
         await cur.execute('SELECT insert_file('
-                          '%(submission_id)s,%(filename)s,%(enc_checksum)s,%(enc_checksum_algo)s,%(org_checksum)s,%(org_checksum_algo)s,%(status)s'
+                          '%(filename)s,%(enc_checksum)s,%(enc_checksum_algo)s,%(org_checksum)s,%(org_checksum_algo)s,%(status)s'
                           ');',{
-                              'submission_id':submission_id,
                               'filename': filename,
                               'enc_checksum': enc_checksum['hash'],
                               'enc_checksum_algo': enc_checksum['algorithm'],

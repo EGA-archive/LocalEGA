@@ -14,7 +14,6 @@ It defaults to the `completed` queue.
 
 When a message is consumed, it must be of the form:
 * filepath
-* submission_id
 * user_id
 
 This service should probably also implement a stort of StableID generator,
@@ -37,7 +36,6 @@ def work(data):
     '''Procedure to handle a message'''
 
     file_id       = data['file_id']
-    submission_id = data['submission_id']
     user_id       = data['user_id']
     filepath      = Path(data['filepath'])
     

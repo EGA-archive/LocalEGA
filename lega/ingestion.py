@@ -17,7 +17,6 @@ We provide:
 | [LocalEGA-URL]/ingest                 |      POST       | requires login |
 | [LocalEGA-URL]/create-inbox           |       GET       | requires login |
 | [LocalEGA-URL]/status/file/<id>       |       GET       |                |
-| [LocalEGA-URL]/status/submission/<id> |       GET       |                |
 |---------------------------------------|-----------------|----------------|
 
 :author: Frédéric Haziza
@@ -95,32 +94,20 @@ async def status_file(request):
                         f'\n\t* Submitted file name: {filename}\n'
                         f'\n\t* Stable file name: {stable_id}\n')
 
-async def status_submission(request):
-    '''Status endpoint for a given whole submission'''
-    submission_id = request.match_info['id']
-    LOG.info(f'Getting info for submission {submission_id}')
-    res = await db.get_submission_info(request.app['db'], submission_id)
-    if not res:
-        raise web.HTTPBadRequest(text=f'No info about submission id {submission_id}... yet\n')
-    created_at, completed_at = res
-    return web.Response(text=f'Status for submission {submission_id}:'
-                        f'\n\t* Created at: {created_at}'
-                        f'\n\t* {completed_at}\n')
+def process_file(info,
+                 file_id,
+                 inbox,
+                 staging_area,
+                 routing_to):
+    '''Main function to process a file.
 
-def process_submission(submission,
-                       file_id,
-                       inbox,
-                       staging_area,
-                       routing_to):
-    '''Main function to process a submission.
-
-    The argument is a dictionnary with information regarding one file submission.
+    The `info` argument is a dictionnary with information regarding one file submission.
     This function will be called upon request, and run in a separate process (a member of the ProcessPoolExecutor)
     '''
 
-    filename         = submission['filename']
-    filehash         = submission['encryptedIntegrity']['hash']
-    hash_algo        = submission['encryptedIntegrity']['algorithm']
+    filename         = info['filename']
+    filehash         = info['encryptedIntegrity']['hash']
+    hash_algo        = info['encryptedIntegrity']['algorithm']
 
     inbox_filepath = inbox / filename
     staging_filepath = staging_area / filename
@@ -150,12 +137,11 @@ def process_submission(submission,
     msg = {
         'task': 'ingest',
         'file_id': file_id,
-        'submission_id': submission['submission_id'],
-        'user_id': submission['user_id'],
+        'user_id': info['user_id'],
         'source': str(inbox_filepath),
         'target' : str(staging_filepath),
-        'hash': submission['unencryptedIntegrity']['hash'],
-        'hash_algo': submission['unencryptedIntegrity']['algorithm'],
+        'hash': info['unencryptedIntegrity']['hash'],
+        'hash_algo': info['unencryptedIntegrity']['algorithm'],
     }
     _,channel = broker.get_connection()
     broker.publish(channel, json.dumps(msg), routing_to=routing_to)
@@ -170,7 +156,6 @@ async def ingest(request):
     and provides information about the list of files to ingest
 
     The data is of the form:
-    * submission id
     * user id
     * a list of files
 
@@ -198,18 +183,13 @@ async def ingest(request):
     response.write(b'Preparing for Ingestion\n')
     await response.drain()
 
-    submission_id = int(data['submissionId'])
-    user_id       = int(data['userId'])
+    user_id = int(data['userId'])
 
     inbox = get_inbox(user_id)
     LOG.info(f"Inbox area: {inbox}")
 
-    staging_area = get_staging_area(submission_id, create=True)
+    staging_area = get_staging_area(user_id, create=True)
     LOG.info(f"Staging area: {staging_area}")
-
-    db_sid = await db.insert_submission(request.app['db'],
-                                        submission_id = submission_id,
-                                        user_id = user_id)
 
     # Creating a listing of the tasks to run.
     loop = request.app.loop
@@ -220,30 +200,28 @@ async def ingest(request):
     done = asyncio.Queue()
     routing_to = CONF.get('message.broker','routing_task')
 
-    for submission in data['files']:
-        LOG.info(f"Submitting {submission['filename']}")
-        submission['submission_id'] = submission_id
-        submission['user_id'] = user_id
+    for info in data['files']:
+        LOG.info(f"Submitting {info['filename']}")
+        info['user_id'] = user_id
 
         file_id = await db.insert_file(request.app['db'],
-                                       filename  = submission['filename'],
-                                       enc_checksum  = submission['encryptedIntegrity'],
-                                       org_checksum  = submission['unencryptedIntegrity'],
-                                       submission_id = submission_id)
+                                       filename  = info['filename'],
+                                       enc_checksum  = info['encryptedIntegrity'],
+                                       org_checksum  = info['unencryptedIntegrity'])
 
-        LOG.debug(f'Created id {file_id} for {submission["filename"]}')
+        LOG.debug(f'Created id {file_id} for {info["filename"]}')
         assert file_id is not None, 'Ouch...database problem!'
 
         task = asyncio.ensure_future(
-            loop.run_in_executor(None, process_submission,
-                                 submission,
+            loop.run_in_executor(None, process_file,
+                                 info,
                                  file_id,
                                  inbox,
                                  staging_area,
                                  routing_to) # default executor, set to ProcessPoolExecutor in main()
         ) # That will start running the task
         task.add_done_callback(lambda f: done.put_nowait(f))
-        tasks[task] = (file_id, submission['filename'])
+        tasks[task] = (file_id, info['filename'])
 
     # Running the tasks and getting the results as they arrive.
     for n in range(1,total+1):
@@ -257,7 +235,7 @@ async def ingest(request):
             # It is already in state Received in the database
         except Exception as e:
             #errmsg = f'Task in separate process raised {e!r}'
-            errmsg = f'{e.__class__.__name__}: {e!s} | submission id: {submission_id} | user id: {user_id}'
+            errmsg = f'{e.__class__.__name__}: {e!s} | user id: {user_id}'
             LOG.error(errmsg)
             inbox_filepath = inbox / filename
             if inbox_filepath.exists():
@@ -272,7 +250,7 @@ async def ingest(request):
 
     assert( done.empty() )
 
-    r = f'Ingested {success} files (out of {total} files)\n'
+    r = f'Received {success} files (out of {total} files)\n'
     await response.write(r.encode())
     await response.write_eof()
     return response
@@ -338,7 +316,6 @@ def main(args=None):
     server.router.add_post('/ingest'                , ingest            , name='ingestion'        )
     server.router.add_get( '/create-inbox'          , create_inbox      , name='inbox'            )
     server.router.add_get( '/status/file/{id}'      , status_file       , name='status_file'      )
-    server.router.add_get( '/status/submission/{id}', status_submission , name='status_submission')
     server.router.add_post('/outgest'               , outgest           , name='outgestion'       )
 
     # # Swagger endpoint: /swagger.json

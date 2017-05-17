@@ -61,7 +61,6 @@ def ingest(data):
             'file_id' : file_id,
             'filepath': data['target'],
             'target_name': f"{data['hash_algo']}__{data['hash']}",
-            'submission_id': data['submission_id'],
             'user_id': data['user_id'],
         }
         LOG.debug(f"Reply message: {reply!r}")
