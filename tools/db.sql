@@ -28,6 +28,7 @@ CREATE TABLE files (
 	stable_id    TEXT,
 	reenc_key    TEXT,
 	reenc_info   TEXT,
+	reenc_size   INTEGER,
 	created_at   TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT clock_timestamp(),
 	last_modified TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT clock_timestamp()
 );
@@ -117,3 +118,12 @@ CREATE FUNCTION insert_file(submission_id     files.submission_id%TYPE,
 	RETURN file_id;
     END;
 $insert_file$ LANGUAGE plpgsql;
+
+-- CREATE FUNCTION insert_filesize(file_id   files.id%TYPE,
+--        			        fsize     files.filesize%TYPE)
+--     RETURNS void AS $insert_filesize$
+--     #variable_conflict use_column
+--     BEGIN
+-- 	UPDATE files SET filesize = fsize WHERE id = file_id;
+--     END;
+-- $insert_filesize$ LANGUAGE plpgsql;

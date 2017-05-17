@@ -25,6 +25,7 @@ import sys
 import logging
 import json
 from pathlib import Path
+import shutil
 
 from .conf import CONF
 from . import db
@@ -48,11 +49,11 @@ def work(data):
     LOG.debug(f'Target: {target}')
     target.parent.mkdir(parents=True, exist_ok=True)
     LOG.debug('Target parent: {}'.format(target.parent))
-    filepath.rename( target ) # move
+    starget = str(target)
+    shutil.move(str(filepath), starget)
     
     # Mark it as processed in DB
-    db.update_status(file_id, db.Status.Archived)
-    db.set_stable_id(file_id, str(target))
+    db.finalize_file(file_id, starget, target.stat().st_size)
 
     # TODO: Mark the checksums as good, so we don't re-process this file
 

@@ -51,16 +51,16 @@ def ingest(data):
     db.update_status(file_id, db.Status.In_Progress)
     try:
 
-        details, target_digest, reenc_key = crypto.ingest( data['source'],
-                                                           data['hash'],
-                                                           hash_algo = data['hash_algo'],
-                                                           target = data['target'])
+        details, reenc_key = crypto.ingest( data['source'],
+                                            data['hash'],
+                                            hash_algo = data['hash_algo'],
+                                            target = data['target'])
         db.set_encryption(file_id, details, reenc_key)
 
         reply = {
             'file_id' : file_id,
             'filepath': data['target'],
-            'target_name': target_digest,
+            'target_name': f"{data['hash_algo']}__{data['hash']}",
             'submission_id': data['submission_id'],
             'user_id': data['user_id'],
         }

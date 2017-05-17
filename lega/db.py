@@ -53,14 +53,16 @@ async def insert_file(pool,
 ):
     with (await pool.cursor()) as cur:
         # Inserting the file
-        await cur.execute('SELECT insert_file(%(submission_id)s,%(filename)s,%(enc_checksum)s,%(enc_checksum_algo)s,%(org_checksum)s,%(org_checksum_algo)s,%(status)s);',{
-            'submission_id':submission_id,
-            'filename': filename,
-            'enc_checksum': enc_checksum['hash'],
-            'enc_checksum_algo': enc_checksum['algorithm'],
-            'org_checksum': org_checksum['hash'],
-            'org_checksum_algo': org_checksum['algorithm'],
-            'status' : Status.Received.value })
+        await cur.execute('SELECT insert_file('
+                          '%(submission_id)s,%(filename)s,%(enc_checksum)s,%(enc_checksum_algo)s,%(org_checksum)s,%(org_checksum_algo)s,%(status)s'
+                          ');',{
+                              'submission_id':submission_id,
+                              'filename': filename,
+                              'enc_checksum': enc_checksum['hash'],
+                              'enc_checksum_algo': enc_checksum['algorithm'],
+                              'org_checksum': org_checksum['hash'],
+                              'org_checksum_algo': org_checksum['algorithm'],
+                              'status' : Status.Received.value })
         return (await cur.fetchone())[0]
 
 async def get_info(pool, file_id):
@@ -144,11 +146,11 @@ def set_encryption(file_id, info, key):
             cur.execute('UPDATE files SET reenc_info = %(reenc_info)s, reenc_key = %(reenc_key)s WHERE id = %(file_id)s;',
                         {'reenc_info': info, 'reenc_key': key, 'file_id': file_id})
 
-def set_stable_id(file_id, stable_id):
+def finalize_file(file_id, stable_id, filesize):
     assert file_id, 'Eh? No file_id?'
     assert stable_id, 'Eh? No stable_id?'
     LOG.debug(f'Setting final name for file_id {file_id}: {stable_id}')
     with connect() as conn:
         with conn.cursor() as cur:
-            cur.execute('UPDATE files SET stable_id = %(stable_id)s WHERE id = %(file_id)s;',
-                        {'stable_id': stable_id, 'file_id': file_id})
+            cur.execute('UPDATE files SET status = %(status)s, stable_id = %(stable_id)s, reenc_size = %(filesize)s WHERE id = %(file_id)s;',
+                        {'stable_id': stable_id, 'file_id': file_id, 'status': Status.Archived.value, 'filesize': filesize})

@@ -49,14 +49,14 @@ def _master_key():
         return RSA.import_key(key_h.read(),
                               passphrase = CONF.get('worker','master_key_passphrase'))
 
-def make_header(enc_key_size, nonce_size, aes_mode, chunk_size):
+def make_header(enc_key_size, nonce_size, aes_mode):
     '''Create the header line for the re-encrypted files
 
     The header is simply of the form:
-    Encryption key size (in bytes) | Nonce size | AES mode | Chunk size
+    Encryption key size (in bytes) | Nonce size | AES mode
     '''
-    header = f'{enc_key_size}|{nonce_size}|{aes_mode}|{chunk_size}\n'
-    return header.encode('utf-8')
+    header = f'{enc_key_size}|{nonce_size}|{aes_mode}\n'
+    return header
 
 def from_header(h):
     '''Convert the given line into differents values, doing the opposite job as `make_header`'''
@@ -114,9 +114,7 @@ class ReEncryptor(asyncio.SubprocessProtocol):
 
     def __init__(self, hashAlgo, target_h, done):
         self.done = done
-        self._buffer = bytearray()
         engine = encrypt_engine()
-        self.chunk_size = CONF.getint('worker','random_access_chunk_size',fallback=1 << 26) # 67 MB or 2**26
         self.target_handler = target_h
 
         try:
@@ -125,19 +123,15 @@ class ReEncryptor(asyncio.SubprocessProtocol):
             raise ValueError('No support for the secure hashing algorithm')
         else:
             self.digest = h()
-            self.target_digest = hashlib.sha256()
 
         encryption_key, mode, nonce = next(engine)
-        self.header = make_header(len(encryption_key), len(nonce), mode, self.chunk_size)
+        self.header = make_header(len(encryption_key), len(nonce), mode)
         LOG.info(f'Writing header to file: {self.header[:-1]}')
-        self.target_handler.write(self.header) # includes \n
-        self.target_digest.update(self.header)
+        self.target_handler.write(self.header.encode('utf-8')) # includes \n
         LOG.debug('Writing key to file')
         self.target_handler.write(encryption_key)
-        self.target_digest.update(encryption_key)
         LOG.debug('Writing nonce to file')
         self.target_handler.write(nonce)
-        self.target_digest.update(nonce)
         self.engine = engine
 
     def pipe_data_received(self, fd, data):
@@ -145,32 +139,20 @@ class ReEncryptor(asyncio.SubprocessProtocol):
         if not data:
             return
         if fd == 1:
-            self._buffer.extend(data)
-            self.digest.update(data)
-            while True:
-                if len(self._buffer) < self.chunk_size:
-                    break
-                data = self._buffer[:self.chunk_size]
-                self._process_chunk(data)
-                self._buffer = self._buffer[self.chunk_size:]
+            self._process_chunk(data)
         else:
             LOG.debug(f'ignoring data on fd {fd}: {data}')
 
     def process_exited(self):
-        if len(self._buffer) > 0:
-            self._process_chunk(self._buffer)
-        self._buffer = bytearray()
         # LOG.info('Closing the encryption engine')
         # self.engine.send(None) # closing it
         self.done.set_result(self.digest.hexdigest())
 
     def _process_chunk(self,data):
-        assert len(data) <= self.chunk_size, "Chunk too large"
         LOG.debug('processing {} bytes of data'.format(len(data)))
-        data = bytes(data) # Not good!
+        self.digest.update(data)
         cipherchunk = self.engine.send(data)
         self.target_handler.write(cipherchunk)
-        self.target_digest.update(cipherchunk)
 
 
 def ingest(enc_file,
@@ -224,13 +206,12 @@ def ingest(enc_file,
         LOG.debug(f'Compared to digest: {org_hash}')
         correct_digest = (calculated_digest == org_hash)
         
-        if not correct_digest:
-            _err = exceptions.Checksum(f'Invalid {hash_algo} checksum for decrypted content of {enc_file}')
-            LOG.error(str(_err))
         if gpg_result != 0: # Swapped order on purpose
             _err = exceptions.GPGDecryption(f'Error {gpg_result} while decrypting {enc_file}')
             LOG.error(str(_err))
-
+        if not correct_digest:
+            _err = exceptions.Checksum(f'Invalid {hash_algo} checksum for decrypted content of {enc_file}')
+            LOG.error(str(_err))
 
     if _err:
         LOG.warning(f'Removing {target}')
@@ -239,7 +220,6 @@ def ingest(enc_file,
     else:
         LOG.info(f'File encrypted')
         return (reencrypt_protocol.header, # returning the header for that file
-                reencrypt_protocol.target_digest.hexdigest(),
                 CONF.get('worker','master_key'))  # That was the key used at that moment
 
 def chunker(stream, chunk_size=None):
