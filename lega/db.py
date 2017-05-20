@@ -22,17 +22,9 @@ LOG = logging.getLogger('db')
 class Status(Enum):
     Received = 'Received'
     In_Progress = 'In progress'
+    Completed = 'Completed'
     Archived = 'Archived'
     Error = 'Error'
-    OK = 'ok'
-    NotOK = 'not_ok'
-
-# BEGIN TRANSACTION
-#   DECLARE v int;
-#   INSERT INTO checksums VALUES(...);
-#   SELECT v = scope_identity();
-#   INSERT INTO files VALUES(...);
-# COMMIT
 
 ######################################
 ##           Async code             ##
@@ -40,49 +32,19 @@ class Status(Enum):
 async def create_pool(loop, **kwargs):
     return await aiopg.create_pool(**kwargs,loop=loop, echo=True)
 
-async def insert_submission(pool, **kwargs):
-    LOG.debug(kwargs)
-    with (await pool.cursor()) as cur:
-        await cur.execute('SELECT insert_submission(%(submission_id)s,%(user_id)s);', kwargs)
-
-async def insert_file(pool,
-                      filename,
-                      enc_checksum,
-                      org_checksum
-):
-    with (await pool.cursor()) as cur:
-        # Inserting the file
-        await cur.execute('SELECT insert_file('
-                          '%(filename)s,%(enc_checksum)s,%(enc_checksum_algo)s,%(org_checksum)s,%(org_checksum_algo)s,%(status)s'
-                          ');',{
-                              'filename': filename,
-                              'enc_checksum': enc_checksum['hash'],
-                              'enc_checksum_algo': enc_checksum['algorithm'],
-                              'org_checksum': org_checksum['hash'],
-                              'org_checksum_algo': org_checksum['algorithm'],
-                              'status' : Status.Received.value })
-        return (await cur.fetchone())[0]
-
-async def get_info(pool, file_id):
+async def get_file_info(pool, file_id):
     assert file_id, 'Eh? No file_id?'
     with (await pool.cursor()) as cur:
-        query = 'SELECT filename, status, created_at, last_modified FROM files WHERE id = %(file_id)s'
+        query = 'SELECT filename, status, created_at, last_modified, stable_id FROM files WHERE id = %(file_id)s'
         await cur.execute(query, {'file_id': file_id})
         return await cur.fetchone()
 
-async def get_submission_info(pool, submission_id):
-    assert submission_id, 'Eh? No submission_id?'
+async def get_user_info(pool, user_id):
+    assert user_id, 'Eh? No user_id?'
     with (await pool.cursor()) as cur:
-        query = 'SELECT created_at,completed_at, status FROM submissions WHERE id = %(submission_id)s'
-        await cur.execute(query, {'submission_id': submission_id})
-        res = await cur.fetchone()
-        if res is None:
-            return None
-        created_at, completed_at, status = res
-        if status == Status.Archived.value:
-            return (created_at, f'Status: Completed at {completed_at}')
-        else:
-            return (created_at, f'Status: Not yet completed')
+        query = 'SELECT filename, status, created_at, last_modified, stable_id FROM files WHERE user_id = %(user_id)s'
+        await cur.execute(query, {'user_id': user_id})
+        return await cur.fetchall()
 
 async def aio_set_error(pool, file_id, error):
     assert file_id, 'Eh? No file_id?'
@@ -107,6 +69,21 @@ def connect():
     port     = CONF.getint('db','port')
     LOG.info(f"Initializing a connection to: {host}:{port}/{database}")
     return db_connect(user=user, password=password, database=database, host=host, port=port)
+
+def insert_file(filename, enc_checksum, org_checksum, user_id):
+    with connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute('SELECT insert_file('
+                        '%(filename)s,%(user_id)s,%(enc_checksum)s,%(enc_checksum_algo)s,%(org_checksum)s,%(org_checksum_algo)s,%(status)s'
+                        ');',{
+                            'filename': filename,
+                            'user_id': user_id,
+                            'enc_checksum': enc_checksum['hash'],
+                            'enc_checksum_algo': enc_checksum['algorithm'],
+                            'org_checksum': org_checksum['hash'],
+                            'org_checksum_algo': org_checksum['algorithm'],
+                            'status' : Status.Received.value })
+            return (cur.fetchone())[0]
 
 def update_status(file_id, status):
     assert file_id, 'Eh? No file_id?'
@@ -141,8 +118,8 @@ def set_encryption(file_id, info, key):
     assert file_id, 'Eh? No file_id?'
     with connect() as conn:
         with conn.cursor() as cur:
-            cur.execute('UPDATE files SET reenc_info = %(reenc_info)s, reenc_key = %(reenc_key)s WHERE id = %(file_id)s;',
-                        {'reenc_info': info, 'reenc_key': key, 'file_id': file_id})
+            cur.execute('UPDATE files SET reenc_info = %(reenc_info)s, reenc_key = %(reenc_key)s, status = %(status)s WHERE id = %(file_id)s;',
+                        {'reenc_info': info, 'reenc_key': key, 'file_id': file_id, 'status': Status.Completed.value})
 
 def finalize_file(file_id, stable_id, filesize):
     assert file_id, 'Eh? No file_id?'
@@ -150,5 +127,7 @@ def finalize_file(file_id, stable_id, filesize):
     LOG.debug(f'Setting final name for file_id {file_id}: {stable_id}')
     with connect() as conn:
         with conn.cursor() as cur:
-            cur.execute('UPDATE files SET status = %(status)s, stable_id = %(stable_id)s, reenc_size = %(filesize)s WHERE id = %(file_id)s;',
+            cur.execute('UPDATE files '
+                        'SET status = %(status)s, stable_id = %(stable_id)s, reenc_size = %(filesize)s '
+                        'WHERE id = %(file_id)s;',
                         {'stable_id': stable_id, 'file_id': file_id, 'status': Status.Archived.value, 'filesize': filesize})

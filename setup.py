@@ -20,10 +20,11 @@ setup(name='lega',
       zip_safe=True,
       entry_points={
           'console_scripts': [
-              'ega-ingestion = lega.ingestion:main',
+              'ega-frontend = lega.server:main',
               'ega-worker = lega.worker:main',
               'ega-vault = lega.vault:main',
               'ega-monitor = lega.monitor:main',
+              'ega-publisher = lega.cega_publisher:main',
               'ega-conf = lega.__main__:main',
           ]
       },

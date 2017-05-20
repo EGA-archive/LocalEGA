@@ -27,59 +27,121 @@ import sys
 import os
 import logging
 import json
+from pathlib import Path
+import shutil
+import stat
 
 from .conf import CONF
 from . import crypto
 from . import amqp as broker
 from . import db
+from .utils import (
+    get_data as parse_data,
+    get_inbox,
+    get_staging_area,
+    checksum
+)
 
 LOG = logging.getLogger('worker')
 
+def work(data):
+    '''Main ingestion function
 
-def clean(folder):
-    # remove parent folder if empty
+    The data is of the form:
+    * user id
+    * a filename
+    * encrypted hash information (with both the hash value and the hash algorithm)
+    * unencrypted hash information (with both the hash value and the hash algorithm)
+
+    The hash algorithm we support are MD5 and SHA256, for the moment.
+    '''
+
+    print(data)
+
+    user_id = data['user_id']
+
+    # Find inbox
+    inbox = Path( CONF.get('worker','inbox',raw=True) % { 'user_id': user_id } )
+    LOG.info(f"Inbox area: {inbox}")
+
+    # Create staging area for user
+    staging_area = Path( CONF.get('worker','staging',raw=True) % { 'user_id': user_id } )
+    LOG.info(f"Staging area: {staging_area}")
+    shutil.rmtree(staging_area, ignore_errors=True) # delete
+    staging_area.mkdir(parents=True, exist_ok=True) # re-create
+
+    filename = data['filename']
+    LOG.info(f"Processing {filename}")
+
+    # Insert in database
+    file_id = db.insert_file(filename  = filename,
+                             enc_checksum  = data['encrypted_integrity'],
+                             org_checksum  = data['unencrypted_integrity'],
+                             user_id = user_id)
+        
+    LOG.debug(f'Created id {file_id} for {data["filename"]}')
+    assert file_id is not None, 'Ouch...database problem!'
+
+    inbox_filepath = inbox / filename
+    staging_filepath = staging_area / filename
+
+    if not inbox_filepath.exists():
+        db.set_error(file_id, exceptions.NotFoundInInbox(filename))
+        return None # return early
+
+    # Get permissions
+
+    # Ok, we have the file in the inbox
     try:
-        os.rmdir(folder) # raise exception is not empty
-        LOG.debug(f'Removing {folder}')
-    except OSError:
-        #LOG.debug(f'{filepath.parent!s} is not empty')
-        pass
-    return None
 
-def ingest(data):
-    file_id = data['file_id']
-    db.update_status(file_id, db.Status.In_Progress)
-    try:
+        filehash = data['encrypted_integrity']['hash']
+        hash_algo = data['encrypted_integrity']['algorithm']
 
-        details, reenc_key = crypto.ingest( data['source'],
-                                            data['hash'],
-                                            hash_algo = data['hash_algo'],
-                                            target = data['target'])
+        assert( isinstance(filehash,str) )
+        assert( isinstance(hash_algo,str) )
+    
+        ################# Check integrity of encrypted file
+        LOG.debug(f"Verifying the {hash_algo} checksum of encrypted file: {inbox_filepath}")
+        with open(inbox_filepath, 'rb') as inbox_file: # Open the file in binary mode. No encoding dance.
+            if not checksum(inbox_file, filehash, hashAlgo = hash_algo):
+                errmsg = f"Invalid {hash_algo} checksum for {inbox_filepath}"
+                LOG.warning(errmsg)
+                raise exceptions.Checksum(filename)
+        LOG.debug(f'Valid {hash_algo} checksum for {inbox_filepath}')
+
+        ################# Locking the file in the inbox
+        LOG.debug(f'Locking the file {inbox_filepath}')
+        os.chmod(inbox_filepath, mode = stat.S_IRUSR) # 400: Remove write permissions
+
+        unencrypted_hash = data['unencrypted_integrity']['hash']
+        unencrypted_algo = data['unencrypted_integrity']['algorithm']
+        
+        LOG.debug(f'Starting the re-encryption\n\tfrom {inbox_filepath}\n\tto {staging_filepath}')
+        db.update_status(file_id, db.Status.In_Progress)
+        details, reenc_key = crypto.ingest( str(inbox_filepath),
+                                            unencrypted_hash,
+                                            hash_algo = unencrypted_algo,
+                                            target = staging_filepath)
         db.set_encryption(file_id, details, reenc_key)
-
+        LOG.debug(f'Re-encryption completed')
         reply = {
             'file_id' : file_id,
-            'filepath': data['target'],
-            'target_name': f"{data['hash_algo']}__{data['hash']}",
-            'user_id': data['user_id'],
+            'filepath': str(staging_filepath),
+            'target_name': f"{unencrypted_algo}__{unencrypted_hash}",
+            'user_id': user_id,
         }
         LOG.debug(f"Reply message: {reply!r}")
         return json.dumps(reply)
 
     except Exception as e:
-        LOG.debug(f"{e.__class__.__name__}: {e!s}")
+        if isinstance(e,AssertionError):
+            raise e
+        errmsg = f'{e.__class__.__name__}: {e!s} | user id: {user_id}'
+        LOG.error(errmsg)
+        # Restore permissions
+        os.chmod(inbox_filepath, mode = stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP) # Permission 660
         db.set_error(file_id, e)
 
-
-def work(data):
-    '''Procedure to handle a message'''
-    task = data['task']
-    if task == 'clean':
-        return clean(data['folder'])
-    if task == 'ingest':
-        return ingest(data)
-
-    raise exceptions.UnsupportedTask(task)
 
 def main(args=None):
 
@@ -88,9 +150,25 @@ def main(args=None):
 
     CONF.setup(args) # re-conf
 
-    broker.consume( work,
-                    from_queue = CONF.get('worker','message_queue'),
-                    routing_to = CONF.get('message.broker','routing_complete'))
+    cega_connection = broker.get_connection('cega')
+    cega_channel = cega_connection.channel()
+    cega_channel.basic_qos(prefetch_count=1) # One job per worker
+
+    lega_connection = broker.get_connection()
+    lega_channel = lega_connection.channel()
+
+    try:
+        broker.consume( cega_channel,
+                        work,
+                        from_queue = CONF.get('message.broker','cega_queue'),
+                        to_channel = lega_channel,
+                        to_exchange= CONF.get('message.broker','exchange'),
+                        to_routing = CONF.get('message.broker','routing_complete'))
+    except KeyboardInterrupt:
+        cega_channel.stop_consuming()
+    finally:
+        cega_connection.close()
+        lega_connection.close()
 
 if __name__ == '__main__':
     main()

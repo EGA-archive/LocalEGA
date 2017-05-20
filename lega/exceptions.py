@@ -36,6 +36,10 @@ class Unauthorized(FromUser):
 class UnsupportedTask(Exception):
     pass
 
+class MessageError(Exception):
+    def __str__(self):
+        return f'Error decoding the message from the queue'
+
 class AlreadyProcessed(Warning):
     def __init__(self, filename, enc_checksum_hash, enc_checksum_algorithm, submission_id):
         #self.file_id = file_id

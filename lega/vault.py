@@ -25,6 +25,7 @@ import logging
 import json
 from pathlib import Path
 import shutil
+import os
 
 from .conf import CONF
 from . import db
@@ -53,12 +54,14 @@ def work(data):
     # Mark it as processed in DB
     db.finalize_file(file_id, starget, target.stat().st_size)
 
-    # TODO: Mark the checksums as good, so we don't re-process this file
+    # remove parent folder if empty
+    try:
+        os.rmdir(str(filepath.parent)) # raise exception is not empty
+        LOG.debug(f'Removing {filepath.parent!s}')
+    except OSError:
+        pass
 
-    # Make the workers clean the folder
-    reply = { 'task' : 'clean', 'folder': str(filepath.parent) }
-    LOG.debug(f"Reply message: {reply!r}")
-    return json.dumps(reply)
+    return None
 
 
 def main(args=None):
@@ -68,9 +71,25 @@ def main(args=None):
 
     CONF.setup(args) # re-conf
 
-    broker.consume( work,
-                    from_queue = CONF.get('vault','message_queue'),
-                    routing_to = CONF.get('message.broker','routing_done'))
+    cega_connection = broker.get_connection('cega')
+    cega_channel = cega_connection.channel()
+
+    lega_connection = broker.get_connection()
+    lega_channel = lega_connection.channel()
+    lega_channel.basic_qos(prefetch_count=1) # One job per worker
+
+    try:
+        broker.consume( lega_channel,
+                        work,
+                        from_queue = CONF.get('vault','message_queue'),
+                        to_channel = cega_channel,
+                        to_exchange= CONF.get('message.broker','cega_exchange'),
+                        to_routing = CONF.get('message.broker','cega_routing_to'))
+    except KeyboardInterrupt:
+        lega_channel.stop_consuming()
+    finally:
+        lega_connection.close()
+        cega_connection.close()
 
 if __name__ == '__main__':
     main()
