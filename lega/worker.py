@@ -56,8 +56,6 @@ def work(data):
     The hash algorithm we support are MD5 and SHA256, for the moment.
     '''
 
-    print(data)
-
     user_id = data['user_id']
 
     # Find inbox
@@ -90,6 +88,7 @@ def work(data):
         return None # return early
 
     # Get permissions
+    permissions = oct(inbox_filepath.stat().st_mode)[-3:]
 
     # Ok, we have the file in the inbox
     try:
@@ -111,7 +110,7 @@ def work(data):
 
         ################# Locking the file in the inbox
         LOG.debug(f'Locking the file {inbox_filepath}')
-        os.chmod(inbox_filepath, mode = stat.S_IRUSR) # 400: Remove write permissions
+        inbox_filepath.chmod(stat.S_IRUSR) # 400: Remove write permissions
 
         unencrypted_hash = data['unencrypted_integrity']['hash']
         unencrypted_algo = data['unencrypted_integrity']['algorithm']
@@ -131,7 +130,7 @@ def work(data):
             'user_id': user_id,
         }
         LOG.debug(f"Reply message: {reply!r}")
-        return json.dumps(reply)
+        db.notify_vault(json.dumps(reply))
 
     except Exception as e:
         if isinstance(e,AssertionError):
@@ -139,7 +138,7 @@ def work(data):
         errmsg = f'{e.__class__.__name__}: {e!s} | user id: {user_id}'
         LOG.error(errmsg)
         # Restore permissions
-        os.chmod(inbox_filepath, mode = stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP) # Permission 660
+        inbox_filepath.chmod(permissions)
         db.set_error(file_id, e)
 
 
@@ -150,25 +149,18 @@ def main(args=None):
 
     CONF.setup(args) # re-conf
 
-    cega_connection = broker.get_connection('cega')
-    cega_channel = cega_connection.channel()
-    cega_channel.basic_qos(prefetch_count=1) # One job per worker
-
-    lega_connection = broker.get_connection()
-    lega_channel = lega_connection.channel()
+    connection = broker.get_connection('cega.broker')
+    channel = connection.channel()
+    channel.basic_qos(prefetch_count=1) # One job per worker
 
     try:
-        broker.consume( cega_channel,
+        broker.consume( channel,
                         work,
-                        from_queue = CONF.get('message.broker','cega_queue'),
-                        to_channel = lega_channel,
-                        to_exchange= CONF.get('message.broker','exchange'),
-                        to_routing = CONF.get('message.broker','routing_complete'))
+                        from_queue = CONF.get('cega.broker','queue'))
     except KeyboardInterrupt:
-        cega_channel.stop_consuming()
+        channel.stop_consuming()
     finally:
-        cega_connection.close()
-        lega_connection.close()
+        connection.close()
 
 if __name__ == '__main__':
     main()

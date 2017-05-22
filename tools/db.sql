@@ -70,3 +70,17 @@ CREATE FUNCTION insert_file(filename          files.filename%TYPE,
 	RETURN file_id;
     END;
 $insert_file$ LANGUAGE plpgsql;
+
+-- -- Notifying when the status gets completed
+-- CREATE FUNCTION file_processed_func() RETURNS trigger as $file_completed$
+-- BEGIN
+-- 	IF (NEW.status = 'Completed' AND OLD.status IS DISTINCT FROM NEW.status) THEN
+-- 		PERFORM pg_notify('file_completed'::TEXT, row_to_json(NEW)::TEXT);
+-- 	END IF;
+-- 	RETURN NEW;
+-- END;
+-- $file_completed$ LANGUAGE plpgsql;
+
+-- CREATE TRIGGER file_processed_trigger 
+-- AFTER UPDATE ON files
+-- FOR EACH ROW EXECUTE PROCEDURE file_processed_func();

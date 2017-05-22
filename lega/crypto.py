@@ -55,7 +55,7 @@ def make_header(enc_key_size, nonce_size, aes_mode):
     The header is simply of the form:
     Encryption key size (in bytes) | Nonce size | AES mode
     '''
-    header = f'{enc_key_size}|{nonce_size}|{aes_mode}\n'
+    header = f'{enc_key_size}|{nonce_size}|{aes_mode}'
     return header
 
 def from_header(h):
@@ -126,8 +126,9 @@ class ReEncryptor(asyncio.SubprocessProtocol):
 
         encryption_key, mode, nonce = next(engine)
         self.header = make_header(len(encryption_key), len(nonce), mode)
-        LOG.info(f'Writing header to file: {self.header[:-1]}')
+        LOG.info(f'Writing header to file: {self.header}')
         self.target_handler.write(self.header.encode('utf-8')) # includes \n
+        self.target_handler.write(b'\n')
         LOG.debug('Writing key to file')
         self.target_handler.write(encryption_key)
         LOG.debug('Writing nonce to file')

@@ -24,7 +24,7 @@ def main():
     parser.add_argument('--encrypted_checksum_algo', action='store')
     args = parser.parse_args()
 
-    connection = broker.get_connection('cega')
+    connection = broker.get_connection('cega.broker')
     channel = connection.channel()
 
     params = { 'correlation_id': str(uuid.uuid4()),
@@ -39,8 +39,8 @@ def main():
         'unencrypted_integrity': { 'hash': args.unencrypted_checksum, 'algorithm': args.unencrypted_checksum_algo, },
     }
 
-    channel.basic_publish(exchange=CONF.get('message.broker','cega_exchange'),
-                          routing_key=CONF.get('message.broker','cega_fake_file'),
+    channel.basic_publish(exchange=CONF.get('cega.broker','exchange'),
+                          routing_key='sweden.file',
                           body=json.dumps(message),
                           properties=pika.BasicProperties(**params))
 

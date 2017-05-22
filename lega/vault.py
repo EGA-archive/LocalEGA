@@ -26,6 +26,8 @@ import json
 from pathlib import Path
 import shutil
 import os
+import select
+import pika
 
 from .conf import CONF
 from . import db
@@ -33,13 +35,16 @@ from . import amqp as broker
 
 LOG = logging.getLogger('vault')
 
-def work(data):
+def work(msg, staging_pattern):
     '''Procedure to handle a message'''
+
+    data = json.loads(msg)
+    LOG.debug(data)
 
     file_id       = data['file_id']
     user_id       = data['user_id']
     filepath      = Path(data['filepath'])
-    
+ 
     vault_area = Path( CONF.get('vault','location') )
     name = data['target_name']
     name_bits = [name[i:i+3] for i in range(0, len(name), 3)]
@@ -61,8 +66,14 @@ def work(data):
     except OSError:
         pass
 
-    return None
+    # Verify that the file is properly archived
 
+    # Send message to Central EGA
+    return {
+        'user_id': user_id,
+        #'filename': filename,
+        'vault_name': starget,
+    }
 
 def main(args=None):
 
@@ -71,25 +82,39 @@ def main(args=None):
 
     CONF.setup(args) # re-conf
 
-    cega_connection = broker.get_connection('cega')
-    cega_channel = cega_connection.channel()
+    connection = broker.get_connection('cega.broker')
+    channel = connection.channel()
 
-    lega_connection = broker.get_connection()
-    lega_channel = lega_connection.channel()
-    lega_channel.basic_qos(prefetch_count=1) # One job per worker
+    params = { 
+             'content_type' : 'application/json',
+             'delivery_mode': 2, # make message persistent
+    }
 
+    staging_pattern = CONF.get('worker','staging',raw=True)
     try:
-        broker.consume( lega_channel,
-                        work,
-                        from_queue = CONF.get('vault','message_queue'),
-                        to_channel = cega_channel,
-                        to_exchange= CONF.get('message.broker','cega_exchange'),
-                        to_routing = CONF.get('message.broker','cega_routing_to'))
+        with db.connect() as conn:
+            conn.autocommit = True
+            with conn.cursor() as cur:
+                cur.execute('LISTEN file_completed;')
+
+                while True:
+                    if select.select([conn],[],[],5) != ([],[],[]):
+                        LOG.debug('Polling')
+                        conn.poll()
+                        while conn.notifies:
+                            notify = conn.notifies.pop(0)
+                            answer = work(notify.payload, staging_pattern)
+                            
+                            LOG.debug('Publishing answer to Central EGA')
+                            channel.basic_publish(exchange=CONF.get('cega.broker','exchange', fallback='localega.v1'),
+                                                  routing_key=CONF.get('cega.broker','routing_to', fallback='sweden.file.completed'),
+                                                  body=json.dumps(answer),
+                                                  properties=pika.BasicProperties(**params))
+
     except KeyboardInterrupt:
-        lega_channel.stop_consuming()
+        pass
     finally:
-        lega_connection.close()
-        cega_connection.close()
+        connection.close()
 
 if __name__ == '__main__':
     main()

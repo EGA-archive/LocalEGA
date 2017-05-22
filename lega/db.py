@@ -11,7 +11,7 @@
 import logging
 from enum import Enum
 import aiopg
-from psycopg2 import connect as db_connect
+import psycopg2
 
 from .conf import CONF
 from .utils import cache_var
@@ -68,7 +68,7 @@ def connect():
     host     = CONF.get('db','host')
     port     = CONF.getint('db','port')
     LOG.info(f"Initializing a connection to: {host}:{port}/{database}")
-    return db_connect(user=user, password=password, database=database, host=host, port=port)
+    return psycopg2.connect(user=user, password=password, database=database, host=host, port=port)
 
 def insert_file(filename, enc_checksum, org_checksum, user_id):
     with connect() as conn:
@@ -131,3 +131,9 @@ def finalize_file(file_id, stable_id, filesize):
                         'SET status = %(status)s, stable_id = %(stable_id)s, reenc_size = %(filesize)s '
                         'WHERE id = %(file_id)s;',
                         {'stable_id': stable_id, 'file_id': file_id, 'status': Status.Archived.value, 'filesize': filesize})
+
+
+def notify_vault(msg):
+    with connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT pg_notify('file_completed', %(message)s);", {'message': msg})
