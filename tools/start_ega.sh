@@ -21,6 +21,8 @@ pushd $EGA >/dev/null
 ega-frontend &
 # Start the vault listener
 ega-vault &
+# Start the verification
+ega-verify &
 # re-start the GPG agent
 $EGA/tools/start_agent.sh
 # Start 2 workers

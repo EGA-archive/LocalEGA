@@ -15,6 +15,7 @@ import os
 import asyncio
 import asyncio.subprocess
 import hashlib
+from pathlib import Path
 
 from Cryptodome.PublicKey import RSA
 from Cryptodome.Random import get_random_bytes
@@ -220,6 +221,7 @@ def ingest(enc_file,
         raise _err
     else:
         LOG.info(f'File encrypted')
+        assert Path(target).exists()
         return (reencrypt_protocol.header, # returning the header for that file
                 CONF.get('worker','master_key'))  # That was the key used at that moment
 

@@ -65,7 +65,6 @@ def work(data):
     # Create staging area for user
     staging_area = Path( CONF.get('worker','staging',raw=True) % { 'user_id': user_id } )
     LOG.info(f"Staging area: {staging_area}")
-    shutil.rmtree(staging_area, ignore_errors=True) # delete
     staging_area.mkdir(parents=True, exist_ok=True) # re-create
 
     filename = data['filename']
@@ -130,7 +129,7 @@ def work(data):
             'user_id': user_id,
         }
         LOG.debug(f"Reply message: {reply!r}")
-        db.notify_vault(json.dumps(reply))
+        return reply
 
     except Exception as e:
         if isinstance(e,AssertionError):
@@ -149,18 +148,25 @@ def main(args=None):
 
     CONF.setup(args) # re-conf
 
-    connection = broker.get_connection('cega.broker')
-    channel = connection.channel()
-    channel.basic_qos(prefetch_count=1) # One job per worker
+    cega_connection = broker.get_connection('cega.broker')
+    cega_channel = cega_connection.channel()
+
+    lega_connection = broker.get_connection('local.broker')
+    lega_channel = lega_connection.channel()
+    lega_channel.basic_qos(prefetch_count=1) # One job per worker
 
     try:
-        broker.consume( channel,
-                        work,
-                        from_queue = CONF.get('cega.broker','queue'))
+        broker.consume(cega_channel,
+                       work,
+                       from_queue  = CONF.get('cega.broker','queue'),
+                       to_channel  = lega_channel,
+                       to_exchange = CONF.get('local.broker','exchange'),
+                       to_routing  = CONF.get('local.broker','routing_complete'))
     except KeyboardInterrupt:
-        channel.stop_consuming()
+        cega_channel.stop_consuming()
     finally:
-        connection.close()
+        lega_connection.close()
+        cega_connection.close()
 
 if __name__ == '__main__':
     main()

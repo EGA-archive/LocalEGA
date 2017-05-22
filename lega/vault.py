@@ -27,7 +27,6 @@ from pathlib import Path
 import shutil
 import os
 import select
-import pika
 
 from .conf import CONF
 from . import db
@@ -35,10 +34,9 @@ from . import amqp as broker
 
 LOG = logging.getLogger('vault')
 
-def work(msg, staging_pattern):
+def work(data):
     '''Procedure to handle a message'''
 
-    data = json.loads(msg)
     LOG.debug(data)
 
     file_id       = data['file_id']
@@ -52,23 +50,14 @@ def work(msg, staging_pattern):
     target = vault_area.joinpath(*name_bits)
     LOG.debug(f'Target: {target}')
     target.parent.mkdir(parents=True, exist_ok=True)
-    LOG.debug('Target parent: {}'.format(target.parent))
+    LOG.debug(f'Target parent: {target.parent}')
     starget = str(target)
     shutil.move(str(filepath), starget)
     
     # Mark it as processed in DB
     db.finalize_file(file_id, starget, target.stat().st_size)
 
-    # remove parent folder if empty
-    try:
-        os.rmdir(str(filepath.parent)) # raise exception is not empty
-        LOG.debug(f'Removing {filepath.parent!s}')
-    except OSError:
-        pass
-
-    # Verify that the file is properly archived
-
-    # Send message to Central EGA
+    # Send message to Archived queue
     return {
         'user_id': user_id,
         #'filename': filename,
@@ -82,37 +71,19 @@ def main(args=None):
 
     CONF.setup(args) # re-conf
 
-    connection = broker.get_connection('cega.broker')
+    connection = broker.get_connection('local.broker')
     channel = connection.channel()
+    channel.basic_qos(prefetch_count=1) # One job per worker
 
-    params = { 
-             'content_type' : 'application/json',
-             'delivery_mode': 2, # make message persistent
-    }
-
-    staging_pattern = CONF.get('worker','staging',raw=True)
     try:
-        with db.connect() as conn:
-            conn.autocommit = True
-            with conn.cursor() as cur:
-                cur.execute('LISTEN file_completed;')
-
-                while True:
-                    if select.select([conn],[],[],5) != ([],[],[]):
-                        LOG.debug('Polling')
-                        conn.poll()
-                        while conn.notifies:
-                            notify = conn.notifies.pop(0)
-                            answer = work(notify.payload, staging_pattern)
-                            
-                            LOG.debug('Publishing answer to Central EGA')
-                            channel.basic_publish(exchange=CONF.get('cega.broker','exchange', fallback='localega.v1'),
-                                                  routing_key=CONF.get('cega.broker','routing_to', fallback='sweden.file.completed'),
-                                                  body=json.dumps(answer),
-                                                  properties=pika.BasicProperties(**params))
-
+        broker.consume( channel,
+                        work,
+                        from_queue = CONF.get('local.broker','completed_queue'),
+                        to_channel = channel,
+                        to_exchange= CONF.get('local.broker','exchange'),
+                        to_routing = CONF.get('local.broker','routing_archived'))
     except KeyboardInterrupt:
-        pass
+        channel.stop_consuming()
     finally:
         connection.close()
 

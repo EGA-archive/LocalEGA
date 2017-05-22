@@ -48,10 +48,14 @@ def get_connection(domain=None):
 
     return pika.BlockingConnection( pika.ConnectionParameters(**params) )
 
-def consume(from_channel, work, from_queue):
+
+def consume(from_channel, work, from_queue, to_channel=None, to_exchange=None, to_routing=None):
     '''Blocking function, registering callback to be called, on each message from the queue `from_queue`
 
     If there are no message in `from_queue`, the function blocks and waits for new messages.
+
+    If `routing_to` is supplied, and the function `work` returns a non-None message,
+    the new message is published to the exchange with `routing_to` as the routing key.
     '''
 
     def process_request(channel, method_frame, props, body):
@@ -62,14 +66,20 @@ def consume(from_channel, work, from_queue):
         # Process message in JSON format
         answer = work( json.loads(body) ) # Exceptions should be already caught
 
+        # Publish the answer
+        if to_channel and to_exchange and to_routing and answer:
+            LOG.debug(f'Replying to {to_routing} with {answer}')
+            to_channel.basic_publish(exchange    = to_exchange,
+                                     routing_key = to_routing,
+                                     properties  = pika.BasicProperties( correlation_id = props.correlation_id ),
+                                     body        = json.dumps(answer))
         # Acknowledgment: Cancel the message resend in case MQ crashes
         LOG.debug(f'Sending ACK for message {message_id} (Correlation ID: {correlation_id})')
         channel.basic_ack(delivery_tag=method_frame.delivery_tag)
-    
+
     # Let's do this
     from_channel.basic_consume(process_request, queue=from_queue)
     from_channel.start_consuming()
-
 
 def publish(channel, message, routing_to):
     '''Publish a message to the exchange using a routing key `routing_to`'''

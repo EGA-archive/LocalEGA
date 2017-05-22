@@ -131,9 +131,3 @@ def finalize_file(file_id, stable_id, filesize):
                         'SET status = %(status)s, stable_id = %(stable_id)s, reenc_size = %(filesize)s '
                         'WHERE id = %(file_id)s;',
                         {'stable_id': stable_id, 'file_id': file_id, 'status': Status.Archived.value, 'filesize': filesize})
-
-
-def notify_vault(msg):
-    with connect() as conn:
-        with conn.cursor() as cur:
-            cur.execute("SELECT pg_notify('file_completed', %(message)s);", {'message': msg})

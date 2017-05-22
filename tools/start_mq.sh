@@ -30,20 +30,22 @@ ${DOCKER_EXEC} rabbitmqctl set_permissions -p test test ".*" ".*" ".*"
 ${DOCKER_EXEC} rabbitmqctl set_permissions -p / guest ".*" ".*" ".*"
 ${DOCKER_EXEC} rabbitmqctl set_permissions -p test guest ".*" ".*" ".*"
 
-#PARAMS='-i -u guest:guest -H "content-type:application/json"'
+PARAMS='-i -u guest:guest -H "content-type:application/json"'
 CRG_PARAMS='-i -u test:dNAf3r9245XS -H "content-type:application/json"'
 
 # Create the exchange
-#curl $PARAMS -X PUT -d '{"type":"topic","durable":true}' http://localhost:15672/api/exchanges/%2f/lega
+curl $PARAMS -X PUT -d '{"type":"topic","durable":true}' http://localhost:15672/api/exchanges/%2f/lega
 curl $CRG_PARAMS -X PUT -d '{"type":"topic","durable":true}' http://localhost:15672/api/exchanges/test/localega.v1
 
 # Create the queues
-#curl $PARAMS -X PUT -d '{"durable":true}' http://localhost:15672/api/queues/%2f/completed
+curl $PARAMS -X PUT -d '{"durable":true}' http://localhost:15672/api/queues/%2f/completed
+curl $PARAMS -X PUT -d '{"durable":true}' http://localhost:15672/api/queues/%2f/archived
 curl $CRG_PARAMS -X PUT -d '{"durable":true}' http://localhost:15672/api/queues/test/sweden.v1.commands.file
 curl $CRG_PARAMS -X PUT -d '{"durable":true}' http://localhost:15672/api/queues/test/sweden.v1.commands.completed
 
 # Binding them to the amq.topic exchange
-#curl $PARAMS -X POST -d '{"routing_key":"lega.complete"}' http://localhost:15672/api/bindings/%2f/e/lega/q/completed
+curl $PARAMS -X POST -d '{"routing_key":"lega.complete"}' http://localhost:15672/api/bindings/%2f/e/lega/q/completed
+curl $PARAMS -X POST -d '{"routing_key":"lega.archived"}' http://localhost:15672/api/bindings/%2f/e/lega/q/archived
 curl $CRG_PARAMS -X POST -d '{"routing_key":"sweden.file"}' http://localhost:15672/api/bindings/test/e/localega.v1/q/sweden.v1.commands.file
 curl $CRG_PARAMS -X POST -d '{"routing_key":"sweden.file.completed"}' http://localhost:15672/api/bindings/test/e/localega.v1/q/sweden.v1.commands.completed
 
