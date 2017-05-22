@@ -18,6 +18,10 @@ loggers:
     level: DEBUG
     handlers: [vaultFile]
     propagate: no
+  verify:
+    level: DEBUG
+    handlers: [verifyFile]
+    propagate: no
   amqp:
     level: DEBUG
     handlers: [amqpFile]
@@ -46,6 +50,10 @@ handlers:
     class: logging.FileHandler
     formatter: legaSmall
     filename: 'logs/vault.log'
+  verifyFile:
+    class: logging.FileHandler
+    formatter: legaSmall
+    filename: 'logs/verify.log'
   workerFile:
     class: logging.handlers.TimedRotatingFileHandler
     formatter: lega

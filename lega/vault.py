@@ -12,12 +12,10 @@ It simply consumes message from the message queue configured in the [vault] sect
 
 It defaults to the `completed` queue.
 
-When a message is consumed, it must be of the form:
+When a message is consumed, it must at least contain:
+* file_id
 * filepath
 * user_id
-
-This service should probably also implement a stort of StableID generator,
-and input that in the database.
 '''
 
 import sys
@@ -59,9 +57,9 @@ def work(data):
 
     # Send message to Archived queue
     return {
-        'user_id': user_id,
-        #'filename': filename,
-        'vault_name': starget,
+        'file_id': file_id,
+        'staging_folder': str(filepath.parent),
+        #'vault_name': starget,
     }
 
 def main(args=None):

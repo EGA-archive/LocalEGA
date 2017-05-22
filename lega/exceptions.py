@@ -32,6 +32,7 @@ class Unauthorized(FromUser):
     def __str__(self):
         return f'Error: Unauthorized user {self.user_id}'
 
+
 # Any other exception is caught by us
 class UnsupportedTask(Exception):
     pass
@@ -39,6 +40,12 @@ class UnsupportedTask(Exception):
 class MessageError(Exception):
     def __str__(self):
         return f'Error decoding the message from the queue'
+
+class VaultDecryption(Exception):
+    def __init__(self, filename):
+        self.filename = filename
+    def __str__(self):
+        return f'Decrypting {self.filename} from the vault failed'
 
 class AlreadyProcessed(Warning):
     def __init__(self, filename, enc_checksum_hash, enc_checksum_algorithm, submission_id):

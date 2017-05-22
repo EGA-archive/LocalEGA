@@ -131,3 +131,11 @@ def finalize_file(file_id, stable_id, filesize):
                         'SET status = %(status)s, stable_id = %(stable_id)s, reenc_size = %(filesize)s '
                         'WHERE id = %(file_id)s;',
                         {'stable_id': stable_id, 'file_id': file_id, 'status': Status.Archived.value, 'filesize': filesize})
+
+def get_details(file_id):
+    with connect() as conn:
+        with conn.cursor() as cur:
+            query = 'SELECT filename, org_checksum, org_checksum_algo, stable_id, reenc_key from files WHERE id = %(file_id)s;'
+            cur.execute(query, { 'file_id': file_id})
+            return cur.fetchone()
+

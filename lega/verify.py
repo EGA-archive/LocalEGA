@@ -24,36 +24,46 @@ When a message is consumed, it must be of the form:
 '''
 
 import sys
-import os
 import logging
-import json
-from pathlib import Path
-import shutil
-import stat
+import os
 
 from .conf import CONF
 from . import crypto
 from . import amqp as broker
 from . import db
-from .utils import (
-    get_data as parse_data,
-    get_inbox,
-    get_staging_area,
-    checksum
-)
 
-LOG = logging.getLogger('worker')
+LOG = logging.getLogger('verify')
 
 def work(data):
     '''Verifying that the file in the vault does decrypt properly'''
 
-    # # remove parent folder if empty
-    # try:
-    #     shutil.rmdir(str(folder)) # raise exception is not empty
-    #     LOG.debug(f'Removing {filepath.parent!s}')
-    # except OSError:
-    #     pass
-    pass
+    file_id = data['file_id']
+    filename, org_hash, org_hash_algo, vault_filename, master_key = db.get_details(file_id)
+    staging_folder = data['staging_folder']
+
+    try:
+        
+        crypto.decrypt_from_vault( vault_filename, org_hash, org_hash_algo )
+        # raise exception if fail
+
+        # Clean the staging area: remove parent folder if empty
+        try:
+            os.rmdir(staging_folder) # raise exception is not empty
+            LOG.debug(f'Removing {staging_folder}')
+        except OSError:
+            pass
+
+        return {
+            'vault_name': vault_filename,
+            'org_name': filename
+        }
+    except Exception as e:
+        if isinstance(e,AssertionError):
+            raise e
+        errmsg = f'{e.__class__.__name__}: {e!s}'
+        LOG.error(errmsg)
+        db.set_error(file_id, e)
+        
     
 def main(args=None):
 

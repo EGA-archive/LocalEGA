@@ -69,9 +69,9 @@ def from_header(h):
         header.extend(b)
 
     LOG.debug(f'Found header: {header!r}')
-    enc_key_size, nonce_size, aes_mode, chunk_size, *rest = header.split(b'|')
+    enc_key_size, nonce_size, aes_mode, *rest = header.split(b'|')
     assert( not rest )
-    return (int(enc_key_size),int(nonce_size), aes_mode.decode(), int(chunk_size))
+    return (int(enc_key_size),int(nonce_size), aes_mode.decode())
 
 def encrypt_engine():
     '''Generator that takes a block of data as input and encrypts it as output.
@@ -241,12 +241,12 @@ def chunker(stream, chunk_size=None):
             return None # No more data
         yield data
 
-def decrypt_engine(encrypted_session_key, aes_mode, nonce):
+def decrypt_engine(encrypted_session_key, aes_mode, nonce, master_key):
 
     LOG.info('Starting the decipher engine')
 
     LOG.info('Creating RSA cypher')
-    rsa = PKCS1_OAEP.new(_master_key())
+    rsa = PKCS1_OAEP.new()
     session_key = rsa.decrypt(encrypted_session_key)
 
     LOG.info(f'Creating AES cypher in mode {aes_mode}')
@@ -261,27 +261,47 @@ def decrypt_engine(encrypted_session_key, aes_mode, nonce):
         cipherchunk = yield aes.decrypt(cipherchunk)
 
 
-def decrypt_from_vault( source_h, target_h ):
+def decrypt_from_vault( vault_filename,
+                        org_hash,
+                        hash_algo,
+                        master_key):
 
-    LOG.debug('Decrypting file')
-    enc_key_size, nonce_size, aes_mode, chunk_size = from_header( source_h )
+    try:
+        h = HASH_ALGORITHMS.get(hash_algo)
+    except KeyError:
+        raise ValueError('No support for the secure hashing algorithm')
+    else:
+        digest = h()
+        LOG.debug(f'Digest: {hash_algo}')
 
-    LOG.debug(f'encrypted_session_key (size): {enc_key_size}')
-    LOG.debug(f'aes mode: {aes_mode}')
-    LOG.debug(f'chunk size: {chunk_size}')
+    with open(vault_filename, 'rb') as vault_source:
 
-    encrypted_session_key = source_h.read(enc_key_size)
-    nonce = source_h.read(nonce_size)
+        LOG.debug('Decrypting file')
+        enc_key_size, nonce_size, aes_mode = from_header( vault_source )
 
-    engine = decrypt_engine( encrypted_session_key, aes_mode=aes_mode.upper(), nonce=nonce )
-    next(engine) # start it
-
-    chunks = chunker(source_h, # the rest
-                     chunk_size)
-    next(chunks) # start it and ignore its return value
-
-    for chunk in chunks:
-        clearchunk = engine.send(chunk)
-        target_h.write(clearchunk)
+        LOG.debug(f'encrypted_session_key (size): {enc_key_size}')
+        LOG.debug(f'aes mode: {aes_mode}')
+        
+        encrypted_session_key = vault_source.read(enc_key_size)
+        nonce = vault_source.read(nonce_size)
+        
+        engine = decrypt_engine( encrypted_session_key, aes_mode=aes_mode.upper(), nonce=nonce, master_key=master_key )
+        next(engine) # start it
+        
+        chunks = chunker(vault_source)
+        next(chunks) # start it and ignore its return value
+        
+        for chunk in chunks:
+            clearchunk = engine.send(chunk)
+            digest.update(clearchunk)
+                
+        calculated_digest = digest.hexdigest()
+        if calculated_digest != org_hash:
+            LOG.debug('Invalid digest')
+            LOG.debug(f'Calculated digest: {calculated_digest}')
+            LOG.debug(f'Original digest: {org_hash}')
+            raise VaultDecryption(vault_filename)
+        else:
+            LOG.debug(f'Valid digest')
 
 

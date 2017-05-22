@@ -12,10 +12,13 @@ loggers:
     handlers: [mainFile,console]
   worker:
     level: DEBUG
-    handlers: [mainFile]
+    handlers: [mainFile,console]
   vault:
     level: DEBUG
-    handlers: [mainFile]
+    handlers: [mainFile,console]
+  verify:
+    level: DEBUG
+    handlers: [mainFile,console]
   sys-monitor:
     level: DEBUG
     handlers: [mainFile,console]
@@ -24,13 +27,13 @@ loggers:
     handlers: [mainFile,console]
   amqp:
     level: DEBUG
-    handlers: [mainFile]
+    handlers: [mainFile,console]
   db:
     level: DEBUG
-    handlers: [mainFile,console]
+    handlers: [mainFile]
   crypto:
     level: DEBUG
-    handlers: [mainFile]
+    handlers: [mainFile,console]
   aiopg:
     level: DEBUG
     handlers: [console]

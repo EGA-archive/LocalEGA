@@ -86,8 +86,8 @@ def work(data):
         db.set_error(file_id, exceptions.NotFoundInInbox(filename))
         return None # return early
 
-    # Get permissions
-    permissions = oct(inbox_filepath.stat().st_mode)[-3:]
+    # # Get permissions
+    # permissions = oct(inbox_filepath.stat().st_mode)[-3:]
 
     # Ok, we have the file in the inbox
     try:
@@ -107,9 +107,9 @@ def work(data):
                 raise exceptions.Checksum(filename)
         LOG.debug(f'Valid {hash_algo} checksum for {inbox_filepath}')
 
-        ################# Locking the file in the inbox
-        LOG.debug(f'Locking the file {inbox_filepath}')
-        inbox_filepath.chmod(stat.S_IRUSR) # 400: Remove write permissions
+        # ################# Locking the file in the inbox
+        # LOG.debug(f'Locking the file {inbox_filepath}')
+        # inbox_filepath.chmod(stat.S_IRUSR) # 400: Remove write permissions
 
         unencrypted_hash = data['unencrypted_integrity']['hash']
         unencrypted_algo = data['unencrypted_integrity']['algorithm']
@@ -136,8 +136,8 @@ def work(data):
             raise e
         errmsg = f'{e.__class__.__name__}: {e!s} | user id: {user_id}'
         LOG.error(errmsg)
-        # Restore permissions
-        inbox_filepath.chmod(permissions)
+        # # Restore permissions
+        # inbox_filepath.chmod(permissions)
         db.set_error(file_id, e)
 
 
