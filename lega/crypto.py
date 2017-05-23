@@ -15,6 +15,7 @@ import os
 import asyncio
 import asyncio.subprocess
 import hashlib
+from pathlib import Path
 
 from Cryptodome.PublicKey import RSA
 from Cryptodome.Random import get_random_bytes
@@ -49,14 +50,14 @@ def _master_key():
         return RSA.import_key(key_h.read(),
                               passphrase = CONF.get('worker','master_key_passphrase'))
 
-def make_header(enc_key_size, nonce_size, aes_mode, chunk_size):
+def make_header(enc_key_size, nonce_size, aes_mode):
     '''Create the header line for the re-encrypted files
 
     The header is simply of the form:
-    Encryption key size (in bytes) | Nonce size | AES mode | Chunk size
+    Encryption key size (in bytes) | Nonce size | AES mode
     '''
-    header = f'{enc_key_size}|{nonce_size}|{aes_mode}|{chunk_size}\n'
-    return header.encode('utf-8')
+    header = f'{enc_key_size}|{nonce_size}|{aes_mode}'
+    return header
 
 def from_header(h):
     '''Convert the given line into differents values, doing the opposite job as `make_header`'''
@@ -68,9 +69,9 @@ def from_header(h):
         header.extend(b)
 
     LOG.debug(f'Found header: {header!r}')
-    enc_key_size, nonce_size, aes_mode, chunk_size, *rest = header.split(b'|')
+    enc_key_size, nonce_size, aes_mode, *rest = header.split(b'|')
     assert( not rest )
-    return (int(enc_key_size),int(nonce_size), aes_mode.decode(), int(chunk_size))
+    return (int(enc_key_size),int(nonce_size), aes_mode.decode())
 
 def encrypt_engine():
     '''Generator that takes a block of data as input and encrypts it as output.
@@ -114,9 +115,7 @@ class ReEncryptor(asyncio.SubprocessProtocol):
 
     def __init__(self, hashAlgo, target_h, done):
         self.done = done
-        self._buffer = bytearray()
         engine = encrypt_engine()
-        self.chunk_size = CONF.getint('worker','random_access_chunk_size',fallback=1 << 26) # 67 MB or 2**26
         self.target_handler = target_h
 
         try:
@@ -125,19 +124,16 @@ class ReEncryptor(asyncio.SubprocessProtocol):
             raise ValueError('No support for the secure hashing algorithm')
         else:
             self.digest = h()
-            self.target_digest = hashlib.sha256()
 
         encryption_key, mode, nonce = next(engine)
-        self.header = make_header(len(encryption_key), len(nonce), mode, self.chunk_size)
-        LOG.info(f'Writing header to file: {self.header[:-1]}')
-        self.target_handler.write(self.header) # includes \n
-        self.target_digest.update(self.header)
+        self.header = make_header(len(encryption_key), len(nonce), mode)
+        LOG.info(f'Writing header to file: {self.header}')
+        self.target_handler.write(self.header.encode('utf-8')) # includes \n
+        self.target_handler.write(b'\n')
         LOG.debug('Writing key to file')
         self.target_handler.write(encryption_key)
-        self.target_digest.update(encryption_key)
         LOG.debug('Writing nonce to file')
         self.target_handler.write(nonce)
-        self.target_digest.update(nonce)
         self.engine = engine
 
     def pipe_data_received(self, fd, data):
@@ -145,32 +141,20 @@ class ReEncryptor(asyncio.SubprocessProtocol):
         if not data:
             return
         if fd == 1:
-            self._buffer.extend(data)
-            self.digest.update(data)
-            while True:
-                if len(self._buffer) < self.chunk_size:
-                    break
-                data = self._buffer[:self.chunk_size]
-                self._process_chunk(data)
-                self._buffer = self._buffer[self.chunk_size:]
+            self._process_chunk(data)
         else:
             LOG.debug(f'ignoring data on fd {fd}: {data}')
 
     def process_exited(self):
-        if len(self._buffer) > 0:
-            self._process_chunk(self._buffer)
-        self._buffer = bytearray()
         # LOG.info('Closing the encryption engine')
         # self.engine.send(None) # closing it
         self.done.set_result(self.digest.hexdigest())
 
     def _process_chunk(self,data):
-        assert len(data) <= self.chunk_size, "Chunk too large"
         LOG.debug('processing {} bytes of data'.format(len(data)))
-        data = bytes(data) # Not good!
+        self.digest.update(data)
         cipherchunk = self.engine.send(data)
         self.target_handler.write(cipherchunk)
-        self.target_digest.update(cipherchunk)
 
 
 def ingest(enc_file,
@@ -224,13 +208,12 @@ def ingest(enc_file,
         LOG.debug(f'Compared to digest: {org_hash}')
         correct_digest = (calculated_digest == org_hash)
         
-        if not correct_digest:
-            _err = exceptions.Checksum(f'Invalid {hash_algo} checksum for decrypted content of {enc_file}')
-            LOG.error(str(_err))
         if gpg_result != 0: # Swapped order on purpose
             _err = exceptions.GPGDecryption(f'Error {gpg_result} while decrypting {enc_file}')
             LOG.error(str(_err))
-
+        if not correct_digest:
+            _err = exceptions.Checksum(f'Invalid {hash_algo} checksum for decrypted content of {enc_file}')
+            LOG.error(str(_err))
 
     if _err:
         LOG.warning(f'Removing {target}')
@@ -238,8 +221,8 @@ def ingest(enc_file,
         raise _err
     else:
         LOG.info(f'File encrypted')
+        assert Path(target).exists()
         return (reencrypt_protocol.header, # returning the header for that file
-                reencrypt_protocol.target_digest.hexdigest(),
                 CONF.get('worker','master_key'))  # That was the key used at that moment
 
 def chunker(stream, chunk_size=None):
@@ -258,12 +241,12 @@ def chunker(stream, chunk_size=None):
             return None # No more data
         yield data
 
-def decrypt_engine(encrypted_session_key, aes_mode, nonce):
+def decrypt_engine(encrypted_session_key, aes_mode, nonce, master_key):
 
     LOG.info('Starting the decipher engine')
 
     LOG.info('Creating RSA cypher')
-    rsa = PKCS1_OAEP.new(_master_key())
+    rsa = PKCS1_OAEP.new()
     session_key = rsa.decrypt(encrypted_session_key)
 
     LOG.info(f'Creating AES cypher in mode {aes_mode}')
@@ -278,27 +261,47 @@ def decrypt_engine(encrypted_session_key, aes_mode, nonce):
         cipherchunk = yield aes.decrypt(cipherchunk)
 
 
-def decrypt_from_vault( source_h, target_h ):
+def decrypt_from_vault( vault_filename,
+                        org_hash,
+                        hash_algo,
+                        master_key):
 
-    LOG.debug('Decrypting file')
-    enc_key_size, nonce_size, aes_mode, chunk_size = from_header( source_h )
+    try:
+        h = HASH_ALGORITHMS.get(hash_algo)
+    except KeyError:
+        raise ValueError('No support for the secure hashing algorithm')
+    else:
+        digest = h()
+        LOG.debug(f'Digest: {hash_algo}')
 
-    LOG.debug(f'encrypted_session_key (size): {enc_key_size}')
-    LOG.debug(f'aes mode: {aes_mode}')
-    LOG.debug(f'chunk size: {chunk_size}')
+    with open(vault_filename, 'rb') as vault_source:
 
-    encrypted_session_key = source_h.read(enc_key_size)
-    nonce = source_h.read(nonce_size)
+        LOG.debug('Decrypting file')
+        enc_key_size, nonce_size, aes_mode = from_header( vault_source )
 
-    engine = decrypt_engine( encrypted_session_key, aes_mode=aes_mode.upper(), nonce=nonce )
-    next(engine) # start it
-
-    chunks = chunker(source_h, # the rest
-                     chunk_size)
-    next(chunks) # start it and ignore its return value
-
-    for chunk in chunks:
-        clearchunk = engine.send(chunk)
-        target_h.write(clearchunk)
+        LOG.debug(f'encrypted_session_key (size): {enc_key_size}')
+        LOG.debug(f'aes mode: {aes_mode}')
+        
+        encrypted_session_key = vault_source.read(enc_key_size)
+        nonce = vault_source.read(nonce_size)
+        
+        engine = decrypt_engine( encrypted_session_key, aes_mode=aes_mode.upper(), nonce=nonce, master_key=master_key )
+        next(engine) # start it
+        
+        chunks = chunker(vault_source)
+        next(chunks) # start it and ignore its return value
+        
+        for chunk in chunks:
+            clearchunk = engine.send(chunk)
+            digest.update(clearchunk)
+                
+        calculated_digest = digest.hexdigest()
+        if calculated_digest != org_hash:
+            LOG.debug('Invalid digest')
+            LOG.debug(f'Calculated digest: {calculated_digest}')
+            LOG.debug(f'Original digest: {org_hash}')
+            raise VaultDecryption(vault_filename)
+        else:
+            LOG.debug(f'Valid digest')
 
 

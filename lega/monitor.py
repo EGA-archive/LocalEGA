@@ -63,3 +63,6 @@ def main():
         handle_error = user_work
 
     check_errors(handle_error,interval)
+
+if __name__ == '__main__':
+    main()

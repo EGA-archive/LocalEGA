@@ -38,20 +38,10 @@ def only_central_ega(async_func):
     return wrapper
 
 def get_inbox(userId):
-    return Path( CONF.get('ingestion','inbox',raw=True) % { 'userId': userId } )
+    return 
 
-def get_staging_area(submission_id, create=False):
+def get_staging_area(seed, create=False):
     '''Build the staging area'''
-    area = Path( CONF.get('ingestion','staging',raw=True) % { 'submission': submission_id } )
-    if create:
-        shutil.rmtree(area, ignore_errors=True) # delete
-        area.mkdir(parents=True, exist_ok=True) # re-create
-    return area
-
-def clean_staging_area(submission_id):
-    '''Removes the staging area'''
-    area = Path( CONF.get('ingestion','staging',raw=True) % { 'submission': submission_id } )
-    shutil.rmtree(area, ignore_errors=True) # delete
 
 def get_data(data):
     try:

@@ -12,19 +12,19 @@ It simply consumes message from the message queue configured in the [vault] sect
 
 It defaults to the `completed` queue.
 
-When a message is consumed, it must be of the form:
+When a message is consumed, it must at least contain:
+* file_id
 * filepath
-* submission_id
 * user_id
-
-This service should probably also implement a stort of StableID generator,
-and input that in the database.
 '''
 
 import sys
 import logging
 import json
 from pathlib import Path
+import shutil
+import os
+import select
 
 from .conf import CONF
 from . import db
@@ -35,11 +35,12 @@ LOG = logging.getLogger('vault')
 def work(data):
     '''Procedure to handle a message'''
 
+    LOG.debug(data)
+
     file_id       = data['file_id']
-    submission_id = data['submission_id']
     user_id       = data['user_id']
     filepath      = Path(data['filepath'])
-    
+ 
     vault_area = Path( CONF.get('vault','location') )
     name = data['target_name']
     name_bits = [name[i:i+3] for i in range(0, len(name), 3)]
@@ -47,20 +48,19 @@ def work(data):
     target = vault_area.joinpath(*name_bits)
     LOG.debug(f'Target: {target}')
     target.parent.mkdir(parents=True, exist_ok=True)
-    LOG.debug('Target parent: {}'.format(target.parent))
-    filepath.rename( target ) # move
+    LOG.debug(f'Target parent: {target.parent}')
+    starget = str(target)
+    shutil.move(str(filepath), starget)
     
     # Mark it as processed in DB
-    db.update_status(file_id, db.Status.Archived)
-    db.set_stable_id(file_id, str(target))
+    db.finalize_file(file_id, starget, target.stat().st_size)
 
-    # TODO: Mark the checksums as good, so we don't re-process this file
-
-    # Make the workers clean the folder
-    reply = { 'task' : 'clean', 'folder': str(filepath.parent) }
-    LOG.debug(f"Reply message: {reply!r}")
-    return json.dumps(reply)
-
+    # Send message to Archived queue
+    return {
+        'file_id': file_id,
+        'staging_folder': str(filepath.parent),
+        #'vault_name': starget,
+    }
 
 def main(args=None):
 
@@ -69,9 +69,21 @@ def main(args=None):
 
     CONF.setup(args) # re-conf
 
-    broker.consume( work,
-                    from_queue = CONF.get('vault','message_queue'),
-                    routing_to = CONF.get('message.broker','routing_done'))
+    connection = broker.get_connection('local.broker')
+    channel = connection.channel()
+    channel.basic_qos(prefetch_count=1) # One job per worker
+
+    try:
+        broker.consume( channel,
+                        work,
+                        from_queue = CONF.get('local.broker','completed_queue'),
+                        to_channel = channel,
+                        to_exchange= CONF.get('local.broker','exchange'),
+                        to_routing = CONF.get('local.broker','routing_archived'))
+    except KeyboardInterrupt:
+        channel.stop_consuming()
+    finally:
+        connection.close()
 
 if __name__ == '__main__':
     main()

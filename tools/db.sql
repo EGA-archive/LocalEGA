@@ -5,21 +5,13 @@ CREATE DATABASE lega;
 
 SET TIME ZONE 'Europe/Stockholm';
 
-CREATE TYPE status AS ENUM ('Received', 'In progress', 'Archived', 'Error');
+CREATE TYPE status AS ENUM ('Received', 'In progress', 'Completed', 'Archived', 'Error');
 CREATE TYPE hash_algo AS ENUM ('md5', 'sha256');
-
-CREATE TABLE submissions (
-        id            INTEGER NOT NULL, PRIMARY KEY(id), UNIQUE (id),
-	user_id       INTEGER NOT NULL,
-	created_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT clock_timestamp(),
-	completed_at  TIMESTAMP WITH TIME ZONE,
-	status        status
-);
 
 CREATE TABLE files (
         id           SERIAL, PRIMARY KEY(id), UNIQUE (id),
-	submission_id INTEGER REFERENCES submissions (id) ON DELETE CASCADE,
 	filename     TEXT NOT NULL,
+	user_id      TEXT NOT NULL,
 	enc_checksum TEXT,
 	enc_checksum_algo hash_algo,
 	org_checksum TEXT,
@@ -28,6 +20,7 @@ CREATE TABLE files (
 	stable_id    TEXT,
 	reenc_key    TEXT,
 	reenc_info   TEXT,
+	reenc_size   INTEGER,
 	created_at   TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT clock_timestamp(),
 	last_modified TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT clock_timestamp()
 );
@@ -47,60 +40,20 @@ CREATE TABLE errors (
 -- and in the database.
 
 
--- Updating the timestamp when the status is modified
--- Moreover, when the status is Archived, check if we should update the associated submission completed_at
-CREATE FUNCTION file_status_updated() RETURNS TRIGGER AS $update_trigger$
-    DECLARE
-         c INTEGER;
-    BEGIN
-       IF (OLD.status IS DISTINCT FROM NEW.status) THEN
-          NEW.last_modified := current_timestamp;
-          -- NEW.last_user := current_user;
-
-          IF NEW.status = 'Archived' THEN
-              SELECT COUNT(id) INTO c FROM files WHERE submission_id = NEW.submission_id and status != 'Archived';
-              IF c = 0 THEN -- they are all archived
-                 UPDATE submissions SET completed_at = current_timestamp, status = 'Archived' WHERE id = NEW.submission_id;
-              END IF;
-          END IF;
-       END IF;
-       RETURN NEW;
-    END;
-$update_trigger$ LANGUAGE plpgsql;
-
--- "Zee" Trigger... bada boom!
-CREATE TRIGGER trigger_status_updated
-  AFTER UPDATE ON files
-  FOR EACH ROW EXECUTE PROCEDURE file_status_updated();
-    
 -- For an error
 CREATE FUNCTION insert_error(file_id    errors.file_id%TYPE,
                              msg        errors.msg%TYPE,
                              from_user  errors.from_user%TYPE)
     RETURNS void AS $set_error$
-    DECLARE 
-        submission_id submissions.id%TYPE;
     BEGIN
        INSERT INTO errors (file_id,msg,from_user) VALUES(file_id,msg,from_user);
-       WITH submission_id AS (
-            UPDATE files SET status = 'Error' WHERE id = file_id RETURNING files.submission_id
-       )
-       UPDATE submissions SET status = 'Error' WHERE id = submission_id;
+       UPDATE files SET status = 'Error' WHERE id = file_id;
     END;
 $set_error$ LANGUAGE plpgsql;
 
--- For a submission
-CREATE FUNCTION insert_submission(sid submissions.id%TYPE,
-                                  uid submissions.user_id%TYPE)
-    RETURNS void AS $insert_submission$
-    BEGIN
-	INSERT INTO submissions (id, user_id) VALUES(sid, uid) ON CONFLICT (id) DO UPDATE SET created_at = DEFAULT;
-    END;
-$insert_submission$ LANGUAGE plpgsql;
-
 -- For a file
-CREATE FUNCTION insert_file(submission_id     files.submission_id%TYPE,
-                            filename          files.filename%TYPE,
+CREATE FUNCTION insert_file(filename          files.filename%TYPE,
+			    user_id           files.user_id%TYPE,
 			    enc_checksum      files.enc_checksum%TYPE,
 			    enc_checksum_algo files.enc_checksum_algo%TYPE,
 			    org_checksum      files.org_checksum%TYPE,
@@ -111,8 +64,8 @@ CREATE FUNCTION insert_file(submission_id     files.submission_id%TYPE,
     DECLARE
         file_id files.id%TYPE;
     BEGIN
-	INSERT INTO files (submission_id,filename,enc_checksum,enc_checksum_algo,org_checksum,org_checksum_algo,status)
-	VALUES(submission_id,filename,enc_checksum,enc_checksum_algo,org_checksum,org_checksum_algo,status) RETURNING files.id
+	INSERT INTO files (filename,user_id,enc_checksum,enc_checksum_algo,org_checksum,org_checksum_algo,status)
+	VALUES(filename,user_id,enc_checksum,enc_checksum_algo,org_checksum,org_checksum_algo,status) RETURNING files.id
 	INTO file_id;
 	RETURN file_id;
     END;

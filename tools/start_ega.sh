@@ -18,17 +18,19 @@ echo "Starting EGA in $EGA"
 pushd $EGA >/dev/null
 
 # Start the frontend
-ega-ingestion &
+ega-frontend &
 # Start the vault listener
 ega-vault &
+# Start the verification
+ega-verify &
 # re-start the GPG agent
 $EGA/tools/start_agent.sh
 # Start 2 workers
 source $EGA/private/gpg/agent.env && ega-worker &
 source $EGA/private/gpg/agent.env && ega-worker &
 # Start the monitors
-ega-monitor --sys &
-ega-monitor --user &
+# ega-monitor --sys &
+# ega-monitor --user &
 
 popd >/dev/null
 sleep 3
