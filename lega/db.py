@@ -46,15 +46,6 @@ async def get_user_info(pool, user_id):
         await cur.execute(query, {'user_id': user_id})
         return await cur.fetchall()
 
-async def aio_set_error(pool, file_id, error):
-    assert file_id, 'Eh? No file_id?'
-    assert error, 'Eh? No error?'
-    LOG.debug(f'Async Setting error for {file_id}: {error!s}')
-    from_user = isinstance(error,FromUser)
-    with (await pool.cursor()) as cur:
-        await cur.execute('SELECT insert_error(%(file_id)s,%(msg)s,%(from_user)s);',
-                          {'msg':f"{error.__class__.__name__}: {error!s}", 'file_id': file_id, 'from_user': from_user})
-
 ######################################
 ##         "Classic" code           ##
 ######################################
