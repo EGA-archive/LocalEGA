@@ -23,6 +23,7 @@ def main():
     parser.add_argument('--encrypted_checksum', action='store')
     parser.add_argument('--encrypted_checksum_algo', action='store', default='md5')
     parser.add_argument('--conf', action='store')
+    parser.add_argument('--log', action='store')
     args = parser.parse_args()
 
     connection = broker.get_connection('cega.broker')
