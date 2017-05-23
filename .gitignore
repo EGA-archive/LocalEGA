@@ -3,11 +3,9 @@
 .DS_Store
 tmp/
 private/
-logs/
+logs/*.log
 *.conf
 tools/details/*
-tools/create_data.sh
-tools/namer.counter
 tests/
 
 # =====================================
