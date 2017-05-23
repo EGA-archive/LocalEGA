@@ -2,6 +2,7 @@ import sys
 import argparse
 import uuid
 import json
+import pika
 
 from .conf import CONF
 from . import amqp as broker
@@ -25,9 +26,6 @@ def main():
 
     args = parser.parse_args()
 
-    connection = broker.get_connection('cega.broker')
-    channel = connection.channel()
-
     params = { 'correlation_id': str(uuid.uuid4()),
              'content_type' : 'application/json',
              'delivery_mode': 2, # make message persistent
@@ -40,6 +38,8 @@ def main():
         'unencrypted_integrity': { 'hash': args.unencrypted_checksum, 'algorithm': args.unencrypted_checksum_algo, },
     }
 
+    connection = broker.get_connection('cega.broker')
+    channel = connection.channel()
     channel.basic_publish(exchange=CONF.get('cega.broker','exchange'),
                           routing_key='sweden.file',
                           body=json.dumps(message),
