@@ -19,9 +19,10 @@ def main():
     parser.add_argument('--user', action='store')
     parser.add_argument('--filename', action='store')
     parser.add_argument('--unencrypted_checksum', action='store')
-    parser.add_argument('--unencrypted_checksum_algo', action='store')
+    parser.add_argument('--unencrypted_checksum_algo', action='store', default='md5')
     parser.add_argument('--encrypted_checksum', action='store')
-    parser.add_argument('--encrypted_checksum_algo', action='store')
+    parser.add_argument('--encrypted_checksum_algo', action='store', default='md5')
+    parser.add_argument('--conf', action='store')
     args = parser.parse_args()
 
     connection = broker.get_connection('cega.broker')
