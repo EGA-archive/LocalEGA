@@ -15,7 +15,9 @@ LOG = logging.getLogger('publisher')
 def main():
     CONF.setup(sys.argv[1:]) # re-conf
 
-    parser = argparse.ArgumentParser(description='Publish message to Central EGA broker.', allow_abbrev=False, epilog='The supported checksum algorithms are md5 and sha256')
+    parser = argparse.ArgumentParser(description='Publish message to Central EGA broker.',
+                                     allow_abbrev=False,
+                                     epilog='The supported checksum algorithms are md5 and sha256')
     parser.add_argument('--conf', action='store', help='configuration file, in INI or YAML format')
     parser.add_argument('--log', action='store', help='configuration file for the loggers')
 
