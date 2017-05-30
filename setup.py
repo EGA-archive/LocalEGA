@@ -20,12 +20,14 @@ setup(name='lega',
       zip_safe=True,
       entry_points={
           'console_scripts': [
-              'ega-frontend = lega.server:main',
+              'ega-frontend = lega.frontend:main',
               'ega-worker = lega.worker:main',
               'ega-vault = lega.vault:main',
               'ega-verify = lega.verify:main',
               'ega-monitor = lega.monitor:main',
               'ega-publisher = lega.cega_publisher:main',
+              'ega-connect-cega = lega.cega_connect:main',
+              'ega-answer-cega = lega.cega_answer:main',
               'ega-conf = lega.__main__:main',
           ]
       },

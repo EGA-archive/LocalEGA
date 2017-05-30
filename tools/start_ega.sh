@@ -17,6 +17,9 @@ trap 'cleanup' INT TERM
 echo "Starting EGA in $EGA"
 pushd $EGA >/dev/null
 
+# Start the connection to CentralEGA
+ega-connect-cega &
+ega-answer-cega &
 # Start the frontend
 ega-frontend &
 # Start the vault listener

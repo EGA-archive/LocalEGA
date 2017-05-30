@@ -4,23 +4,14 @@
 '''
 ####################################
 #
-# Re-Encryption Worker
+# Verifying the vault files
 #
 ####################################
 
-It simply consumes message from the message queue configured in the [worker] section of the configuration files.
-
-It defaults to the `tasks` queue.
-
-It is possible to start several workers, of course!
-However, they should have the gpg-agent socket location in their environment (when using GnuPG 2.0 or less).
-In GnuPG 2.1, it is not necessary (Just point the `homedir` to the right place).
-
-When a message is consumed, it must be of the form:
-* filepath
-* target
-* hash (of the unencrypted content)
-* hash_algo: the associated hash algorithm
+This module checks the files in the vault, by decrypting them and
+recalculating their checksum.
+It the checksum still corresponds to the one of the original file,
+we consider that the vault has properly stored the file.
 '''
 
 import sys
@@ -72,25 +63,21 @@ def main(args=None):
 
     CONF.setup(args) # re-conf
 
-    cega_connection = broker.get_connection('cega.broker')
-    cega_channel = cega_connection.channel()
-
-    lega_connection = broker.get_connection('local.broker')
-    lega_channel = lega_connection.channel()
-    lega_channel.basic_qos(prefetch_count=1) # One job per worker
+    connection = broker.get_connection('local.broker')
+    channel = connection.channel()
+    channel.basic_qos(prefetch_count=1) # One job per worker
 
     try:
-        broker.consume(lega_channel,
+        broker.consume(channel,
                        work,
                        from_queue  = CONF.get('local.broker','archived_queue'),
-                       to_channel  = cega_channel,
-                       to_exchange = CONF.get('cega.broker','exchange'),
-                       to_routing  = CONF.get('cega.broker','routing_to'))
+                       to_channel  = channel,
+                       to_exchange = CONF.get('local.broker','exchange'),
+                       to_routing  = CONF.get('local.broker','routing_verified'))
     except KeyboardInterrupt:
-        lega_channel.stop_consuming()
+        channel.stop_consuming()
     finally:
-        lega_connection.close()
-        cega_connection.close()
+        connection.close()
 
 if __name__ == '__main__':
     main()

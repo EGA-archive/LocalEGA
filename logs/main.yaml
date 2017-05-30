@@ -4,6 +4,12 @@ root:
   handlers: [noHandler]
 
 loggers:
+  cega_connect:
+    level: INFO
+    handlers: [mainFile]
+  cega_answer:
+    level: INFO
+    handlers: [mainFile]
   frontend:
     level: INFO
     handlers: [mainFile]

@@ -7,6 +7,12 @@ loggers:
   asyncio:
     level: DEBUG
     handlers: [console]
+  cega_connect:
+    level: DEBUG
+    handlers: [debugFile,console]
+  cega_answer:
+    level: DEBUG
+    handlers: [debugFile,console]
   frontend:
     level: DEBUG
     handlers: [debugFile,console]
