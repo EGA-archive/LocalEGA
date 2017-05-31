@@ -42,9 +42,6 @@ from .conf import CONF
 from . import db
 from .utils import only_central_ega, get_data
 
-#import paramiko
-#paramiko.util.log_to_file('/tmp/paramiko.log')
-
 LOG = logging.getLogger('frontend')
 
 @aiohttp_jinja2.template('index.html')
@@ -59,9 +56,7 @@ async def index(request):
 @only_central_ega
 async def inbox(request):
     '''Inbox creation endpoint'''
-    rdata = await request.text()
-    print(rdata)
-    data = get_data(rdata)
+    data = get_data(await request.text())
     if not data:
         raise web.HTTPBadRequest(text=f'\n{Fore.BLACK}{Back.RED}No data provided!{Back.RESET}{Fore.RESET}\n\n')
 
@@ -85,9 +80,9 @@ async def inbox(request):
 
     _, protocol = request.app['broker']
     channel = await protocol.channel()
-    await channel.basic_publish(payload=json.dumps(msg),
+    await channel.basic_publish(payload = json.dumps(msg),
                                 exchange_name = CONF.get('local.broker','exchange'),
-                                routing_key  = CONF.get('local.broker','routing_user'))
+                                routing_key = CONF.get('local.broker','routing_user'))
 
     return web.Response(text=f'Message internally published\n')
 
@@ -139,6 +134,13 @@ async def init(app):
 
         LOG.info('DB Engine created')
 
+    except Exception as e:
+        print('Connection error to the Postgres database\n',str(e))
+        app.loop.call_soon(app.loop.stop)
+        app.loop.call_soon(app.loop.close)
+        sys.exit(2)
+
+    try:
         kwargs = { 'loop': app.loop }
         heartbeat = CONF.getint('localhost','heartbeat', fallback=None)
         if heartbeat is not None: # can be 0
@@ -153,9 +155,10 @@ async def init(app):
                                               ssl = False,
                                               loop = app.loop,
                                               kwargs=kwargs)
-        
+
+        LOG.info('Message broker connected')
     except Exception as e:
-        print('Connection error to the Postgres database\n',str(e))
+        print('Connection error to the Message broker\n',str(e))
         app.loop.call_soon(app.loop.stop)
         app.loop.call_soon(app.loop.close)
         sys.exit(2)
