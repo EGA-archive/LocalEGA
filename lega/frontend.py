@@ -156,7 +156,7 @@ async def init(app):
                                               loop = app.loop,
                                               kwargs=kwargs)
 
-        LOG.info('Message broker connected')
+        LOG.info('Local Message broker connected')
     except Exception as e:
         print('Connection error to the Message broker\n',str(e))
         app.loop.call_soon(app.loop.stop)
