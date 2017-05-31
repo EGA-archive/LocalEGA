@@ -7,33 +7,33 @@ loggers:
   asyncio:
     level: DEBUG
     handlers: [console]
-  ingestion:
+  frontend:
     level: DEBUG
-    handlers: [mainFile,console]
+    handlers: [debugFile,console]
   worker:
     level: DEBUG
-    handlers: [mainFile,console]
+    handlers: [debugFile,console]
   vault:
     level: DEBUG
-    handlers: [mainFile,console]
+    handlers: [debugFile,console]
   verify:
     level: DEBUG
-    handlers: [mainFile,console]
+    handlers: [debugFile,console]
   sys-monitor:
     level: DEBUG
-    handlers: [mainFile,console]
+    handlers: [debugFile,console]
   user-monitor:
     level: DEBUG
-    handlers: [mainFile,console]
+    handlers: [debugFile,console]
   amqp:
     level: DEBUG
-    handlers: [mainFile,console]
+    handlers: [debugFile,console]
   db:
     level: DEBUG
-    handlers: [mainFile]
+    handlers: [debugFile]
   crypto:
     level: DEBUG
-    handlers: [mainFile,console]
+    handlers: [debugFile,console]
   aiopg:
     level: DEBUG
     handlers: [console]
@@ -65,16 +65,17 @@ handlers:
     class: logging.StreamHandler
     formatter: simple
     stream: ext://sys.stdout
-  mainFile:
+  debugFile:
     class: logging.FileHandler
     formatter: lega
-    filename: '/Users/daz/_ega/logs/main.log'
+    filename: 'ega-debug.log'
     mode: 'w'
 
 formatters:
   lega:
-    format: '[{name}][{process:d} {processName:>15}][{levelname}][{asctime:<20}] ({lineno}) {funcName}: {message}'
+    format: '[{asctime:<20}][{name}][{process:d} {processName:>15}][{levelname}] (L:{lineno}) {funcName}: {message}'
     style: '{'
+    datefmt: '%Y-%m-%d %H:%M:%S'
   simple:
     format: '[{name:^10}][{levelname:^6}] {message}'
     style: '{'

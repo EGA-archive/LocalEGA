@@ -4,7 +4,7 @@ root:
   handlers: [noHandler]
 
 loggers:
-  ingestion:
+  frontend:
     level: INFO
     handlers: [mainFile]
   worker:
@@ -24,13 +24,13 @@ loggers:
     handlers: [mainFile]
   amqp:
     level: WARNING
-    handlers: [mainFile]
+    handlers: [warningFile]
   db:
     level: WARNING
-    handlers: [mainFile]
+    handlers: [warningFile]
   crypto:
     level: WARNING
-    handlers: [mainFile]
+    handlers: [warningFile]
 
 handlers:
   noHandler:
@@ -39,10 +39,16 @@ handlers:
   mainFile:
     class: logging.FileHandler
     formatter: lega
-    filename: '/Users/daz/_ega/logs/main.log'
+    filename: 'ega-main.log'
+    mode: 'w'
+  warningFile:
+    class: logging.FileHandler
+    formatter: lega
+    filename: 'ega-main-warning.log'
     mode: 'w'
 
 formatters:
   lega:
-    format: '[{name}][{process:d} {processName:>15}][{levelname}][{asctime:<20}] ({lineno}) {funcName}: {message}'
+    format: '[{asctime:<20}][{name}][{process:d} {processName:>15}][{levelname}] (L:{lineno}) {funcName}: {message}'
     style: '{'
+    datefmt: '%Y-%m-%d %H:%M:%S'
