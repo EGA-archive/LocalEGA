@@ -104,7 +104,7 @@ def work(data):
             if not checksum(inbox_file, filehash, hashAlgo = hash_algo):
                 errmsg = f"Invalid {hash_algo} checksum for {inbox_filepath}"
                 LOG.warning(errmsg)
-                raise exceptions.Checksum(filename)
+                raise exceptions.Checksum(hash_algo, f'for {inbox_filepath}')
         LOG.debug(f'Valid {hash_algo} checksum for {inbox_filepath}')
 
         # ################# Locking the file in the inbox

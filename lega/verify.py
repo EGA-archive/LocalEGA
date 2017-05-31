@@ -34,7 +34,7 @@ def work(data):
 
     try:
         
-        crypto.decrypt_from_vault( vault_filename, org_hash, org_hash_algo )
+        crypto.decrypt_from_vault( vault_filename, org_hash, org_hash_algo, master_key )
         # raise exception if fail
 
         # Clean the staging area: remove parent folder if empty
