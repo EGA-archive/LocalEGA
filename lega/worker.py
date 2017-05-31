@@ -116,11 +116,11 @@ def work(data):
         
         LOG.debug(f'Starting the re-encryption\n\tfrom {inbox_filepath}\n\tto {staging_filepath}')
         db.update_status(file_id, db.Status.In_Progress)
-        details, reenc_key = crypto.ingest( str(inbox_filepath),
-                                            unencrypted_hash,
-                                            hash_algo = unencrypted_algo,
-                                            target = staging_filepath)
-        db.set_encryption(file_id, details, reenc_key)
+        details = crypto.ingest( str(inbox_filepath),
+                                 unencrypted_hash,
+                                 hash_algo = unencrypted_algo,
+                                 target = staging_filepath)
+        db.set_encryption(file_id, details)
         LOG.debug(f'Re-encryption completed')
         reply = {
             'file_id' : file_id,

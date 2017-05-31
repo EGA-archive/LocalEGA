@@ -114,12 +114,12 @@ def get_errors(from_user=False):
             cur.execute(query)
             return cur.fetchall()
 
-def set_encryption(file_id, info, key):
+def set_encryption(file_id, info):
     assert file_id, 'Eh? No file_id?'
     with connect() as conn:
         with conn.cursor() as cur:
-            cur.execute('UPDATE files SET reenc_info = %(reenc_info)s, reenc_key = %(reenc_key)s, status = %(status)s WHERE id = %(file_id)s;',
-                        {'reenc_info': info, 'reenc_key': key, 'file_id': file_id, 'status': Status.Completed.value})
+            cur.execute('UPDATE files SET reenc_info = %(reenc_info)s, status = %(status)s WHERE id = %(file_id)s;',
+                        {'reenc_info': info, 'file_id': file_id, 'status': Status.Completed.value})
 
 def finalize_file(file_id, stable_id, filesize):
     assert file_id, 'Eh? No file_id?'
@@ -135,7 +135,7 @@ def finalize_file(file_id, stable_id, filesize):
 def get_details(file_id):
     with connect() as conn:
         with conn.cursor() as cur:
-            query = 'SELECT filename, org_checksum, org_checksum_algo, stable_id, reenc_key from files WHERE id = %(file_id)s;'
+            query = 'SELECT filename, org_checksum, org_checksum_algo, stable_id from files WHERE id = %(file_id)s;'
             cur.execute(query, { 'file_id': file_id})
             return cur.fetchone()
 
