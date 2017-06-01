@@ -29,12 +29,12 @@ def work(data):
     '''Verifying that the file in the vault does decrypt properly'''
 
     file_id = data['file_id']
-    filename, org_hash, org_hash_algo, vault_filename, master_key = db.get_details(file_id)
+    filename, org_hash, org_hash_algo, vault_filename = db.get_details(file_id)
     staging_folder = data['staging_folder']
 
     try:
         
-        crypto.decrypt_from_vault( vault_filename, org_hash, org_hash_algo, master_key )
+        crypto.decrypt_from_vault( vault_filename, org_hash, org_hash_algo )
         # raise exception if fail
 
         # Clean the staging area: remove parent folder if empty

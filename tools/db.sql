@@ -10,11 +10,7 @@ CREATE TYPE hash_algo AS ENUM ('md5', 'sha256');
 
 CREATE EXTENSION pgcrypto;
 
-
 CREATE TABLE users (
---      id            SERIAL, PRIMARY KEY(id), UNIQUE (id),
---      id            uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
---      elixir_id     TEXT NOT NULL,
 	id            TEXT NOT NULL PRIMARY KEY UNIQUE,
 	password_hash TEXT,
 	pubkey        TEXT,
@@ -33,7 +29,6 @@ CREATE TABLE files (
 	org_checksum_algo hash_algo,
 	status       status,
 	stable_id    TEXT,
-	reenc_key    TEXT,
 	reenc_info   TEXT,
 	reenc_size   INTEGER,
 	created_at   TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT clock_timestamp(),

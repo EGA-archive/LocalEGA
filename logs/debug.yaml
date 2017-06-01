@@ -80,5 +80,5 @@ formatters:
     style: '{'
     datefmt: '%Y-%m-%d %H:%M:%S'
   simple:
-    format: '[{name:^10}][{levelname:^6}] {message}'
+    format: '[{name:^10}][{levelname:^6}] (L{lineno}) {message}'
     style: '{'

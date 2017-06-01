@@ -122,8 +122,7 @@ async def status_user(request):
                     'final_name': info[4] } for info in res]
     return web.json_response(json_data)
 
-async def init(app):
-    '''Initialization running before the loop.run_forever'''
+async def _connect_db(app):
     try:
         app['db'] = await db.create_pool(loop=app.loop,
                                          user=CONF.get('db','username'),
@@ -140,6 +139,7 @@ async def init(app):
         app.loop.call_soon(app.loop.close)
         sys.exit(2)
 
+async def _connect_mq(app):
     try:
         kwargs = { 'loop': app.loop }
         heartbeat = CONF.getint('localhost','heartbeat', fallback=None)
@@ -156,12 +156,18 @@ async def init(app):
                                               loop = app.loop,
                                               kwargs=kwargs)
 
-        LOG.info('Message broker connected')
+        LOG.info('Local Message broker connected')
     except Exception as e:
         print('Connection error to the Message broker\n',str(e))
         app.loop.call_soon(app.loop.stop)
         app.loop.call_soon(app.loop.close)
         sys.exit(2)
+
+
+async def init(app):
+    '''Initialization running before the loop.run_forever'''
+    await _connect_db(app)
+    await _connect_mq(app)
 
 async def shutdown(app):
     '''Function run after a KeyboardInterrupt. After that: cleanup'''

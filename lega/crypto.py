@@ -32,31 +32,28 @@ HASH_ALGORITHMS = {
 
 LOG = logging.getLogger('crypto')
 
-#@cache_var('MASTER_PUB_KEY')
-def _master_pub_key():
-    '''Fetch the RSA master public key from file'''
-    keyfile = CONF.get('worker','master_pub_key')
-    LOG.debug(f"Fetching the RSA master key from {keyfile}")
-    with open( keyfile, 'rb') as key:
-        return RSA.import_key(key_h.read(),
-                              passphrase = CONF.get('worker','master_key_passphrase'))
-
-#@cache_var('MASTER_KEY')
-def _master_key():
-    '''Fetch the RSA master public key from file'''
-    keyfile = CONF.get('worker','master_key')
+def _master_key(key_nr=None, public=False):
+    '''Fetch a RSA key from file'''
+    if not key_nr:
+        key_nr = CONF.getint('worker','active_key')
+    domain = f'master.key.{key_nr}'
+    LOG.debug(f"Fetching the RSA master key number {key_nr}")
+    keyfile = CONF.get(domain,'pub_key' if public else 'key')
+    passphrase = None if public else CONF.get(domain,'passphrase')
     LOG.debug(f"Fetching the RSA master key from {keyfile}")
     with open( keyfile, 'rb') as key_h:
-        return RSA.import_key(key_h.read(),
-                              passphrase = CONF.get('worker','master_key_passphrase'))
+        return RSA.import_key(key_h.read(), passphrase = passphrase)
 
-def make_header(enc_key_size, nonce_size, aes_mode):
+def make_header(key_nr, enc_key_size, nonce_size, aes_mode):
     '''Create the header line for the re-encrypted files
 
     The header is simply of the form:
-    Encryption key size (in bytes) | Nonce size | AES mode
+    Key number | Encryption key size (in bytes) | Nonce size | AES mode
+
+    The key number points to a particular section of the configuration files, 
+    holding the information about that key
     '''
-    header = f'{enc_key_size}|{nonce_size}|{aes_mode}'
+    header = f'{key_nr}|{enc_key_size}|{nonce_size}|{aes_mode}'
     return header
 
 def from_header(h):
@@ -69,9 +66,9 @@ def from_header(h):
         header.extend(b)
 
     LOG.debug(f'Found header: {header!r}')
-    enc_key_size, nonce_size, aes_mode, *rest = header.split(b'|')
+    key_nr, enc_key_size, nonce_size, aes_mode, *rest = header.split(b'|')
     assert( not rest )
-    return (int(enc_key_size),int(nonce_size), aes_mode.decode())
+    return (int(key_nr),int(enc_key_size),int(nonce_size), aes_mode.decode())
 
 def encrypt_engine():
     '''Generator that takes a block of data as input and encrypts it as output.
@@ -88,7 +85,7 @@ def encrypt_engine():
     aes = AES.new(key=session_key, mode=AES.MODE_CTR)
 
     LOG.info('Creating RSA cypher')
-    rsa = PKCS1_OAEP.new(_master_key())
+    rsa = PKCS1_OAEP.new(_master_key(public=True)) # active_key
 
     encryption_key = rsa.encrypt(session_key)
     LOG.debug(f'\tencryption key = {encryption_key}')
@@ -126,7 +123,7 @@ class ReEncryptor(asyncio.SubprocessProtocol):
             self.digest = h()
 
         encryption_key, mode, nonce = next(engine)
-        self.header = make_header(len(encryption_key), len(nonce), mode)
+        self.header = make_header(CONF.getint('worker','active_key'), len(encryption_key), len(nonce), mode)
         LOG.info(f'Writing header to file: {self.header}')
         self.target_handler.write(self.header.encode('utf-8')) # includes \n
         self.target_handler.write(b'\n')
@@ -222,8 +219,7 @@ def ingest(enc_file,
     else:
         LOG.info(f'File encrypted')
         assert Path(target).exists()
-        return (reencrypt_protocol.header, # returning the header for that file
-                CONF.get('worker','master_key'))  # That was the key used at that moment
+        return reencrypt_protocol.header
 
 def chunker(stream, chunk_size=None):
     """Lazy function (generator) to read a stream one chunk at a time."""
@@ -241,12 +237,12 @@ def chunker(stream, chunk_size=None):
             return None # No more data
         yield data
 
-def decrypt_engine(encrypted_session_key, aes_mode, nonce, master_key):
+def decrypt_engine(encrypted_session_key, aes_mode, nonce, key_nr):
 
     LOG.info('Starting the decipher engine')
 
     LOG.info('Creating RSA cypher')
-    rsa = PKCS1_OAEP.new()
+    rsa = PKCS1_OAEP.new(_master_key(key_nr, public=False))
     session_key = rsa.decrypt(encrypted_session_key)
 
     LOG.info(f'Creating AES cypher in mode {aes_mode}')
@@ -263,8 +259,7 @@ def decrypt_engine(encrypted_session_key, aes_mode, nonce, master_key):
 
 def decrypt_from_vault( vault_filename,
                         org_hash,
-                        hash_algo,
-                        master_key):
+                        hash_algo):
 
     try:
         h = HASH_ALGORITHMS.get(hash_algo)
@@ -277,7 +272,7 @@ def decrypt_from_vault( vault_filename,
     with open(vault_filename, 'rb') as vault_source:
 
         LOG.debug('Decrypting file')
-        enc_key_size, nonce_size, aes_mode = from_header( vault_source )
+        key_nr, enc_key_size, nonce_size, aes_mode = from_header( vault_source )
 
         LOG.debug(f'encrypted_session_key (size): {enc_key_size}')
         LOG.debug(f'aes mode: {aes_mode}')
@@ -285,7 +280,7 @@ def decrypt_from_vault( vault_filename,
         encrypted_session_key = vault_source.read(enc_key_size)
         nonce = vault_source.read(nonce_size)
         
-        engine = decrypt_engine( encrypted_session_key, aes_mode=aes_mode.upper(), nonce=nonce, master_key=master_key )
+        engine = decrypt_engine( encrypted_session_key, aes_mode.upper(), nonce, key_nr )
         next(engine) # start it
         
         chunks = chunker(vault_source)
