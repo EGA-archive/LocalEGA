@@ -39,7 +39,7 @@ def _master_key(key_nr=None, public=False):
     domain = f'master.key.{key_nr}'
     LOG.debug(f"Fetching the RSA master key number {key_nr}")
     keyfile = CONF.get(domain,'pub_key' if public else 'key')
-    passphrase = CONF.get(domain,'passphrase')        
+    passphrase = None if public else CONF.get(domain,'passphrase')
     LOG.debug(f"Fetching the RSA master key from {keyfile}")
     with open( keyfile, 'rb') as key_h:
         return RSA.import_key(key_h.read(), passphrase = passphrase)
@@ -48,7 +48,10 @@ def make_header(key_nr, enc_key_size, nonce_size, aes_mode):
     '''Create the header line for the re-encrypted files
 
     The header is simply of the form:
-    Encryption key size (in bytes) | Nonce size | AES mode
+    Key number | Encryption key size (in bytes) | Nonce size | AES mode
+
+    The key number points to a particular section of the configuration files, 
+    holding the information about that key
     '''
     header = f'{key_nr}|{enc_key_size}|{nonce_size}|{aes_mode}'
     return header
