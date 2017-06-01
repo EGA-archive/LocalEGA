@@ -1,4 +1,4 @@
-GROUP=100
+GROUP=sftp_users
 HOME=/home
 INACTIVE=-1
 EXPIRE=
