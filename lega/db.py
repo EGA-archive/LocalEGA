@@ -46,14 +46,14 @@ async def get_user_info(pool, user_id):
         await cur.execute(query, {'user_id': user_id})
         return await cur.fetchall()
 
-async def aio_set_error(pool, file_id, error):
-    assert file_id, 'Eh? No file_id?'
-    assert error, 'Eh? No error?'
-    LOG.debug(f'Async Setting error for {file_id}: {error!s}')
-    from_user = isinstance(error,FromUser)
+async def insert_user(pool, user_id, password, pubkey):
+    assert password or pubkey, 'We should specify either a password or a public key'
     with (await pool.cursor()) as cur:
-        await cur.execute('SELECT insert_error(%(file_id)s,%(msg)s,%(from_user)s);',
-                          {'msg':f"{error.__class__.__name__}: {error!s}", 'file_id': file_id, 'from_user': from_user})
+        await cur.execute('SELECT insert_user('
+                          '%(elixir_id)s,%(password)s,%(pubkey)s'
+                          ');',{ 'elixir_id': user_id,
+                                 'password': password,
+                                 'pubkey': pubkey })
 
 ######################################
 ##         "Classic" code           ##

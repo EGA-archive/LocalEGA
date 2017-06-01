@@ -14,7 +14,7 @@ We provide:
 | endpoint                              | accepted method |     Note       |
 |---------------------------------------|-----------------|----------------|
 | [LocalEGA-URL]/                       |       GET       |                |
-| [LocalEGA-URL]/create-inbox           |       GET       | requires login |
+| [LocalEGA-URL]/user/inbox             |       POST      | requires login |
 | [LocalEGA-URL]/status/file/<id>       |       GET       |                |
 | [LocalEGA-URL]/status/user/<id>       |       GET       |                |
 |---------------------------------------|-----------------|----------------|
@@ -36,12 +36,13 @@ from aiohttp_swaggerify import swaggerify
 import aiohttp_cors
 import jinja2
 import aiohttp_jinja2
+import aioamqp
 
 from .conf import CONF
 from . import db
-from .utils import only_central_ega
+from .utils import only_central_ega, get_data
 
-LOG = logging.getLogger('server')
+LOG = logging.getLogger('frontend')
 
 @aiohttp_jinja2.template('index.html')
 async def index(request):
@@ -53,12 +54,37 @@ async def index(request):
     return { 'country': 'Sweden', 'text' : '<p>There should be some info here.</p>' }
       
 @only_central_ega
-async def create_inbox(request):
-    '''Inbox creation endpoint
+async def inbox(request):
+    '''Inbox creation endpoint'''
+    data = get_data(await request.text())
+    if not data:
+        raise web.HTTPBadRequest(text=f'\n{Fore.BLACK}{Back.RED}No data provided!{Back.RESET}{Fore.RESET}\n\n')
 
-    Not implemented yet.
-    '''
-    raise web.HTTPBadRequest(text=f'\n{Fore.BLACK}{Back.RED}Not implemented yet!{Back.RESET}{Fore.RESET}\n\n')
+    elixir_id = data.get('elixir_id',None)
+    password = data.get('password', None)
+    pubkey = data.get('pubkey', None)
+    assert elixir_id, "We need an elixir-id"
+    assert (password or pubkey), "We need either a password or a public key"
+
+    # No sanitizing here
+    msg = { 'user_id' : elixir_id,
+            'password': password,
+            'pubkey' : pubkey,
+    }
+
+    # Check if valid user
+    # TODO
+
+    # Add to database
+    await db.insert_user(request.app['db'], **msg)
+
+    _, protocol = request.app['broker']
+    channel = await protocol.channel()
+    await channel.basic_publish(payload = json.dumps(msg),
+                                exchange_name = CONF.get('local.broker','exchange'),
+                                routing_key = CONF.get('local.broker','routing_user'))
+
+    return web.Response(text=f'Message internally published\n')
 
 @only_central_ega
 async def outgest(request):
@@ -114,11 +140,38 @@ async def init(app):
         app.loop.call_soon(app.loop.close)
         sys.exit(2)
 
+    try:
+        kwargs = { 'loop': app.loop }
+        heartbeat = CONF.getint('localhost','heartbeat', fallback=None)
+        if heartbeat is not None: # can be 0
+            kwargs['heartbeat_interval'] = heartbeat
+            LOG.info(f'Setting hearbeat to {heartbeat}')
+
+        app['broker'] = await aioamqp.connect(host = CONF.get('local.broker','host',fallback='localhost'),
+                                              port = CONF.getint('local.broker','port',fallback=5672),
+                                              virtualhost = CONF.get('local.broker','vhost',fallback='/'),
+                                              login = CONF.get('local.broker','username'),
+                                              password = CONF.get('local.broker','password'),
+                                              ssl = False,
+                                              loop = app.loop,
+                                              kwargs=kwargs)
+
+        LOG.info('Message broker connected')
+    except Exception as e:
+        print('Connection error to the Message broker\n',str(e))
+        app.loop.call_soon(app.loop.stop)
+        app.loop.call_soon(app.loop.close)
+        sys.exit(2)
+
 async def shutdown(app):
     '''Function run after a KeyboardInterrupt. After that: cleanup'''
     LOG.info('Shutting down the database engine')
     app['db'].close()
     await app['db'].wait_closed()
+
+    transport,protocol = app['broker']
+    await protocol.close()
+    transport.close()
 
 async def cleanup(app):
     '''Function run after a KeyboardInterrupt. Right after, the loop is closed'''
@@ -153,11 +206,11 @@ def main(args=None):
 
     # Registering the routes
     LOG.info('Registering routes')
-    server.router.add_get( '/'                      , index             , name='root'             )
-    server.router.add_get( '/create-inbox'          , create_inbox      , name='inbox'            )
-    server.router.add_get( '/status/file/{id}'      , status_file       , name='status_file'      )
-    server.router.add_get( '/status/user/{id}'      , status_user       , name='status_user'      )
-    server.router.add_post('/outgest'               , outgest           , name='outgestion'       )
+    server.router.add_get( '/'                      , index        , name='root'             )
+    server.router.add_post('/user/inbox'            , inbox        , name='inbox'            )
+    server.router.add_get( '/status/file/{id}'      , status_file  , name='status_file'      )
+    server.router.add_get( '/status/user/{id}'      , status_user  , name='status_user'      )
+    server.router.add_post('/outgest'               , outgest      , name='outgestion'       )
 
     # # Swagger endpoint: /swagger.json
     # LOG.info('Preparing for Swagger')

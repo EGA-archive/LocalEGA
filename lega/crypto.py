@@ -209,10 +209,10 @@ def ingest(enc_file,
         correct_digest = (calculated_digest == org_hash)
         
         if gpg_result != 0: # Swapped order on purpose
-            _err = exceptions.GPGDecryption(f'Error {gpg_result} while decrypting {enc_file}')
+            _err = exceptions.GPGDecryption(gpg_result, enc_file)
             LOG.error(str(_err))
         if not correct_digest:
-            _err = exceptions.Checksum(f'Invalid {hash_algo} checksum for decrypted content of {enc_file}')
+            _err = exceptions.Checksum(hash_algo,f'for decrypted content of {enc_file}')
             LOG.error(str(_err))
 
     if _err:

@@ -15,16 +15,18 @@ class NotFoundInInbox(FromUser):
         return f'File not found in inbox'
         
 class GPGDecryption(FromUser):
-    def __init__(self, filename):
+    def __init__(self, retcode, filename):
         self.filename = filename
+        self.retcode = retcode
     def __str__(self):
-        return f'Decrypting {self.filename} failed'
+        return f'Error {self.retcode}: Decrypting {self.filename} failed'
 
 class Checksum(FromUser):
-    def __init__(self, filename):
-        self.filename = filename
+    def __init__(self, algo, msg):
+        self.msg = msg
+        self.algo = algo
     def __str__(self):
-        return f'Invalid checksum for {self.filename}'
+        return f'Invalid {self.algo} checksum {self.msg}'
 
 class Unauthorized(FromUser):
     def __init__(self, user_id):

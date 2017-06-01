@@ -7,6 +7,9 @@ loggers:
   asyncio:
     level: DEBUG
     handlers: [console]
+  connect:
+    level: DEBUG
+    handlers: [debugFile,console]
   frontend:
     level: DEBUG
     handlers: [debugFile,console]

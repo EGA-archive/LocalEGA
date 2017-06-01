@@ -104,7 +104,7 @@ def work(data):
             if not checksum(inbox_file, filehash, hashAlgo = hash_algo):
                 errmsg = f"Invalid {hash_algo} checksum for {inbox_filepath}"
                 LOG.warning(errmsg)
-                raise exceptions.Checksum(filename)
+                raise exceptions.Checksum(hash_algo, f'for {inbox_filepath}')
         LOG.debug(f'Valid {hash_algo} checksum for {inbox_filepath}')
 
         # ################# Locking the file in the inbox
@@ -148,25 +148,21 @@ def main(args=None):
 
     CONF.setup(args) # re-conf
 
-    cega_connection = broker.get_connection('cega.broker')
-    cega_channel = cega_connection.channel()
-
-    lega_connection = broker.get_connection('local.broker')
-    lega_channel = lega_connection.channel()
-    lega_channel.basic_qos(prefetch_count=1) # One job per worker
+    connection = broker.get_connection('local.broker')
+    channel = connection.channel()
+    channel.basic_qos(prefetch_count=1) # One job per worker
 
     try:
-        broker.consume(cega_channel,
+        broker.consume(channel,
                        work,
-                       from_queue  = CONF.get('cega.broker','queue'),
-                       to_channel  = lega_channel,
+                       from_queue  = CONF.get('local.broker','tasks_queue'),
+                       to_channel  = channel,
                        to_exchange = CONF.get('local.broker','exchange'),
                        to_routing  = CONF.get('local.broker','routing_complete'))
     except KeyboardInterrupt:
-        cega_channel.stop_consuming()
+        channel.stop_consuming()
     finally:
-        lega_connection.close()
-        cega_connection.close()
+        connection.close()
 
 if __name__ == '__main__':
     main()

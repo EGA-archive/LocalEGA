@@ -4,6 +4,9 @@ root:
   handlers: [noHandler]
 
 loggers:
+  connect:
+    level: INFO
+    handlers: [mainFile]
   frontend:
     level: INFO
     handlers: [mainFile]
