@@ -9,7 +9,7 @@ import functools
 from aiohttp.web import HTTPUnauthorized
 
 from .conf import CONF
-from .db import add_error as db_error
+from . import db
 
 #LOG = logging.getLogger('utils')
 
@@ -50,7 +50,7 @@ def check_error(func):
         except Exception as e:
             if isinstance(e,AssertionError):
                 raise e
-            db_error(e)
+            db.add_error(e)
     return wrapper
 
 def get_inbox(userId):

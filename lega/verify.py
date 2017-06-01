@@ -22,11 +22,9 @@ from .conf import CONF
 from . import crypto
 from . import amqp as broker
 from . import db
-from .utils import check_error
 
 LOG = logging.getLogger('verify')
 
-@check_error
 def work(data):
     '''Verifying that the file in the vault does decrypt properly'''
 
@@ -34,13 +32,19 @@ def work(data):
     filename, org_hash, org_hash_algo, vault_filename = db.get_details(file_id)
     staging_folder = data['staging_folder']
 
-    crypto.decrypt_from_vault( vault_filename, org_hash, org_hash_algo )
-    # raise exception if fail
+    try:
+        crypto.decrypt_from_vault( vault_filename, org_hash, org_hash_algo )
+        # raise exception if fail
 
-    return {
-        'vault_name': vault_filename,
-        'org_name': filename
-    }
+        return {
+            'vault_name': vault_filename,
+            'org_name': filename
+        }
+    except Exception as e:
+        if isinstance(e,AssertionError):
+            raise e
+        db.set_error(file_id,e)
+
     
 def main(args=None):
 

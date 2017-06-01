@@ -85,17 +85,14 @@ def insert_file(filename, enc_checksum, org_checksum, user_id):
                             'status' : Status.Received.value })
             return (cur.fetchone())[0]
 
-def update_status(file_id, status):
+def set_progress(file_id, staging_name):
     assert file_id, 'Eh? No file_id?'
-    assert status, 'Eh? No status?'
-    LOG.debug(f'Updating status file_id {file_id}: {status!r}')
+    assert staging_name, 'Eh? No staging name?'
+    LOG.debug(f'Updating status file_id {file_id}')
     with connect() as conn:
         with conn.cursor() as cur:
-            cur.execute('UPDATE files SET status = %(status)s WHERE id = %(file_id)s;',
-                        {'status': status.value, 'file_id': file_id})
-            #
-            # Marking submission as completed is done as a DB trigger
-            # We save a few round trips with queries and connections
+            cur.execute('UPDATE files SET status = %(status)s, staging_name = %(name)s WHERE id = %(file_id)s;',
+                        {'status': Status.In_Progress.value, 'file_id': file_id, 'name': staging_name})
 
 def set_error(file_id, error):
     assert file_id, 'Eh? No file_id?'
@@ -109,7 +106,7 @@ def set_error(file_id, error):
 
 def add_error(error):
     assert error, 'Eh? No error?'
-    file_id = e.file_id
+    file_id = error.file_id
     LOG.debug(f'Setting error for {file_id}: {error!s}')
     from_user = isinstance(error,FromUser)
     with connect() as conn:
