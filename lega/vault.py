@@ -56,11 +56,7 @@ def work(data):
     db.finalize_file(file_id, starget, target.stat().st_size)
 
     # Send message to Archived queue
-    return {
-        'file_id': file_id,
-        'staging_folder': str(filepath.parent),
-        #'vault_name': starget,
-    }
+    return { 'file_id': file_id } # I could have the details in here. Fetching from DB instead.
 
 def main(args=None):
 
