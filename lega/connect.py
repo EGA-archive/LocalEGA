@@ -54,7 +54,7 @@ def main():
     group.add_argument('--to-domain',      dest='to_domain',       required=True)
     group.add_argument('--to-exchange',    dest='to_exchange',     required=True)
     group.add_argument('--to-routing-key', dest='to_routing_key',  required=True)
-    group.add_argument('--transform') # identity function
+    group.add_argument('--transform', default=None)
 
     args = parser.parse_args()
 
