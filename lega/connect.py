@@ -63,7 +63,7 @@ def main():
     from_queue  = CONF.get(args.from_domain,args.from_queue)
     to_exchange = CONF.get(args.to_domain,args.to_exchange)
     to_routing  = CONF.get(args.to_domain,args.to_routing_key)
-    
+
     LOG.debug(f'From queue: {from_queue}')
     LOG.debug(f'To exchange: {to_exchange}')
     LOG.debug(f'To routing key: {to_routing}')
