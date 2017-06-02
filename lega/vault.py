@@ -29,13 +29,13 @@ import select
 from .conf import CONF
 from . import db
 from . import amqp as broker
+from .utils import check_error
 
 LOG = logging.getLogger('vault')
 
+@check_error
 def work(data):
     '''Procedure to handle a message'''
-
-    LOG.debug(data)
 
     file_id       = data['file_id']
     user_id       = data['user_id']

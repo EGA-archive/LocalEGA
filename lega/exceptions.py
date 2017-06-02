@@ -7,27 +7,22 @@ class FromUser(Exception):
         return repr(self)
     def __repr__(self):
         return 'Incorrect user input'
-    def file_id(self):
-        return self.file_id
 
 class NotFoundInInbox(FromUser):
-    def __init__(self, file_id, filename):
-        self.file_id = file_id
+    def __init__(self, filename):
         self.filename = filename
     def __str__(self):
         return f'File not found in inbox'
         
 class GPGDecryption(FromUser):
-    def __init__(self, file_id, retcode, filename):
-        self.file_id = file_id
+    def __init__(self, retcode, filename):
         self.retcode = retcode
         self.filename = filename
     def __str__(self):
         return f'Error {self.retcode}: Decrypting {self.filename} failed'
 
 class Checksum(FromUser):
-    def __init__(self, file_id, algo, msg):
-        self.file_id = file_id
+    def __init__(self, algo, msg):
         self.algo = algo
         self.msg = msg
     def __str__(self):
@@ -46,8 +41,7 @@ class MessageError(Exception):
         return f'Error decoding the message from the queue'
 
 class VaultDecryption(Exception):
-    def __init__(self, file_id, filename):
-        self.file_id = file_id
+    def __init__(self, filename):
         self.filename = filename
     def __str__(self):
         return f'Decrypting {self.filename} from the vault failed'

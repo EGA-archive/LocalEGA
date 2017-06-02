@@ -81,7 +81,7 @@ def consume(from_channel, work, from_queue, to_channel=None, to_exchange=None, t
     from_channel.basic_consume(process_request, queue=from_queue)
     from_channel.start_consuming()
 
-def forward(from_channel, from_queue, to_channel, to_exchange, to_routing):
+def forward(from_channel, from_queue, to_channel, to_exchange, to_routing, transform=None):
     '''Blocking function, registering callback to be called, on each message from the queue `from_queue`
 
     If there are no message in `from_queue`, the function blocks and waits for new messages.
@@ -95,6 +95,9 @@ def forward(from_channel, from_queue, to_channel, to_exchange, to_routing):
         correlation_id = props.correlation_id
         message_id = method_frame.delivery_tag
         LOG.debug(f'Forwarding message {message_id} (Correlation ID: {correlation_id})')
+
+        if transform:
+            body = json.dumps(transform(json.loads(body)))
 
         # Forward the answer
         to_channel.basic_publish(exchange    = to_exchange,

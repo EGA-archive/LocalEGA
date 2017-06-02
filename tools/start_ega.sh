@@ -18,7 +18,7 @@ echo "Starting EGA in $EGA"
 pushd $EGA >/dev/null
 
 # Start the connection to CentralEGA
-ega-connect --from-domain cega.broker --from-queue queue --to-domain local.broker --to-exchange exchange --to-routing-key routing_todo &
+ega-connect --from-domain cega.broker --from-queue queue --to-domain local.broker --to-exchange exchange --to-routing-key routing_todo --transform set_file_id &
 ega-connect --from-domain local.broker --from-queue verified_queue --to-domain cega.broker --to-exchange exchange --to-routing-key routing_to &
 # Start the frontend
 ega-frontend &

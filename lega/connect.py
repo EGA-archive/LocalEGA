@@ -18,9 +18,26 @@ import logging
 import argparse
 
 from .conf import CONF
+from . import db
 from . import amqp as broker
 
 LOG = logging.getLogger('connect')
+
+def set_file_id(data):
+    '''Adding the related file into the database
+    and adding the return file id into the message'''
+
+    filename = data['filename']
+    user_id = data['user_id']
+    enc_checksum  = data['encrypted_integrity']
+    org_checksum  = data['unencrypted_integrity']
+
+    # Insert in database
+    file_id = db.insert_file(filename, enc_checksum, org_checksum, user_id) 
+    assert file_id is not None, 'Ouch...database problem!'
+    LOG.debug(f'Created id {file_id} for {data["filename"]}')
+    data['file_id'] = file_id
+    return data
 
 def main():
 
@@ -37,6 +54,7 @@ def main():
     group.add_argument('--to-domain',      dest='to_domain',       required=True)
     group.add_argument('--to-exchange',    dest='to_exchange',     required=True)
     group.add_argument('--to-routing-key', dest='to_routing_key',  required=True)
+    group.add_argument('--transform') # identity function
 
     args = parser.parse_args()
 
@@ -45,10 +63,16 @@ def main():
     from_queue  = CONF.get(args.from_domain,args.from_queue)
     to_exchange = CONF.get(args.to_domain,args.to_exchange)
     to_routing  = CONF.get(args.to_domain,args.to_routing_key)
-
+    
     LOG.debug(f'From queue: {from_queue}')
     LOG.debug(f'To exchange: {to_exchange}')
     LOG.debug(f'To routing key: {to_routing}')
+
+    transform = None
+    if args.transform:
+        transform = getattr(sys.modules[__name__], args.transform, None)
+    if transform:
+        LOG.debug(f'Transform function: {transform}')
 
     from_connection = broker.get_connection(args.from_domain)
     from_channel = from_connection.channel()
@@ -64,7 +88,8 @@ def main():
                        from_queue  = from_queue,
                        to_channel  = to_channel,
                        to_exchange = to_exchange,
-                       to_routing  = to_routing)
+                       to_routing  = to_routing,
+                       transform   = transform)
     except KeyboardInterrupt:
         from_channel.stop_consuming()
     finally:
@@ -73,3 +98,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+

@@ -12,10 +12,11 @@ import logging
 from enum import Enum
 import aiopg
 import psycopg2
+import inspect
 
 from .conf import CONF
-from .utils import cache_var
 from .exceptions import FromUser
+from .utils import cache_var
 
 LOG = logging.getLogger('db')
 
@@ -97,16 +98,6 @@ def set_progress(file_id, staging_name):
 def set_error(file_id, error):
     assert file_id, 'Eh? No file_id?'
     assert error, 'Eh? No error?'
-    LOG.debug(f'Setting error for {file_id}: {error!s}')
-    from_user = isinstance(error,FromUser)
-    with connect() as conn:
-        with conn.cursor() as cur:
-            cur.execute('SELECT insert_error(%(file_id)s,%(msg)s,%(from_user)s);',
-                        {'msg':f"{error.__class__.__name__}: {error!s}", 'file_id': file_id, 'from_user': from_user})
-
-def add_error(error):
-    assert error, 'Eh? No error?'
-    file_id = error.file_id
     LOG.debug(f'Setting error for {file_id}: {error!s}')
     from_user = isinstance(error,FromUser)
     with connect() as conn:
