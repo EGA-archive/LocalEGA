@@ -86,7 +86,10 @@ def forward(from_channel, from_queue, to_channel, to_exchange, to_routing, trans
 
     If there are no message in `from_queue`, the function blocks and waits for new messages.
 
-    When a message is received, it only sends it verbatim to the exchange with the given routing key.
+    The `transform` parameter accepts a function that takes a message body and returns another message.
+
+    When a message is received, it is passed to transform function and its result to the exchange with the given routing key.
+    If transform is None, the received message is sent verbatim to the exchange.
     '''
 
     assert to_channel and to_exchange and to_routing
