@@ -48,9 +48,11 @@ ${DOCKER_EXEC} rabbitmqctl set_permissions -p / guest ".*" ".*" ".*"
 ${DOCKER_EXEC} rabbitmqctl set_permissions -p test guest ".*" ".*" ".*"
 
 CRG_PARAMS='-i -u test:dNAf3r9245XS -H "content-type:application/json"'
-curl $CRG_PARAMS -X PUT -d '{"type":"topic","durable":true}' http://localhost:15672/api/exchanges/test/localega.v1
 curl $CRG_PARAMS -X PUT -d '{"durable":true}' http://localhost:15672/api/queues/test/sweden.v1.commands.file
 curl $CRG_PARAMS -X PUT -d '{"durable":true}' http://localhost:15672/api/queues/test/sweden.v1.commands.completed
+curl $CRG_PARAMS -X PUT -d '{"durable":true}' http://localhost:15672/api/queues/test/sweden.v1.commands.user
+curl $CRG_PARAMS -X PUT -d '{"type":"topic","durable":true}' http://localhost:15672/api/exchanges/test/localega.v1
 curl $CRG_PARAMS -X POST -d '{"routing_key":"sweden.file"}' http://localhost:15672/api/bindings/test/e/localega.v1/q/sweden.v1.commands.file
+curl $CRG_PARAMS -X POST -d '{"routing_key":"sweden.user"}' http://localhost:15672/api/bindings/test/e/localega.v1/q/sweden.v1.commands.user
 curl $CRG_PARAMS -X POST -d '{"routing_key":"sweden.file.completed"}' http://localhost:15672/api/bindings/test/e/localega.v1/q/sweden.v1.commands.completed
 

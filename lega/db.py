@@ -47,15 +47,6 @@ async def get_user_info(pool, user_id):
         await cur.execute(query, {'user_id': user_id})
         return await cur.fetchall()
 
-async def insert_user(pool, user_id, password, pubkey):
-    assert password or pubkey, 'We should specify either a password or a public key'
-    with (await pool.cursor()) as cur:
-        await cur.execute('SELECT insert_user('
-                          '%(elixir_id)s,%(password)s,%(pubkey)s'
-                          ');',{ 'elixir_id': user_id,
-                                 'password': password,
-                                 'pubkey': pubkey })
-
 ######################################
 ##         "Classic" code           ##
 ######################################
@@ -137,3 +128,12 @@ def get_details(file_id):
             cur.execute(query, { 'file_id': file_id})
             return cur.fetchone()
 
+def insert_user(user_id, password, pubkey):
+    assert password or pubkey, 'We should specify either a password or a public key'
+    with connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute('SELECT insert_user('
+                        '%(elixir_id)s,%(password)s,%(pubkey)s'
+                        ');',{ 'elixir_id': user_id,
+                               'password': password,
+                               'pubkey': pubkey })

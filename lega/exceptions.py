@@ -60,3 +60,6 @@ class AlreadyProcessed(Warning):
                 f'\t* submission id: {submission_id})\n'
                 f'\t* Encrypted checksum: {enc_checksum_hash} (algorithm: {enc_checksum_algorithm}')
 
+
+class InboxCreationError(Exception):
+    pass

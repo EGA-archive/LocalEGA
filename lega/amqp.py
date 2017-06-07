@@ -7,7 +7,7 @@ from .conf import CONF
 
 LOG = logging.getLogger('amqp')
 
-def get_connection(domain=None):
+def get_connection(domain=None, blocking=True):
     '''
     Returns a blocking connection to the Message Broker supporting AMQP(S).
     
@@ -46,8 +46,10 @@ def get_connection(domain=None):
 
     LOG.debug(params)
 
-    return pika.BlockingConnection( pika.ConnectionParameters(**params) )
-
+    if blocking:
+        return pika.BlockingConnection( pika.ConnectionParameters(**params) )
+    return pika.SelectConnection( pika.ConnectionParameters(**params) )
+    
 
 def consume(from_channel, work, from_queue, to_channel=None, to_exchange=None, to_routing=None):
     '''Blocking function, registering callback to be called, on each message from the queue `from_queue`
