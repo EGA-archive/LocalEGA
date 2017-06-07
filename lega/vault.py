@@ -29,13 +29,13 @@ import select
 from .conf import CONF
 from . import db
 from . import amqp as broker
+from .utils import check_error
 
 LOG = logging.getLogger('vault')
 
+@check_error
 def work(data):
     '''Procedure to handle a message'''
-
-    LOG.debug(data)
 
     file_id       = data['file_id']
     user_id       = data['user_id']
@@ -56,11 +56,7 @@ def work(data):
     db.finalize_file(file_id, starget, target.stat().st_size)
 
     # Send message to Archived queue
-    return {
-        'file_id': file_id,
-        'staging_folder': str(filepath.parent),
-        #'vault_name': starget,
-    }
+    return { 'file_id': file_id } # I could have the details in here. Fetching from DB instead.
 
 def main(args=None):
 

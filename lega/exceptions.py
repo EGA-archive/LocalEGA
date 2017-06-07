@@ -16,15 +16,15 @@ class NotFoundInInbox(FromUser):
         
 class GPGDecryption(FromUser):
     def __init__(self, retcode, filename):
-        self.filename = filename
         self.retcode = retcode
+        self.filename = filename
     def __str__(self):
         return f'Error {self.retcode}: Decrypting {self.filename} failed'
 
 class Checksum(FromUser):
     def __init__(self, algo, msg):
-        self.msg = msg
         self.algo = algo
+        self.msg = msg
     def __str__(self):
         return f'Invalid {self.algo} checksum {self.msg}'
 
@@ -36,9 +36,6 @@ class Unauthorized(FromUser):
 
 
 # Any other exception is caught by us
-class UnsupportedTask(Exception):
-    pass
-
 class MessageError(Exception):
     def __str__(self):
         return f'Error decoding the message from the queue'

@@ -28,6 +28,7 @@ CREATE TABLE files (
 	org_checksum TEXT,
 	org_checksum_algo hash_algo,
 	status       status,
+	staging_name TEXT,
 	stable_id    TEXT,
 	reenc_info   TEXT,
 	reenc_size   INTEGER,

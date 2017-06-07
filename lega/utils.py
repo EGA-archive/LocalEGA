@@ -9,6 +9,7 @@ import functools
 from aiohttp.web import HTTPUnauthorized
 
 from .conf import CONF
+from . import db
 
 #LOG = logging.getLogger('utils')
 
@@ -37,11 +38,25 @@ def only_central_ega(async_func):
         return (await res)
     return wrapper
 
-def get_inbox(userId):
-    return 
-
-def get_staging_area(seed, create=False):
-    '''Build the staging area'''
+def check_error(func):
+    '''Decorator to store the raised exception in the database'''
+    @functools.wraps(func)
+    def wrapper(data):
+        file_id = data['file_id'] # I should have it
+        try:
+            res = func(data)
+            # res.__name__ = getattr(func, '__name__', None)
+            # res.__qualname__ = getattr(func, '__qualname__', None)
+            return res
+        except Exception as e:
+            if isinstance(e,AssertionError):
+                raise e
+            db.set_error(file_id, e)
+            # frm = inspect.trace()[-1]
+            # mod = inspect.getmodule(frm[0])
+            # modname = mod.__name__ if mod else frm[1]
+            # print('Thrown from', modname)
+    return wrapper
 
 def get_data(data):
     try:

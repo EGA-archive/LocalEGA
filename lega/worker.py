@@ -30,20 +30,17 @@ import json
 from pathlib import Path
 import shutil
 import stat
+import uuid
 
 from .conf import CONF
 from . import crypto
 from . import amqp as broker
 from . import db
-from .utils import (
-    get_data as parse_data,
-    get_inbox,
-    get_staging_area,
-    checksum
-)
+from .utils import checksum, check_error
 
 LOG = logging.getLogger('worker')
 
+@check_error
 def work(data):
     '''Main ingestion function
 
@@ -56,90 +53,67 @@ def work(data):
     The hash algorithm we support are MD5 and SHA256, for the moment.
     '''
 
+    file_id = data['file_id']
     user_id = data['user_id']
 
     # Find inbox
     inbox = Path( CONF.get('worker','inbox',raw=True) % { 'user_id': user_id } )
     LOG.info(f"Inbox area: {inbox}")
 
-    # Create staging area for user
-    staging_area = Path( CONF.get('worker','staging',raw=True) % { 'user_id': user_id } )
-    LOG.info(f"Staging area: {staging_area}")
-    staging_area.mkdir(parents=True, exist_ok=True) # re-create
-
     filename = data['filename']
     LOG.info(f"Processing {filename}")
 
-    # Insert in database
-    file_id = db.insert_file(filename  = filename,
-                             enc_checksum  = data['encrypted_integrity'],
-                             org_checksum  = data['unencrypted_integrity'],
-                             user_id = user_id)
-        
-    LOG.debug(f'Created id {file_id} for {data["filename"]}')
-    assert file_id is not None, 'Ouch...database problem!'
-
+    # Check if file is in inbox
     inbox_filepath = inbox / filename
-    staging_filepath = staging_area / filename
-
     if not inbox_filepath.exists():
-        db.set_error(file_id, exceptions.NotFoundInInbox(filename))
-        return None # return early
-
-    # # Get permissions
-    # permissions = oct(inbox_filepath.stat().st_mode)[-3:]
+        raise exceptions.NotFoundInInbox(file_id, filename) # return early
 
     # Ok, we have the file in the inbox
-    try:
-
-        filehash = data['encrypted_integrity']['hash']
-        hash_algo = data['encrypted_integrity']['algorithm']
-
-        assert( isinstance(filehash,str) )
-        assert( isinstance(hash_algo,str) )
+    filehash = data['encrypted_integrity']['hash']
+    hash_algo = data['encrypted_integrity']['algorithm']
     
-        ################# Check integrity of encrypted file
-        LOG.debug(f"Verifying the {hash_algo} checksum of encrypted file: {inbox_filepath}")
-        with open(inbox_filepath, 'rb') as inbox_file: # Open the file in binary mode. No encoding dance.
-            if not checksum(inbox_file, filehash, hashAlgo = hash_algo):
-                errmsg = f"Invalid {hash_algo} checksum for {inbox_filepath}"
-                LOG.warning(errmsg)
-                raise exceptions.Checksum(hash_algo, f'for {inbox_filepath}')
-        LOG.debug(f'Valid {hash_algo} checksum for {inbox_filepath}')
+    assert( isinstance(filehash,str) )
+    assert( isinstance(hash_algo,str) )
+    
+    ################# Check integrity of encrypted file
+    LOG.debug(f"Verifying the {hash_algo} checksum of encrypted file: {inbox_filepath}")
+    with open(inbox_filepath, 'rb') as inbox_file: # Open the file in binary mode. No encoding dance.
+        if not checksum(inbox_file, filehash, hashAlgo = hash_algo):
+            errmsg = f"Invalid {hash_algo} checksum for {inbox_filepath}"
+            LOG.warning(errmsg)
+            raise exceptions.Checksum(file_id, hash_algo, f'for {inbox_filepath}')
+    LOG.debug(f'Valid {hash_algo} checksum for {inbox_filepath}')
 
-        # ################# Locking the file in the inbox
-        # LOG.debug(f'Locking the file {inbox_filepath}')
-        # inbox_filepath.chmod(stat.S_IRUSR) # 400: Remove write permissions
-
-        unencrypted_hash = data['unencrypted_integrity']['hash']
-        unencrypted_algo = data['unencrypted_integrity']['algorithm']
+    # Fetch staging area
+    staging_area = Path( CONF.get('worker','staging') )
+    LOG.info(f"Staging area: {staging_area}")
+    #staging_area.mkdir(parents=True, exist_ok=True) # re-create
         
-        LOG.debug(f'Starting the re-encryption\n\tfrom {inbox_filepath}\n\tto {staging_filepath}')
-        db.update_status(file_id, db.Status.In_Progress)
-        details = crypto.ingest( str(inbox_filepath),
-                                 unencrypted_hash,
-                                 hash_algo = unencrypted_algo,
-                                 target = staging_filepath)
-        db.set_encryption(file_id, details)
-        LOG.debug(f'Re-encryption completed')
-        reply = {
-            'file_id' : file_id,
-            'filepath': str(staging_filepath),
-            'target_name': f"{unencrypted_algo}__{unencrypted_hash}",
-            'user_id': user_id,
-        }
-        LOG.debug(f"Reply message: {reply!r}")
-        return reply
-
-    except Exception as e:
-        if isinstance(e,AssertionError):
-            raise e
-        errmsg = f'{e.__class__.__name__}: {e!s} | user id: {user_id}'
-        LOG.error(errmsg)
-        # # Restore permissions
-        # inbox_filepath.chmod(permissions)
-        db.set_error(file_id, e)
-
+    # Create a unique name for the staging area
+    #unique_name = str(uuid.uuid4())
+    unique_name = str(uuid.uuid5(uuid.NAMESPACE_OID, 'lega'))
+    LOG.debug(f'Created an unique filename in the staging area: {unique_name}')
+    staging_filepath = staging_area / unique_name
+    
+    unencrypted_hash = data['unencrypted_integrity']['hash']
+    unencrypted_algo = data['unencrypted_integrity']['algorithm']
+    
+    LOG.debug(f'Starting the re-encryption\n\tfrom {inbox_filepath}\n\tto {staging_filepath}')
+    db.set_progress(file_id, str(staging_filepath))
+    details = crypto.ingest( str(inbox_filepath),
+                             unencrypted_hash,
+                             hash_algo = unencrypted_algo,
+                             target = staging_filepath)
+    db.set_encryption(file_id, details)
+    LOG.debug(f'Re-encryption completed')
+    reply = {
+        'file_id' : file_id,
+        'filepath': str(staging_filepath),
+        'target_name': f"{unencrypted_algo}__{unencrypted_hash}",
+        'user_id': user_id,
+    }
+    LOG.debug(f"Reply message: {reply!r}")
+    return reply
 
 def main(args=None):
 

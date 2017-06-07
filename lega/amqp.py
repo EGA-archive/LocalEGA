@@ -81,12 +81,15 @@ def consume(from_channel, work, from_queue, to_channel=None, to_exchange=None, t
     from_channel.basic_consume(process_request, queue=from_queue)
     from_channel.start_consuming()
 
-def forward(from_channel, from_queue, to_channel, to_exchange, to_routing):
+def forward(from_channel, from_queue, to_channel, to_exchange, to_routing, transform=None):
     '''Blocking function, registering callback to be called, on each message from the queue `from_queue`
 
     If there are no message in `from_queue`, the function blocks and waits for new messages.
 
-    When a message is received, it only sends it verbatim to the exchange with the given routing key.
+    The `transform` parameter accepts a function that takes a message body and returns another message.
+
+    When a message is received, it is passed to transform function and its result to the exchange with the given routing key.
+    If transform is None, the received message is sent verbatim to the exchange.
     '''
 
     assert to_channel and to_exchange and to_routing
@@ -95,6 +98,9 @@ def forward(from_channel, from_queue, to_channel, to_exchange, to_routing):
         correlation_id = props.correlation_id
         message_id = method_frame.delivery_tag
         LOG.debug(f'Forwarding message {message_id} (Correlation ID: {correlation_id})')
+
+        if transform:
+            body = json.dumps(transform(json.loads(body)))
 
         # Forward the answer
         to_channel.basic_publish(exchange    = to_exchange,

@@ -4,9 +4,6 @@ root:
   handlers: [noHandler]
 
 loggers:
-  asyncio:
-    level: DEBUG
-    handlers: [console]
   connect:
     level: DEBUG
     handlers: [debugFile,console]
@@ -33,31 +30,34 @@ loggers:
     handlers: [debugFile,console]
   db:
     level: DEBUG
-    handlers: [debugFile]
+    handlers: [debugFile,console]
   crypto:
     level: DEBUG
     handlers: [debugFile,console]
+  asyncio:
+    level: DEBUG
+    handlers: [debugFile]
   aiopg:
     level: DEBUG
-    handlers: [console]
+    handlers: [debugFile]
   aiohttp.access:
     level: DEBUG
-    handlers: [console]
+    handlers: [debugFile]
   aiohttp.client:
     level: DEBUG
-    handlers: [console]
+    handlers: [debugFile]
   aiohttp.internal:
     level: DEBUG
-    handlers: [console]
+    handlers: [debugFile]
   aiohttp.server:
     level: DEBUG
-    handlers: [console]
+    handlers: [debugFile]
   aiohttp.web:
     level: DEBUG
-    handlers: [console]
+    handlers: [debugFile]
   aiohttp.websocket:
     level: DEBUG
-    handlers: [console]
+    handlers: [debugFile]
 
 
 handlers:
