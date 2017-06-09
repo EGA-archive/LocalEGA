@@ -33,6 +33,7 @@ import stat
 import uuid
 
 from .conf import CONF
+from . import exceptions
 from . import crypto
 from . import amqp as broker
 from . import db
@@ -66,7 +67,7 @@ def work(data):
     # Check if file is in inbox
     inbox_filepath = inbox / filename
     if not inbox_filepath.exists():
-        raise exceptions.NotFoundInInbox(file_id, filename) # return early
+        raise exceptions.NotFoundInInbox(filename) # return early
 
     # Ok, we have the file in the inbox
     filehash = data['encrypted_integrity']['hash']
@@ -77,11 +78,9 @@ def work(data):
     
     ################# Check integrity of encrypted file
     LOG.debug(f"Verifying the {hash_algo} checksum of encrypted file: {inbox_filepath}")
-    with open(inbox_filepath, 'rb') as inbox_file: # Open the file in binary mode. No encoding dance.
-        if not checksum(inbox_file, filehash, hashAlgo = hash_algo):
-            errmsg = f"Invalid {hash_algo} checksum for {inbox_filepath}"
-            LOG.warning(errmsg)
-            raise exceptions.Checksum(file_id, hash_algo, f'for {inbox_filepath}')
+    if not checksum(inbox_filepath, filehash, hashAlgo = hash_algo):
+        LOG.warning(f"Invalid {hash_algo} checksum for {inbox_filepath}")
+        raise exceptions.Checksum(hash_algo, f'for {inbox_filepath}')
     LOG.debug(f'Valid {hash_algo} checksum for {inbox_filepath}')
 
     # Fetch staging area
@@ -100,11 +99,11 @@ def work(data):
     
     LOG.debug(f'Starting the re-encryption\n\tfrom {inbox_filepath}\n\tto {staging_filepath}')
     db.set_progress(file_id, str(staging_filepath))
-    details = crypto.ingest( str(inbox_filepath),
-                             unencrypted_hash,
-                             hash_algo = unencrypted_algo,
-                             target = staging_filepath)
-    db.set_encryption(file_id, details)
+    details, staging_checksum = crypto.ingest( str(inbox_filepath),
+                                               unencrypted_hash,
+                                               hash_algo = unencrypted_algo,
+                                               target = staging_filepath)
+    db.set_encryption(file_id, details, staging_checksum)
     LOG.debug(f'Re-encryption completed')
     reply = {
         'file_id' : file_id,
