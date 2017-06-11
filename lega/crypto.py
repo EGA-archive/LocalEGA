@@ -53,8 +53,8 @@ def make_header(key_nr, enc_key_size, nonce_size, aes_mode):
     The key number points to a particular section of the configuration files, 
     holding the information about that key
     '''
-    header = f'{key_nr}|{enc_key_size}|{nonce_size}|{aes_mode}'
-    return header
+    header = f'{key_nr}|{enc_key_size}|{nonce_size}|{aes_mode}\n'
+    return header.encode('utf-8')
 
 def from_header(h):
     '''Convert the given line into differents values, doing the opposite job as `make_header`'''
@@ -113,32 +113,32 @@ class ReEncryptor(asyncio.SubprocessProtocol):
     def __init__(self, hashAlgo, target_h, done):
         self.done = done
         self.errbuf = bytearray()
-        engine = encrypt_engine()
+        self.engine = encrypt_engine()
         self.target_handler = target_h
-        self.target_digest = hashlib.sha256()
 
+        LOG.info(f'Setup {hashAlgo} digest')
         try:
-            h = HASH_ALGORITHMS.get(hashAlgo)
+            self.digest = (HASH_ALGORITHMS[hashAlgo])()
         except KeyError:
-            raise ValueError('No support for the secure hashing algorithm')
-        else:
-            self.digest = h()
+            raise ValueError(f'No support for the secure hashing algorithm: {hashAlgo}')
 
-        encryption_key, mode, nonce = next(engine)
+        LOG.info(f'Starting the encrypting engine')
+        encryption_key, mode, nonce = next(self.engine)
+
         self.header = make_header(CONF.getint('worker','active_key'), len(encryption_key), len(nonce), mode)
-        LOG.info(f'Writing header to file: {self.header}')
-        header = self.header.encode('utf-8')
-        self.target_handler.write(header)
-        self.target_digest.update(header)
-        self.target_handler.write(b'\n')
-        self.target_digest.update(b'\n')
-        LOG.debug('Writing key to file')
+        # includes \n
+    
+        LOG.info(f'Writing header to file: {self.header[:-1]} (and enc key + nonce)')
+        self.target_handler.write(self.header)
         self.target_handler.write(encryption_key)
-        self.target_digest.update(encryption_key)
-        LOG.debug('Writing nonce to file')
         self.target_handler.write(nonce)
+
+        LOG.info('Setup target digest')
+        self.target_digest = hashlib.sha256()
+        self.target_digest.update(self.header)
+        self.target_digest.update(encryption_key)
         self.target_digest.update(nonce)
-        self.engine = engine
+
         # And now, daddy...
         super().__init__()
 
@@ -187,12 +187,12 @@ def ingest(enc_file,
               f'hash_algo = {hash_algo}\n'
               f'target    = {target}')
 
-    code = [ CONF.get('worker','gpg_exec'),
+    cmd = [ CONF.get('worker','gpg_exec'),
              '--homedir', CONF.get('worker','gpg_home'),
              '--decrypt', enc_file
     ]
 
-    LOG.debug('Prepare Decryption with {}'.format(' '.join(code)))
+    LOG.debug('Prepare Decryption with {}'.format(' '.join(cmd)))
 
     _err = None
 
@@ -203,7 +203,7 @@ def ingest(enc_file,
         reencrypt_protocol = ReEncryptor(hash_algo, target_h, done)
 
         async def _re_encrypt():
-            gpg_job = loop.subprocess_exec(lambda: reencrypt_protocol, *code,
+            gpg_job = loop.subprocess_exec(lambda: reencrypt_protocol, *cmd,
                                            stdin=None,
                                            stdout=asyncio.subprocess.PIPE,
                                            stderr=asyncio.subprocess.PIPE #stderr=asyncio.subprocess.DEVNULL # suppressing progress messages

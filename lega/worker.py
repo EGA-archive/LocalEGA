@@ -79,7 +79,7 @@ def work(data):
     ################# Check integrity of encrypted file
     LOG.debug(f"Verifying the {hash_algo} checksum of encrypted file: {inbox_filepath}")
     if not checksum(inbox_filepath, filehash, hashAlgo = hash_algo):
-        LOG.warning(f"Invalid {hash_algo} checksum for {inbox_filepath}")
+        LOG.error(f"Invalid {hash_algo} checksum for {inbox_filepath}")
         raise exceptions.Checksum(hash_algo, f'for {inbox_filepath}')
     LOG.debug(f'Valid {hash_algo} checksum for {inbox_filepath}')
 

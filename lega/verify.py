@@ -33,8 +33,6 @@ def work(data):
     file_id = data['file_id']
     filename, org_hash, org_hash_algo, vault_filename, vault_checksum = db.get_details(file_id)
 
-    #crypto.decrypt_from_vault( vault_filename, org_hash, org_hash_algo )
-    # raise exception if fail
     if not checksum(vault_filename, vault_checksum, hashAlgo='sha256'):
         raise VaultDecryption(vault_filename)
 
