@@ -1,4 +1,4 @@
-# Local EGA implementation _using Python_
+# Local EGA implementation
 
 This repo contains python code to start a _Local EGA_.
 
