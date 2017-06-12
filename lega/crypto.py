@@ -53,8 +53,8 @@ def make_header(key_nr, enc_key_size, nonce_size, aes_mode):
     The key number points to a particular section of the configuration files, 
     holding the information about that key
     '''
-    header = f'{key_nr}|{enc_key_size}|{nonce_size}|{aes_mode}'
-    return header
+    header = f'{key_nr}|{enc_key_size}|{nonce_size}|{aes_mode}\n'
+    return header.encode('utf-8')
 
 def from_header(h):
     '''Convert the given line into differents values, doing the opposite job as `make_header`'''
@@ -112,26 +112,38 @@ class ReEncryptor(asyncio.SubprocessProtocol):
 
     def __init__(self, hashAlgo, target_h, done):
         self.done = done
-        engine = encrypt_engine()
+        self.errbuf = bytearray()
+        self.engine = encrypt_engine()
         self.target_handler = target_h
 
+        LOG.info(f'Setup {hashAlgo} digest')
         try:
-            h = HASH_ALGORITHMS.get(hashAlgo)
+            self.digest = (HASH_ALGORITHMS[hashAlgo])()
         except KeyError:
-            raise ValueError('No support for the secure hashing algorithm')
-        else:
-            self.digest = h()
+            raise ValueError(f'No support for the secure hashing algorithm: {hashAlgo}')
 
-        encryption_key, mode, nonce = next(engine)
+        LOG.info(f'Starting the encrypting engine')
+        encryption_key, mode, nonce = next(self.engine)
+
         self.header = make_header(CONF.getint('worker','active_key'), len(encryption_key), len(nonce), mode)
-        LOG.info(f'Writing header to file: {self.header}')
-        self.target_handler.write(self.header.encode('utf-8')) # includes \n
-        self.target_handler.write(b'\n')
-        LOG.debug('Writing key to file')
+    
+        LOG.info(f'Writing header to file: {self.header[:-1]} (and enc key + nonce)')
+        self.target_handler.write(self.header)
         self.target_handler.write(encryption_key)
-        LOG.debug('Writing nonce to file')
         self.target_handler.write(nonce)
-        self.engine = engine
+
+        LOG.info('Setup target digest')
+        self.target_digest = hashlib.sha256()
+        self.target_digest.update(self.header)
+        self.target_digest.update(encryption_key)
+        self.target_digest.update(nonce)
+
+        # And now, daddy...
+        super().__init__()
+
+    def connection_made(self, transport):
+        LOG.debug('Process started (PID: {})'.format(transport.get_pid()))
+        self.transport = transport
 
     def pipe_data_received(self, fd, data):
         # Data is of size: 32768 bytes
@@ -139,26 +151,28 @@ class ReEncryptor(asyncio.SubprocessProtocol):
             return
         if fd == 1:
             self._process_chunk(data)
-        else:
-            LOG.debug(f'ignoring data on fd {fd}: {data}')
+        else: # If stderr (It should not be stdin)
+            self.errbuf.extend(data) # f'Data on fd {fd}: {data}'
 
     def process_exited(self):
         # LOG.info('Closing the encryption engine')
         # self.engine.send(None) # closing it
-        self.done.set_result(self.digest.hexdigest())
+        retcode = self.transport.get_returncode()
+        stderr = self.errbuf.decode() if retcode else ''
+        self.done.set_result( (retcode, stderr, self.digest.hexdigest()) ) # a tuple as one argument
 
     def _process_chunk(self,data):
         LOG.debug('processing {} bytes of data'.format(len(data)))
         self.digest.update(data)
         cipherchunk = self.engine.send(data)
         self.target_handler.write(cipherchunk)
+        self.target_digest.update(cipherchunk)
 
 
 def ingest(enc_file,
            org_hash,
            hash_algo,
-           target
-):
+           target):
     '''Decrypts a gpg-encoded file and verifies the integrity of its content.
        Finally, it re-encrypts it chunk-by-chunk'''
 
@@ -172,12 +186,12 @@ def ingest(enc_file,
               f'hash_algo = {hash_algo}\n'
               f'target    = {target}')
 
-    code = [ CONF.get('worker','gpg_exec'),
+    cmd = [ CONF.get('worker','gpg_exec'),
              '--homedir', CONF.get('worker','gpg_home'),
              '--decrypt', enc_file
     ]
 
-    LOG.debug(f'Prepare Decryption with {code}')
+    LOG.debug('Prepare Decryption with {}'.format(' '.join(cmd)))
 
     _err = None
 
@@ -188,27 +202,27 @@ def ingest(enc_file,
         reencrypt_protocol = ReEncryptor(hash_algo, target_h, done)
 
         async def _re_encrypt():
-            gpg_job = loop.subprocess_exec(lambda: reencrypt_protocol, *code,
+            gpg_job = loop.subprocess_exec(lambda: reencrypt_protocol, *cmd,
                                            stdin=None,
                                            stdout=asyncio.subprocess.PIPE,
-                                           stderr=asyncio.subprocess.DEVNULL # suppressing progress messages
+                                           stderr=asyncio.subprocess.PIPE #stderr=asyncio.subprocess.DEVNULL # suppressing progress messages
             )
             transport, _ = await gpg_job
             await done
-            gpg_retcode = transport.get_returncode()
             transport.close()
-            return (gpg_retcode, done.result())
+            return done.result()
 
-        gpg_result, calculated_digest = loop.run_until_complete(_re_encrypt())
+        gpg_result, gpg_error, calculated_digest = loop.run_until_complete(_re_encrypt())
 
         LOG.debug(f'Calculated digest: {calculated_digest}')
         LOG.debug(f'Compared to digest: {org_hash}')
         correct_digest = (calculated_digest == org_hash)
         
         if gpg_result != 0: # Swapped order on purpose
+            LOG.error(f'GPG Error {gpg_result}:\n{gpg_error}')
             _err = exceptions.GPGDecryption(gpg_result, enc_file)
             LOG.error(str(_err))
-        if not correct_digest:
+        if not correct_digest and not _err:
             _err = exceptions.Checksum(hash_algo,f'for decrypted content of {enc_file}')
             LOG.error(str(_err))
 
@@ -219,7 +233,7 @@ def ingest(enc_file,
     else:
         LOG.info(f'File encrypted')
         assert Path(target).exists()
-        return reencrypt_protocol.header
+        return (reencrypt_protocol.header, reencrypt_protocol.target_digest.hexdigest())
 
 def chunker(stream, chunk_size=None):
     """Lazy function (generator) to read a stream one chunk at a time."""

@@ -20,20 +20,21 @@ CREATE TABLE users (
 );
 
 CREATE TABLE files (
-        id           SERIAL, PRIMARY KEY(id), UNIQUE (id),
-	user_id      TEXT REFERENCES users (id) ON DELETE CASCADE,
-	filename     TEXT NOT NULL,
-	enc_checksum TEXT,
+        id             SERIAL, PRIMARY KEY(id), UNIQUE (id),
+	user_id        TEXT REFERENCES users (id) ON DELETE CASCADE,
+	filename       TEXT NOT NULL,
+	enc_checksum   TEXT,
 	enc_checksum_algo hash_algo,
-	org_checksum TEXT,
+	org_checksum   TEXT,
 	org_checksum_algo hash_algo,
-	status       status,
-	staging_name TEXT,
-	stable_id    TEXT,
-	reenc_info   TEXT,
-	reenc_size   INTEGER,
-	created_at   TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT clock_timestamp(),
-	last_modified TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT clock_timestamp()
+	status         status,
+	staging_name   TEXT,
+	stable_id      TEXT,
+	reenc_info     TEXT,
+	reenc_size     INTEGER,
+	reenc_checksum TEXT, -- sha256
+	created_at     TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT clock_timestamp(),
+	last_modified  TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT clock_timestamp()
 );
 
 CREATE TABLE errors (

@@ -19,6 +19,12 @@ loggers:
   verify:
     level: DEBUG
     handlers: [debugFile,console]
+  inbox:
+    level: DEBUG
+    handlers: [debugFile,console]
+  utils:
+    level: WARNING
+    handlers: [debugFile,console]
   sys-monitor:
     level: DEBUG
     handlers: [debugFile,console]
@@ -26,7 +32,7 @@ loggers:
     level: DEBUG
     handlers: [debugFile,console]
   amqp:
-    level: DEBUG
+    level: WARNING
     handlers: [debugFile,console]
   db:
     level: DEBUG
@@ -35,28 +41,28 @@ loggers:
     level: DEBUG
     handlers: [debugFile,console]
   asyncio:
-    level: DEBUG
+    level: WARNING
     handlers: [debugFile]
   aiopg:
-    level: DEBUG
+    level: WARNING
     handlers: [debugFile]
   aiohttp.access:
-    level: DEBUG
+    level: WARNING
     handlers: [debugFile]
   aiohttp.client:
-    level: DEBUG
+    level: WARNING
     handlers: [debugFile]
   aiohttp.internal:
-    level: DEBUG
+    level: WARNING
     handlers: [debugFile]
   aiohttp.server:
-    level: DEBUG
+    level: WARNING
     handlers: [debugFile]
   aiohttp.web:
-    level: DEBUG
+    level: WARNING
     handlers: [debugFile]
   aiohttp.websocket:
-    level: DEBUG
+    level: WARNING
     handlers: [debugFile]
 
 

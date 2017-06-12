@@ -19,6 +19,9 @@ loggers:
   verify:
     level: INFO
     handlers: [mainFile]
+  inbox:
+    level: INFO
+    handlers: [mainFile]
   sys-monitor:
     level: INFO
     handlers: [mainFile]

@@ -1,5 +1,5 @@
 import json
-#import logging
+import logging
 from pathlib import Path
 import shutil
 #import msgpack
@@ -10,8 +10,9 @@ from aiohttp.web import HTTPUnauthorized
 
 from .conf import CONF
 from . import db
+from .crypto import HASH_ALGORITHMS
 
-#LOG = logging.getLogger('utils')
+LOG = logging.getLogger('utils')
 
 def cache_var(v):
     '''Decorator to cache into a global variable'''
@@ -66,27 +67,28 @@ def get_data(data):
         return None
     #return json.loads(msgpack.unpackb(data))
 
-def checksum(data, digest, hashAlgo = 'md5', block_size=8192):
+def raw_checksum(f, d, h, bsize=8192):
+    m = h()
+    while True:
+        data = f.read(bsize)
+        if not data:
+            break
+        m.update(data)
+    res = (m.hexdigest() == d)
+    LOG.debug('Calculated digest: '+m.hexdigest())
+    LOG.debug('  Original digest: '+d)
+    return res
+
+def checksum(filepath, digest, hashAlgo = 'md5', block_size=8192):
     '''Verify the integrity of a bytes-like object against a hash value'''
 
     assert( isinstance(digest,str) )
 
     try:
-        import hashlib
-        from .crypto import HASH_ALGORITHMS
         h = HASH_ALGORITHMS.get(hashAlgo)
     except KeyError:
         raise Exception('No support for the secure hashing algorithm')
 
-    m = h()
-    while True:
-        d = data.read(block_size)
-        if not d:
-            break
-        m.update(d)
+    with open(filepath, 'rb') as f: # Open the file in binary mode. No encoding dance.
+        return raw_checksum(f, digest, h, bsize=block_size)
 
-    res = m.hexdigest() == digest
-    # LOG.debug(' Calculated digest: ' + m.hexdigest())
-    # LOG.debug('Compared to digest: ' + digest)
-    # LOG.debug('\tMatching: ' + str(res))
-    return res

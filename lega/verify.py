@@ -22,7 +22,7 @@ from .conf import CONF
 from . import crypto
 from . import amqp as broker
 from . import db
-from .utils import check_error
+from .utils import check_error, checksum
 
 LOG = logging.getLogger('verify')
 
@@ -31,10 +31,10 @@ def work(data):
     '''Verifying that the file in the vault does decrypt properly'''
 
     file_id = data['file_id']
-    filename, org_hash, org_hash_algo, vault_filename = db.get_details(file_id)
+    filename, org_hash, org_hash_algo, vault_filename, vault_checksum = db.get_details(file_id)
 
-    crypto.decrypt_from_vault( vault_filename, org_hash, org_hash_algo )
-    # raise exception if fail
+    if not checksum(vault_filename, vault_checksum, hashAlgo='sha256'):
+        raise VaultDecryption(vault_filename)
 
     return { 'vault_name': vault_filename, 'org_name': filename }
     
