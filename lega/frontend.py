@@ -122,12 +122,11 @@ def main(args=None):
 
     # Where the templates are
 
-    template_folder = CONF.get('ingestion','templates',fallback=None) # lazy fallback
+    template_folder = CONF.get('frontend','templates',fallback=None) # lazy fallback
     if not template_folder:
-        template_folder = str(Path(__file__).parent / 'templates')
+        template_folder = Path(__file__).parent / 'templates'
     LOG.debug(f'Template folder: {template_folder}')
-    template_loader = jinja2.FileSystemLoader(template_folder)
-
+    template_loader = jinja2.FileSystemLoader(str(template_folder)) # let it crash if folder non existing
     aiohttp_jinja2.setup(server, loader=template_loader)
 
     # Registering the routes
