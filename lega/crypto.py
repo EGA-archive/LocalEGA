@@ -126,7 +126,6 @@ class ReEncryptor(asyncio.SubprocessProtocol):
         encryption_key, mode, nonce = next(self.engine)
 
         self.header = make_header(CONF.getint('worker','active_key'), len(encryption_key), len(nonce), mode)
-        # includes \n
     
         LOG.info(f'Writing header to file: {self.header[:-1]} (and enc key + nonce)')
         self.target_handler.write(self.header)
