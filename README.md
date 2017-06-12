@@ -2,6 +2,8 @@
 
 This repo contains python code to start a _Local EGA_.
 
+Python 3.6+ is required. The code has been tested against 3.6.1.
+
 LocalEGA comprises several components: worker(s), vault-listener, verification-step, connectors to CentralEGA, error-monitors, an sftp-inbox and a frontend.
 
 You can install LocalEGA as follows:
