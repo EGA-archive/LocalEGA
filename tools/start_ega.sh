@@ -15,7 +15,6 @@ function cleanup {
 trap 'cleanup' INT TERM
 
 # NOTE: the ega-inbox, ega-db and ega-mq containers must be already started
-# moreover, for the ega-inbox, we need to run the ega-inbox code
 
 echo "Starting EGA in $EGA"
 pushd $EGA >/dev/null
@@ -24,6 +23,7 @@ pushd $EGA >/dev/null
 ega-connect --from-domain cega.broker --from-queue queue --to-domain local.broker --to-exchange exchange --to-routing-key routing_todo --transform set_file_id &
 ega-connect --from-domain local.broker --from-queue verified_queue --to-domain cega.broker --to-exchange exchange --to-routing-key routing_to &
 ega-connect --from-domain cega.broker --from-queue users_queue --to-domain local.broker --to-exchange exchange --to-routing-key routing_user --transform set_user_id &
+ega-connect --from-domain local.broker --from-queue account_queue --to-domain cega.broker --to-exchange exchange --to-routing-key users_routing_to &
 # Start the frontend
 ega-frontend &
 # Start the inbox listener (for user account creation)
@@ -40,6 +40,9 @@ source $EGA/private/gpg/agent.env && ega-worker &
 # Start the monitors
 # ega-monitor --sys &
 # ega-monitor --user &
+
+# Run the inbox creation service
+docker exec -i ega-inbox ega-inbox &
 
 popd >/dev/null
 sleep 3

@@ -10,13 +10,27 @@ CREATE TYPE hash_algo AS ENUM ('md5', 'sha256');
 
 CREATE EXTENSION pgcrypto;
 
+
+-- ##################################################
+--                        USERS
+-- ##################################################
+CREATE SEQUENCE IF NOT EXISTS users_id_seq INCREMENT 1 MINVALUE 1000 NO MAXVALUE START 1000 NO CYCLE;
+
 CREATE TABLE users (
-	id            TEXT NOT NULL PRIMARY KEY UNIQUE,
+        id            INTEGER NOT NULL DEFAULT nextval('users_id_seq'::regclass), PRIMARY KEY(id), UNIQUE (id),
+	elixir_id     TEXT NOT NULL UNIQUE,
 	password_hash TEXT,
 	pubkey        TEXT,
+	seckey        TEXT,
 	created_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT clock_timestamp(),
-	last_modified TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT clock_timestamp(),
-	CHECK (password_hash IS NOT NULL OR pubkey IS NOT NULL)
+	last_modified TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT clock_timestamp()
+);
+
+CREATE TABLE user_errors (
+        id            SERIAL, PRIMARY KEY(id), UNIQUE (id),
+	user_id       INTEGER REFERENCES users (id) ON DELETE CASCADE,
+	msg           TEXT NOT NULL,
+	occured_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT clock_timestamp()
 );
 
 CREATE FUNCTION insert_user(elixir_id  users.elixir_id%TYPE)
@@ -62,7 +76,7 @@ $set_user_error$ LANGUAGE plpgsql;
 -- ##################################################
 CREATE TABLE files (
         id             SERIAL, PRIMARY KEY(id), UNIQUE (id),
-	user_id        TEXT REFERENCES users (id) ON DELETE CASCADE,
+	user_id        INTEGER REFERENCES users (id) ON DELETE CASCADE,
 	filename       TEXT NOT NULL,
 	enc_checksum   TEXT,
 	enc_checksum_algo hash_algo,
@@ -86,7 +100,6 @@ CREATE TABLE errors (
 	occured_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT clock_timestamp()
 );
 
-
 -- The reencryption field is used to store how the original unencrypted file was re-encrypted.
 -- We gpg-decrypt the encrypted file and pipe the output to the re-encryptor.
 -- The key size, the algorithm and the selected master key is recorded in the re-encrypted file (first line)
@@ -103,6 +116,7 @@ CREATE FUNCTION insert_error(file_id    errors.file_id%TYPE,
        UPDATE files SET status = 'Error' WHERE id = file_id;
     END;
 $set_error$ LANGUAGE plpgsql;
+
 
 -- For a file
 CREATE FUNCTION insert_file(filename          files.filename%TYPE,
@@ -124,35 +138,3 @@ CREATE FUNCTION insert_file(filename          files.filename%TYPE,
     END;
 $insert_file$ LANGUAGE plpgsql;
 
--- For users
-CREATE FUNCTION insert_user(user_id    users.id%TYPE,
-       		    	    password   users.password_hash%TYPE,
-       		    	    public_key users.pubkey%TYPE)
-    RETURNS void AS $insert_user$
-    #variable_conflict use_column
-    DECLARE
-        salt TEXT;
-        pw TEXT;
-    BEGIN
-    	pw := NULL;
-        IF password != '' THEN
-		SELECT gen_salt('bf', 8) INTO salt;
-		SELECT crypt(password, salt) INTO pw;
-	END IF;
-	INSERT INTO users (id, password_hash, pubkey) VALUES(user_id, pw, public_key)
-	ON CONFLICT (id) DO UPDATE SET password_hash = pw, pubkey = public_key, last_modified = DEFAULT;
-	RETURN;
-    END;
-$insert_user$ LANGUAGE plpgsql;
-
--- CREATE FUNCTION get_user_by_password(password TEXT)
---     RETURNS users.id%TYPE AS $get_user$
---     DECLARE
---         res TABLE(users.id);
---     BEGIN
--- 	SELECT users.id INTO res FROM users WHERE password_hash = crypt(password,password_hash);
--- 	RETURN res;
---     END;
--- $get_user$ LANGUAGE plpgsql;
-
--- CREATE UNIQUE INDEX user_idx ON users(elixir_id);

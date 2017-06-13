@@ -146,7 +146,7 @@ class ReEncryptor(asyncio.SubprocessProtocol):
         self.transport = transport
 
     def pipe_data_received(self, fd, data):
-        # Data is of size: 32768 bytes
+        # Data is of size: 32768 or 65536 bytes 
         if not data:
             return
         if fd == 1:
@@ -314,3 +314,10 @@ def decrypt_from_vault( vault_filename,
             LOG.debug(f'Valid digest')
 
 
+# If that code is in a docker container, there is not much entropy
+# so I don't know how good the key generation is
+def generate_key(size):
+    key = RSA.generate(size)
+    seckey = key.exportKey('PEM').decode()
+    pubkey = key.publickey().exportKey('OpenSSH').decode()
+    return (pubkey,seckey)

@@ -39,6 +39,18 @@ def set_file_id(data):
     data['file_id'] = file_id
     return data
 
+def set_user_id(data):
+    '''Adding the user into the database
+    and updating the return user id into the message'''
+
+    elixir_id = data['elixir_id']
+    # Insert in database
+    user_id = db.insert_user(elixir_id)
+    assert user_id is not None, 'Ouch...database problem!'
+    LOG.debug(f'Created id {user_id} for user {elixir_id}')
+    data['user_id'] = user_id
+    return data
+
 def main():
 
     CONF.setup(sys.argv[1:]) # re-conf

@@ -1,8 +1,6 @@
 import json
 import logging
 from pathlib import Path
-import shutil
-#import msgpack
 from base64 import b64encode, b64decode
 from functools import wraps
 import secrets
@@ -69,6 +67,26 @@ def catch_user_error(func):
             db.set_user_error(user_id, e)
     return wrapper
 
+def catch_user_error(func):
+    '''Decorator to store the raised exception in the database'''
+    @functools.wraps(func)
+    def wrapper(data):
+        user_id = data['user_id'] # I should have it
+        try:
+            res = func(data)
+            # res.__name__ = getattr(func, '__name__', None)
+            # res.__qualname__ = getattr(func, '__qualname__', None)
+            return res
+        except Exception as e:
+            if isinstance(e,AssertionError):
+                raise e
+            db.set_user_error(user_id, e)
+            # frm = inspect.trace()[-1]
+            # mod = inspect.getmodule(frm[0])
+            # modname = mod.__name__ if mod else frm[1]
+            # print('Thrown from', modname)
+    return wrapper
+
 def get_data(data):
     try:
         return json.loads(b64decode(data))
@@ -102,3 +120,6 @@ def checksum(filepath, digest, hashAlgo = 'md5', block_size=8192):
     with open(filepath, 'rb') as f: # Open the file in binary mode. No encoding dance.
         return raw_checksum(f, digest, h, bsize=block_size)
 
+alphabet = string.ascii_letters + string.digits
+def generate_password(length):
+    return ''.join(secrets.choice(alphabet) for i in range(length))

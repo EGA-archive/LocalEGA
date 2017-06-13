@@ -18,62 +18,58 @@ import os
 import logging
 import subprocess
 from pathlib import Path
-import stat
-import pwd
 
 from .conf import CONF
 from . import exceptions
 from . import amqp as broker
 from . import db
+from .utils import catch_user_error, generate_password
+from .crypto import generate_key
 
 LOG = logging.getLogger('inbox')
 
+
+@catch_user_error
 def work(data):
     '''Creates a user account, given the details from `data`.
     '''
 
-    user = data.get('elixir_id',None)
-    password = data.get('password', None)
-    pubkey = data.get('pubkey', None)
-    assert user, "We need an elixir-id"
-    assert (password or pubkey), "We need either a password or a public key"
+    user_id = data['user_id']
+    elixir_id = data['elixir_id']
 
-    # Temporary there until we have a deployment strategy
-    if CONF.getboolean('inbox','test'):
-        return
+    LOG.info(f'Handling account creation for user {elixir_id}')
 
-    user_home = Path( CONF.get('inbox','user_home',raw=True) % { 'user': user } )
-    
-    # first create user_dir and do nothing if it exists already
-    try:
-        user_home.mkdir(mode=0o700)
-    except OSError as e:
-        user_home.chmod(mode=stat.S_IRWXU) # rwx------ 700
+    user_home = Path( CONF.get('inbox','user_home',raw=True) % { 'user_id': user_id } )
 
-    # home dir need to be owned by root for chroot to work
-    os.chown(str(user_home), 0, 0) # owned by root
+    # Create user (might raise exception)
+    cmd = CONF.get('inbox','create_account',raw=True) # should we sanitize first?
+    subprocess.run(cmd.format(home=user_home,comment=elixir_id,user_id=user_id),
+                   shell=True,
+                   check=True,
+                   stderr = subprocess.DEVNULL)
 
-    try:
-        cmd = CONF.get('inbox','cmd',raw=True) # should we sanitize first?
-        subprocess.run(cmd.format(home=user_home,comment=user,user=user), shell=True, check=True)
-    except (subprocess.CalledProcessError, KeyError) as e:
-        raise exceptions.InboxCreationError(f'Inbox creation failed for {user}: {e}')
-    
-    # set password
-    if password:
-        os.system(f'echo "{user}:{password}" | chpasswd -e') # should definitely sanitize!
-    else:
-        os.system(f'usermod -p "*" {user}') # disable password
+    # Generate pub/priv key
+    pubkey, seckey = generate_key(2048)
 
-    # a sub-directory of user home - since the chrooted user home
-    # need to be owned by root and not have user write access
-    try:
-        inbox = str(user_home / 'inbox')
-        uid = pwd.getpwnam(user).pw_uid
-        os.chown(inbox, uid, -1)
-    except OSError as e:
-        raise exceptions.InboxCreationError(f'Inbox creation failed for {user}: {e}')
+    with open(f'{user_home}/.ssh/authorized_keys', 'a') as ssh_keys:
+        ssh_keys.write(pubkey)
+        ssh_keys.write('\n')
 
+    # Generate password
+    password = generate_password(10)
+    os.system(f'echo "{user_id}:{password}" | chpasswd -e')
+
+    # Update database
+    db.update_user(user_id, password, pubkey, seckey)
+
+    LOG.info(f'Account created for user {elixir_id}')
+    return {
+        'user_id': user_id,
+        'elixir_id': elixir_id,
+        'pubkey' : pubkey,
+        'seckey': seckey,
+        'password': password,
+    }
 
 def main(args=None):
 
@@ -91,7 +87,10 @@ def main(args=None):
     try:
         broker.consume(channel,
                        work,
-                       from_queue  = CONF.get('local.broker','users_queue'))
+                       from_queue  = CONF.get('local.broker','users_queue'),
+                       to_channel  = channel,
+                       to_exchange = CONF.get('local.broker','exchange'),
+                       to_routing  = CONF.get('local.broker','routing_account'))
     except KeyboardInterrupt:
         channel.stop_consuming()
     finally:
