@@ -45,12 +45,12 @@ handlers:
   mainFile:
     class: logging.FileHandler
     formatter: lega
-    filename: 'ega-main.log'
+    filename: '/tmp/ega-main.log'
     mode: 'w'
   warningFile:
     class: logging.FileHandler
     formatter: lega
-    filename: 'ega-main-warning.log'
+    filename: '/tmp/ega-main-warning.log'
     mode: 'w'
 
 formatters:
