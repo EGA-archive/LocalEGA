@@ -4,7 +4,9 @@ from pathlib import Path
 import shutil
 #import msgpack
 from base64 import b64encode, b64decode
-import functools
+from functools import wraps
+import secrets
+import string
 
 from aiohttp.web import HTTPUnauthorized
 
@@ -27,7 +29,7 @@ def cache_var(v):
 
 def only_central_ega(async_func):
     '''Decorator restrain endpoint access to only Central EGA'''
-    @functools.wraps(async_func)
+    @wraps(async_func)
     async def wrapper(request):
         # Just an example
         if request.headers.get('X-CentralEGA', 'no') != 'yes':
@@ -41,22 +43,30 @@ def only_central_ega(async_func):
 
 def check_error(func):
     '''Decorator to store the raised exception in the database'''
-    @functools.wraps(func)
+    @wraps(func)
     def wrapper(data):
         file_id = data['file_id'] # I should have it
         try:
             res = func(data)
-            # res.__name__ = getattr(func, '__name__', None)
-            # res.__qualname__ = getattr(func, '__qualname__', None)
             return res
         except Exception as e:
             if isinstance(e,AssertionError):
                 raise e
             db.set_error(file_id, e)
-            # frm = inspect.trace()[-1]
-            # mod = inspect.getmodule(frm[0])
-            # modname = mod.__name__ if mod else frm[1]
-            # print('Thrown from', modname)
+    return wrapper
+
+def catch_user_error(func):
+    '''Decorator to store the raised exception in the database'''
+    @wraps(func)
+    def wrapper(data):
+        user_id = data['user_id'] # I should have it
+        try:
+            res = func(data)
+            return res
+        except Exception as e:
+            if isinstance(e,AssertionError):
+                raise e
+            db.set_user_error(user_id, e)
     return wrapper
 
 def get_data(data):

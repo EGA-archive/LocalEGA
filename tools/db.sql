@@ -19,6 +19,47 @@ CREATE TABLE users (
 	CHECK (password_hash IS NOT NULL OR pubkey IS NOT NULL)
 );
 
+CREATE FUNCTION insert_user(elixir_id  users.elixir_id%TYPE)
+    RETURNS users.id%TYPE AS $insert_user$
+    #variable_conflict use_column
+    DECLARE
+        user_id users.id%TYPE;
+    BEGIN
+	INSERT INTO users (elixir_id) VALUES(elixir_id)
+	ON CONFLICT (elixir_id) DO UPDATE SET last_modified = DEFAULT
+	RETURNING users.id INTO user_id;
+	RETURN user_id;
+    END;
+$insert_user$ LANGUAGE plpgsql;
+
+CREATE FUNCTION update_user(user_id     users.id%TYPE,
+       		    	    password    users.password_hash%TYPE,
+       		    	    public_key  users.pubkey%TYPE,
+       		    	    private_key users.seckey%TYPE)
+    RETURNS void AS $update_user$
+    #variable_conflict use_column
+    DECLARE
+        salt TEXT;
+        pw TEXT;
+    BEGIN
+	SELECT gen_salt('bf', 8) INTO salt;
+	SELECT crypt(password, salt) INTO pw;
+	UPDATE users SET password_hash = pw, pubkey = public_key, seckey = private_key, last_modified = DEFAULT
+	WHERE id = user_id;
+    END;
+$update_user$ LANGUAGE plpgsql;
+
+CREATE FUNCTION insert_user_error(user_id    user_errors.user_id%TYPE,
+                                  msg        user_errors.msg%TYPE)
+    RETURNS void AS $set_user_error$
+    BEGIN
+       INSERT INTO user_errors (user_id,msg) VALUES(user_id,msg);
+    END;
+$set_user_error$ LANGUAGE plpgsql;
+
+-- ##################################################
+--                        FILES
+-- ##################################################
 CREATE TABLE files (
         id             SERIAL, PRIMARY KEY(id), UNIQUE (id),
 	user_id        TEXT REFERENCES users (id) ON DELETE CASCADE,
@@ -47,8 +88,8 @@ CREATE TABLE errors (
 
 
 -- The reencryption field is used to store how the original unencrypted file was re-encrypted.
--- We gpg-decrypt the encrypted file and send the output, by blocks, to the re-encryptor.
--- The key size, the algorithm and the chunk size is recorded in the re-encrypted file (first line)
+-- We gpg-decrypt the encrypted file and pipe the output to the re-encryptor.
+-- The key size, the algorithm and the selected master key is recorded in the re-encrypted file (first line)
 -- and in the database.
 
 

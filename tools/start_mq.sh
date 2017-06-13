@@ -32,11 +32,13 @@ curl $PARAMS -X PUT -d '{"durable":true}' http://localhost:15672/api/queues/%2f/
 curl $PARAMS -X PUT -d '{"durable":true}' http://localhost:15672/api/queues/%2f/tasks
 curl $PARAMS -X PUT -d '{"durable":true}' http://localhost:15672/api/queues/%2f/verified
 curl $PARAMS -X PUT -d '{"durable":true}' http://localhost:15672/api/queues/%2f/users
+curl $PARAMS -X PUT -d '{"durable":true}' http://localhost:15672/api/queues/%2f/account
 curl $PARAMS -X POST -d '{"routing_key":"lega.tasks"}' http://localhost:15672/api/bindings/%2f/e/lega/q/tasks
 curl $PARAMS -X POST -d '{"routing_key":"lega.complete"}' http://localhost:15672/api/bindings/%2f/e/lega/q/completed
 curl $PARAMS -X POST -d '{"routing_key":"lega.archived"}' http://localhost:15672/api/bindings/%2f/e/lega/q/archived
 curl $PARAMS -X POST -d '{"routing_key":"lega.verified"}' http://localhost:15672/api/bindings/%2f/e/lega/q/verified
 curl $PARAMS -X POST -d '{"routing_key":"lega.users"}' http://localhost:15672/api/bindings/%2f/e/lega/q/users
+curl $PARAMS -X POST -d '{"routing_key":"lega.created"}' http://localhost:15672/api/bindings/%2f/e/lega/q/account
 
 
 ${DOCKER_EXEC} rabbitmqctl add_user test dNAf3r9245XS
@@ -51,8 +53,9 @@ CRG_PARAMS='-i -u test:dNAf3r9245XS -H "content-type:application/json"'
 curl $CRG_PARAMS -X PUT -d '{"durable":true}' http://localhost:15672/api/queues/test/sweden.v1.commands.file
 curl $CRG_PARAMS -X PUT -d '{"durable":true}' http://localhost:15672/api/queues/test/sweden.v1.commands.completed
 curl $CRG_PARAMS -X PUT -d '{"durable":true}' http://localhost:15672/api/queues/test/sweden.v1.commands.user
+curl $CRG_PARAMS -X PUT -d '{"durable":true}' http://localhost:15672/api/queues/test/sweden.v1.commands.account
 curl $CRG_PARAMS -X PUT -d '{"type":"topic","durable":true}' http://localhost:15672/api/exchanges/test/localega.v1
 curl $CRG_PARAMS -X POST -d '{"routing_key":"sweden.file"}' http://localhost:15672/api/bindings/test/e/localega.v1/q/sweden.v1.commands.file
 curl $CRG_PARAMS -X POST -d '{"routing_key":"sweden.user"}' http://localhost:15672/api/bindings/test/e/localega.v1/q/sweden.v1.commands.user
 curl $CRG_PARAMS -X POST -d '{"routing_key":"sweden.file.completed"}' http://localhost:15672/api/bindings/test/e/localega.v1/q/sweden.v1.commands.completed
-
+curl $CRG_PARAMS -X POST -d '{"routing_key":"sweden.user.account"}' http://localhost:15672/api/bindings/test/e/localega.v1/q/sweden.v1.commands.account
