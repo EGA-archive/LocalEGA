@@ -47,6 +47,13 @@ async def get_user_info(pool, user_id):
         await cur.execute(query, {'user_id': user_id})
         return await cur.fetchall()
 
+async def get_internal_user_id(pool, elixir_id):
+    assert elixir_id, 'Eh? No elixir_id?'
+    with (await pool.cursor()) as cur:
+        await cur.execute('SELECT id FROM users WHERE elixir_id = %(elixir_id)s',
+                          {'elixir_id': elixir_id})
+        return (await cur.fetchone())[0]
+
 ######################################
 ##         "Classic" code           ##
 ######################################

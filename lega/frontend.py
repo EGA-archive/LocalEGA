@@ -77,6 +77,14 @@ async def status_user(request):
                     'final_name': info[4] } for info in res]
     return web.json_response(json_data)
 
+async def user_id(request):
+    elixir_id = request.match_info['elixir_id']
+    LOG.info(f'Getting internal id for user: {elixir_id}')
+    res = await db.get_internal_user_id(request.app['db'], elixir_id)
+    if not res:
+        raise web.HTTPBadRequest(text=f'No info for that user {elixir_id}... yet\n')
+    return web.Response(text=str(res))
+
 async def _connect_db(app):
     try:
         app['db'] = await db.create_pool(loop=app.loop,
@@ -134,6 +142,7 @@ def main(args=None):
     server.router.add_get( '/'                      , index        , name='root'             )
     server.router.add_get( '/status/file/{id}'      , status_file  , name='status_file'      )
     server.router.add_get( '/status/user/{id}'      , status_user  , name='status_user'      )
+    server.router.add_get( '/user/{elixir_id}'      , user_id      , name='user_id'          )
 
     # Registering some initialization and cleanup routines
     LOG.info('Setting up callbacks')
