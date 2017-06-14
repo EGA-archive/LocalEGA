@@ -18,7 +18,7 @@ def make_user(args):
 
 def make_file(args):
     return {
-        'user_id': args.user,
+        'elixir_id': args.user,
         'filename': args.filename,
         'encrypted_integrity': { 'hash': args.encrypted_checksum, 'algorithm': args.encrypted_checksum_algo, },
         'unencrypted_integrity': { 'hash': args.unencrypted_checksum, 'algorithm': args.unencrypted_checksum_algo, },

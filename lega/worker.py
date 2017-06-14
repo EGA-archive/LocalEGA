@@ -56,7 +56,8 @@ def work(data):
 
     file_id = data['file_id']
     user_id = data['user_id']
-
+    elixir_id = data['elixir_id']
+    
     # Find inbox
     inbox = Path( CONF.get('worker','inbox',raw=True) % { 'user_id': user_id } )
     LOG.info(f"Inbox area: {inbox}")

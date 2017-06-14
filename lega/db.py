@@ -153,3 +153,9 @@ def set_user_error(user_id, error):
             cur.execute('SELECT insert_user_error(%(user_id)s,%(msg)s);',
                         {'msg':f"{error.__class__.__name__}: {error!s}", 'user_id': user_id})
 
+def get_user(elixir_id):
+    with connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute('SELECT id FROM users WHERE elixir_id = (%(elixir_id)s);', { 'elixir_id': elixir_id })
+            return (cur.fetchone())[0]
+

@@ -28,15 +28,20 @@ def set_file_id(data):
     and adding the return file id into the message'''
 
     filename = data['filename']
-    user_id = data['user_id']
+    elixir_id = data['elixir_id']
     enc_checksum  = data['encrypted_integrity']
     org_checksum  = data['unencrypted_integrity']
+
+    # Find user_id
+    user_id = db.get_user(elixir_id)
 
     # Insert in database
     file_id = db.insert_file(filename, enc_checksum, org_checksum, user_id) 
     assert file_id is not None, 'Ouch...database problem!'
     LOG.debug(f'Created id {file_id} for {data["filename"]}')
+
     data['file_id'] = file_id
+    data['user_id'] = user_id
     return data
 
 def set_user_id(data):
