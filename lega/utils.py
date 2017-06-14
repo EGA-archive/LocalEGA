@@ -67,26 +67,6 @@ def catch_user_error(func):
             db.set_user_error(user_id, e)
     return wrapper
 
-def catch_user_error(func):
-    '''Decorator to store the raised exception in the database'''
-    @functools.wraps(func)
-    def wrapper(data):
-        user_id = data['user_id'] # I should have it
-        try:
-            res = func(data)
-            # res.__name__ = getattr(func, '__name__', None)
-            # res.__qualname__ = getattr(func, '__qualname__', None)
-            return res
-        except Exception as e:
-            if isinstance(e,AssertionError):
-                raise e
-            db.set_user_error(user_id, e)
-            # frm = inspect.trace()[-1]
-            # mod = inspect.getmodule(frm[0])
-            # modname = mod.__name__ if mod else frm[1]
-            # print('Thrown from', modname)
-    return wrapper
-
 def get_data(data):
     try:
         return json.loads(b64decode(data))
