@@ -1,17 +1,19 @@
 #!/usr/bin/env bash
 
 CONTAINER=ega-inbox
-# HERE="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-# source $HERE/details/db.credentials
+HERE="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+source $HERE/details/inbox
 
 # Kill the previous container
 docker kill ${CONTAINER} || docker rm ${CONTAINER} || true
 
-# Starting RabbitMQ with docker
+# Starting the SFTP-inbox+Py3.6.1 with docker
 docker run -it $* -d --hostname localhost     \
        -p 2222:22 --name ${CONTAINER}         \
-       -v /Users/daz/Workspace/NBIS/Local-EGA/code/data/inbox:/home  \
+       -v $INBOX:/home  \
+       -v $LEGA:/root/ega \
+       -v $CONF:/root/.lega/conf.ini  \
        ega-inbox
-# The image includes EXPOSE 22
 
-
+docker exec -it ${CONTAINER} bash -c "echo '$SSH_KEY' >> /etc/skel/.ssh/authorized_keys"
+docker exec -it ${CONTAINER} pip install -e /root/ega

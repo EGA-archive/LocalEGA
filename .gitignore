@@ -4,6 +4,8 @@
 tmp/
 private/
 logs/*.log
+logs/*.yaml
+!logs/*.yaml.sample
 *.conf
 tools/details/*
 tests/

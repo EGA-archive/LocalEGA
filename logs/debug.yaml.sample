@@ -23,7 +23,7 @@ loggers:
     level: DEBUG
     handlers: [debugFile,console]
   utils:
-    level: WARNING
+    level: DEBUG
     handlers: [debugFile,console]
   sys-monitor:
     level: DEBUG
@@ -32,7 +32,7 @@ loggers:
     level: DEBUG
     handlers: [debugFile,console]
   amqp:
-    level: WARNING
+    level: DEBUG
     handlers: [debugFile,console]
   db:
     level: DEBUG
@@ -41,28 +41,28 @@ loggers:
     level: DEBUG
     handlers: [debugFile,console]
   asyncio:
-    level: WARNING
+    level: DEBUG
     handlers: [debugFile]
   aiopg:
-    level: WARNING
+    level: DEBUG
     handlers: [debugFile]
   aiohttp.access:
-    level: WARNING
+    level: DEBUG
     handlers: [debugFile]
   aiohttp.client:
-    level: WARNING
+    level: DEBUG
     handlers: [debugFile]
   aiohttp.internal:
-    level: WARNING
+    level: DEBUG
     handlers: [debugFile]
   aiohttp.server:
-    level: WARNING
+    level: DEBUG
     handlers: [debugFile]
   aiohttp.web:
-    level: WARNING
+    level: DEBUG
     handlers: [debugFile]
   aiohttp.websocket:
-    level: WARNING
+    level: DEBUG
     handlers: [debugFile]
 
 
@@ -77,7 +77,7 @@ handlers:
   debugFile:
     class: logging.FileHandler
     formatter: lega
-    filename: 'ega-debug.log'
+    filename: '/tmp/ega-debug.log'
     mode: 'w'
 
 formatters:

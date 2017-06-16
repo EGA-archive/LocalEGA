@@ -56,7 +56,8 @@ def work(data):
 
     file_id = data['file_id']
     user_id = data['user_id']
-
+    elixir_id = data['elixir_id']
+    
     # Find inbox
     inbox = Path( CONF.get('worker','inbox',raw=True) % { 'user_id': user_id } )
     LOG.info(f"Inbox area: {inbox}")
@@ -105,10 +106,14 @@ def work(data):
                                                target = staging_filepath)
     db.set_encryption(file_id, details, staging_checksum)
     LOG.debug(f'Re-encryption completed')
+
+    #target_name = f"{unencrypted_algo}__{unencrypted_hash}"
+    target_name = f"{file_id:0>20}" # filling with zeros, and 20 characters wide
+
     reply = {
         'file_id' : file_id,
         'filepath': str(staging_filepath),
-        'target_name': f"{unencrypted_algo}__{unencrypted_hash}",
+        'target_name': target_name,
         'user_id': user_id,
     }
     LOG.debug(f"Reply message: {reply!r}")
