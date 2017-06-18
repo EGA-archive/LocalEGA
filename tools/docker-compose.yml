@@ -6,6 +6,7 @@ services:
   # The settings in the docker container define
   # the vhosts, users, permissions, queues, exchanges and bindings
   mq:
+    build: ./mq
     ports:
       - "4369:4369"
       - "5671:5671"
@@ -19,16 +20,16 @@ services:
   # Postgres Database
   db:
     env_file: ./details/db.env
+    build: ./db
     ports:
       - "5432:5432"
     container_name: "ega-db"
-    image: "postgres"
-    volumes:
-      - ./db.sql:/docker-entrypoint-initdb.d/db.sql
+    image: "ega-db"
 
   # SFTP inbox
   inbox:
     env_file: ./details/inbox.env
+    build: ./inbox
     depends_on:
       - db
       - mq
@@ -36,9 +37,9 @@ services:
       - "2222:22"
     container_name: "ega-inbox"
     volumes:
-       - $INBOX:/home
-       - $LEGA:/root/ega
-       - $CONF:/root/.lega/conf.ini
+       - ${INBOX}:/home
+       - ${LEGA}:/root/ega
+       - ${CONF}:/root/.lega/conf.ini
     image: "ega-inbox"
     command: echo "$SSH_KEY" >> /etc/skel/.ssh/authorized_keys && pip install -e /root/ega && ega-inbox
 
