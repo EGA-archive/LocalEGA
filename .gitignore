@@ -9,6 +9,7 @@ logs/*.yaml
 *.conf
 tools/details/*
 tests/
+storage
 
 # =====================================
 # Byte-compiled / optimized / DLL files

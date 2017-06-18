@@ -7,6 +7,7 @@ services:
   # the vhosts, users, permissions, queues, exchanges and bindings
   mq:
     build: ./mq
+    hostname: ega-mq
     ports:
       - "4369:4369"
       - "5671:5671"
@@ -21,6 +22,7 @@ services:
   db:
     env_file: ./details/db.env
     build: ./db
+    hostname: ega-db
     ports:
       - "5432:5432"
     container_name: "ega-db"
@@ -28,8 +30,8 @@ services:
 
   # SFTP inbox
   inbox:
-    env_file: ./details/inbox.env
     build: ./inbox
+    hostname: ega-inbox
     depends_on:
       - db
       - mq
@@ -37,9 +39,7 @@ services:
       - "2222:22"
     container_name: "ega-inbox"
     volumes:
-       - ${INBOX}:/home
-       - ${LEGA}:/root/ega
-       - ${CONF}:/root/.lega/conf.ini
+       - ../storage:/home
+       - ..:/root/ega
+       - ~/.lega/sftp.ini:/root/.lega/conf.ini
     image: "ega-inbox"
-    command: echo "$SSH_KEY" >> /etc/skel/.ssh/authorized_keys && pip install -e /root/ega && ega-inbox
-

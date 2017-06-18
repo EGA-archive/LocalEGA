@@ -15,6 +15,11 @@ function cleanup {
 trap 'cleanup' INT TERM
 
 # NOTE: the ega-inbox, ega-db and ega-mq containers must be already started
+# docker-compose up -d
+
+source $HERE/details/inbox.env
+docker exec -i ega-inbox bash -c "echo '$SSH_KEY' > /etc/skel/.ssh/authorized_keys" # killing the file
+docker exec -i ega-inbox pip install -e /root/ega
 
 echo "Starting EGA in $EGA"
 pushd $EGA >/dev/null
