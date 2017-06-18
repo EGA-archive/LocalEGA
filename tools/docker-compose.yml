@@ -1,0 +1,48 @@
+version: '3.0'
+
+services:
+
+  # Message Broker
+  # The settings in the docker container define
+  # the vhosts, users, permissions, queues, exchanges and bindings
+  mq:
+    ports:
+      - "4369:4369"
+      - "5671:5671"
+      - "5672:5672"
+      - "15671:15671"
+      - "15672:15672"
+      - "25672:25672"
+    image: "ega-mq"
+    container_name: "ega-mq"
+
+  # Postgres Database
+  db:
+    env_file: ./details/db.env
+    ports:
+      - "5432:5432"
+    container_name: "ega-db"
+    image: "postgres"
+    volumes:
+      - ./db.sql:/docker-entrypoint-initdb.d/db.sql
+
+  # SFTP inbox
+  inbox:
+    env_file: ./details/inbox.env
+    depends_on:
+      - db
+      - mq
+    ports:
+      - "2222:22"
+    container_name: "ega-inbox"
+    volumes:
+       - $INBOX:/home
+       - $LEGA:/root/ega
+       - $CONF:/root/.lega/conf.ini
+    image: "ega-inbox"
+
+
+    # command: rabbitmqctl set_disk_free_limit 1GB
+    # command: bash -c "echo '$SSH_KEY' >> /etc/skel/.ssh/authorized_keys"
+    # command: pip install -e /root/ega
+    # command: ega-inbox
