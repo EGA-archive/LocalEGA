@@ -40,9 +40,5 @@ services:
        - $LEGA:/root/ega
        - $CONF:/root/.lega/conf.ini
     image: "ega-inbox"
+    command: echo "$SSH_KEY" >> /etc/skel/.ssh/authorized_keys && pip install -e /root/ega && ega-inbox
 
-
-    # command: rabbitmqctl set_disk_free_limit 1GB
-    # command: bash -c "echo '$SSH_KEY' >> /etc/skel/.ssh/authorized_keys"
-    # command: pip install -e /root/ega
-    # command: ega-inbox

@@ -43,4 +43,4 @@ RUN mkdir -p /etc/skel/.ssh && \
 
 EXPOSE 22
 
-ENTRYPOINT ["/usr/sbin/sshd","-D", "-e"]
+ENTRYPOINT ["/usr/sbin/sshd", "-D", "-e"]
