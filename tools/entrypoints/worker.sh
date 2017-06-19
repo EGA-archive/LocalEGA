@@ -2,8 +2,6 @@
 
 set -e
 
-pip install -e /root/ega
-
 pkill gpg-agent || true
 
 HEXPWD=$(python -c "import binascii; print(binascii.hexlify(b'${PASSPHRASE}'))")
@@ -21,4 +19,5 @@ source $AGENT_ENV
 /usr/libexec/gpg-preset-passphrase --preset -P $PASSPHRASE $KEYGRIP
 
 sleep 6
+pip install -e /root/ega
 exec ega-worker
