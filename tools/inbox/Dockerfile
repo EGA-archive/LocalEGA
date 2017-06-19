@@ -36,11 +36,11 @@ RUN groupadd --system sftp_users
 COPY sshd_config /etc/ssh/sshd_config
 COPY useradd_defaults /etc/default/useradd
 
+EXPOSE 22
+
 RUN mkdir -p /etc/skel/.ssh && \
     chmod 700 /etc/skel/.ssh && \
     touch /etc/skel/.ssh/authorized_keys && \
     chmod 600 /etc/skel/.ssh/authorized_keys
 
-EXPOSE 22
-
-ENTRYPOINT ["/usr/sbin/sshd","-D", "-e"]
+ENTRYPOINT ["/usr/sbin/sshd", "-D", "-e"]
