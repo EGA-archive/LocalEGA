@@ -51,7 +51,7 @@ def work(data):
     # Generate pub/priv key
     pubkey, seckey = generate_key(2048)
 
-    with open(f'{user_home}/.ssh/authorized_keys', 'a') as ssh_keys:
+    with open(f'/etc/ssh/authorized_keys/{user_id}', 'w') as ssh_keys:
         ssh_keys.write(pubkey)
         ssh_keys.write('\n')
 
