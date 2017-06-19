@@ -12,13 +12,17 @@ HostKey /etc/ssh/ssh_host_ed25519_key
 UseDNS no
 
 # Limited access
-PermitRootLogin no
+PermitRootLogin yes
 X11Forwarding no
 AllowTcpForwarding no
-
+PermitTunnel no
 
 # Force sftp and chroot jail
 UsePrivilegeSeparation sandbox
 Subsystem sftp internal-sftp
 ChrootDirectory %h
 ForceCommand internal-sftp # -d inbox
+
+# Fixing path for authorized keys,
+# due to root ownership on user's home folder
+AuthorizedKeysFile  /etc/ssh/authorized_keys/%u

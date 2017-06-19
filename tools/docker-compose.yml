@@ -1,4 +1,4 @@
-version: '3.0'
+version: '3.1'
 
 services:
 
@@ -6,6 +6,7 @@ services:
   # The settings in the docker container define
   # the vhosts, users, permissions, queues, exchanges and bindings
   mq:
+    #env_file: ./details/mq.env
     build: ./mq
     hostname: ega-mq
     ports:
@@ -15,8 +16,11 @@ services:
       - "15671:15671"
       - "15672:15672"
       - "25672:25672"
-    image: "ega-mq"
-    container_name: "ega-mq"
+    image: ega-mq
+    container_name: ega-mq
+    networks:
+      net:
+        ipv4_address: 172.25.0.101
 
   # Postgres Database
   db:
@@ -25,11 +29,15 @@ services:
     hostname: ega-db
     ports:
       - "5432:5432"
-    container_name: "ega-db"
-    image: "ega-db"
+    container_name: ega-db
+    image: ega-db
+    networks:
+      net:
+        ipv4_address: 172.25.0.102
 
   # SFTP inbox
   inbox:
+    env_file: ./details/inbox.env
     build: ./inbox
     hostname: ega-inbox
     depends_on:
@@ -37,9 +45,158 @@ services:
       - mq
     ports:
       - "2222:22"
-    container_name: "ega-inbox"
+    container_name: ega-inbox
     volumes:
-       - ../storage:/home
-       - ..:/root/ega
-       - ~/.lega/sftp.ini:/root/.lega/conf.ini
-    image: "ega-inbox"
+       - ${CODE}:/root/ega
+       - ${INI}:/root/.lega/conf.ini:ro
+       - ${INBOX}:/home
+       - ./entrypoints/inbox.sh:/usr/local/bin/entrypoint.sh:ro
+    command: '/usr/local/bin/entrypoint.sh'
+    image: ega-inbox
+    networks:
+      net:
+        ipv4_address: 172.25.0.103
+
+  # ReST frontend
+  frontend:
+    build: ./py3
+    depends_on:
+      - db
+    hostname: ega-frontend
+    ports:
+      - "9000:9000"
+    expose:
+      - 9000
+    container_name: ega-frontend
+    image: ega-py3
+    volumes:
+       - ${CODE}:/root/ega
+       - ${INI}:/root/.lega/conf.ini:ro
+       - ./entrypoints/frontend.sh:/usr/local/bin/entrypoint.sh:ro
+    command: '/usr/local/bin/entrypoint.sh'
+    networks:
+      net:
+        ipv4_address: 172.25.0.105
+
+  # Vault
+  vault:
+    build: ./py3
+    depends_on:
+      - db
+      - mq
+    hostname: ega-vault
+    container_name: ega-vault
+    image: ega-py3
+    volumes:
+       - ${CODE}:/root/ega
+       - ${INI}:/root/.lega/conf.ini:ro
+       - ${VAULT}:/mnt/ega
+       - ./entrypoints/vault.sh:/usr/local/bin/entrypoint.sh:ro
+    command: '/usr/local/bin/entrypoint.sh'
+    networks:
+      net:
+        ipv4_address: 172.25.0.106
+
+  # Verify
+  verify:
+    build: ./py3
+    depends_on:
+      - db
+      - mq
+    hostname: ega-verify
+    container_name: ega-verify
+    image: ega-py3
+    volumes:
+       - ${CODE}:/root/ega
+       - ${INI}:/root/.lega/conf.ini:ro
+       - ${VAULT}:/mnt/ega
+       - ./entrypoints/verify.sh:/usr/local/bin/entrypoint.sh:ro
+    command: '/usr/local/bin/entrypoint.sh'
+    networks:
+      net:
+        ipv4_address: 172.25.0.107
+
+  # Connectors between CEGA and LEGA
+  connectors:
+    build: ./py3
+    depends_on:
+      - db
+      - mq
+    hostname: ega-connectors
+    container_name: ega-connectors
+    image: ega-py3
+    volumes:
+       - ${CODE}:/root/ega
+       - ${INI}:/root/.lega/conf.ini:ro
+       - ./entrypoints/connectors.sh:/usr/local/bin/entrypoint.sh:ro
+    command: '/usr/local/bin/entrypoint.sh'
+    networks:
+      net:
+        ipv4_address: 172.25.0.108
+
+  # Error Monitors
+  monitors:
+    build: ./py3
+    depends_on:
+      - db
+    hostname: ega-monitors
+    container_name: ega-monitors
+    image: ega-py3
+    volumes:
+       - ${CODE}:/root/ega
+       - ${INI}:/root/.lega/conf.ini:ro
+       - ./entrypoints/monitors.sh:/usr/local/bin/entrypoint.sh:ro
+    command: '/usr/local/bin/entrypoint.sh'
+    networks:
+      net:
+        ipv4_address: 172.25.0.109
+
+  # Workers
+  worker-1:
+    build: ./py3
+    env_file: ./details/gpg.env
+    depends_on:
+      - db
+      - mq
+    hostname: ega-worker-1
+    container_name: ega-worker-1
+    image: ega-py3
+    volumes:
+       - ${CODE}:/root/ega
+       - ${INI}:/root/.lega/conf.ini:ro
+       - ${GNUPGHOME}:/root/.gnupg:rw
+       - ${RSAHOME}:/root/.rsa:rw
+       - ./entrypoints/worker.sh:/usr/local/bin/entrypoint.sh:ro
+    command: '/usr/local/bin/entrypoint.sh'
+    networks:
+      net:
+        ipv4_address: 172.25.0.201
+  # Workers
+  worker-2:
+    build: ./py3
+    env_file: ./details/gpg.env
+    depends_on:
+      - db
+      - mq
+    hostname: ega-worker-2
+    container_name: ega-worker-2
+    image: ega-py3
+    volumes:
+       - ${CODE}:/root/ega
+       - ${INI}:/root/.lega/conf.ini:ro
+       - ${GNUPGHOME}:/root/.gnupg:rw
+       - ${RSAHOME}:/root/.rsa:rw
+       - ./entrypoints/worker.sh:/usr/local/bin/entrypoint.sh:ro
+    command: '/usr/local/bin/entrypoint.sh'
+    networks:
+      net:
+        ipv4_address: 172.25.0.202
+
+networks:
+  net:
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.25.0.0/24
+
+
