@@ -50,8 +50,8 @@ services:
        - ${CODE}:/root/ega
        - ${INI}:/root/.lega/conf.ini:ro
        - ${INBOX}:/home
-       - ./entrypoints/inbox.sh:/usr/local/bin/entrypoint.sh:ro
-    command: '/usr/local/bin/entrypoint.sh'
+       - ./entrypoints/inbox.sh:/usr/local/bin/inbox.sh:ro
+    command: inbox.sh
     image: ega-inbox
     networks:
       net:
@@ -90,7 +90,7 @@ services:
     volumes:
        - ${CODE}:/root/ega
        - ${INI}:/root/.lega/conf.ini:ro
-       - ${VAULT}:/mnt/ega
+       - ${VAULT}:/ega/vault
        - ./entrypoints/vault.sh:/usr/local/bin/vault.sh:ro
     command: vault.sh
     networks:
@@ -109,7 +109,7 @@ services:
     volumes:
        - ${CODE}:/root/ega
        - ${INI}:/root/.lega/conf.ini:ro
-       - ${VAULT}:/mnt/ega
+       - ${VAULT}:/ega/vault
        - ./entrypoints/verify.sh:/usr/local/bin/verify.sh:ro
     command: verify.sh
     networks:
@@ -164,6 +164,8 @@ services:
     volumes:
        - ${CODE}:/root/ega
        - ${INI}:/root/.lega/conf.ini:ro
+       - ${INBOX}:/home
+       - ${STAGING}:/ega/staging
        - ${GNUPGHOME}:/root/.gnupg:rw
        - ${RSAHOME}:/root/.rsa:rw
        - ./entrypoints/worker.sh:/usr/local/bin/worker.sh:ro
@@ -171,7 +173,7 @@ services:
     networks:
       net:
         ipv4_address: 172.25.0.201
-  # Workers
+
   worker-2:
     build: ./py3
     env_file: ./details/gpg.env
@@ -184,6 +186,8 @@ services:
     volumes:
        - ${CODE}:/root/ega
        - ${INI}:/root/.lega/conf.ini:ro
+       - ${INBOX}:/home
+       - ${STAGING}:/ega/staging
        - ${GNUPGHOME}:/root/.gnupg:rw
        - ${RSAHOME}:/root/.rsa:rw
        - ./entrypoints/worker.sh:/usr/local/bin/worker.sh:ro
