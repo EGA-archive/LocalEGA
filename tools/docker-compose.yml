@@ -72,8 +72,8 @@ services:
     volumes:
        - ${CODE}:/root/ega
        - ${INI}:/root/.lega/conf.ini:ro
-       - ./entrypoints/frontend.sh:/usr/local/bin/entrypoint.sh:ro
-    command: '/usr/local/bin/entrypoint.sh'
+       - ./entrypoints/frontend.sh:/usr/local/bin/frontend.sh:ro
+    command: frontend.sh
     networks:
       net:
         ipv4_address: 172.25.0.105
@@ -91,8 +91,8 @@ services:
        - ${CODE}:/root/ega
        - ${INI}:/root/.lega/conf.ini:ro
        - ${VAULT}:/mnt/ega
-       - ./entrypoints/vault.sh:/usr/local/bin/entrypoint.sh:ro
-    command: '/usr/local/bin/entrypoint.sh'
+       - ./entrypoints/vault.sh:/usr/local/bin/vault.sh:ro
+    command: vault.sh
     networks:
       net:
         ipv4_address: 172.25.0.106
@@ -110,8 +110,8 @@ services:
        - ${CODE}:/root/ega
        - ${INI}:/root/.lega/conf.ini:ro
        - ${VAULT}:/mnt/ega
-       - ./entrypoints/verify.sh:/usr/local/bin/entrypoint.sh:ro
-    command: '/usr/local/bin/entrypoint.sh'
+       - ./entrypoints/verify.sh:/usr/local/bin/verify.sh:ro
+    command: verify.sh
     networks:
       net:
         ipv4_address: 172.25.0.107
@@ -128,8 +128,8 @@ services:
     volumes:
        - ${CODE}:/root/ega
        - ${INI}:/root/.lega/conf.ini:ro
-       - ./entrypoints/connectors.sh:/usr/local/bin/entrypoint.sh:ro
-    command: '/usr/local/bin/entrypoint.sh'
+       - ./entrypoints/connectors.sh:/usr/local/bin/connectors.sh:ro
+    command: connectors.sh
     networks:
       net:
         ipv4_address: 172.25.0.108
@@ -145,8 +145,8 @@ services:
     volumes:
        - ${CODE}:/root/ega
        - ${INI}:/root/.lega/conf.ini:ro
-       - ./entrypoints/monitors.sh:/usr/local/bin/entrypoint.sh:ro
-    command: '/usr/local/bin/entrypoint.sh'
+       - ./entrypoints/monitors.sh:/usr/local/bin/monitors.sh:ro
+    command: monitors.sh
     networks:
       net:
         ipv4_address: 172.25.0.109
@@ -166,8 +166,8 @@ services:
        - ${INI}:/root/.lega/conf.ini:ro
        - ${GNUPGHOME}:/root/.gnupg:rw
        - ${RSAHOME}:/root/.rsa:rw
-       - ./entrypoints/worker.sh:/usr/local/bin/entrypoint.sh:ro
-    command: '/usr/local/bin/entrypoint.sh'
+       - ./entrypoints/worker.sh:/usr/local/bin/worker.sh:ro
+    command: worker.sh
     networks:
       net:
         ipv4_address: 172.25.0.201
@@ -186,8 +186,8 @@ services:
        - ${INI}:/root/.lega/conf.ini:ro
        - ${GNUPGHOME}:/root/.gnupg:rw
        - ${RSAHOME}:/root/.rsa:rw
-       - ./entrypoints/worker.sh:/usr/local/bin/entrypoint.sh:ro
-    command: '/usr/local/bin/entrypoint.sh'
+       - ./entrypoints/worker.sh:/usr/local/bin/worker.sh:ro
+    command: worker.sh
     networks:
       net:
         ipv4_address: 172.25.0.202
