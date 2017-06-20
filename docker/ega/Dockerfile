@@ -28,4 +28,4 @@ RUN pyenv rehash
 RUN pip install --upgrade pip
 RUN pip install PyYaml Markdown pika==0.10.0 aiohttp==2.0.5 pycryptodomex==3.4.5 aiopg==0.13.0 colorama==0.3.7 aiohttp-jinja2==0.13.0
 
-RUN mkdir -p /ega/{inbox,vault,staging,outbox}
+RUN mkdir -p /ega/{vault,staging}
