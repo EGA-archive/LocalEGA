@@ -18,9 +18,6 @@ services:
       - "25672:25672"
     image: ega-mq
     container_name: ega-mq
-    networks:
-      net:
-        ipv4_address: 172.25.0.101
 
   # Postgres Database
   db:
@@ -31,9 +28,6 @@ services:
       - "5432:5432"
     container_name: ega-db
     image: ega-db
-    networks:
-      net:
-        ipv4_address: 172.25.0.102
 
   # SFTP inbox
   inbox:
@@ -48,14 +42,11 @@ services:
     container_name: ega-inbox
     volumes:
        - ${CODE}:/root/ega
-       - ${INI}:/root/.lega/conf.ini:ro
+       - ${CONF}:/root/.lega/conf.ini:ro
        - ${INBOX}:/home
        - ./entrypoints/inbox.sh:/usr/local/bin/inbox.sh:ro
     command: inbox.sh
     image: ega-inbox
-    networks:
-      net:
-        ipv4_address: 172.25.0.103
 
   # ReST frontend
   frontend:
@@ -71,12 +62,9 @@ services:
     image: ega-py3
     volumes:
        - ${CODE}:/root/ega
-       - ${INI}:/root/.lega/conf.ini:ro
+       - ${CONF}:/root/.lega/conf.ini:ro
        - ./entrypoints/frontend.sh:/usr/local/bin/frontend.sh:ro
     command: frontend.sh
-    networks:
-      net:
-        ipv4_address: 172.25.0.105
 
   # Vault
   vault:
@@ -89,13 +77,10 @@ services:
     image: ega-py3
     volumes:
        - ${CODE}:/root/ega
-       - ${INI}:/root/.lega/conf.ini:ro
+       - ${CONF}:/root/.lega/conf.ini:ro
        - ${VAULT}:/ega/vault
        - ./entrypoints/vault.sh:/usr/local/bin/vault.sh:ro
     command: vault.sh
-    networks:
-      net:
-        ipv4_address: 172.25.0.106
 
   # Verify
   verify:
@@ -108,13 +93,10 @@ services:
     image: ega-py3
     volumes:
        - ${CODE}:/root/ega
-       - ${INI}:/root/.lega/conf.ini:ro
+       - ${CONF}:/root/.lega/conf.ini:ro
        - ${VAULT}:/ega/vault
        - ./entrypoints/verify.sh:/usr/local/bin/verify.sh:ro
     command: verify.sh
-    networks:
-      net:
-        ipv4_address: 172.25.0.107
 
   # Connectors between CEGA and LEGA
   connectors:
@@ -127,12 +109,9 @@ services:
     image: ega-py3
     volumes:
        - ${CODE}:/root/ega
-       - ${INI}:/root/.lega/conf.ini:ro
+       - ${CONF}:/root/.lega/conf.ini:ro
        - ./entrypoints/connectors.sh:/usr/local/bin/connectors.sh:ro
     command: connectors.sh
-    networks:
-      net:
-        ipv4_address: 172.25.0.108
 
   # Error Monitors
   monitors:
@@ -144,12 +123,9 @@ services:
     image: ega-py3
     volumes:
        - ${CODE}:/root/ega
-       - ${INI}:/root/.lega/conf.ini:ro
+       - ${CONF}:/root/.lega/conf.ini:ro
        - ./entrypoints/monitors.sh:/usr/local/bin/monitors.sh:ro
     command: monitors.sh
-    networks:
-      net:
-        ipv4_address: 172.25.0.109
 
   # Workers
   worker-1:
@@ -163,16 +139,13 @@ services:
     image: ega-py3
     volumes:
        - ${CODE}:/root/ega
-       - ${INI}:/root/.lega/conf.ini:ro
+       - ${CONF}:/root/.lega/conf.ini:ro
        - ${INBOX}:/home
        - ${STAGING}:/ega/staging
        - ${GNUPGHOME}:/root/.gnupg:rw
        - ${RSAHOME}:/root/.rsa:rw
        - ./entrypoints/worker.sh:/usr/local/bin/worker.sh:ro
     command: worker.sh
-    networks:
-      net:
-        ipv4_address: 172.25.0.201
 
   worker-2:
     build: ./py3
@@ -185,22 +158,10 @@ services:
     image: ega-py3
     volumes:
        - ${CODE}:/root/ega
-       - ${INI}:/root/.lega/conf.ini:ro
+       - ${CONF}:/root/.lega/conf.ini:ro
        - ${INBOX}:/home
        - ${STAGING}:/ega/staging
        - ${GNUPGHOME}:/root/.gnupg:rw
        - ${RSAHOME}:/root/.rsa:rw
        - ./entrypoints/worker.sh:/usr/local/bin/worker.sh:ro
     command: worker.sh
-    networks:
-      net:
-        ipv4_address: 172.25.0.202
-
-networks:
-  net:
-    ipam:
-      driver: default
-      config:
-        - subnet: 172.25.0.0/24
-
-
