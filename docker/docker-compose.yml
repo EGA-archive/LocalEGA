@@ -50,7 +50,7 @@ services:
 
   # ReST frontend
   frontend:
-    build: ./py3
+    build: ./ega
     depends_on:
       - db
     hostname: ega-frontend
@@ -59,7 +59,7 @@ services:
     expose:
       - 9000
     container_name: ega-frontend
-    image: ega-py3
+    image: ega-common
     volumes:
        - ${CODE}:/root/ega
        - ${CONF}:/root/.lega/conf.ini:ro
@@ -68,13 +68,13 @@ services:
 
   # Vault
   vault:
-    build: ./py3
+    build: ./ega
     depends_on:
       - db
       - mq
     hostname: ega-vault
     container_name: ega-vault
-    image: ega-py3
+    image: ega-common
     volumes:
        - ${CODE}:/root/ega
        - ${CONF}:/root/.lega/conf.ini:ro
@@ -84,13 +84,13 @@ services:
 
   # Verify
   verify:
-    build: ./py3
+    build: ./ega
     depends_on:
       - db
       - mq
     hostname: ega-verify
     container_name: ega-verify
-    image: ega-py3
+    image: ega-common
     volumes:
        - ${CODE}:/root/ega
        - ${CONF}:/root/.lega/conf.ini:ro
@@ -100,13 +100,13 @@ services:
 
   # Connectors between CEGA and LEGA
   connectors:
-    build: ./py3
+    build: ./ega
     depends_on:
       - db
       - mq
     hostname: ega-connectors
     container_name: ega-connectors
-    image: ega-py3
+    image: ega-common
     volumes:
        - ${CODE}:/root/ega
        - ${CONF}:/root/.lega/conf.ini:ro
@@ -115,12 +115,12 @@ services:
 
   # Error Monitors
   monitors:
-    build: ./py3
+    build: ./ega
     depends_on:
       - db
     hostname: ega-monitors
     container_name: ega-monitors
-    image: ega-py3
+    image: ega-common
     volumes:
        - ${CODE}:/root/ega
        - ${CONF}:/root/.lega/conf.ini:ro
@@ -129,14 +129,14 @@ services:
 
   # Workers
   worker-1:
-    build: ./py3
+    build: ./ega
     env_file: ./details/gpg.env
     depends_on:
       - db
       - mq
     hostname: ega-worker-1
     container_name: ega-worker-1
-    image: ega-py3
+    image: ega-common
     volumes:
        - ${CODE}:/root/ega
        - ${CONF}:/root/.lega/conf.ini:ro
@@ -148,14 +148,14 @@ services:
     command: worker.sh
 
   worker-2:
-    build: ./py3
+    build: ./ega
     env_file: ./details/gpg.env
     depends_on:
       - db
       - mq
     hostname: ega-worker-2
     container_name: ega-worker-2
-    image: ega-py3
+    image: ega-common
     volumes:
        - ${CODE}:/root/ega
        - ${CONF}:/root/.lega/conf.ini:ro
