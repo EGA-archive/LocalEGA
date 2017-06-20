@@ -46,28 +46,5 @@ It is necessary to have the following, already running:
 * a message broker, and
 * a postgres database
 
-We provide scripts in the [tools folder](./tools) as suggestions to start the above components.
-
-For the **database**, use `./tools/start_db.sh` which boots a docker container, and sets up the appropriate tables.
-		
-For the **message broker**, use `./tools/start_mq.sh` which boots a docker container with RabbitMQ and its management plugin.
-Note: it also configures the broker's exchange, the queues and the bindings.
-
-Finally, the **gpg-agent** can be started ahead of time as using `./tools/start_agent.sh`.
-The script kills any other gpg-agent and boots a new one (version 2.0), with the passphrase preset for the EGA gpg-key.
-You should not forget to source the created `[GNUPGHOME]/agent.env` so that the workers find the gpg-agent.
-Note: This will be unnecessary with version `2.1`
-
-## A simple alternative
-
-An alternative to running the above scripts is to use the script
-`tools/start_ega.sh`. It starts the necessary components of Local EGA:
-It connects (a fake) CentralEGA to LocalEGA, for both file ingestion
-and user account creation; it starts the frontend, the other
-components including 2 workers (which know how to contact the
-pre-configured gpg-agent).
-
-A trap is added so that `Ctrl-C` kills all the background processes that
-the script started.
-
+Alternative: use [docker-compose](./docker)
 
