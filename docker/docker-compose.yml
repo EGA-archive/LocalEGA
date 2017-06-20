@@ -1,0 +1,167 @@
+version: '3.1'
+
+services:
+
+  # Message Broker
+  # The settings in the docker container define
+  # the vhosts, users, permissions, queues, exchanges and bindings
+  mq:
+    #env_file: ./details/mq.env
+    build: ./mq
+    hostname: ega-mq
+    ports:
+      - "4369:4369"
+      - "5671:5671"
+      - "5672:5672"
+      - "15671:15671"
+      - "15672:15672"
+      - "25672:25672"
+    image: ega-mq
+    container_name: ega-mq
+
+  # Postgres Database
+  db:
+    env_file: ./details/db.env
+    build: ./db
+    hostname: ega-db
+    ports:
+      - "5432:5432"
+    container_name: ega-db
+    image: ega-db
+
+  # SFTP inbox
+  inbox:
+    env_file: ./details/inbox.env
+    build: ./inbox
+    hostname: ega-inbox
+    depends_on:
+      - db
+      - mq
+    ports:
+      - "2222:22"
+    container_name: ega-inbox
+    volumes:
+       - ${CODE}:/root/ega
+       - ${CONF}:/root/.lega/conf.ini:ro
+       - ${INBOX}:/home
+       - ./entrypoints/inbox.sh:/usr/local/bin/inbox.sh:ro
+    command: inbox.sh
+    image: ega-inbox
+
+  # ReST frontend
+  frontend:
+    build: ./ega
+    depends_on:
+      - db
+    hostname: ega-frontend
+    ports:
+      - "9000:9000"
+    expose:
+      - 9000
+    container_name: ega-frontend
+    image: ega-common
+    volumes:
+       - ${CODE}:/root/ega
+       - ${CONF}:/root/.lega/conf.ini:ro
+       - ./entrypoints/frontend.sh:/usr/local/bin/frontend.sh:ro
+    command: frontend.sh
+
+  # Vault
+  vault:
+    build: ./ega
+    depends_on:
+      - db
+      - mq
+    hostname: ega-vault
+    container_name: ega-vault
+    image: ega-common
+    volumes:
+       - ${CODE}:/root/ega
+       - ${CONF}:/root/.lega/conf.ini:ro
+       - ${VAULT}:/ega/vault
+       - ./entrypoints/vault.sh:/usr/local/bin/vault.sh:ro
+    command: vault.sh
+
+  # Verify
+  verify:
+    build: ./ega
+    depends_on:
+      - db
+      - mq
+    hostname: ega-verify
+    container_name: ega-verify
+    image: ega-common
+    volumes:
+       - ${CODE}:/root/ega
+       - ${CONF}:/root/.lega/conf.ini:ro
+       - ${VAULT}:/ega/vault
+       - ./entrypoints/verify.sh:/usr/local/bin/verify.sh:ro
+    command: verify.sh
+
+  # Connectors between CEGA and LEGA
+  connectors:
+    build: ./ega
+    depends_on:
+      - db
+      - mq
+    hostname: ega-connectors
+    container_name: ega-connectors
+    image: ega-common
+    volumes:
+       - ${CODE}:/root/ega
+       - ${CONF}:/root/.lega/conf.ini:ro
+       - ./entrypoints/connectors.sh:/usr/local/bin/connectors.sh:ro
+    command: connectors.sh
+
+  # Error Monitors
+  monitors:
+    build: ./ega
+    depends_on:
+      - db
+    hostname: ega-monitors
+    container_name: ega-monitors
+    image: ega-common
+    volumes:
+       - ${CODE}:/root/ega
+       - ${CONF}:/root/.lega/conf.ini:ro
+       - ./entrypoints/monitors.sh:/usr/local/bin/monitors.sh:ro
+    command: monitors.sh
+
+  # Workers
+  worker-1:
+    build: ./ega
+    env_file: ./details/gpg.env
+    depends_on:
+      - db
+      - mq
+    hostname: ega-worker-1
+    container_name: ega-worker-1
+    image: ega-common
+    volumes:
+       - ${CODE}:/root/ega
+       - ${CONF}:/root/.lega/conf.ini:ro
+       - ${INBOX}:/home
+       - ${STAGING}:/ega/staging
+       - ${GNUPGHOME}:/root/.gnupg:rw
+       - ${RSAHOME}:/root/.rsa:rw
+       - ./entrypoints/worker.sh:/usr/local/bin/worker.sh:ro
+    command: worker.sh
+
+  worker-2:
+    build: ./ega
+    env_file: ./details/gpg.env
+    depends_on:
+      - db
+      - mq
+    hostname: ega-worker-2
+    container_name: ega-worker-2
+    image: ega-common
+    volumes:
+       - ${CODE}:/root/ega
+       - ${CONF}:/root/.lega/conf.ini:ro
+       - ${INBOX}:/home
+       - ${STAGING}:/ega/staging
+       - ${GNUPGHOME}:/root/.gnupg:rw
+       - ${RSAHOME}:/root/.rsa:rw
+       - ./entrypoints/worker.sh:/usr/local/bin/worker.sh:ro
+    command: worker.sh
