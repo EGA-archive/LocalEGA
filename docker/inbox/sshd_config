@@ -20,8 +20,12 @@ PermitTunnel no
 # Force sftp and chroot jail
 UsePrivilegeSeparation sandbox
 Subsystem sftp internal-sftp
-ChrootDirectory %h
-ForceCommand internal-sftp # -d inbox
+
+# Force sftp and chroot jail (for all but root)
+MATCH USER *,!root
+  ChrootDirectory %h
+  # -d (remote start directory relative user root)
+  ForceCommand internal-sftp -d /inbox
 
 # Fixing path for authorized keys,
 # due to root ownership on user's home folder
