@@ -20,12 +20,12 @@ Moreover, some of the containers need extra variables. There are located in:
 ```
 PASSPHRASE=<something-complex>
 ```
-* .env.d/db.env
+* `.env.d/db.env`
 ```
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=<some-password>
 ```
-* .env.d/inbox.env
+* `.env.d/inbox.env`
 ```
 SSH_KEY=<your-key-to-login-onto-the-sftp-server>
 ```

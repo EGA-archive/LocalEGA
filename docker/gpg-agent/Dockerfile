@@ -93,6 +93,16 @@ RUN wget -c ftp://ftp.eu.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-${OPEN
     pushd openssh-${OPENSSH_VERSION} && ./configure && make && make install && popd
 
 ##############################################################
+
+# Regenerate keys (no passphrase)
+RUN ssh-keygen -t rsa     -N '' -f /etc/ssh/ssh_host_rsa_key
+RUN ssh-keygen -t dsa     -N '' -f /etc/ssh/ssh_host_dsa_key
+RUN ssh-keygen -t ecdsa   -N '' -f /etc/ssh/ssh_host_ecdsa_key
+RUN ssh-keygen -t ed25519 -N '' -f /etc/ssh/ssh_host_ed25519_key
+
+COPY sshd_config /etc/ssh/sshd_config
+EXPOSE 22
+
 # Cleaning the previous gpg keys
 RUN rm -rf /root/.gnupg && \
     mkdir -p /root/.gnupg && \
@@ -101,15 +111,6 @@ RUN rm -rf /root/.gnupg && \
 WORKDIR /root/.gnupg
 COPY gpg.conf .
 COPY gpg-agent.conf .
-
-COPY sshd_config /etc/ssh/sshd_config
-EXPOSE 22
-
-# Regenerate keys (no passphrase)
-RUN ssh-keygen -t rsa     -N '' -f /etc/ssh/ssh_host_rsa_key
-RUN ssh-keygen -t dsa     -N '' -f /etc/ssh/ssh_host_dsa_key
-RUN ssh-keygen -t ecdsa   -N '' -f /etc/ssh/ssh_host_ecdsa_key
-RUN ssh-keygen -t ed25519 -N '' -f /etc/ssh/ssh_host_ed25519_key
 
 ##############################################################
 # Cleanup

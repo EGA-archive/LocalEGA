@@ -135,7 +135,7 @@ services:
     container_name: ega-gpg-agent
     image: ega-gpg-agent
     volumes:
-       - ${GPG_PUBRING}:/root/.gnupg/pubring.kbx:rw
+       - ${GPG_HOME}:/root/.gnupg:rw
        - ./entrypoints/gpgtunnel.sh:/usr/local/bin/gpgtunnel.sh:ro
     command: gpgtunnel.sh
 
