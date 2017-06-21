@@ -3,5 +3,5 @@
 set -e
 
 pip install -e /root/ega
-sleep 6
+while ! nc -4 --send-only ega-mq 5672 </dev/null &>/dev/null; do sleep 1; done
 exec ega-verify

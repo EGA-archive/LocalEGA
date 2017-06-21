@@ -18,7 +18,9 @@ set -e
 # gpg2 --batch --generate-key /tmp/ega
 # rm -f /tmp/ega
 
-pkill gpg-agent
+chmod 700 /root/.gnupg
+
+pkill gpg-agent || true
 # Start the GPG Agent in /root/.gnupg
 /usr/local/bin/gpg-agent --daemon
 
@@ -28,4 +30,4 @@ KEYGRIP=$(gpg2 --fingerprint --fingerprint ega@nbis.se | grep fingerprint | tail
 
 unset PASSPHRASE
 
-while true; do echo "Busy"; sleep 5; done
+while gpg-connect-agent /bye; do sleep 2; done

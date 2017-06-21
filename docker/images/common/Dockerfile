@@ -2,7 +2,7 @@ FROM centos:latest
 MAINTAINER Frédéric Haziza, NBIS
 
 RUN yum -y update
-RUN yum -y install gcc git curl make zlib-devel bzip2 bzip2-devel readline-devel sqlite sqlite-devel openssl openssl-devel openssh-server nss-tools
+RUN yum -y install gcc git curl make zlib-devel bzip2 bzip2-devel readline-devel sqlite sqlite-devel openssl openssl-devel openssh-server nss-tools nc
 
 ##################################
 # For Python 3.6.1, using PyEnv

@@ -4,7 +4,7 @@ set -e
 
 pip install -e /root/ega
 
-# sleep 6
+while ! nc -4 --send-only ega-db 5432 </dev/null &>/dev/null; do sleep 1; done
 # ega-monitor --sys &
 # ega-monitor --user &
 

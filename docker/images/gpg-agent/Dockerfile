@@ -116,3 +116,4 @@ COPY gpg-agent.conf .
 # Cleanup
 RUN rm -rf /var/src/{gnupg,openssh}
 WORKDIR /
+

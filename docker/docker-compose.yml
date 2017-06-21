@@ -10,12 +10,12 @@ services:
     build: images/mq
     hostname: ega-mq
     ports:
-      - "4369:4369"
-      - "5671:5671"
       - "5672:5672"
-      - "15671:15671"
       - "15672:15672"
-      - "25672:25672"
+      # - "4369:4369"
+      # - "25672:25672"
+      # - "5671:5671"
+      # - "15671:15671"
     image: ega-mq
     container_name: ega-mq
 
@@ -134,10 +134,11 @@ services:
     hostname: ega-gpg-agent
     container_name: ega-gpg-agent
     image: ega-gpg-agent
+    tty: true
     volumes:
        - ${GPG_HOME}:/root/.gnupg:rw
        - ./entrypoints/gpgtunnel.sh:/usr/local/bin/gpgtunnel.sh:ro
-    command: gpgtunnel.sh
+    command: ["gpgtunnel.sh"]
 
   # Workers
   worker-1:
