@@ -6,7 +6,7 @@ services:
   # The settings in the docker container define
   # the vhosts, users, permissions, queues, exchanges and bindings
   mq:
-    #env_file: ./details/mq.env
+    #env_file: ./.env.d/mq.env
     build: ./mq
     hostname: ega-mq
     ports:
@@ -21,7 +21,7 @@ services:
 
   # Postgres Database
   db:
-    env_file: ./details/db.env
+    env_file: ./.env.d/db.env
     build: ./db
     hostname: ega-db
     ports:
@@ -31,7 +31,7 @@ services:
 
   # SFTP inbox
   inbox:
-    env_file: ./details/inbox.env
+    env_file: ./.env.d/inbox.env
     build: ./inbox
     hostname: ega-inbox
     depends_on:
@@ -130,7 +130,6 @@ services:
   # Workers
   worker-1:
     build: ./ega
-    env_file: ./details/gpg.env
     depends_on:
       - db
       - mq
@@ -142,14 +141,12 @@ services:
        - ${CONF}:/root/.lega/conf.ini:ro
        - ${INBOX}:/home
        - ${STAGING}:/ega/staging
-       - ${GNUPGHOME}:/root/.gnupg:rw
-       - ${RSAHOME}:/root/.rsa:rw
+       - ${GPG_HOME}/pubring.gpg:/root/.gnupg/pubring.gpg:rw
        - ./entrypoints/worker.sh:/usr/local/bin/worker.sh:ro
     command: worker.sh
 
   worker-2:
     build: ./ega
-    env_file: ./details/gpg.env
     depends_on:
       - db
       - mq
@@ -161,7 +158,17 @@ services:
        - ${CONF}:/root/.lega/conf.ini:ro
        - ${INBOX}:/home
        - ${STAGING}:/ega/staging
-       - ${GNUPGHOME}:/root/.gnupg:rw
-       - ${RSAHOME}:/root/.rsa:rw
+       - ${GPG_HOME}/pubring.gpg:/root/.gnupg/pubring.gpg:rw
        - ./entrypoints/worker.sh:/usr/local/bin/worker.sh:ro
     command: worker.sh
+
+  # GPG Agent
+  gpg-agent:
+    build: ./gpg-agent
+    env_file: ./.env.d/gpg.env
+    hostname: gpg-agent
+    container_name: ega-gpg
+    image: ega-gpg-agent
+    volumes:
+       - ./entrypoints/gpgtunnel.sh:/usr/local/bin/gpgtunnel.sh:ro
+    command: gpgtunnel.sh

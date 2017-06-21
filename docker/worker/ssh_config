@@ -1,0 +1,3 @@
+Host ega-gpgtunnel
+     HostName ega-gpgtunnel
+     RemoteForward /root/.gnupg/S.gpg-agent.ssh /root/.gnupg/S.gpg-agent.extra

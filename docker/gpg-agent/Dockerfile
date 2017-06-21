@@ -6,23 +6,28 @@ RUN yum -y update && \
     	   	   zlib-devel bzip2 bzip2-devel \
 		   readline-devel \
 		   openssl openssl-devel openssh-server \
-		   nss-tools
+		   nss-tools file
 
-ENV LIBGPG_ERROR_VERSION 1.27
-ENV LIBGCRYPT_VERSION 1.7.6
-ENV LIBASSUAN_VERSION 2.4.3
-ENV LIBKSBA_VERSION 1.3.5
-ENV LIBNPTH_VERSION 1.3
-ENV NCURSES_VERSION 6.0
-ENV PINENTRY_VERSION 1.0.0
-ENV GNUPG_VERSION 2.1.20
+ARG LIBGPG_ERROR_VERSION=1.27
+ARG LIBGCRYPT_VERSION=1.7.6
+ARG LIBASSUAN_VERSION=2.4.3
+ARG LIBKSBA_VERSION=1.3.5
+ARG LIBNPTH_VERSION=1.3
+ARG NCURSES_VERSION=6.0
+ARG PINENTRY_VERSION=1.0.0
+ARG GNUPG_VERSION=2.1.20
+ARG OPENSSH_VERSION=7.5p1
+
+RUN mkdir -p /var/src/{gnupg,openssh} && \
+    mkdir -p /root/.gnupg && \
+    chmod 700 /root/.gnupg
+
+##############################################################
+WORKDIR /var/src/gnupg
 
 # Setup
-RUN mkdir -p /var/src/gnupg21 && \
-    gpg --list-keys && \
-    gpg --recv-keys 0x4F25E3B6 0xE0856959 0x33BD3F06 0x7EFD60D9 0xF7E48EDB
-
-WORKDIR /var/src/gnupg21
+RUN gpg --list-keys && \
+    gpg --keyserver pgp.mit.edu --recv-keys 0x4F25E3B6 0xE0856959 0x33BD3F06 0x7EFD60D9 0xF7E48EDB
 
 # Install libgpg-error
 RUN wget -c ftp://ftp.gnupg.org/gcrypt/libgpg-error/libgpg-error-${LIBGPG_ERROR_VERSION}.tar.gz && \
@@ -76,16 +81,31 @@ RUN wget -c ftp://ftp.gnupg.org/gcrypt/gnupg/gnupg-${GNUPG_VERSION}.tar.bz2 && \
 RUN echo "/usr/local/lib" > /etc/ld.so.conf.d/gpg2.conf && \
     ldconfig -v
 
-RUN mkdir -p /root/.gnupg
-WORKDIR /root/.gnupg
-# RUN rm -rf /var/src/gnupg21
+##############################################################
+WORKDIR /var/src/openssh
 
-COPY gpg.conf gpg.conf
-COPY gpg-agent.conf gpg-agent.conf
+RUN gpg --keyserver pgp.mit.edu --recv-keys 0x6D920D30
+# Damien Miller <djm@mindrot.org>
+
+RUN wget -c ftp://ftp.eu.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-${OPENSSH_VERSION}.tar.gz && \
+    wget -c ftp://ftp.eu.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-${OPENSSH_VERSION}.tar.gz.asc && \
+    gpg --verify openssh-${OPENSSH_VERSION}.tar.gz.asc && tar -xzf openssh-${OPENSSH_VERSION}.tar.gz && \
+    pushd openssh-${OPENSSH_VERSION} && ./configure && make && make install && popd
+
+##############################################################
+RUN rm -rf /root/.gnupg && \
+    mkdir -p /root/.gnupg && \
+    chmod 700 /root/.gnupg
+
+WORKDIR /root/.gnupg
+
+COPY gpg.conf .
+COPY gpg-agent.conf .
 
 COPY sshd_config /etc/ssh/sshd_config
 EXPOSE 22
 
+##############################################################
+# Cleanup
+RUN rm -rf /var/src/{gnupg,openssh}
 WORKDIR /
-CMD sleep 360000
-

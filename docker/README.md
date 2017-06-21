@@ -11,22 +11,21 @@ It is necessary to first create a `.env` file with the following variables:
 	INBOX=<its-location>
 	STAGING=<its-location>
 	VAULT=<its-location>
-	GNUPGHOME=<its-location>
-	RSAHOME=<its-location>
+	GPG_HOME=<its-location>
+	RSA_HOME=<its-location>
 	
 
 Moreover, some of the containers need extra variables. There are located in:
-* `details/gpg.env` with
+* `.env.d/gpg.env` with
 ```
-GNUPGHOME=/root/.gnupg # resetting the global env
 PASSPHRASE=<something-complex>
 ```
-* details/db.env
+* .env.d/db.env
 ```
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=<some-password>
 ```
-* details/inbox.env
+* .env.d/inbox.env
 ```
 SSH_KEY=<your-key-to-login-onto-the-sftp-server>
 ```
