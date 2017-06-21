@@ -50,7 +50,7 @@ services:
 
   # ReST frontend
   frontend:
-    build: ./ega
+    build: ./common
     depends_on:
       - db
     hostname: ega-frontend
@@ -68,7 +68,7 @@ services:
 
   # Vault
   vault:
-    build: ./ega
+    build: ./common
     depends_on:
       - db
       - mq
@@ -84,7 +84,7 @@ services:
 
   # Verify
   verify:
-    build: ./ega
+    build: ./common
     depends_on:
       - db
       - mq
@@ -100,7 +100,7 @@ services:
 
   # Connectors between CEGA and LEGA
   connectors:
-    build: ./ega
+    build: ./common
     depends_on:
       - db
       - mq
@@ -115,7 +115,7 @@ services:
 
   # Error Monitors
   monitors:
-    build: ./ega
+    build: ./common
     depends_on:
       - db
     hostname: ega-monitors
@@ -127,48 +127,52 @@ services:
        - ./entrypoints/monitors.sh:/usr/local/bin/monitors.sh:ro
     command: monitors.sh
 
-  # Workers
-  worker-1:
-    build: ./ega
-    depends_on:
-      - db
-      - mq
-    hostname: ega-worker-1
-    container_name: ega-worker-1
-    image: ega-common
-    volumes:
-       - ${CODE}:/root/ega
-       - ${CONF}:/root/.lega/conf.ini:ro
-       - ${INBOX}:/home
-       - ${STAGING}:/ega/staging
-       - ${GPG_HOME}/pubring.gpg:/root/.gnupg/pubring.gpg:rw
-       - ./entrypoints/worker.sh:/usr/local/bin/worker.sh:ro
-    command: worker.sh
-
-  worker-2:
-    build: ./ega
-    depends_on:
-      - db
-      - mq
-    hostname: ega-worker-2
-    container_name: ega-worker-2
-    image: ega-common
-    volumes:
-       - ${CODE}:/root/ega
-       - ${CONF}:/root/.lega/conf.ini:ro
-       - ${INBOX}:/home
-       - ${STAGING}:/ega/staging
-       - ${GPG_HOME}/pubring.gpg:/root/.gnupg/pubring.gpg:rw
-       - ./entrypoints/worker.sh:/usr/local/bin/worker.sh:ro
-    command: worker.sh
-
   # GPG Agent
   gpg-agent:
     build: ./gpg-agent
     env_file: ./.env.d/gpg.env
-    hostname: gpg-agent
-    container_name: ega-gpg
+    hostname: ega-gpg-agent
+    container_name: ega-gpg-agent
     image: ega-gpg-agent
     volumes:
+       - ${GPG_PUBRING}:/root/.gnupg/pubring.kbx:rw
        - ./entrypoints/gpgtunnel.sh:/usr/local/bin/gpgtunnel.sh:ro
     command: gpgtunnel.sh
+
+  # Workers
+  worker-1:
+    build: ./worker
+    depends_on:
+      - db
+      - mq
+      - gpg-agent
+    hostname: ega-worker-1
+    container_name: ega-worker-1
+    image: ega-worker
+    volumes:
+       - ${CODE}:/root/ega
+       - ${CONF}:/root/.lega/conf.ini:ro
+       - ${INBOX}:/home
+       - ${STAGING}:/ega/staging
+       - ${GPG_PUBRING}:/root/.gnupg/pubring.kbx:ro
+       - ./entrypoints/worker.sh:/usr/local/bin/worker.sh:ro
+    command: worker.sh
+
+  worker-2:
+    build: ./worker
+    depends_on:
+      - db
+      - mq
+      - gpg-agent
+    hostname: ega-worker-2
+    container_name: ega-worker-2
+    image: ega-worker
+    volumes:
+       - ${CODE}:/root/ega
+       - ${CONF}:/root/.lega/conf.ini:ro
+       - ${INBOX}:/home
+       - ${STAGING}:/ega/staging
+       - ${GPG_PUBRING}:/root/.gnupg/pubring.kbx:ro
+       - ./entrypoints/worker.sh:/usr/local/bin/worker.sh:ro
+    command: worker.sh
+

@@ -93,12 +93,16 @@ RUN wget -c ftp://ftp.eu.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-${OPEN
     pushd openssh-${OPENSSH_VERSION} && ./configure && make && make install && popd
 
 ##############################################################
-WORKDIR /root/.gnupg
+# Cleaning the previous gpg keys
+RUN rm -rf /root/.gnupg && \
+    mkdir -p /root/.gnupg && \
+    chmod 700 /root/.gnupg
 
-COPY gpg.conf gpg.conf
-COPY gpg-agent.conf gpg-agent.conf
-#COPY pubring.gpg /root/.gnupg/.
-#COPY ssh_config /root/.ssh/config
+WORKDIR /root/.gnupg
+COPY gpg.conf .
+COPY gpg-agent.conf .
+
+COPY ssh_config /root/.ssh/config
 
 ##############################################################
 # Cleanup
