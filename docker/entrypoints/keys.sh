@@ -2,6 +2,9 @@
 
 set -e
 
+cat /root/.ssh/ega.pub >> /root/.ssh/authorized_keys && \
+chmod 600 /root/.ssh/authorized_keys
+
 # cat > /tmp/ega <<EOF
 # %echo Generating a basic OpenPGP key
 # Key-Type: RSA
@@ -10,7 +13,7 @@ set -e
 # Name-Comment: @NBIS
 # Name-Email: ega@nbis.se
 # Expire-Date: 0
-# Passphrase: ${PASSPHRASE}
+# Passphrase: ${GPG_PASSPHRASE}
 # # Do a commit here, so that we can later print "done" :-)
 # %commit
 # %echo done
@@ -26,8 +29,10 @@ pkill gpg-agent || true
 
 KEYGRIP=$(gpg2 --fingerprint --fingerprint ega@nbis.se | grep fingerprint | tail -1 | cut -d= -f2 | sed -e 's/ //g')
 
-/usr/local/libexec/gpg-preset-passphrase --preset -P $PASSPHRASE $KEYGRIP
+/usr/local/libexec/gpg-preset-passphrase --preset -P $GPG_PASSPHRASE $KEYGRIP
 
-unset PASSPHRASE
+unset GPG_PASSPHRASE
 
-while gpg-connect-agent /bye; do sleep 2; done
+#while gpg-connect-agent /bye; do sleep 2; done
+# Absolute path to version 7.5
+exec /usr/local/sbin/sshd -4 -D -e

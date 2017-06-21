@@ -12,8 +12,15 @@ HostKey /etc/ssh/ssh_host_ed25519_key
 UseDNS no
 
 # Limited access
-PermitRootLogin yes
+PermitRootLogin no
 X11Forwarding no
-AllowTcpForwarding yes
-PermitTunnel yes
-StreamLocalBindUnlink yes
+
+# Force command
+MATCH Host ega-worker-*
+  ForceCommand /usr/local/bin/remote-gpg.sh
+  PermitRootLogin yes
+  AllowTcpForwarding yes
+  PermitTunnel yes
+  StreamLocalBindUnlink yes
+  # Killing stale sockets
+  AllowStreamLocalForwarding yes

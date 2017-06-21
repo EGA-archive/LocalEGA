@@ -111,7 +111,7 @@ services:
        - ${CODE}:/root/ega
        - ${CONF}:/root/.lega/conf.ini:ro
        - ./entrypoints/connectors.sh:/usr/local/bin/connectors.sh:ro
-    command: connectors.sh
+    command: ["connectors.sh"]
 
   # Error Monitors
   monitors:
@@ -128,17 +128,20 @@ services:
     command: monitors.sh
 
   # GPG Agent
-  gpg-agent:
-    build: images/gpg-agent
-    env_file: ./.env.d/gpg.env
-    hostname: ega-gpg-agent
-    container_name: ega-gpg-agent
-    image: ega-gpg-agent
+  keys:
+    build: images/keys
+    env_file: ./.env.d/keys.env
+    hostname: ega-keys
+    container_name: ega-keys
+    image: ega-keys
     tty: true
     volumes:
        - ${GPG_HOME}:/root/.gnupg:rw
-       - ./entrypoints/gpgtunnel.sh:/usr/local/bin/gpgtunnel.sh:ro
-    command: ["gpgtunnel.sh"]
+       - ${RSA_HOME}:/root/.rsa:ro
+       - ${SSH_PUB_KEY}:/root/.ssh/ega.pub:ro
+       - ${SSH_PRIV_KEY}:/root/.ssh/ega:ro
+       - ./entrypoints/keys.sh:/usr/local/bin/keys.sh:ro
+    command: ["keys.sh"]
 
   # Workers
   worker-1:
@@ -146,7 +149,7 @@ services:
     depends_on:
       - db
       - mq
-      - gpg-agent
+      - keys
     hostname: ega-worker-1
     container_name: ega-worker-1
     image: ega-worker
@@ -156,7 +159,8 @@ services:
        - ${INBOX}:/home
        - ${STAGING}:/ega/staging
        - ${GPG_PUBRING}:/root/.gnupg/pubring.kbx:ro
-       - ${RSA_HOME}:/root/.rsa:ro
+       - ${SSH_PUB_KEY}:/root/.ssh/ega.pub:ro
+       - ${SSH_PRIV_KEY}:/root/.ssh/ega:ro
        - ./entrypoints/worker.sh:/usr/local/bin/worker.sh:ro
     command: worker.sh
 
@@ -165,7 +169,7 @@ services:
     depends_on:
       - db
       - mq
-      - gpg-agent
+      - keys
     hostname: ega-worker-2
     container_name: ega-worker-2
     image: ega-worker
@@ -175,7 +179,8 @@ services:
        - ${INBOX}:/home
        - ${STAGING}:/ega/staging
        - ${GPG_PUBRING}:/root/.gnupg/pubring.kbx:ro
-       - ${RSA_HOME}:/root/.rsa:ro
+       - ${SSH_PUB_KEY}:/root/.ssh/ega.pub:ro
+       - ${SSH_PRIV_KEY}:/root/.ssh/ega:ro
        - ./entrypoints/worker.sh:/usr/local/bin/worker.sh:ro
     command: worker.sh
 

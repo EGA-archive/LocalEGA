@@ -1,0 +1,6 @@
+Host ega-worker-*
+     IdentityFile /root/.ssh/ega
+     VisualHostKey no
+     ControlPath none
+     ExitOnForwardFailure yes
+     RemoteForward /root/.gnupg/S.gpg-agent.extra /root/.gnupg/S.gpg-agent.ssh

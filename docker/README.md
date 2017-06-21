@@ -19,7 +19,7 @@ It is necessary to first create a `.env` file with the following variables:
 Moreover, some of the containers need extra variables. There are located in:
 * `.env.d/gpg.env` with
 ```
-PASSPHRASE=<something-complex>
+GPG_PASSPHRASE=<something-complex>
 ```
 * `.env.d/db.env`
 ```
