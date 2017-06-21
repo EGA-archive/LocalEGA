@@ -8,11 +8,11 @@ It is necessary to first create a `.env` file with the following variables:
 	COMPOSE_PROJECT_NAME=ega
 	CODE=..
 	CONF=<your-conf.ini-file>
-	INBOX=<its-location>
-	STAGING=<its-location>
-	VAULT=<its-location>
-	GPG_HOME=<its-location>
-	RSA_HOME=<its-location>
+	INBOX=<folder> # mapped to /home on the ega-inbox
+	STAGING=<folder> # mapped to /ega/staging on the ega-workers
+	VAULT=<folder> # mapped to /ega/vault on the ega-vault and ega-verify>
+	RSA_HOME=<folder> # mapped to /root/.rsa on the ega-workers
+	GPG_PUBRING=<gpg-pubring> # mapped to /root/.gnupg/pubring.kbx on the ega-gpg-agent and ega-workers
 	
 
 Moreover, some of the containers need extra variables. There are located in:
