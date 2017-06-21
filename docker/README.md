@@ -14,21 +14,19 @@ It is necessary to first create a `.env` file with the following variables:
 	RSA_HOME=<folder>         # mapped to /root/.rsa on the ega-workers
 	GPG_HOME=<folder>         # mapped to /root/.gnupg on the ega-gpg-agent
 	GPG_PUBRING=<gpg-pubring> # mapped to /root/.gnupg/pubring.kbx on the ega-gpg-agent and ega-workers
+	SSH_PUB_KEY=<ssh-key.pub> # mapped to /root/.ssh/ega.pub
+	SSH_PRIV_KEY=<ssh-key>    # mapped to /root/.ssh/ega
 
 
 Moreover, some of the containers need extra variables. There are located in:
-* `.env.d/gpg.env` with
+* `.env.d/gpg` with
 ```
 GPG_PASSPHRASE=<something-complex>
 ```
-* `.env.d/db.env`
+* `.env.d/db`
 ```
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=<some-password>
-```
-* `.env.d/inbox.env`
-```
-SSH_KEY=<your-key-to-login-onto-the-sftp-server>
 ```
 
 ## Running

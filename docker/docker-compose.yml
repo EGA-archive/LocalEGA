@@ -6,7 +6,7 @@ services:
   # The settings in the docker container define
   # the vhosts, users, permissions, queues, exchanges and bindings
   mq:
-    #env_file: ./.env.d/mq.env
+    #env_file: .env.d/mq
     build: images/mq
     hostname: ega-mq
     ports:
@@ -21,7 +21,7 @@ services:
 
   # Postgres Database
   db:
-    env_file: ./.env.d/db.env
+    env_file: .env.d/db
     build: images/db
     hostname: ega-db
     ports:
@@ -31,7 +31,7 @@ services:
 
   # SFTP inbox
   inbox:
-    env_file: ./.env.d/inbox.env
+    #env_file: .env.d/inbox
     build: images/inbox
     hostname: ega-inbox
     depends_on:
@@ -44,7 +44,7 @@ services:
        - ${CODE}:/root/ega
        - ${CONF}:/root/.lega/conf.ini:ro
        - ${INBOX}:/home
-       - ./entrypoints/inbox.sh:/usr/local/bin/inbox.sh:ro
+       - entrypoints/inbox.sh:/usr/local/bin/inbox.sh:ro
     command: inbox.sh
     image: ega-inbox
 
@@ -63,7 +63,7 @@ services:
     volumes:
        - ${CODE}:/root/ega
        - ${CONF}:/root/.lega/conf.ini:ro
-       - ./entrypoints/frontend.sh:/usr/local/bin/frontend.sh:ro
+       - entrypoints/frontend.sh:/usr/local/bin/frontend.sh:ro
     command: frontend.sh
 
   # Vault
@@ -79,7 +79,7 @@ services:
        - ${CODE}:/root/ega
        - ${CONF}:/root/.lega/conf.ini:ro
        - ${VAULT}:/ega/vault
-       - ./entrypoints/vault.sh:/usr/local/bin/vault.sh:ro
+       - entrypoints/vault.sh:/usr/local/bin/vault.sh:ro
     command: vault.sh
 
   # Verify
@@ -95,7 +95,7 @@ services:
        - ${CODE}:/root/ega
        - ${CONF}:/root/.lega/conf.ini:ro
        - ${VAULT}:/ega/vault
-       - ./entrypoints/verify.sh:/usr/local/bin/verify.sh:ro
+       - entrypoints/verify.sh:/usr/local/bin/verify.sh:ro
     command: verify.sh
 
   # Connectors between CEGA and LEGA
@@ -110,7 +110,7 @@ services:
     volumes:
        - ${CODE}:/root/ega
        - ${CONF}:/root/.lega/conf.ini:ro
-       - ./entrypoints/connectors.sh:/usr/local/bin/connectors.sh:ro
+       - entrypoints/connectors.sh:/usr/local/bin/connectors.sh:ro
     command: ["connectors.sh"]
 
   # Error Monitors
@@ -124,13 +124,13 @@ services:
     volumes:
        - ${CODE}:/root/ega
        - ${CONF}:/root/.lega/conf.ini:ro
-       - ./entrypoints/monitors.sh:/usr/local/bin/monitors.sh:ro
+       - entrypoints/monitors.sh:/usr/local/bin/monitors.sh:ro
     command: monitors.sh
 
   # GPG Agent
   keys:
     build: images/keys
-    env_file: ./.env.d/keys.env
+    env_file: .env.d/gpg
     hostname: ega-keys
     container_name: ega-keys
     image: ega-keys
@@ -140,7 +140,7 @@ services:
        - ${RSA_HOME}:/root/.rsa:ro
        - ${SSH_PUB_KEY}:/root/.ssh/ega.pub:ro
        - ${SSH_PRIV_KEY}:/root/.ssh/ega:ro
-       - ./entrypoints/keys.sh:/usr/local/bin/keys.sh:ro
+       - entrypoints/keys.sh:/usr/local/bin/keys.sh:ro
     command: ["keys.sh"]
 
   # Workers
@@ -161,7 +161,7 @@ services:
        - ${GPG_PUBRING}:/root/.gnupg/pubring.kbx:ro
        - ${SSH_PUB_KEY}:/root/.ssh/ega.pub:ro
        - ${SSH_PRIV_KEY}:/root/.ssh/ega:ro
-       - ./entrypoints/worker.sh:/usr/local/bin/worker.sh:ro
+       - entrypoints/worker.sh:/usr/local/bin/worker.sh:ro
     command: worker.sh
 
   worker-2:
@@ -181,6 +181,6 @@ services:
        - ${GPG_PUBRING}:/root/.gnupg/pubring.kbx:ro
        - ${SSH_PUB_KEY}:/root/.ssh/ega.pub:ro
        - ${SSH_PRIV_KEY}:/root/.ssh/ega:ro
-       - ./entrypoints/worker.sh:/usr/local/bin/worker.sh:ro
+       - entrypoints/worker.sh:/usr/local/bin/worker.sh:ro
     command: worker.sh
 
