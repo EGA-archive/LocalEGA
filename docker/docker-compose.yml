@@ -7,7 +7,7 @@ services:
   # the vhosts, users, permissions, queues, exchanges and bindings
   mq:
     #env_file: ./.env.d/mq.env
-    build: ./mq
+    build: images/mq
     hostname: ega-mq
     ports:
       - "4369:4369"
@@ -22,7 +22,7 @@ services:
   # Postgres Database
   db:
     env_file: ./.env.d/db.env
-    build: ./db
+    build: images/db
     hostname: ega-db
     ports:
       - "5432:5432"
@@ -32,7 +32,7 @@ services:
   # SFTP inbox
   inbox:
     env_file: ./.env.d/inbox.env
-    build: ./inbox
+    build: images/inbox
     hostname: ega-inbox
     depends_on:
       - db
@@ -50,7 +50,7 @@ services:
 
   # ReST frontend
   frontend:
-    build: ./common
+    build: images/common
     depends_on:
       - db
     hostname: ega-frontend
@@ -68,7 +68,7 @@ services:
 
   # Vault
   vault:
-    build: ./common
+    build: images/common
     depends_on:
       - db
       - mq
@@ -84,7 +84,7 @@ services:
 
   # Verify
   verify:
-    build: ./common
+    build: images/common
     depends_on:
       - db
       - mq
@@ -100,7 +100,7 @@ services:
 
   # Connectors between CEGA and LEGA
   connectors:
-    build: ./common
+    build: images/common
     depends_on:
       - db
       - mq
@@ -115,7 +115,7 @@ services:
 
   # Error Monitors
   monitors:
-    build: ./common
+    build: images/common
     depends_on:
       - db
     hostname: ega-monitors
@@ -129,7 +129,7 @@ services:
 
   # GPG Agent
   gpg-agent:
-    build: ./gpg-agent
+    build: images/gpg-agent
     env_file: ./.env.d/gpg.env
     hostname: ega-gpg-agent
     container_name: ega-gpg-agent
@@ -141,7 +141,7 @@ services:
 
   # Workers
   worker-1:
-    build: ./worker
+    build: images/worker
     depends_on:
       - db
       - mq
@@ -160,7 +160,7 @@ services:
     command: worker.sh
 
   worker-2:
-    build: ./worker
+    build: images/worker
     depends_on:
       - db
       - mq
