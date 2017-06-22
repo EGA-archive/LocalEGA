@@ -34,8 +34,7 @@ POSTGRES_PASSWORD=<some-password>
 	docker-compose up -d
 	
 If the images are not created, they will be. <br/>
-Create them beforehand with `docker-compose build`, if you wish.<br/>
-It takes some time.
+However, it is advised to [create them](images) beforehand.
 
 ## Stopping
 

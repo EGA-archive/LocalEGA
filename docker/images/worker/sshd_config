@@ -15,12 +15,3 @@ UseDNS no
 PermitRootLogin without-password
 PasswordAuthentication no
 X11Forwarding no
-
-# Force command
-MATCH Host ega-worker-*
-  ForceCommand /usr/local/bin/remote-gpg.sh
-  AllowTcpForwarding yes
-  PermitTunnel yes
-  # Killing stale sockets
-  AllowStreamLocalForwarding yes
-  StreamLocalBindUnlink yes

@@ -1,5 +1,5 @@
-FROM ega-common:latest
-MAINTAINER Frédéric Haziza, NBIS
+FROM ega:common
+LABEL maintainer "Frédéric Haziza, NBIS"
 
 # Clean from ega-common
 RUN rm -rf /ega/{vault,staging}

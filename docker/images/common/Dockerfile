@@ -1,5 +1,5 @@
 FROM centos:latest
-MAINTAINER Frédéric Haziza, NBIS
+LABEL maintainer "Frédéric Haziza, NBIS"
 
 RUN yum -y update
 RUN yum -y install gcc git curl make zlib-devel bzip2 bzip2-devel readline-devel sqlite sqlite-devel openssl openssl-devel openssh-server nss-tools nc
