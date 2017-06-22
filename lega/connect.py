@@ -49,8 +49,10 @@ def set_user_id(data):
     and updating the return user id into the message'''
 
     elixir_id = data['elixir_id']
+    password_hash = data.get('password_hash', None)
+    pubkey = data.get('pubkey',None)
     # Insert in database
-    user_id = db.insert_user(elixir_id)
+    user_id = db.insert_user(elixir_id, password_hash, pubkey)
     assert user_id is not None, 'Ouch...database problem!'
     LOG.debug(f'Created id {user_id} for user {elixir_id}')
     data['user_id'] = user_id

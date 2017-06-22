@@ -21,9 +21,9 @@ CREATE TABLE users (
 	elixir_id     TEXT NOT NULL UNIQUE,
 	password_hash TEXT,
 	pubkey        TEXT,
-	seckey        TEXT,
 	created_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT clock_timestamp(),
-	last_modified TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT clock_timestamp()
+	last_modified TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT clock_timestamp(),
+	CHECK (password_hash IS NOT NULL OR pubkey IS NOT NULL)
 );
 
 CREATE TABLE user_errors (
@@ -46,18 +46,12 @@ CREATE FUNCTION insert_user(elixir_id  users.elixir_id%TYPE)
     END;
 $insert_user$ LANGUAGE plpgsql;
 
-CREATE FUNCTION update_user(user_id     users.id%TYPE,
-       		    	    password    users.password_hash%TYPE,
-       		    	    public_key  users.pubkey%TYPE,
-       		    	    private_key users.seckey%TYPE)
+CREATE FUNCTION update_user(user_id       users.id%TYPE,
+       		    	    password_hash users.password_hash%TYPE,
+       		    	    public_key    users.pubkey%TYPE)
     RETURNS void AS $update_user$
     #variable_conflict use_column
-    DECLARE
-        salt TEXT;
-        pw TEXT;
     BEGIN
-	SELECT gen_salt('bf', 8) INTO salt;
-	SELECT crypt(password, salt) INTO pw;
 	UPDATE users SET password_hash = pw, pubkey = public_key, seckey = private_key, last_modified = DEFAULT
 	WHERE id = user_id;
     END;

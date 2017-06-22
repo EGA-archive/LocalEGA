@@ -135,21 +135,14 @@ def get_details(file_id):
             cur.execute(query, { 'file_id': file_id})
             return cur.fetchone()
 
-def insert_user(elixir_id):
+def insert_user(elixir_id, password_hash, pubkey):
     with connect() as conn:
         with conn.cursor() as cur:
-            cur.execute('SELECT insert_user(%(elixir_id)s);',{ 'elixir_id': elixir_id })
+            cur.execute('SELECT insert_user(%(eid)s,%(ph)s,%(pk)s);',
+                        { 'eid': elixir_id,
+                          'ph': password_hash,
+                          'pk': pubkey })
             return (cur.fetchone())[0]
-
-def update_user(user_id, password, pubkey, privkey):
-    with connect() as conn:
-        with conn.cursor() as cur:
-            cur.execute('SELECT update_user('
-                        '%(user_id)s,%(password)s,%(pubkey)s,%(privkey)s'
-                        ');',{ 'user_id': user_id,
-                               'password': password,
-                               'pubkey': pubkey,
-                               'privkey': privkey })
 
 def set_user_error(user_id, error):
     assert user_id, 'Eh? No user_id?'
