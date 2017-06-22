@@ -146,6 +146,7 @@ services:
        - ${GPG_PRIV_KEYS}:/root/.gnupg/private-keys-v1.d:ro
        - ${SSH_PUB_KEY}:/root/.ssh/ega.pub:ro
        - ${SSH_PRIV_KEY}:/root/.ssh/ega:ro
+       - ${RSA_HOME}:/root/.rsa:ro
        - ./entrypoints/worker.sh:/usr/local/bin/worker.sh:ro
     command: worker.sh
 
@@ -167,6 +168,7 @@ services:
        - ${GPG_PRIV_KEYS}:/root/.gnupg/private-keys-v1.d:ro
        - ${SSH_PUB_KEY}:/root/.ssh/ega.pub:ro
        - ${SSH_PRIV_KEY}:/root/.ssh/ega:ro
+       - ${RSA_HOME}:/root/.rsa:ro
        - ./entrypoints/worker.sh:/usr/local/bin/worker.sh:ro
     command: worker.sh
 
