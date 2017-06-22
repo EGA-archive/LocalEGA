@@ -13,7 +13,8 @@ It is necessary to first create a `.env` file with the following variables:
 	VAULT=<folder>            # mapped to /ega/vault on the ega-vault and ega-verify>
 	RSA_HOME=<folder>         # mapped to /root/.rsa on the ega-workers
 	GPG_HOME=<folder>         # mapped to /root/.gnupg on the ega-gpg-agent
-	GPG_PUBRING=<gpg-pubring> # mapped to /root/.gnupg/pubring.kbx on the ega-gpg-agent and ega-workers
+	GPG_PUBRING=<gpg-pubring> # mapped to /root/.gnupg/pubring.kbx on the ega-workers
+	GPG_PRIV_KEYS=<gpg-keys>  # mapped to /root/.gnupg/private-keys-v1.d on the ega-workers
 	SSH_PUB_KEY=<ssh-key.pub> # mapped to /root/.ssh/ega.pub
 	SSH_PRIV_KEY=<ssh-key>    # mapped to /root/.ssh/ega
 

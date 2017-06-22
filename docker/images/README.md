@@ -24,4 +24,3 @@ The following images are created locally:
 | ega | inbox  | SFTP server and Python 3.6.1 |
 | gpg | 2.1    | Upgrading to GnuPG 2.1.20 and OpenSSH 7.5 |
 | ega | worker | LocalEGA code with a GPG upgrade |
-| ega | keys   | GPG and SSH agents |

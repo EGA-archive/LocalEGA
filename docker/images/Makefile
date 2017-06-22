@@ -1,5 +1,5 @@
 
-EGA_IMAGES=common db inbox keys mq worker
+EGA_IMAGES=common db inbox mq worker
 
 NAMES=$(IMAGES:%=ega-%)
 

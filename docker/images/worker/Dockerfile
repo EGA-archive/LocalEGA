@@ -23,5 +23,3 @@ RUN pip install --upgrade pip && \
 ##############################################################
 COPY gpg.conf       /root/.gnupg/gpg.conf
 COPY gpg-agent.conf /root/.gnupg/gpg-agent.conf
-COPY ssh_config     /root/.ssh/config
-COPY sshd_config    /etc/ssh/sshd_config
