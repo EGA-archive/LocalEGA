@@ -40,13 +40,13 @@ services:
     ports:
       - "2222:22"
     container_name: ega-inbox
+    image: ega:inbox
     volumes:
        - ${CODE}:/root/ega
        - ${CONF}:/root/.lega/conf.ini:ro
        - ${INBOX}:/home
        - ./entrypoints/inbox.sh:/usr/local/bin/inbox.sh:ro
     command: inbox.sh
-    image: ega:inbox
 
   # ReST frontend
   frontend:

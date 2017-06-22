@@ -33,29 +33,21 @@ CREATE TABLE user_errors (
 	occured_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT clock_timestamp()
 );
 
-CREATE FUNCTION insert_user(elixir_id  users.elixir_id%TYPE)
+CREATE FUNCTION insert_user(elixir_id     users.elixir_id%TYPE,
+       		    	    password_hash users.password_hash%TYPE,
+       		    	    public_key    users.pubkey%TYPE)
+
     RETURNS users.id%TYPE AS $insert_user$
     #variable_conflict use_column
     DECLARE
         user_id users.id%TYPE;
     BEGIN
-	INSERT INTO users (elixir_id) VALUES(elixir_id)
+	INSERT INTO users (elixir_id,password_hash,pubkey) VALUES(elixir_id,password_hash,public_key)
 	ON CONFLICT (elixir_id) DO UPDATE SET last_modified = DEFAULT
 	RETURNING users.id INTO user_id;
 	RETURN user_id;
     END;
 $insert_user$ LANGUAGE plpgsql;
-
-CREATE FUNCTION update_user(user_id       users.id%TYPE,
-       		    	    password_hash users.password_hash%TYPE,
-       		    	    public_key    users.pubkey%TYPE)
-    RETURNS void AS $update_user$
-    #variable_conflict use_column
-    BEGIN
-	UPDATE users SET password_hash = pw, pubkey = public_key, seckey = private_key, last_modified = DEFAULT
-	WHERE id = user_id;
-    END;
-$update_user$ LANGUAGE plpgsql;
 
 CREATE FUNCTION insert_user_error(user_id    user_errors.user_id%TYPE,
                                   msg        user_errors.msg%TYPE)
