@@ -1,17 +1,17 @@
 #!/bin/bash
 
 set -e
+set -x
 
 pip install -e /root/ega
+
+chmod 700 /root/.gnupg
 
 pkill gpg-agent || true
 # Start the GPG Agent in /root/.gnupg
 /usr/local/bin/gpg-agent --daemon
 
-gpg2 --list-secret-keys
-chmod 700 /root/.gnupg/private-keys-v1.d
-
-KEYGRIP=$(gpg2 --fingerprint --fingerprint ega@nbis.se | grep fingerprint | tail -1 | cut -d= -f2 | sed -e 's/ //g')
+KEYGRIP=$(gpg2 -k --with-keygrip ega@nbis.se | awk '/Keygrip/{print $3;exit;}')
 /usr/local/libexec/gpg-preset-passphrase --preset -P $GPG_PASSPHRASE $KEYGRIP
 unset GPG_PASSPHRASE
 

@@ -138,16 +138,19 @@ services:
     container_name: ega-worker-1
     image: ega:worker
     tty: true
+    stdin_open: true
     volumes:
        - ${CODE}:/root/ega
        - ${CONF}:/root/.lega/conf.ini:ro
        - ${INBOX}:/home
        - ${STAGING}:/ega/staging
-       - ${GPG_PUBRING}:/root/.gnupg/pubring.kbx:ro
-       - ${GPG_PRIV_KEYS}:/root/.gnupg/private-keys-v1.d
        - ${SSH_PUB_KEY}:/root/.ssh/ega.pub:ro
        - ${SSH_PRIV_KEY}:/root/.ssh/ega:ro
        - ${RSA_HOME}:/root/.rsa:ro
+       - ${GPG_HOME}/openpgp-revocs.d:/root/.gnupg/openpgp-revocs.d
+       - ${GPG_HOME}/private-keys-v1.d:/root/.gnupg/private-keys-v1.d
+       - ${GPG_HOME}/pubring.kbx:/root/.gnupg/pubring.kbx
+       - ${GPG_HOME}/trustdb.gpg:/root/.gnupg/trustdb.gpg
        - ./entrypoints/worker.sh:/usr/local/bin/worker.sh:ro
     command: worker.sh
 
@@ -166,11 +169,13 @@ services:
        - ${CONF}:/root/.lega/conf.ini:ro
        - ${INBOX}:/home
        - ${STAGING}:/ega/staging
-       - ${GPG_PUBRING}:/root/.gnupg/pubring.kbx:ro
-       - ${GPG_PRIV_KEYS}:/root/.gnupg/private-keys-v1.d
        - ${SSH_PUB_KEY}:/root/.ssh/ega.pub:ro
        - ${SSH_PRIV_KEY}:/root/.ssh/ega:ro
        - ${RSA_HOME}:/root/.rsa:ro
+       - ${GPG_HOME}/openpgp-revocs.d:/root/.gnupg/openpgp-revocs.d
+       - ${GPG_HOME}/private-keys-v1.d:/root/.gnupg/private-keys-v1.d
+       - ${GPG_HOME}/pubring.kbx:/root/.gnupg/pubring.kbx
+       - ${GPG_HOME}/trustdb.gpg:/root/.gnupg/trustdb.gpg
        - ./entrypoints/worker.sh:/usr/local/bin/worker.sh:ro
     command: worker.sh
 
