@@ -3,4 +3,6 @@ Host ega-worker-*
      VisualHostKey no
      ControlPath none
      ExitOnForwardFailure yes
-     RemoteForward /root/.gnupg/S.gpg-agent.extra /root/.gnupg/S.gpg-agent.ssh
+     RemoteForward /root/.gnupg/S.gpg-agent.ssh /root/.gnupg/S.gpg-agent.extra
+     StrictHostKeyChecking no
+     UserKnownHostsFile /dev/null

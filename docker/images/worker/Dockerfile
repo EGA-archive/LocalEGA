@@ -21,10 +21,7 @@ RUN pip install --upgrade pip && \
     pip install PyYaml Markdown pika==0.10.0 aiohttp==2.0.5 pycryptodomex==3.4.5 aiopg==0.13.0 colorama==0.3.7 aiohttp-jinja2==0.13.0
 
 ##############################################################
-WORKDIR /root/.gnupg
-COPY gpg.conf .
-COPY gpg-agent.conf .
-
-COPY ssh_config /root/.ssh/config
-COPY sshd_config /etc/ssh/sshd_config
-
+COPY gpg.conf       /root/.gnupg/gpg.conf
+COPY gpg-agent.conf /root/.gnupg/gpg-agent.conf
+COPY ssh_config     /root/.ssh/config
+COPY sshd_config    /etc/ssh/sshd_config

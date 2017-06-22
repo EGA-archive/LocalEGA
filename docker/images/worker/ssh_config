@@ -1,3 +1,5 @@
 Host gpg-agent ega-keys
      Hostname ega-keys
      IdentityFile /root/.ssh/ega
+     StrictHostKeyChecking no
+     UserKnownHostsFile /dev/null
