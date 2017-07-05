@@ -130,7 +130,6 @@ services:
   # Workers
   worker-1:
     build: images/worker
-    env_file: .env.d/gpg
     depends_on:
       - db
       - mq
@@ -146,17 +145,12 @@ services:
        - ${STAGING}:/ega/staging
        - ${SSH_PUB_KEY}:/root/.ssh/ega.pub:ro
        - ${SSH_PRIV_KEY}:/root/.ssh/ega:ro
-       - ${RSA_HOME}:/root/.rsa:ro
-       - ${GPG_HOME}/openpgp-revocs.d:/root/.gnupg/openpgp-revocs.d
-       - ${GPG_HOME}/private-keys-v1.d:/root/.gnupg/private-keys-v1.d
        - ${GPG_HOME}/pubring.kbx:/root/.gnupg/pubring.kbx
-       - ${GPG_HOME}/trustdb.gpg:/root/.gnupg/trustdb.gpg
        - ./entrypoints/worker.sh:/usr/local/bin/worker.sh:ro
     command: worker.sh
 
   worker-2:
     build: images/worker
-    env_file: .env.d/gpg
     depends_on:
       - db
       - mq
@@ -171,11 +165,22 @@ services:
        - ${STAGING}:/ega/staging
        - ${SSH_PUB_KEY}:/root/.ssh/ega.pub:ro
        - ${SSH_PRIV_KEY}:/root/.ssh/ega:ro
-       - ${RSA_HOME}:/root/.rsa:ro
-       - ${GPG_HOME}/openpgp-revocs.d:/root/.gnupg/openpgp-revocs.d
-       - ${GPG_HOME}/private-keys-v1.d:/root/.gnupg/private-keys-v1.d
        - ${GPG_HOME}/pubring.kbx:/root/.gnupg/pubring.kbx
-       - ${GPG_HOME}/trustdb.gpg:/root/.gnupg/trustdb.gpg
        - ./entrypoints/worker.sh:/usr/local/bin/worker.sh:ro
     command: worker.sh
 
+  # GPG Agent
+  keys:
+    build: images/keys
+    env_file: .env.d/gpg
+    hostname: ega-keys
+    container_name: ega-keys
+    image: ega:keys
+    tty: true
+    volumes:
+       - ${GPG_HOME}:/root/.gnupg:rw
+       - ${RSA_HOME}:/root/.rsa:ro
+       - ${SSH_PUB_KEY}:/root/.ssh/ega.pub:ro
+       - ${SSH_PRIV_KEY}:/root/.ssh/ega:ro
+       - ./entrypoints/keys.sh:/usr/local/bin/keys.sh:ro
+    command: ["keys.sh"]

@@ -23,3 +23,15 @@ RUN pip install --upgrade pip && \
 ##############################################################
 COPY gpg-agent.conf /root/.gnupg/gpg-agent.conf
 COPY gpg.conf /root/.gnupg/gpg.conf
+
+##############################################################
+# Regenerate keys (no passphrase)
+RUN ssh-keygen -t rsa     -N '' -f /etc/ssh/ssh_host_rsa_key
+RUN ssh-keygen -t dsa     -N '' -f /etc/ssh/ssh_host_dsa_key
+RUN ssh-keygen -t ecdsa   -N '' -f /etc/ssh/ssh_host_ecdsa_key
+RUN ssh-keygen -t ed25519 -N '' -f /etc/ssh/ssh_host_ed25519_key
+
+EXPOSE 22
+
+COPY sshd_config    /etc/ssh/sshd_config
+COPY ssh_config     /root/.ssh/config
