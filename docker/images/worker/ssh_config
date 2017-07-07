@@ -1,6 +1,0 @@
-Host ega-keys
-     IdentityFile /root/.ssh/ega
-     VisualHostKey no
-     ControlPath none
-     StrictHostKeyChecking no
-     UserKnownHostsFile /dev/null

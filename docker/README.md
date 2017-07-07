@@ -7,7 +7,7 @@ It is necessary to first create a `.env` file with the following variables:
 
 	COMPOSE_PROJECT_NAME=ega
 	CODE=..                   # where setup.py is
-	CONF=<your-conf.ini-file>
+	CONF=<path/to/your/ini/file>
 	
 	INBOX=<folder>            # mapped to /home on the ega-inbox
 	STAGING=<folder>          # mapped to /ega/staging on the ega-workers

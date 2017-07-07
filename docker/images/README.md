@@ -18,10 +18,11 @@ The following images are created locally:
 
 | Repository  | Tag  | Role |
 |-------------|:----:|------|
-| ega | db     | Sets up a postgres database with appropriate tables |
-| ega | mq     | Sets up a RabbitMQ message broker with appropriate accounts, exchanges, queues and bindings |
-| ega | common | Image including python 3.6.1 and extra packages for the LocalEGA code |
-| ega | inbox  | SFTP server and Python 3.6.1 |
-| gpg | 2.1    | Upgrading to GnuPG 2.1.20 and OpenSSH 7.5 |
-| ega | worker | LocalEGA code with a GPG upgrade (and agent forwarding) |
-| ega | keys   | GPG upgrade and agent forwarding |
+| ega | db        | Sets up a postgres database with appropriate tables |
+| ega | mq        | Sets up a RabbitMQ message broker with appropriate accounts, exchanges, queues and bindings |
+| ega | common    | Image including python 3.6.1, GnuPG 2.1.20 and OpenSSH 7.5 |
+| ega | inbox     | SFTP server and Python 3.6.1 |
+| ega | frontend  | Documentation for the users |
+| ega | worker    | LocalEGA code with a GPG upgrade (and agent forwarding) |
+| ega | keys      | GPG upgrade and agent forwarding |
+| gpg | 2.1       | Upgrading to GnuPG 2.1.20 and OpenSSH 7.5 |

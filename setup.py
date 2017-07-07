@@ -29,6 +29,8 @@ setup(name='lega',
               'ega-publisher = lega.cega_publisher:main',
               'ega-connect = lega.connect:main',
               'ega-conf = lega.__main__:main',
+              'ega-gpg-proxy = lega.gpg_proxy:main',
+              'ega-gpg-forwarder = lega.gpg_forwarded:main',
           ]
       },
       platforms = 'any',

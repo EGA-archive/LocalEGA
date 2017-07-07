@@ -1,37 +1,4 @@
-FROM gpg:2.1
+FROM ega:common
 LABEL maintainer "Frédéric Haziza, NBIS"
 
-##############################################################
-ARG PYTHON_VERSION=3.6.1
-
-RUN git clone git://github.com/yyuu/pyenv.git ~/.pyenv && \
-    echo 'export PYENV_ROOT=$HOME/.pyenv' >> ~/.bash_profile && \
-    echo 'export PATH=$PYENV_ROOT/bin:$PATH' >> ~/.bash_profile && \
-    echo 'eval "$(pyenv init -)"' >> ~/.bash_profile
-
-ENV HOME  /root
-ENV PYENV_ROOT $HOME/.pyenv
-ENV PATH $PYENV_ROOT/shims:$PYENV_ROOT/bin:$PATH
-
-RUN pyenv install ${PYTHON_VERSION} && \
-    pyenv global ${PYTHON_VERSION} && \
-    pyenv rehash
-
-RUN pip install --upgrade pip && \
-    pip install PyYaml Markdown pika==0.10.0 aiohttp==2.0.5 pycryptodomex==3.4.5 aiopg==0.13.0 colorama==0.3.7 aiohttp-jinja2==0.13.0
-
-##############################################################
-COPY gpg-agent.conf /root/.gnupg/gpg-agent.conf
-COPY gpg.conf /root/.gnupg/gpg.conf
-
-##############################################################
-# Regenerate keys (no passphrase)
-RUN ssh-keygen -t rsa     -N '' -f /etc/ssh/ssh_host_rsa_key
-RUN ssh-keygen -t dsa     -N '' -f /etc/ssh/ssh_host_dsa_key
-RUN ssh-keygen -t ecdsa   -N '' -f /etc/ssh/ssh_host_ecdsa_key
-RUN ssh-keygen -t ed25519 -N '' -f /etc/ssh/ssh_host_ed25519_key
-
-EXPOSE 22
-
-COPY sshd_config    /etc/ssh/sshd_config
-COPY ssh_config     /root/.ssh/config
+RUN pip install pika==0.10.0 pycryptodomex==3.4.5 aiopg==0.13.0

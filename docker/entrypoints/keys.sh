@@ -5,6 +5,8 @@ set -e
 cat /root/.ssh/ega.pub >> /root/.ssh/authorized_keys && \
 chmod 600 /root/.ssh/authorized_keys
 
+pip install -e /root/ega
+
 # cat > /tmp/ega <<EOF
 # %echo Generating a basic OpenPGP key
 # Key-Type: RSA
@@ -23,7 +25,10 @@ chmod 600 /root/.ssh/authorized_keys
 
 chmod 700 /root/.gnupg
 
+echo 'extra-socket none' >> /root/.gnupg/gpg-agent.conf
+
 pkill gpg-agent || true
+
 # Start the GPG Agent in /root/.gnupg
 /usr/local/bin/gpg-agent --daemon
 
@@ -34,5 +39,6 @@ unset GPG_PASSPHRASE
 
 #while gpg-connect-agent /bye; do sleep 2; done
 # Absolute path to version 7.5
-exec /usr/local/sbin/sshd -4 -D -e
+#exec /usr/local/sbin/sshd -4 -D -e
 
+exec ega-gpg-proxy
