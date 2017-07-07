@@ -1,23 +1,24 @@
 #!/bin/bash
 
 set -e
+set -x
+
+pip install -e /root/ega
+
+chmod 700 /root/.gnupg
 
 pkill gpg-agent || true
+# Start the GPG Agent in /root/.gnupg
+/usr/local/bin/gpg-agent --daemon
 
-HEXPWD=$(python -c "import binascii; print(binascii.hexlify(b'${PASSPHRASE}'))")
+KEYGRIP=$(gpg2 -k --with-keygrip ega@nbis.se | awk '/Keygrip/{print $3;exit;}')
+/usr/local/libexec/gpg-preset-passphrase --preset -P $GPG_PASSPHRASE $KEYGRIP
+unset GPG_PASSPHRASE
 
-AGENT_ENV=/tmp/gpg-agent.env
+echo "Waiting for Message Broker"
+until nc -4 --send-only ega-mq 5672 </dev/null &>/dev/null; do sleep 1; done
+echo "Waiting for database"
+until nc -4 --send-only ega-db 5432 </dev/null &>/dev/null; do sleep 1; done
 
-# GPG agent and homedir
-rm -f $AGENT_ENV
-gpg-agent --daemon --homedir $GNUPGHOME --write-env-file $AGENT_ENV
-
-KEYGRIP=$(gpg --homedir $GNUPGHOME --fingerprint --fingerprint ega@nbis.se |\
-	      grep fingerprint | tail -1 | cut -d= -f2 | sed -e 's/ //g')
-
-source $AGENT_ENV
-/usr/libexec/gpg-preset-passphrase --preset -P $PASSPHRASE $KEYGRIP
-
-sleep 6
-pip install -e /root/ega
+echo "Starting the worker"
 exec ega-worker

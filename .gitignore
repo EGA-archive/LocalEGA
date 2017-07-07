@@ -6,8 +6,8 @@ private/
 logs/*.log
 logs/*.yaml
 !logs/*.yaml.sample
-*.conf
-docker/details/*
+docker/.env
+docker/.env.d/
 tests/
 storage
 
