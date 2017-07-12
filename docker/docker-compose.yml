@@ -173,6 +173,7 @@ services:
        - ./entrypoints/worker.sh:/usr/local/bin/worker.sh:ro
     command: worker.sh
 
+
   # GPG Agent
   keys:
     build: images/keys
@@ -186,7 +187,10 @@ services:
     volumes:
        - ${CODE}:/root/ega
        - ${CONF}:/root/.lega/conf.ini:ro
-       - ${GPG_HOME}:/root/.gnupg:rw
+       - ${GPG_HOME}/pubring.kbx:/root/.gnupg/pubring.kbx
+       - ${GPG_HOME}/trustdb.gpg:/root/.gnupg/trustdb.gpg
+       - ${GPG_HOME}/openpgp-revocs.d:/root/.gnupg/openpgp-revocs.d:ro
+       - ${GPG_HOME}/private-keys-v1.d:/root/.gnupg/private-keys-v1.d:ro
        - ${RSA_HOME}:/root/.rsa:ro
        - ${SSH_PUB_KEY}:/root/.ssh/ega.pub:ro
        - ${SSH_PRIV_KEY}:/root/.ssh/ega:ro

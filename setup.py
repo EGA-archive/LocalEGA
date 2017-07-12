@@ -30,7 +30,7 @@ setup(name='lega',
               'ega-connect = lega.connect:main',
               'ega-conf = lega.__main__:main',
               'ega-gpg-proxy = lega.gpg_proxy:main',
-              'ega-gpg-forwarder = lega.gpg_forwarded:main',
+              'ega-gpg-forwarder = lega.gpg_forwarder:main',
           ]
       },
       platforms = 'any',

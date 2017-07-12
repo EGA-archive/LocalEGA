@@ -2,8 +2,8 @@
 
 set -e
 
-cat /root/.ssh/ega.pub >> /root/.ssh/authorized_keys && \
-chmod 600 /root/.ssh/authorized_keys
+# cat /root/.ssh/ega.pub >> /root/.ssh/authorized_keys && \
+# chmod 600 /root/.ssh/authorized_keys
 
 pip install -e /root/ega
 
@@ -25,9 +25,9 @@ pip install -e /root/ega
 
 chmod 700 /root/.gnupg
 
-echo 'extra-socket none' >> /root/.gnupg/gpg-agent.conf
-
 pkill gpg-agent || true
+#/usr/local/bin/gpgconf --kill gpg-agent || true
+rm -rf $(gpgconf --list-dirs agent-extra-socket) || true
 
 # Start the GPG Agent in /root/.gnupg
 /usr/local/bin/gpg-agent --daemon
@@ -35,7 +35,6 @@ pkill gpg-agent || true
 KEYGRIP=$(gpg2 -k --with-keygrip ega@nbis.se | awk '/Keygrip/{print $3;exit;}')
 /usr/local/libexec/gpg-preset-passphrase --preset -P $GPG_PASSPHRASE $KEYGRIP
 unset GPG_PASSPHRASE
-
 
 #while gpg-connect-agent /bye; do sleep 2; done
 # Absolute path to version 7.5

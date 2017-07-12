@@ -8,5 +8,5 @@ all: $(EGA_IMAGES)
 $(EGA_IMAGES):
 	docker build -t ega:$@ $@
 
-clean-none:
+clean:
 	docker images | awk '/none/{print $$3}' | while read n; do docker rmi $$n; done
