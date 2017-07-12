@@ -13,13 +13,10 @@ If we find the need, the message can be encrypted (see `copy_chunk`).
 '''
 
 import sys
-import os
 import logging
 import asyncio
-import socket
-from pathlib import Path
-from functools import partial
 #import ssl
+from functools import partial
 
 from .conf import CONF
 
@@ -57,11 +54,11 @@ def main(args=None):
     CONF.setup(args) # re-conf
 
     loop = asyncio.get_event_loop()
-    gpg_socket_path = Path( CONF.get('worker','gpg_home') ) / 'S.gpg-agent.extra'
+    gpg_socket_path = CONF.get('worker','gpg_home') + '/S.gpg-agent.extra'
     LOG.info(f'GPG socket: {gpg_socket_path}')
 
     server = loop.run_until_complete(
-        asyncio.start_server(partial(handle_connection,str(gpg_socket_path)),
+        asyncio.start_server(partial(handle_connection,gpg_socket_path),
                              host='0.0.0.0',
                              port=9010,
                              #ssl=ssl.create_default_context(ssl.Purpose.CLIENT_AUTH),
@@ -75,55 +72,6 @@ def main(args=None):
     
     loop.close()
 
-
-# def copy_socket(from_socket,to_socket,size):
-#     while True:
-#         LOG.debug(f'Receiving data from {from_socket.getsockname()}')
-#         data = from_socket.recv(size)
-#         if not data:
-#             break
-#         LOG.debug(f'Data: {data}')
-#         LOG.debug(f'Resending data to {from_socket.getsockname()}')
-#         to_socket.send(data)
-
-# def main(args=None):
-
-#     if not args:
-#         args = sys.argv[1:]
-
-#     CONF.setup(args) # re-conf
-
-#     gpg_socket_path = Path.home() / '.gnupg' / 'S.gpg-agent.extra'
-#     gpg_socket_path.chmod(0o700)
-#     LOG.info(f'Connection {gpg_socket_path}')
-#     gpg = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM, 0)
-#     gpg.connect(str(gpg_socket_path))
-
-#     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-#     rcvbuf_size = s.getsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF)
-#     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-#     s.bind( ('0.0.0.0', 9010) )
-#     s.listen(1)
-
-#     try:
-#         while True:
-#             conn, addr = s.accept()
-#             with conn:
-#                 LOG.debug(f'Connection on {conn.getsockname()} (fileno {conn.fileno()})')
-
-#                 listen = threading.Thread(group=None, target=copy_socket, args=(conn,gpg, rcvbuf_size))
-#                 echo = threading.Thread(group=None, target=copy_socket, args=(gpg,conn, 8192))
-
-#                 listen.start()
-#                 echo.start()
-
-#                 listen.join()
-#                 echo.join()
-                
-#             #conn.close(), closed by context manager
-#     finally:
-#         gpg.close()
-#         s.close()
 
 if __name__ == '__main__':
     main()
