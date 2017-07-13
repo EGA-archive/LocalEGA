@@ -83,7 +83,7 @@ def main():
     server = loop.run_until_complete(
         asyncio.start_server(partial(handle_connection,args.socket),
                              host=address,
-                             port=port,
+                             port=int(port),
                              ssl=ssl_ctx,
                              loop=loop)
     )

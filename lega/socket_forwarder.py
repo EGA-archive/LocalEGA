@@ -84,7 +84,7 @@ def main():
 
     loop = asyncio.get_event_loop()
     server = loop.run_until_complete(
-        asyncio.start_unix_server(partial(handle_connection,host,port,ssl_ctx),
+        asyncio.start_unix_server(partial(handle_connection,host,int(port),ssl_ctx),
                                   path=args.socket, # re-created if stale
                                   loop=loop)
     )
