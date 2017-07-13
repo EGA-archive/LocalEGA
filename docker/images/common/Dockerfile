@@ -127,8 +127,3 @@ RUN pyenv install ${PYTHON_VERSION} && \
 
 RUN pip install --upgrade pip && \
     pip install PyYaml Markdown
-
-RUN rm -rf /etc/ega && \
-    mkdir -p /etc/ega && \
-    chmod 755 /etc/ega
-VOLUME /etc/ega

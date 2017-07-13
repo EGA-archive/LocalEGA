@@ -1,4 +1,4 @@
-FROM ega:common
+FROM nbis/ega:common
 LABEL maintainer "Frédéric Haziza, NBIS"
 
 # Clean from ega-common

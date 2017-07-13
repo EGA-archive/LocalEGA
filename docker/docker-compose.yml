@@ -144,8 +144,6 @@ services:
        - ${CONF}:/root/.lega/conf.ini:ro
        - ${INBOX}:/home
        - ${STAGING}:/ega/staging
-       - ${SSH_PUB_KEY}:/root/.ssh/ega.pub:ro
-       - ${SSH_PRIV_KEY}:/root/.ssh/ega:ro
        - ${GPG_HOME}/pubring.kbx:/root/.gnupg/pubring.kbx
        - ${GPG_HOME}/trustdb.gpg:/root/.gnupg/trustdb.gpg
        - ${GPG_HOME}/certs/selfsigned.cert:/etc/ega/ega.cert:ro
@@ -167,8 +165,6 @@ services:
        - ${CONF}:/root/.lega/conf.ini:ro
        - ${INBOX}:/home
        - ${STAGING}:/ega/staging
-       - ${SSH_PUB_KEY}:/root/.ssh/ega.pub:ro
-       - ${SSH_PRIV_KEY}:/root/.ssh/ega:ro
        - ${GPG_HOME}/pubring.kbx:/root/.gnupg/pubring.kbx
        - ${GPG_HOME}/trustdb.gpg:/root/.gnupg/trustdb.gpg
        - ${GPG_HOME}/certs/selfsigned.cert:/etc/ega/ega.cert:ro
@@ -180,8 +176,6 @@ services:
   keys:
     build: images/keys
     env_file: .env.d/gpg
-    # ports:
-    #   - "9010:9010"
     hostname: ega-keys
     container_name: ega-keys
     image: nbis/ega:keys
@@ -196,7 +190,5 @@ services:
        - ${GPG_HOME}/certs/selfsigned.cert:/etc/ega/ega.cert:ro
        - ${GPG_HOME}/certs/selfsigned.key:/etc/ega/ega.key:ro
        - ${RSA_HOME}:/root/.rsa:ro
-       - ${SSH_PUB_KEY}:/root/.ssh/ega.pub:ro
-       - ${SSH_PRIV_KEY}:/root/.ssh/ega:ro
        - ./entrypoints/keys.sh:/usr/local/bin/keys.sh:ro
     command: ["keys.sh"]

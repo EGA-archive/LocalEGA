@@ -16,9 +16,6 @@ It is necessary to first create a `.env` file with the following variables:
 	RSA_HOME=<folder>         # mapped to /root/.rsa on the ega-workers
 	GPG_HOME=<folder>         # Used on the agent-forwarder and the workers
 
-	SSH_PUB_KEY=<ssh-key.pub> # mapped to /root/.ssh/ega.pub
-	SSH_PRIV_KEY=<ssh-key>    # mapped to /root/.ssh/ega
-
 
 The `GPG_HOME` folder should contain the following:
 * `pubring.kbx`
