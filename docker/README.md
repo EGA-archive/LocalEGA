@@ -14,10 +14,18 @@ It is necessary to first create a `.env` file with the following variables:
 	VAULT=<folder>            # mapped to /ega/vault on the ega-vault and ega-verify>
 	
 	RSA_HOME=<folder>         # mapped to /root/.rsa on the ega-workers
-	GPG_HOME=<folder>         # mapped to /root/.gnupg on the agent-forwarder
-	                          # and for the pubring on the workers
+	GPG_HOME=<folder>         # Used on the agent-forwarder and the workers
+
 	SSH_PUB_KEY=<ssh-key.pub> # mapped to /root/.ssh/ega.pub
 	SSH_PRIV_KEY=<ssh-key>    # mapped to /root/.ssh/ega
+
+
+The `GPG_HOME` folder should contain the following:
+* `pubring.kbx`
+* `trustdb.gpg`
+* `openpgp-revocs.d/`
+* `private-keys-v1.d/`
+* `certs/selfsigned.{cert,key}`
 
 
 Moreover, some of the containers need extra variables. There are located in:

@@ -6,7 +6,7 @@ GPG agent multiplexer.
 It accepts many requests and forwards them to the running gpg-agent.
 The answer is redirected back to the incoming connection.
 
-If we find the need, the message can be encrypted (see `copy_chunk`).
+The traffic goes through an SSL connection.
 
 :author: Frédéric Haziza
 :copyright: (c) 2017, NBIS System Developers.
@@ -15,20 +15,22 @@ If we find the need, the message can be encrypted (see `copy_chunk`).
 import sys
 import logging
 import asyncio
-#import ssl
+import ssl
 from functools import partial
 
 from .conf import CONF
 
 LOG = logging.getLogger('gpg_proxy')
 
-async def copy_chunk(reader,writer,process=None):
+# Monkey-patching ssl
+ssl.match_hostname = lambda cert, hostname: True
+
+async def copy_chunk(reader,writer):
     while True:
         data = await reader.read(4096)
         if not data:
             return
-        if process: # Decrypt and Encrypt the data?
-            data=process(data)
+        print(data)
         writer.write(data)
         await writer.drain()
 
@@ -57,11 +59,14 @@ def main(args=None):
     gpg_socket_path = CONF.get('worker','gpg_home') + '/S.gpg-agent.extra'
     LOG.info(f'GPG socket: {gpg_socket_path}')
 
+    ssl_ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+    ssl_ctx.load_cert_chain('/etc/ega/ega.cert', '/etc/ega/ega.key')
+
     server = loop.run_until_complete(
         asyncio.start_server(partial(handle_connection,gpg_socket_path),
                              host='0.0.0.0',
                              port=9010,
-                             #ssl=ssl.create_default_context(ssl.Purpose.CLIENT_AUTH),
+                             ssl=ssl_ctx,
                              loop=loop)
     )
     try:

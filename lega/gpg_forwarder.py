@@ -5,7 +5,7 @@
 Catching the gpg request by reading the gpg-agent socket,
 and sending them to the machine running the gpg-agent.
 
-If we find the need, the message can be encrypted (see `copy_chunk`).
+The traffic goes through an SSL connection.
 
 :author: Frédéric Haziza
 :copyright: (c) 2017, NBIS System Developers.
@@ -15,29 +15,33 @@ If we find the need, the message can be encrypted (see `copy_chunk`).
 import sys
 import logging
 import asyncio
-#import ssl
+import ssl
+from functools import partial
 
 from .conf import CONF
 
 LOG = logging.getLogger('gpg_forwarder')
 
-async def copy_chunk(reader,writer,process=None):
+# Monkey-patching ssl
+ssl.match_hostname = lambda cert, hostname: True
+
+async def copy_chunk(reader,writer):
     while True:
         data = await reader.read(4096)
         if not data:
             return
-        if process: # Decrypt and Encrypt the data?
-            data=process(data)
+        print(data)
         writer.write(data)
         await writer.drain()
 
-async def handle_connection(reader_gpg,writer_gpg):
+async def handle_connection(ssl_ctx, reader_gpg,writer_gpg):
 
     name_from = writer_gpg.get_extra_info('sockname')
     LOG.debug(f'Connection to {name_from}')
 
     reader_agent, writer_agent = await asyncio.open_connection(host='ega-keys',
-                                                               port=9010) #ssl=ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+                                                               port=9010,
+                                                               ssl=ssl_ctx)
 
     name_to = writer_agent.get_extra_info('peername')
     LOG.debug(f'Connection to {name_to}')
@@ -60,8 +64,11 @@ def main(args=None):
     gpg_socket_path = CONF.get('worker','gpg_home') + '/S.gpg-agent'
     LOG.info(f'GPG socket: {gpg_socket_path}')
 
+    ssl_ctx = ssl.create_default_context(ssl.Purpose.SERVER_AUTH, 
+                                         cafile='/etc/ega/ega.cert')
+
     server = loop.run_until_complete(
-        asyncio.start_unix_server(handle_connection,
+        asyncio.start_unix_server(partial(handle_connection,ssl_ctx),
                                   path=gpg_socket_path, # re-created if stale
                                   loop=loop)
     )
