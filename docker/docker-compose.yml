@@ -148,6 +148,7 @@ services:
        - ${GPG_HOME}/pubring.kbx:/root/.gnupg/pubring.kbx
        - ${GPG_HOME}/trustdb.gpg:/root/.gnupg/trustdb.gpg
        - ${GPG_HOME}/certs/selfsigned.cert:/etc/ega/ega.cert:ro
+       - ${RSA_HOME}:/root/.rsa:ro
        - ./entrypoints/worker.sh:/usr/local/bin/worker.sh:ro
     command: worker.sh
 
@@ -169,6 +170,7 @@ services:
        - ${GPG_HOME}/pubring.kbx:/root/.gnupg/pubring.kbx
        - ${GPG_HOME}/trustdb.gpg:/root/.gnupg/trustdb.gpg
        - ${GPG_HOME}/certs/selfsigned.cert:/etc/ega/ega.cert:ro
+       - ${RSA_HOME}:/root/.rsa:ro
        - ./entrypoints/worker.sh:/usr/local/bin/worker.sh:ro
     command: worker.sh
 
