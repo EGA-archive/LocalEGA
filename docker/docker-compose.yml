@@ -111,7 +111,8 @@ services:
        - ${CODE}:/root/ega
        - ${CONF}:/root/.lega/conf.ini:ro
        - ./entrypoints/connectors.sh:/usr/local/bin/connectors.sh:ro
-    command: ["connectors.sh"]
+    command: ["connectors.sh"] 
+    # Exec form, not shell form
 
   # Error Monitors
   monitors:

@@ -16,3 +16,5 @@ ega-connect --from-domain cega.broker --from-queue users_queue --to-domain local
 # LocalEGA to CentralEGA
 ega-connect --from-domain local.broker --from-queue verified_queue --to-domain cega.broker --to-exchange exchange --to-routing-key routing_to &
 ega-connect --from-domain local.broker --from-queue account_queue --to-domain cega.broker --to-exchange exchange --to-routing-key users_routing_to
+
+wait
