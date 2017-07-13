@@ -22,7 +22,7 @@ import ssl
 from functools import partial
 from pathlib import Path
 
-LOG = logging.getLogger('socket_forwarder')
+LOG = logging.getLogger('socket-forwarder')
 
 CHUNK_SIZE=4096
 

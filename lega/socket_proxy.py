@@ -20,7 +20,7 @@ from functools import partial
 import argparse
 from pathlib import Path
 
-LOG = logging.getLogger('socket_proxy')
+LOG = logging.getLogger('socket-proxy')
 
 CHUNK_SIZE=4096
 
