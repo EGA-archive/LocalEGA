@@ -12,7 +12,7 @@ class NotFoundInInbox(FromUser):
     def __init__(self, filename):
         self.filename = filename
     def __str__(self):
-        return f'File not found in inbox'
+        return f'Inbox missing {self.filename}'
         
 class GPGDecryption(FromUser):
     def __init__(self, retcode, errormsg, filename):
