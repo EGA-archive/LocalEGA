@@ -116,7 +116,7 @@ def work(data):
     LOG.debug(f"Reply message: {reply!r}")
     return reply
 
-def consume():
+def consume_forever():
 
     connection = get_connection('local.broker')
     channel = connection.channel()
@@ -149,13 +149,13 @@ def main(args=None):
 
     extra_workers = []
     for _ in range(2, nb_cores, 2):
-        p = Process(group=None, target=consume) # no name
+        p = Process(group=None, target=consume_forever) # no name
         p.start()
         extra_workers.append(p)
         
     if extra_workers:
         LOG.info(f'Starting {len(extra_workers)} extra workers')
-    consume() # and this one
+    consume_forever() # and this one
 
 if __name__ == '__main__':
     main()
