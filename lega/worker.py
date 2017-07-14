@@ -31,6 +31,7 @@ from pathlib import Path
 import shutil
 import stat
 import uuid
+from multiprocessing import Process, cpu_count
 
 from .conf import CONF
 from . import exceptions
@@ -107,24 +108,15 @@ def work(data):
     db.set_encryption(file_id, details, staging_checksum)
     LOG.debug(f'Re-encryption completed')
 
-    #target_name = f"{unencrypted_algo}__{unencrypted_hash}"
-    target_name = f"{file_id:0>20}" # filling with zeros, and 20 characters wide
-
     reply = {
         'file_id' : file_id,
         'filepath': str(staging_filepath),
-        'target_name': target_name,
         'user_id': user_id,
     }
     LOG.debug(f"Reply message: {reply!r}")
     return reply
 
-def main(args=None):
-
-    if not args:
-        args = sys.argv[1:]
-
-    CONF.setup(args) # re-conf
+def consume():
 
     connection = broker.get_connection('local.broker')
     channel = connection.channel()
@@ -141,6 +133,29 @@ def main(args=None):
         channel.stop_consuming()
     finally:
         connection.close()
+
+def main(args=None):
+    if not args:
+        args = sys.argv[1:]
+
+    CONF.setup(args) # re-conf
+
+    if hasattr(os, 'sched_getaffinity'):
+        nb_cores = len(os.sched_getaffinity(0))
+    else:
+        nb_cores = cpu_count()
+
+    LOG.debug(f'Number of Cores: {nb_cores}')
+
+    extra_workers = []
+    for _ in range(2, nb_cores, 2):
+        p = Process(group=None, target=consume) # no name
+        p.start()
+        extra_workers.append(p)
+        
+    if extra_workers:
+        LOG.info(f'Starting {len(extra_workers)} extra workers')
+    consume() # and this one
 
 if __name__ == '__main__':
     main()

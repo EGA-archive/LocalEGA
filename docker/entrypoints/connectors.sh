@@ -10,9 +10,18 @@ echo "Waiting for database"
 until nc -4 --send-only ega-db 5432 </dev/null &>/dev/null; do sleep 1; done
 
 # CentralEGA to LocalEGA
-ega-connect --from-domain cega.broker --from-queue queue --to-domain local.broker --to-exchange exchange --to-routing-key routing_todo --transform set_file_id &
-ega-connect --from-domain cega.broker --from-queue users_queue --to-domain local.broker --to-exchange exchange --to-routing-key routing_user --transform set_user_id &
+ega-connect --transform set_file_id \
+	    cega.broker sweden.v1.commands.file \
+	    local.broker lega lega.tasks &
+ega-connect --transform set_user_id \
+	    cega.broker sweden.v1.commands.user \
+	    local.broker lega lega.users &
 
 # LocalEGA to CentralEGA
-ega-connect --from-domain local.broker --from-queue verified_queue --to-domain cega.broker --to-exchange exchange --to-routing-key routing_to &
-ega-connect --from-domain local.broker --from-queue account_queue --to-domain cega.broker --to-exchange exchange --to-routing-key users_routing_to
+ega-connect local.broker verified \
+	    cega.broker localega.v1 sweden.file.completed &
+ega-connect local.broker account \
+	    cega.broker localega.v1 sweden.user.account &
+
+wait
+

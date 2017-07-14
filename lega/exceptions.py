@@ -12,14 +12,15 @@ class NotFoundInInbox(FromUser):
     def __init__(self, filename):
         self.filename = filename
     def __str__(self):
-        return f'File not found in inbox'
+        return f'Inbox missing {self.filename}'
         
 class GPGDecryption(FromUser):
-    def __init__(self, retcode, filename):
+    def __init__(self, retcode, errormsg, filename):
         self.retcode = retcode
+        self.error = errormsg
         self.filename = filename
     def __str__(self):
-        return f'Error {self.retcode}: Decrypting {self.filename} failed'
+        return f'Error {self.retcode}: Decrypting {self.filename} failed ({self.error})'
 
 class Checksum(FromUser):
     def __init__(self, algo, msg):

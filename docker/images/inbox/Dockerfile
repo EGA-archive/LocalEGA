@@ -1,8 +1,10 @@
-FROM ega:common
+FROM nbis/ega:common
 LABEL maintainer "Frédéric Haziza, NBIS"
 
 # Clean from ega-common
 RUN rm -rf /ega/{vault,staging}
+
+RUN pip install pika==0.10.0 aiopg==0.13.0
 
 ##################################
 # For SFTP

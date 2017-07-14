@@ -36,6 +36,9 @@ def work(data):
 
     user_id = data['user_id']
     elixir_id = data['elixir_id']
+    password_hash = data.get('password_hash', None)
+    pubkey = data.get('pubkey',None)
+    assert password_hash or pubkey
 
     LOG.info(f'Handling account creation for user {elixir_id}')
 
@@ -48,27 +51,23 @@ def work(data):
                    check=True,
                    stderr = subprocess.DEVNULL)
 
-    # Generate pub/priv key
-    pubkey, seckey = generate_key(2048)
+    # Set public key
+    if pubkey:
+        with open(f'/etc/ssh/authorized_keys/{user_id}', 'w') as ssh_keys:
+            ssh_keys.write(pubkey)
+            ssh_keys.write('\n')
 
-    with open(f'/etc/ssh/authorized_keys/{user_id}', 'w') as ssh_keys:
-        ssh_keys.write(pubkey)
-        ssh_keys.write('\n')
-
-    # Generate password
-    password = generate_password(10)
-    os.system(f'echo "{user_id}:{password}" | chpasswd -e')
-
-    # Update database
-    db.update_user(user_id, password, pubkey, seckey)
+    # Set password
+    if password_hash:
+        os.system(f'echo "{user_id}:{password_hash}" | chpasswd -e')
 
     LOG.info(f'Account created for user {elixir_id}')
     return {
         'user_id': user_id,
         'elixir_id': elixir_id,
-        'pubkey' : pubkey,
-        'seckey': seckey,
-        'password': password,
+        # 'pubkey' : pubkey,
+        # 'seckey': seckey,
+        # 'password': password,
     }
 
 def main(args=None):

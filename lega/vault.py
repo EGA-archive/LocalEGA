@@ -40,15 +40,17 @@ def work(data):
     file_id       = data['file_id']
     user_id       = data['user_id']
     filepath      = Path(data['filepath'])
- 
+
+    # Create the target name from the file_id
     vault_area = Path( CONF.get('vault','location') )
-    name = data['target_name']
+    name = f"{file_id:0>20}" # filling with zeros, and 20 characters wide
     name_bits = [name[i:i+3] for i in range(0, len(name), 3)]
-    LOG.debug(f'Name bits: {name_bits!r}')
     target = vault_area.joinpath(*name_bits)
     LOG.debug(f'Target: {target}')
+
     target.parent.mkdir(parents=True, exist_ok=True)
-    LOG.debug(f'Target parent: {target.parent}')
+
+    # Moving the file
     starget = str(target)
     shutil.move(str(filepath), starget)
     

@@ -7,12 +7,12 @@ from .conf import CONF
 
 LOG = logging.getLogger('amqp')
 
-def get_connection(domain=None, blocking=True):
+def get_connection(domain, blocking=True):
     '''
     Returns a blocking connection to the Message Broker supporting AMQP(S).
     
     The host, portm virtual_host, username, password and
-    heartbeat values are set from the configuration files.
+    heartbeat values are read from the CONF argument.
     So are the SSL options.
     '''
     assert domain in CONF.sections(), "Section not found in config file"
@@ -116,18 +116,3 @@ def forward(from_channel, from_queue, to_channel, to_exchange, to_routing, trans
     # Let's do this
     from_channel.basic_consume(process_request, queue=from_queue)
     from_channel.start_consuming()
-
-def publish(channel, message, routing_to):
-    '''Publish a message to the exchange using a routing key `routing_to`'''
-
-    args = { 'correlation_id': str(uuid.uuid4()),
-             'delivery_mode': 2, # make message persistent
-    }
-
-    channel.basic_publish(exchange=CONF.get(domain,'exchange', fallback=''),
-                          routing_key=routing_to,
-                          body=message,
-                          properties=pika.BasicProperties(**args))
-
-    LOG.debug(f"Published message to {routing_to}: {message!r}" )
-

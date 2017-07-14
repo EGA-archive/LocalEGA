@@ -12,7 +12,7 @@ import logging
 from enum import Enum
 import aiopg
 import psycopg2
-import inspect
+import socket
 
 from .conf import CONF
 from .exceptions import FromUser
@@ -98,10 +98,11 @@ def set_error(file_id, error):
     assert error, 'Eh? No error?'
     LOG.debug(f'Setting error for {file_id}: {error!s}')
     from_user = isinstance(error,FromUser)
+    hostname = socket.gethostname()
     with connect() as conn:
         with conn.cursor() as cur:
             cur.execute('SELECT insert_error(%(file_id)s,%(msg)s,%(from_user)s);',
-                        {'msg':f"{error.__class__.__name__}: {error!s}", 'file_id': file_id, 'from_user': from_user})
+                        {'msg':f"[{hostname}][{error.__class__.__name__}] {error!s}", 'file_id': file_id, 'from_user': from_user})
 
 def get_errors(from_user=False):
     query = 'SELECT * from errors WHERE from_user = true;' if from_user else 'SELECT * from errors;'
@@ -135,21 +136,14 @@ def get_details(file_id):
             cur.execute(query, { 'file_id': file_id})
             return cur.fetchone()
 
-def insert_user(elixir_id):
+def insert_user(elixir_id, password_hash, pubkey):
     with connect() as conn:
         with conn.cursor() as cur:
-            cur.execute('SELECT insert_user(%(elixir_id)s);',{ 'elixir_id': elixir_id })
+            cur.execute('SELECT insert_user(%(eid)s,%(ph)s,%(pk)s);',
+                        { 'eid': elixir_id,
+                          'ph': password_hash,
+                          'pk': pubkey })
             return (cur.fetchone())[0]
-
-def update_user(user_id, password, pubkey, privkey):
-    with connect() as conn:
-        with conn.cursor() as cur:
-            cur.execute('SELECT update_user('
-                        '%(user_id)s,%(password)s,%(pubkey)s,%(privkey)s'
-                        ');',{ 'user_id': user_id,
-                               'password': password,
-                               'pubkey': pubkey,
-                               'privkey': privkey })
 
 def set_user_error(user_id, error):
     assert user_id, 'Eh? No user_id?'

@@ -16,7 +16,7 @@ services:
       # - "25672:25672"
       # - "5671:5671"
       # - "15671:15671"
-    image: ega:mq
+    image: nbis/ega:mq
     container_name: ega-mq
 
   # Postgres Database
@@ -26,8 +26,12 @@ services:
     hostname: ega-db
     ports:
       - "5432:5432"
+      - "5050:5050"
     container_name: ega-db
-    image: ega:db
+    image: nbis/ega:db
+    volumes:
+       - ./entrypoints/db.sh:/usr/local/bin/db.sh:ro
+    command: db.sh
 
   # SFTP inbox
   inbox:
@@ -40,13 +44,13 @@ services:
     ports:
       - "2222:22"
     container_name: ega-inbox
+    image: nbis/ega:inbox
     volumes:
        - ${CODE}:/root/ega
        - ${CONF}:/root/.lega/conf.ini:ro
        - ${INBOX}:/home
        - ./entrypoints/inbox.sh:/usr/local/bin/inbox.sh:ro
     command: inbox.sh
-    image: ega:inbox
 
   # ReST frontend
   frontend:
@@ -59,7 +63,7 @@ services:
     expose:
       - 9000
     container_name: ega-frontend
-    image: ega:common
+    image: nbis/ega:frontend
     volumes:
        - ${CODE}:/root/ega
        - ${CONF}:/root/.lega/conf.ini:ro
@@ -74,7 +78,7 @@ services:
       - mq
     hostname: ega-vault
     container_name: ega-vault
-    image: ega:common
+    image: nbis/ega:common
     volumes:
        - ${CODE}:/root/ega
        - ${CONF}:/root/.lega/conf.ini:ro
@@ -90,7 +94,7 @@ services:
       - mq
     hostname: ega-verify
     container_name: ega-verify
-    image: ega:common
+    image: nbis/ega:common
     volumes:
        - ${CODE}:/root/ega
        - ${CONF}:/root/.lega/conf.ini:ro
@@ -106,12 +110,13 @@ services:
       - mq
     hostname: ega-connectors
     container_name: ega-connectors
-    image: ega:common
+    image: nbis/ega:common
     volumes:
        - ${CODE}:/root/ega
        - ${CONF}:/root/.lega/conf.ini:ro
        - ./entrypoints/connectors.sh:/usr/local/bin/connectors.sh:ro
-    command: ["connectors.sh"]
+    command: ["connectors.sh"] 
+    # Exec form, not shell form
 
   # Error Monitors
   monitors:
@@ -120,7 +125,7 @@ services:
       - db
     hostname: ega-monitors
     container_name: ega-monitors
-    image: ega:common
+    image: nbis/ega:common
     volumes:
        - ${CODE}:/root/ega
        - ${CONF}:/root/.lega/conf.ini:ro
@@ -130,13 +135,13 @@ services:
   # Workers
   worker-1:
     build: images/worker
-    env_file: .env.d/gpg
     depends_on:
       - db
       - mq
+      - keys
     hostname: ega-worker-1
     container_name: ega-worker-1
-    image: ega:worker
+    image: nbis/ega:worker
     tty: true
     stdin_open: true
     volumes:
@@ -144,38 +149,53 @@ services:
        - ${CONF}:/root/.lega/conf.ini:ro
        - ${INBOX}:/home
        - ${STAGING}:/ega/staging
-       - ${SSH_PUB_KEY}:/root/.ssh/ega.pub:ro
-       - ${SSH_PRIV_KEY}:/root/.ssh/ega:ro
-       - ${RSA_HOME}:/root/.rsa:ro
-       - ${GPG_HOME}/openpgp-revocs.d:/root/.gnupg/openpgp-revocs.d
-       - ${GPG_HOME}/private-keys-v1.d:/root/.gnupg/private-keys-v1.d
        - ${GPG_HOME}/pubring.kbx:/root/.gnupg/pubring.kbx
        - ${GPG_HOME}/trustdb.gpg:/root/.gnupg/trustdb.gpg
+       - ${GPG_HOME}/certs/selfsigned.cert:/etc/ega/ega.cert:ro
+       - ${RSA_HOME}:/root/.rsa:ro
        - ./entrypoints/worker.sh:/usr/local/bin/worker.sh:ro
     command: worker.sh
 
   worker-2:
     build: images/worker
-    env_file: .env.d/gpg
     depends_on:
       - db
       - mq
+      - keys
     hostname: ega-worker-2
     container_name: ega-worker-2
-    image: ega:worker
+    image: nbis/ega:worker
     tty: true
     volumes:
        - ${CODE}:/root/ega
        - ${CONF}:/root/.lega/conf.ini:ro
        - ${INBOX}:/home
        - ${STAGING}:/ega/staging
-       - ${SSH_PUB_KEY}:/root/.ssh/ega.pub:ro
-       - ${SSH_PRIV_KEY}:/root/.ssh/ega:ro
-       - ${RSA_HOME}:/root/.rsa:ro
-       - ${GPG_HOME}/openpgp-revocs.d:/root/.gnupg/openpgp-revocs.d
-       - ${GPG_HOME}/private-keys-v1.d:/root/.gnupg/private-keys-v1.d
        - ${GPG_HOME}/pubring.kbx:/root/.gnupg/pubring.kbx
        - ${GPG_HOME}/trustdb.gpg:/root/.gnupg/trustdb.gpg
+       - ${GPG_HOME}/certs/selfsigned.cert:/etc/ega/ega.cert:ro
+       - ${RSA_HOME}:/root/.rsa:ro
        - ./entrypoints/worker.sh:/usr/local/bin/worker.sh:ro
     command: worker.sh
 
+
+  # GPG Agent
+  keys:
+    build: images/keys
+    env_file: .env.d/gpg
+    hostname: ega-keys
+    container_name: ega-keys
+    image: nbis/ega:keys
+    tty: true
+    volumes:
+       - ${CODE}:/root/ega
+       - ${CONF}:/root/.lega/conf.ini:ro
+       - ${GPG_HOME}/pubring.kbx:/root/.gnupg/pubring.kbx
+       - ${GPG_HOME}/trustdb.gpg:/root/.gnupg/trustdb.gpg
+       - ${GPG_HOME}/openpgp-revocs.d:/root/.gnupg/openpgp-revocs.d:ro
+       - ${GPG_HOME}/private-keys-v1.d:/root/.gnupg/private-keys-v1.d:ro
+       - ${GPG_HOME}/certs/selfsigned.cert:/etc/ega/ega.cert:ro
+       - ${GPG_HOME}/certs/selfsigned.key:/etc/ega/ega.key:ro
+       - ${RSA_HOME}:/root/.rsa:ro
+       - ./entrypoints/keys.sh:/usr/local/bin/keys.sh:ro
+    command: ["keys.sh"]

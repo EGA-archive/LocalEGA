@@ -12,8 +12,10 @@ LOG = logging.getLogger('publisher')
 
 def make_user(args):
     msg = { "elixir_id": args.user }
-    if args.token:
-        msg['token'] = args.token
+    if args.password:
+        msg['password_hash'] = args.password
+    if args.pubkey:		
+        msg['pubkey'] = args.pubkey
     return msg, 'sweden.user'
 
 def make_file(args):
@@ -47,8 +49,10 @@ def main():
 
     users_parser = subparsers.add_parser("user", help="For the user inbox creation")
     users_parser.add_argument('--user',  required=True)
-    users_parser.add_argument('--token')
     users_parser.set_defaults(func=make_user)
+    group = users_parser.add_mutually_exclusive_group(required=True)		
+    group.add_argument('--pubkey')		
+    group.add_argument('--password')
 
     args = parser.parse_args()
 
