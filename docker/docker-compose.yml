@@ -25,13 +25,14 @@ services:
     build: images/db
     hostname: ega-db
     ports:
-      - "5432:5432"
       - "5050:5050"
+      - "5051:5051"
     container_name: ega-db
     image: nbis/ega:db
     volumes:
+       - ./images/db/config_local.py:/usr/local/lib/python2.7/dist-packages/pgadmin4/config_local.py
        - ./entrypoints/db.sh:/usr/local/bin/db.sh:ro
-    command: db.sh
+    command: ["db.sh"]
 
   # SFTP inbox
   inbox:
