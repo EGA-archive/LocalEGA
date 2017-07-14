@@ -25,8 +25,8 @@ services:
     build: images/db
     hostname: ega-db
     ports:
-      - "5432:5432"
       - "5050:5050"
+      - "5051:5051"
     container_name: ega-db
     image: nbis/ega:db
     volumes:
