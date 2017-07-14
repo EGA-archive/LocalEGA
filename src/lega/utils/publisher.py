@@ -5,7 +5,7 @@ import json
 import pika
 import logging
 
-from .conf import CONF
+from ..conf import CONF
 from . import amqp as broker
 
 LOG = logging.getLogger('publisher')

@@ -21,9 +21,9 @@ from pathlib import Path
 
 from .conf import CONF
 from . import exceptions
-from . import amqp as broker
 from . import db
 from .utils import catch_user_error, generate_password
+from .utils.amqp import get_connection, consume
 from .crypto import generate_key
 
 LOG = logging.getLogger('inbox')
@@ -79,17 +79,17 @@ def main(args=None):
 
     LOG.info('Starting a connection to the local broker')
 
-    connection = broker.get_connection('local.broker')
+    connection = get_connection('local.broker')
     channel = connection.channel()
     channel.basic_qos(prefetch_count=1) # One job per worker
 
     try:
-        broker.consume(channel,
-                       work,
-                       from_queue  = CONF.get('local.broker','users_queue'),
-                       to_channel  = channel,
-                       to_exchange = CONF.get('local.broker','exchange'),
-                       to_routing  = CONF.get('local.broker','routing_account'))
+        consume(channel,
+                work,
+                from_queue  = CONF.get('local.broker','users_queue'),
+                to_channel  = channel,
+                to_exchange = CONF.get('local.broker','exchange'),
+                to_routing  = CONF.get('local.broker','routing_account'))
     except KeyboardInterrupt:
         channel.stop_consuming()
     finally:
