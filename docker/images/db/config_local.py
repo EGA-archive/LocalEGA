@@ -24,8 +24,3 @@ DEFAULT_SERVER_PORT = 5050
 MODULE_BLACKLIST.remove('test')
 UPGRADE_CHECK_ENABLED = False
 DESKTOP_USER = 'ega@nbis.se'
-
-
-# import os
-# os.environ['PGADMIN_SETUP_USER'] = 'ega@nbis.se'
-# os.environ['PGADMIN_SETUP_PASSWORD'] = 'hello2you'

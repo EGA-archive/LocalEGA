@@ -41,13 +41,4 @@ EXPOSE 5050
 RUN mkdir -p /var/{log,lib}/pgadmin4/
 COPY config_local.py /usr/local/lib/python2.7/dist-packages/pgadmin4/config_local.py
 COPY requirements.txt /usr/local/lib/python2.7/dist-packages/pgadmin4/requirements.txt
-
-RUN pip install uwsgi virtualenv virtualenvwrapper
-
-RUN echo 'source /usr/local/bin/virtualenvwrapper.sh' >> /root/.bashrc
-
-RUN rm /bin/sh && ln -s /bin/bash /bin/sh
-RUN source /usr/local/bin/virtualenvwrapper.sh && \
-    mkvirtualenv pgadmin4 && \
-    workon pgadmin4 && \
-    pip install -r /usr/local/lib/python2.7/dist-packages/pgadmin4/requirements.txt
+RUN pip install -r /usr/local/lib/python2.7/dist-packages/pgadmin4/requirements.txt
