@@ -6,7 +6,7 @@ It is necessary to first create a `.env` file with the following variables:
 (mostly used to parameterize the docker-compose file itself)
 
 	COMPOSE_PROJECT_NAME=ega
-	CODE=..                   # where setup.py is
+	CODE=<python/code/folder> # path where setup.py is
 	CONF=<path/to/your/ini/file>
 	
 	INBOX=<folder>            # mapped to /home on the ega-inbox
@@ -17,12 +17,15 @@ It is necessary to first create a `.env` file with the following variables:
 	GPG_HOME=<folder>         # Used on the agent-forwarder and the workers
 
 
-The `GPG_HOME` folder should contain the following:
-* `pubring.kbx`
-* `trustdb.gpg`
-* `openpgp-revocs.d/`
-* `private-keys-v1.d/`
-* `certs/selfsigned.{cert,key}`
+The folder referenced by `GPG_HOME` should contain the following:
+
+| Components | Used for... |
+|----------:|------------|
+| `pubring.kbx` | Access to the public ring by the workers and the gpg-agent master |
+| `trustdb.gpg` | idem |
+| `openpgp-revocs.d/` | Revoking keys. Only on the gpg-agent master |
+| `private-keys-v1.d/`| idem |
+| `certs/selfsigned.{cert,key}` | ... ssl encryption of the traffic between the workers and the gpg-agent master |
 
 
 Moreover, some of the containers need extra variables. There are located in:
