@@ -6,7 +6,7 @@ import pika
 import logging
 
 from ..conf import CONF
-from . import amqp as broker
+from .amqp import get_connection
 
 LOG = logging.getLogger('publisher')
 
@@ -63,7 +63,7 @@ def main():
 
     message, routing_key = args.func(args)
 
-    connection = broker.get_connection('cega.broker')
+    connection = get_connection('cega.broker')
     channel = connection.channel()
     channel.basic_publish(exchange=CONF.get('cega.broker','exchange'),
                           routing_key=routing_key,

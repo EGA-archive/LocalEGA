@@ -33,9 +33,9 @@ from aiohttp import web
 import jinja2
 import aiohttp_jinja2
 
-from .conf import CONF
-from . import db
-from .utils import only_central_ega
+from ..conf import CONF
+from .. import db
+from ..utils import only_central_ega
 
 LOG = logging.getLogger('frontend')
 
@@ -151,17 +151,13 @@ def main(args=None):
     server.on_cleanup.append(cleanup)
 
     # And ...... cue music!
-    LOG.info('Starting the real deal')
-    web.run_app(server,
-                host=CONF.get('frontend','host'),
-                port=CONF.getint('frontend','port'),
-                shutdown_timeout=0,
-    )
+    host=CONF.get('frontend','host')
+    port=CONF.getint('frontend','port')
+    LOG.info(f'Starting the real deal on <{host}:{port}>')
+    web.run_app(server, host=host, port=port, shutdown_timeout=0)
     # https://github.com/aio-libs/aiohttp/blob/master/aiohttp/web.py
     # run_app already catches the KeyboardInterrupt and calls loop.close() at the end
 
     LOG.info('Exiting the frontend')
 
-if __name__ == '__main__':
-    main()
 
