@@ -26,8 +26,12 @@ services:
     hostname: ega-db
     ports:
       - "5432:5432"
+      - "5050:5050"
     container_name: ega-db
     image: nbis/ega:db
+    volumes:
+       - ./entrypoints/db.sh:/usr/local/bin/db.sh:ro
+    command: db.sh
 
   # SFTP inbox
   inbox:
