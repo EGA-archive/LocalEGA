@@ -26,6 +26,7 @@ services:
     image: nbis/ega:db
     volumes:
        - ./entrypoints/db.sh:/usr/local/bin/db.sh:ro
+    entrypoint: []
     command: db.sh
 
   # SFTP inbox
