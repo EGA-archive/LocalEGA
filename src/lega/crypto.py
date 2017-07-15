@@ -178,20 +178,15 @@ def ingest(enc_file,
 
     assert( isinstance(org_hash,str) )
 
-    #return ('File: {} and {}: {}'.format(filepath, hashAlgo, filehash))
+    cmd = CONF.get('worker','gpg_cmd',raw=True) % { 'file': enc_file }
+
     LOG.debug(f'Processing file\n'
               f'==============\n'
               f'enc_file  = {enc_file}\n'
               f'org_hash  = {org_hash}\n'
               f'hash_algo = {hash_algo}\n'
-              f'target    = {target}')
-
-    cmd = [ CONF.get('worker','gpg_exec'),
-             '--homedir', CONF.get('worker','gpg_home'),
-             '--decrypt', enc_file
-    ]
-
-    LOG.debug('Prepare Decryption with {}'.format(' '.join(cmd)))
+              f'target    = {target}\n'
+              f'Decryption command: {cmd}')
 
     _err = None
 
@@ -202,7 +197,7 @@ def ingest(enc_file,
         reencrypt_protocol = ReEncryptor(hash_algo, target_h, done)
 
         async def _re_encrypt():
-            gpg_job = loop.subprocess_exec(lambda: reencrypt_protocol, *cmd,
+            gpg_job = loop.subprocess_exec(lambda: reencrypt_protocol, cmd,
                                            stdin=None,
                                            stdout=asyncio.subprocess.PIPE,
                                            stderr=asyncio.subprocess.PIPE #stderr=asyncio.subprocess.DEVNULL # suppressing progress messages
