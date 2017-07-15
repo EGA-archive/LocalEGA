@@ -37,5 +37,5 @@ Without it, we look at the `DEFAULT/log_conf` key/value pair from the loaded con
 If the latter doesn't exist, there is no logging capabilities.
 
 The `<file>` can be in `INI` or `YAML` format.
-An example is provided in [main.yaml](../loggers/main.yaml) or [debug.yaml](../loggers/debug.yaml).
+An example is provided in [main.yaml](lega/conf/loggers/main.yaml) or [debug.yaml](lega/conf/loggers/debug.yaml).
 

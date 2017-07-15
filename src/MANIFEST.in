@@ -1,4 +1,2 @@
-include lega/defaults.ini
 include README.md
-recursive-include lega *.py
-recursive-include lega/templates *.html *.jinja2
+recursive-include lega *.py *.html *.jinja2 *.ini *.yaml
