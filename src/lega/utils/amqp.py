@@ -3,7 +3,7 @@ import pika
 import uuid
 import json
 
-from .conf import CONF
+from ..conf import CONF
 
 LOG = logging.getLogger('amqp')
 

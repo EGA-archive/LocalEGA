@@ -19,7 +19,7 @@ import argparse
 
 from .conf import CONF
 from . import db
-from . import amqp as broker
+from .utils.amqp import get_connection, forward
 
 LOG = logging.getLogger('connect')
 
@@ -88,22 +88,22 @@ def main():
     if transform:
         LOG.debug(f'Transform function: {transform}')
 
-    from_connection = broker.get_connection(args.from_domain)
+    from_connection = get_connection(args.from_domain)
     from_channel = from_connection.channel()
 
-    to_connection = broker.get_connection(args.to_domain)
+    to_connection = get_connection(args.to_domain)
     to_channel = to_connection.channel()
     to_channel.basic_qos(prefetch_count=1) # One job at a time
 
     LOG.info(f'Forwarding messages')
 
     try:
-        broker.forward(from_channel,
-                       from_queue  = args.from_queue,
-                       to_channel  = to_channel,
-                       to_exchange = args.to_exchange,
-                       to_routing  = args.to_routing,
-                       transform   = transform)
+        forward(from_channel,
+                from_queue  = args.from_queue,
+                to_channel  = to_channel,
+                to_exchange = args.to_exchange,
+                to_routing  = args.to_routing,
+                transform   = transform)
     except KeyboardInterrupt:
         from_channel.stop_consuming()
     finally:

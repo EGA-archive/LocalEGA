@@ -31,8 +31,7 @@ See `https://github.com/NBISweden/LocalEGA` for a full documentation.
 :copyright: (c) 2017, NBIS System Developers.
 """
 
-from . import __name__ as package_name
-LOG = logging.getLogger(package_name)
+LOG = logging.getLogger('lega-conf')
 
 class Configuration(configparser.SafeConfigParser):
     conf_file = None

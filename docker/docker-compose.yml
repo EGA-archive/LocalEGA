@@ -10,12 +10,7 @@ services:
     build: images/mq
     hostname: ega-mq
     ports:
-      - "5672:5672"
       - "15672:15672"
-      # - "4369:4369"
-      # - "25672:25672"
-      # - "5671:5671"
-      # - "15671:15671"
     image: nbis/ega:mq
     container_name: ega-mq
 

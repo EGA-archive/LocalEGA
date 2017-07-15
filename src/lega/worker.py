@@ -36,9 +36,9 @@ from multiprocessing import Process, cpu_count
 from .conf import CONF
 from . import exceptions
 from . import crypto
-from . import amqp as broker
 from . import db
 from .utils import checksum, check_error
+from .utils.amqp import get_connection, consume
 
 LOG = logging.getLogger('worker')
 
@@ -116,19 +116,19 @@ def work(data):
     LOG.debug(f"Reply message: {reply!r}")
     return reply
 
-def consume():
+def consume_forever():
 
-    connection = broker.get_connection('local.broker')
+    connection = get_connection('local.broker')
     channel = connection.channel()
     channel.basic_qos(prefetch_count=1) # One job per worker
 
     try:
-        broker.consume(channel,
-                       work,
-                       from_queue  = CONF.get('local.broker','tasks_queue'),
-                       to_channel  = channel,
-                       to_exchange = CONF.get('local.broker','exchange'),
-                       to_routing  = CONF.get('local.broker','routing_complete'))
+        consume(channel,
+                work,
+                from_queue  = CONF.get('local.broker','tasks_queue'),
+                to_channel  = channel,
+                to_exchange = CONF.get('local.broker','exchange'),
+                to_routing  = CONF.get('local.broker','routing_complete'))
     except KeyboardInterrupt:
         channel.stop_consuming()
     finally:
@@ -149,13 +149,13 @@ def main(args=None):
 
     extra_workers = []
     for _ in range(2, nb_cores, 2):
-        p = Process(group=None, target=consume) # no name
+        p = Process(group=None, target=consume_forever) # no name
         p.start()
         extra_workers.append(p)
         
     if extra_workers:
         LOG.info(f'Starting {len(extra_workers)} extra workers')
-    consume() # and this one
+    consume_forever() # and this one
 
 if __name__ == '__main__':
     main()
