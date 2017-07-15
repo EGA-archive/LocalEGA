@@ -28,15 +28,6 @@ loggers:
   user-monitor:
     level: INFO
     handlers: [mainFile]
-  amqp:
-    level: WARNING
-    handlers: [warningFile]
-  db:
-    level: WARNING
-    handlers: [warningFile]
-  crypto:
-    level: WARNING
-    handlers: [warningFile]
 
 handlers:
   noHandler:
@@ -45,12 +36,7 @@ handlers:
   mainFile:
     class: logging.FileHandler
     formatter: lega
-    filename: '/tmp/ega-main.log'
-    mode: 'w'
-  warningFile:
-    class: logging.FileHandler
-    formatter: lega
-    filename: '/tmp/ega-main-warning.log'
+    filename: '/tmp/ega.log'
     mode: 'w'
 
 formatters:

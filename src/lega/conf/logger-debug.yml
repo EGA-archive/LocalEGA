@@ -19,6 +19,12 @@ loggers:
   verify:
     level: DEBUG
     handlers: [debugFile,console]
+  socket-forwarder:
+    level: DEBUG
+    handlers: [debugFile,console]
+  socket-proxy:
+    level: DEBUG
+    handlers: [debugFile,console]
   inbox:
     level: DEBUG
     handlers: [debugFile,console]

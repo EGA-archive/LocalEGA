@@ -3,9 +3,7 @@
 .DS_Store
 tmp/
 private/
-src/loggers/*.log
-src/loggers/*.yaml
-!src/loggers/*.yaml.sample
+loggers/
 docker/.env
 docker/.env.d/
 tests/
