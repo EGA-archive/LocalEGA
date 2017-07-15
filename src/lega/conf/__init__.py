@@ -33,7 +33,7 @@ See `https://github.com/NBISweden/LocalEGA` for a full documentation.
 
 LOG = logging.getLogger('lega-conf')
 
-class Configuration(configparser.SafeConfigParser):
+class Configuration(configparser.RawConfigParser):
     conf_file = None
     log_conf = None
 
@@ -67,19 +67,14 @@ class Configuration(configparser.SafeConfigParser):
         self.read(_config_files, encoding=encoding)
 
     def _load_log_file(self,filename):
-        try:
-            #if lconf.exists():
-            LOG.info(f'Reading the log configuration from: {filename}')
-            if filename.suffix in ('.yaml', '.yml'):
-                with open(filename, 'r') as stream:
-                    dictConfig(yaml.load(stream))
-                    self.log_conf = filename
-            else: # It's an ini file
-                fileConfig(filename)
+        LOG.info(f'Reading the log configuration from: {filename}')
+        if filename.suffix in ('.yaml', '.yml'):
+            with open(filename, 'r') as stream:
+                dictConfig(yaml.load(stream))
                 self.log_conf = filename
-        except Exception as e:
-            print(e)
-            sys.exit(2)
+        else: # It's an ini file
+            fileConfig(filename)
+            self.log_conf = filename
 
     def _load_log_conf(self,args=None):
         # Finding the --log file
@@ -90,12 +85,16 @@ class Configuration(configparser.SafeConfigParser):
             LOG.info("--log <file> was not mentioned")
             default_log_conf = self.get('DEFAULT','log_conf',fallback=None)
             if default_log_conf:
-                self._load_log_file(Path(default_log_conf))
+                default_log_conf = Path(default_log_conf)
+                self._load_log_file(default_log_conf)
         except (TypeError, AttributeError): # if args = None
             pass # No log conf
         except IndexError:
             LOG.error("Wrong use of --log <file>")
             sys.exit(2)
+        except Exception as e:
+            print(e)
+            #sys.exit(2)
 
     def setup(self,args=None, encoding='utf-8'):
         self._load_conf(args,encoding)
