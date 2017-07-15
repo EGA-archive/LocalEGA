@@ -35,10 +35,10 @@ from multiprocessing import Process, cpu_count
 
 from .conf import CONF
 from . import exceptions
-from . import crypto
 from . import db
 from .utils import checksum, check_error
 from .utils.amqp import get_connection, consume
+from .utils.crypto import ingest as crypto_ingest
 
 LOG = logging.getLogger('worker')
 
@@ -101,7 +101,7 @@ def work(data):
     
     LOG.debug(f'Starting the re-encryption\n\tfrom {inbox_filepath}\n\tto {staging_filepath}')
     db.set_progress(file_id, str(staging_filepath))
-    details, staging_checksum = crypto.ingest( str(inbox_filepath),
+    details, staging_checksum = crypto_ingest( str(inbox_filepath),
                                                unencrypted_hash,
                                                hash_algo = unencrypted_algo,
                                                target = staging_filepath)

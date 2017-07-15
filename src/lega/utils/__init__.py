@@ -10,7 +10,7 @@ from aiohttp.web import HTTPUnauthorized
 
 from ..conf import CONF
 from .. import db
-from ..crypto import HASH_ALGORITHMS
+from .crypto import HASH_ALGORITHMS
 
 LOG = logging.getLogger('utils')
 
