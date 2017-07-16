@@ -19,7 +19,7 @@ import argparse
 from time import sleep
     
 from .conf import CONF
-from . import db
+from .utils import db
 
 LOG = None
 

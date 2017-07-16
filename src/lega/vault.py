@@ -27,7 +27,7 @@ import os
 import select
 
 from .conf import CONF
-from . import db
+from .utils import db
 from .utils import check_error
 from .utils.amqp import get_connection, consume
 

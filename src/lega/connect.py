@@ -18,7 +18,7 @@ import logging
 import argparse
 
 from .conf import CONF
-from . import db
+from .utils.db import insert_file, get_user, insert_user
 from .utils.amqp import get_connection, forward
 
 LOG = logging.getLogger('connect')
@@ -33,10 +33,10 @@ def set_file_id(data):
     org_checksum  = data['unencrypted_integrity']
 
     # Find user_id
-    user_id = db.get_user(elixir_id)
+    user_id = get_user(elixir_id)
 
     # Insert in database
-    file_id = db.insert_file(filename, enc_checksum, org_checksum, user_id) 
+    file_id = insert_file(filename, enc_checksum, org_checksum, user_id) 
     assert file_id is not None, 'Ouch...database problem!'
     LOG.debug(f'Created id {file_id} for {data["filename"]}')
 
@@ -52,7 +52,7 @@ def set_user_id(data):
     password_hash = data.get('password_hash', None)
     pubkey = data.get('pubkey',None)
     # Insert in database
-    user_id = db.insert_user(elixir_id, password_hash, pubkey)
+    user_id = insert_user(elixir_id, password_hash, pubkey)
     assert user_id is not None, 'Ouch...database problem!'
     LOG.debug(f'Created id {user_id} for user {elixir_id}')
     data['user_id'] = user_id

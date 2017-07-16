@@ -21,7 +21,7 @@ from pathlib import Path
 
 from .conf import CONF
 from . import exceptions
-from . import db
+from .utils import db
 from .utils import catch_user_error, generate_password
 from .utils.amqp import get_connection, consume
 from .crypto import generate_key

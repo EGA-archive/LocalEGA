@@ -19,8 +19,8 @@ import logging
 import os
 
 from .conf import CONF
-from . import crypto
-from . import db
+from .utils import crypto
+from .utils import db
 from .utils import check_error, checksum
 from .utils.amqp import get_connection, consume
 
