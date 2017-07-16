@@ -9,21 +9,10 @@ import string
 from aiohttp.web import HTTPUnauthorized
 
 from ..conf import CONF
-from .. import db
+from . import db
 from .crypto import HASH_ALGORITHMS
 
 LOG = logging.getLogger('utils')
-
-def cache_var(v):
-    '''Decorator to cache into a global variable'''
-    def decorator(func):
-        def wrapper(*args, **kwargs):
-            g = globals()
-            if v not in g:
-                g[v] = func(*args, **kwargs)
-            return g[v]
-        return wrapper
-    return decorator
 
 def only_central_ega(async_func):
     '''Decorator restrain endpoint access to only Central EGA'''

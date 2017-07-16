@@ -22,8 +22,7 @@ from Cryptodome.Random import get_random_bytes
 from Cryptodome.Cipher import AES, PKCS1_OAEP
 
 from ..conf import CONF
-#from ..utils import cache_var
-from .. import exceptions
+from . import exceptions
 
 HASH_ALGORITHMS = {
     'md5': hashlib.md5,

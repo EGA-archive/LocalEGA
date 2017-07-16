@@ -17,9 +17,9 @@ import sys
 import logging
 import argparse
 
-from .conf import CONF
-from .utils.db import insert_file, get_user, insert_user
-from .utils.amqp import get_connection, forward
+from lega.conf import CONF
+from lega.utils.db import insert_file, get_user, insert_user
+from lega.utils.amqp import get_connection, forward
 
 LOG = logging.getLogger('connect')
 

@@ -1,6 +1,6 @@
 import sys
 
-from .conf import CONF
+from . import CONF
 
 def main(args=None):
     """The main routine."""

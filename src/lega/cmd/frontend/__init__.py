@@ -33,9 +33,9 @@ from aiohttp import web
 import jinja2
 import aiohttp_jinja2
 
-from ..conf import CONF
-from ..utils import db
-from ..utils import only_central_ega
+from lega.conf import CONF
+from lega.utils import db
+from lega.utils import only_central_ega
 
 LOG = logging.getLogger('frontend')
 

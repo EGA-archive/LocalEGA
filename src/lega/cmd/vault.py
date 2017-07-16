@@ -26,10 +26,10 @@ import shutil
 import os
 import select
 
-from .conf import CONF
-from .utils import db
-from .utils import check_error
-from .utils.amqp import get_connection, consume
+from lega.conf import CONF
+from lega.utils import db
+from lega.utils import check_error
+from lega.utils.amqp import get_connection, consume
 
 LOG = logging.getLogger('vault')
 

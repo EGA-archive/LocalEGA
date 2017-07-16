@@ -18,11 +18,10 @@ import sys
 import logging
 import os
 
-from .conf import CONF
-from .utils import crypto
-from .utils import db
-from .utils import check_error, checksum
-from .utils.amqp import get_connection, consume
+from lega.conf import CONF
+from lega.utils import crypto, db
+from lega.utils import check_error, checksum
+from lega.utils.amqp import get_connection, consume
 
 LOG = logging.getLogger('verify')
 

@@ -18,8 +18,8 @@ import logging
 import argparse
 from time import sleep
     
-from .conf import CONF
-from .utils import db
+from lega.conf import CONF
+from lega.utils import db
 
 LOG = None
 

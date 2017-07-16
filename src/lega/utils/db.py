@@ -14,9 +14,8 @@ import aiopg
 import psycopg2
 import socket
 
-from .conf import CONF
+from ..conf import CONF
 from .exceptions import FromUser
-from .utils import cache_var
 
 LOG = logging.getLogger('db')
 
@@ -26,6 +25,17 @@ class Status(Enum):
     Completed = 'Completed'
     Archived = 'Archived'
     Error = 'Error'
+
+def cache_var(v):
+    '''Decorator to cache into a global variable'''
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            g = globals()
+            if v not in g:
+                g[v] = func(*args, **kwargs)
+            return g[v]
+        return wrapper
+    return decorator
 
 ######################################
 ##           Async code             ##
