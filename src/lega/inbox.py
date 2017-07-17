@@ -23,7 +23,7 @@ from .conf import CONF
 from .utils import db, exceptions
 from .utils import catch_user_error, generate_password
 from .utils.amqp import get_connection, consume
-from .crypto import generate_key
+from .utils.crypto import generate_key
 
 LOG = logging.getLogger('inbox')
 
