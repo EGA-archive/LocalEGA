@@ -33,9 +33,9 @@ from aiohttp import web
 import jinja2
 import aiohttp_jinja2
 
-from lega.conf import CONF
-from lega.utils import db
-from lega.utils import only_central_ega
+from .conf import CONF
+from .utils import db
+from .utils import only_central_ega
 
 LOG = logging.getLogger('frontend')
 
@@ -161,3 +161,5 @@ def main(args=None):
     LOG.info('Exiting the frontend')
 
 
+if __name__ == '__main__':
+    main()

@@ -5,8 +5,8 @@ import json
 import pika
 import logging
 
-from lega.conf import CONF
-from lega.utils.amqp import get_connection
+from .conf import CONF
+from .utils.amqp import get_connection
 
 LOG = logging.getLogger('publisher')
 

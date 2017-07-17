@@ -33,11 +33,11 @@ import stat
 import uuid
 from multiprocessing import Process, cpu_count
 
-from lega.conf import CONF
-from lega.utils import db, exceptions
-from lega.utils import checksum, check_error
-from lega.utils.amqp import get_connection, consume
-from lega.utils.crypto import ingest as crypto_ingest
+from .conf import CONF
+from .utils import db, exceptions
+from .utils import checksum, check_error
+from .utils.amqp import get_connection, consume
+from .utils.crypto import ingest as crypto_ingest
 
 LOG = logging.getLogger('worker')
 

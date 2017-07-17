@@ -10,10 +10,7 @@ _config_files = [
     Path.home() / '.lega/conf.ini'
 ]
 
-f"""lega.conf
-~~~~~~~~~~~~~~~~~~~~~
-
-This module provides a dictionary-like with configuration settings.
+f"""This module provides a dictionary-like with configuration settings.
 It also loads the logging settings when `setup` is called.
 
 The `--log <file>` argument is used to configuration where the logs go.

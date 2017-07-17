@@ -19,11 +19,11 @@ import logging
 import subprocess
 from pathlib import Path
 
-from lega.conf import CONF
-from lega.utils import db, exceptions
-from lega.utils import catch_user_error, generate_password
-from lega.utils.amqp import get_connection, consume
-from lega.crypto import generate_key
+from .conf import CONF
+from .utils import db, exceptions
+from .utils import catch_user_error, generate_password
+from .utils.amqp import get_connection, consume
+from .crypto import generate_key
 
 LOG = logging.getLogger('inbox')
 
