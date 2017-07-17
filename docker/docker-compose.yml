@@ -46,6 +46,9 @@ services:
        - ${CONF}:/root/.lega/conf.ini:ro
        - ${INBOX}:/home
        - ./entrypoints/inbox.sh:/usr/local/bin/inbox.sh:ro
+       - ${ORG_FILE}:/root/org_file
+       - ${ENC_FILE}:/root/enc_file
+       - ${SUBMIT_TEST}:/root/submit_test.sh
     command: inbox.sh
 
   # ReST frontend

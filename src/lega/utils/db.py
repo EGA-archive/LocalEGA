@@ -62,7 +62,8 @@ async def get_internal_user_id(pool, elixir_id):
     with (await pool.cursor()) as cur:
         await cur.execute('SELECT id FROM users WHERE elixir_id = %(elixir_id)s',
                           {'elixir_id': elixir_id})
-        return (await cur.fetchone())[0]
+        one = await cur.fetchone()
+        return one if one is None else one[0]
 
 ######################################
 ##         "Classic" code           ##
@@ -168,5 +169,8 @@ def get_user(elixir_id):
     with connect() as conn:
         with conn.cursor() as cur:
             cur.execute('SELECT id FROM users WHERE elixir_id = (%(elixir_id)s);', { 'elixir_id': elixir_id })
-            return (cur.fetchone())[0]
+            one = cur.fetchone()
+            if one is not None:
+                one = one[0]
+            return one
 
