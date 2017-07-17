@@ -170,7 +170,5 @@ def get_user(elixir_id):
         with conn.cursor() as cur:
             cur.execute('SELECT id FROM users WHERE elixir_id = (%(elixir_id)s);', { 'elixir_id': elixir_id })
             one = cur.fetchone()
-            if one is not None:
-                one = one[0]
-            return one
+            return one if one is None else one[0]
 
