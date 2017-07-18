@@ -177,15 +177,14 @@ def ingest(enc_file,
 
     assert( isinstance(org_hash,str) )
 
-    cmd = CONF.get('worker','gpg_cmd',raw=True) % { 'file': enc_file }
+    cmd = (CONF.get('worker','gpg_cmd',raw=True) % { 'file': enc_file }).split(None) # whitespace split
 
     LOG.debug(f'Processing file\n'
               f'==============\n'
               f'enc_file  = {enc_file}\n'
               f'org_hash  = {org_hash}\n'
               f'hash_algo = {hash_algo}\n'
-              f'target    = {target}\n'
-              f'Decryption command: {cmd}')
+              f'target    = {target}\n')
 
     _err = None
 
@@ -195,8 +194,10 @@ def ingest(enc_file,
         done = asyncio.Future(loop=loop)
         reencrypt_protocol = ReEncryptor(hash_algo, target_h, done)
 
+        LOG.debug(f'Spawning a separate process running: {cmd}')
+
         async def _re_encrypt():
-            gpg_job = loop.subprocess_exec(lambda: reencrypt_protocol, cmd,
+            gpg_job = loop.subprocess_exec(lambda: reencrypt_protocol, *cmd, # must pass an argument list, not a single string
                                            stdin=None,
                                            stdout=asyncio.subprocess.PIPE,
                                            stderr=asyncio.subprocess.PIPE #stderr=asyncio.subprocess.DEVNULL # suppressing progress messages
