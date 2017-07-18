@@ -21,3 +21,4 @@ unset GPG_PASSPHRASE
 echo "Starting the gpg-agent proxy"
 exec ega-socket-proxy '0.0.0.0:9010' /root/.gnupg/S.gpg-agent.extra \
 		     --certfile /etc/ega/ega.cert --keyfile /etc/ega/ega.key
+		     #--log /root/ega/lega/conf/loggers/debug.yaml

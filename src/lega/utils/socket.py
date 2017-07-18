@@ -19,7 +19,7 @@ import ssl
 from functools import partial
 from pathlib import Path
 
-LOG = logging.getLogger('socket-forwarder')
+LOG = logging.getLogger('socket-utils')
 
 CHUNK_SIZE=4096
 
@@ -31,6 +31,7 @@ async def copy_chunk(reader,writer):
         data = await reader.read(CHUNK_SIZE)
         if not data:
             return
+        #LOG.debug(f'DATA: {data}')
         writer.write(data)
         await writer.drain()
 
@@ -63,10 +64,20 @@ def forward():
     parser.add_argument('remote_machine', help='Remote location <host:port>')
     parser.add_argument('--certfile', help='Certificat for SSL communication')
     parser.add_argument('--chunk', help='Size of the chunk to forward. [Default: 4096]', type=int)
+    parser.add_argument('--log', help=f'Log configuration')
     args = parser.parse_args()
 
     LOG.info(f'Socket: {args.socket}')
     LOG.info(f'Remote machine: {args.remote_machine}')
+
+    if args.log:
+        import yaml
+        from logging.config import dictConfig
+        try:
+            with open(args.log, 'r') as stream:
+                dictConfig(yaml.load(stream))
+        except:
+            pass
 
     if args.chunk:
         CHUNK_SIZE = args.chunk
@@ -117,10 +128,20 @@ def proxy():
     parser.add_argument('--certfile', help='Certificat for SSL communication')
     parser.add_argument('--keyfile', help='Private key for SSL communication')
     parser.add_argument('--chunk', help=f'Size of the chunk to forward. [Default: {CHUNK_SIZE}]', type=int)
+    parser.add_argument('--log', help=f'Log configuration')
     args = parser.parse_args()
 
     LOG.info(f'Remote: {args.address}')
     LOG.info(f'Socket: {args.socket}')
+
+    if args.log:
+        import yaml
+        from logging.config import dictConfig
+        try:
+            with open(args.log, 'r') as stream:
+                dictConfig(yaml.load(stream))
+        except:
+            pass
 
     if args.chunk:
         CHUNK_SIZE = args.chunk
@@ -138,7 +159,7 @@ def proxy():
     address,port = args.address.split(':')
 
     loop = asyncio.get_event_loop()
-    connection_factory = lambda : asyncio.open_unix_connection(path=socket_path)
+    connection_factory = lambda : asyncio.open_unix_connection(path=args.socket)
     server = loop.run_until_complete(
         asyncio.start_server(partial(handle_connection,connection_factory),
                              host=address,

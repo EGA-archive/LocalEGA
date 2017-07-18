@@ -4,6 +4,7 @@
 tmp/
 private/
 loggers/
+!src/lega/conf/loggers
 docker/.env
 docker/.env.d/
 tests/

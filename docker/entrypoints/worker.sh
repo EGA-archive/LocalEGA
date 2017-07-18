@@ -15,6 +15,7 @@ echo "Starting the gpg-agent forwarder"
 ega-socket-forwarder /root/.gnupg/S.gpg-agent \
 		     ega-keys:9010 \
 		     --certfile /etc/ega/ega.cert &
+    		     #--log /root/ega/lega/conf/loggers/debug.yaml &
 
 echo "Starting the worker"
 exec ega-worker

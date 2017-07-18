@@ -19,7 +19,7 @@ loggers:
   verify:
     level: DEBUG
     handlers: [debugFile,console]
-  socket-forwarder:
+  socket-utils:
     level: DEBUG
     handlers: [debugFile,console]
   inbox:
