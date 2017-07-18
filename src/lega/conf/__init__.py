@@ -30,7 +30,7 @@ See `https://github.com/NBISweden/LocalEGA` for a full documentation.
 
 LOG = logging.getLogger('lega-conf')
 
-class Configuration(configparser.RawConfigParser):
+class Configuration(configparser.ConfigParser):
     conf_file = None
     log_conf = None
 
