@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 '''
@@ -14,8 +13,8 @@ import io
 import os
 import asyncio
 import asyncio.subprocess
-import hashlib
 from pathlib import Path
+from hashlib import sha256
 
 from Cryptodome.PublicKey import RSA
 from Cryptodome.Random import get_random_bytes
@@ -23,11 +22,7 @@ from Cryptodome.Cipher import AES, PKCS1_OAEP
 
 from ..conf import CONF
 from . import exceptions
-
-HASH_ALGORITHMS = {
-    'md5': hashlib.md5,
-    'sha256': hashlib.sha256,
-}
+from .hash_algo import DIGEST as HASH_ALGORITHMS
 
 LOG = logging.getLogger('crypto')
 
@@ -52,8 +47,7 @@ def make_header(key_nr, enc_key_size, nonce_size, aes_mode):
     The key number points to a particular section of the configuration files, 
     holding the information about that key
     '''
-    header = f'{key_nr}|{enc_key_size}|{nonce_size}|{aes_mode}\n'
-    return header.encode('utf-8')
+    return f'{key_nr}|{enc_key_size}|{nonce_size}|{aes_mode}'
 
 def from_header(h):
     '''Convert the given line into differents values, doing the opposite job as `make_header`'''
@@ -125,15 +119,18 @@ class ReEncryptor(asyncio.SubprocessProtocol):
         encryption_key, mode, nonce = next(self.engine)
 
         self.header = make_header(CONF.getint('worker','active_key'), len(encryption_key), len(nonce), mode)
+
     
-        LOG.info(f'Writing header to file: {self.header[:-1]} (and enc key + nonce)')
-        self.target_handler.write(self.header)
+        LOG.info(f'Writing header to file: {self.header} (and enc key + nonce)')
+        header_b = (self.header + '\n').encode('utf-8')
+
+        self.target_handler.write(header_b)
         self.target_handler.write(encryption_key)
         self.target_handler.write(nonce)
 
         LOG.info('Setup target digest')
-        self.target_digest = hashlib.sha256()
-        self.target_digest.update(self.header)
+        self.target_digest = sha256()
+        self.target_digest.update(header_b)
         self.target_digest.update(encryption_key)
         self.target_digest.update(nonce)
 

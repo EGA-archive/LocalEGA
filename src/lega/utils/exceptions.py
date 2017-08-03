@@ -13,6 +13,18 @@ class NotFoundInInbox(FromUser):
         self.filename = filename
     def __str__(self):
         return f'Inbox missing {self.filename}'
+
+class UnsupportedHashAlgorithm(FromUser):
+    def __init__(self, algo):
+        self.algo = algo
+    def __str__(self):
+        return f'Unsupported hash algorithm: {self.algo!r}'
+
+class CompanionNotFound(FromUser):
+    def __init__(self, name):
+        self.name = name
+    def __str__(self):
+        return f'Companion file not found for {self.name}'
         
 class GPGDecryption(FromUser):
     def __init__(self, retcode, errormsg, filename):
