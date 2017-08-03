@@ -21,8 +21,7 @@ from Cryptodome.Random import get_random_bytes
 from Cryptodome.Cipher import AES, PKCS1_OAEP
 
 from ..conf import CONF
-from . import exceptions
-from .hash_algo import DIGEST as HASH_ALGORITHMS
+from . import exceptions, checksum
 
 LOG = logging.getLogger('crypto')
 
@@ -110,10 +109,7 @@ class ReEncryptor(asyncio.SubprocessProtocol):
         self.target_handler = target_h
 
         LOG.info(f'Setup {hashAlgo} digest')
-        try:
-            self.digest = (HASH_ALGORITHMS[hashAlgo])()
-        except KeyError:
-            raise ValueError(f'No support for the secure hashing algorithm: {hashAlgo}')
+        self.digest = checksum.instanciate(hashAlgo)
 
         LOG.info(f'Starting the encrypting engine')
         encryption_key, mode, nonce = next(self.engine)
@@ -266,13 +262,8 @@ def decrypt_from_vault( vault_filename,
                         org_hash,
                         hash_algo):
 
-    try:
-        h = HASH_ALGORITHMS.get(hash_algo)
-    except KeyError:
-        raise ValueError('No support for the secure hashing algorithm')
-    else:
-        digest = h()
-        LOG.debug(f'Digest: {hash_algo}')
+    digest = checksum.instanciate(hash_algo)
+    LOG.debug(f'Digest: {hash_algo}')
 
     with open(vault_filename, 'rb') as vault_source:
 

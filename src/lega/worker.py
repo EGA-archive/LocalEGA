@@ -34,8 +34,8 @@ import uuid
 from multiprocessing import Process, cpu_count
 
 from .conf import CONF
-from .utils import db, exceptions
-from .utils import checksum, db_log_error_on_files, get_checksum_from_companion
+from .utils import db, exceptions, checksum
+from .utils import db_log_error_on_files
 from .utils.amqp import get_connection, consume
 from .utils.crypto import ingest as crypto_ingest
 
@@ -78,7 +78,7 @@ def work(data):
         encrypted_algo = data['encrypted_integrity']['algorithm']
     except KeyError:
         LOG.info('Finding a companion file')
-        encrypted_hash, encrypted_algo = get_checksum_from_companion(inbox_filepath)
+        encrypted_hash, encrypted_algo = checksum.get_from_companion(inbox_filepath)
 
 
     assert( isinstance(encrypted_hash,str) )
@@ -86,7 +86,7 @@ def work(data):
     
     ################# Check integrity of encrypted file
     LOG.debug(f"Verifying the {encrypted_algo} checksum of encrypted file: {inbox_filepath}")
-    if not checksum(inbox_filepath, encrypted_hash, hashAlgo = encrypted_algo):
+    if not checksum.is_valid(inbox_filepath, encrypted_hash, hashAlgo = encrypted_algo):
         LOG.error(f"Invalid {encrypted_algo} checksum for {inbox_filepath}")
         raise exceptions.Checksum(encrypted_algo, f'for {inbox_filepath}')
     LOG.debug(f'Valid {encrypted_algo} checksum for {inbox_filepath}')
@@ -108,7 +108,7 @@ def work(data):
     except KeyError:
         # Strip the suffix first.
         LOG.info('Finding a companion file')
-        unencrypted_hash, unencrypted_algo = get_checksum_from_companion(inbox_filepath.with_suffix(''))
+        unencrypted_hash, unencrypted_algo = checksum.get_from_companion(inbox_filepath.with_suffix(''))
 
 
     LOG.debug(f'Starting the re-encryption\n\tfrom {inbox_filepath}\n\tto {staging_filepath}')
