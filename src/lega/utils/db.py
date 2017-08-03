@@ -80,29 +80,21 @@ def connect():
     LOG.info(f"Initializing a connection to: {host}:{port}/{database}")
     return psycopg2.connect(user=user, password=password, database=database, host=host, port=port)
 
-def insert_file(filename, enc_checksum, org_checksum, user_id):
+def insert_file(filename, user_id):
     with connect() as conn:
         with conn.cursor() as cur:
-            cur.execute('SELECT insert_file('
-                        '%(filename)s,%(user_id)s,%(enc_checksum)s,%(enc_checksum_algo)s,%(org_checksum)s,%(org_checksum_algo)s,%(status)s'
-                        ');',{
-                            'filename': filename,
-                            'user_id': user_id,
-                            'enc_checksum': enc_checksum['hash'],
-                            'enc_checksum_algo': enc_checksum['algorithm'],
-                            'org_checksum': org_checksum['hash'],
-                            'org_checksum_algo': org_checksum['algorithm'],
-                            'status' : Status.Received.value })
+            cur.execute('SELECT insert_file(%(filename)s,%(user_id)s,%(status)s);',{
+                'filename': filename,
+                'user_id': user_id,
+                'status' : Status.Received.value })
             return (cur.fetchone())[0]
 
-def set_progress(file_id, staging_name):
-    assert file_id, 'Eh? No file_id?'
-    assert staging_name, 'Eh? No staging name?'
-    LOG.debug(f'Updating status file_id {file_id}')
+def get_errors(from_user=False):
+    query = 'SELECT * from errors WHERE from_user = true;' if from_user else 'SELECT * from errors;'
     with connect() as conn:
         with conn.cursor() as cur:
-            cur.execute('UPDATE files SET status = %(status)s, staging_name = %(name)s WHERE id = %(file_id)s;',
-                        {'status': Status.In_Progress.value, 'file_id': file_id, 'name': staging_name})
+            cur.execute(query)
+            return cur.fetchall()
 
 def set_error(file_id, error):
     assert file_id, 'Eh? No file_id?'
@@ -115,12 +107,31 @@ def set_error(file_id, error):
             cur.execute('SELECT insert_error(%(file_id)s,%(msg)s,%(from_user)s);',
                         {'msg':f"[{hostname}][{error.__class__.__name__}] {error!s}", 'file_id': file_id, 'from_user': from_user})
 
-def get_errors(from_user=False):
-    query = 'SELECT * from errors WHERE from_user = true;' if from_user else 'SELECT * from errors;'
+def get_details(file_id):
     with connect() as conn:
         with conn.cursor() as cur:
-            cur.execute(query)
-            return cur.fetchall()
+            query = 'SELECT filename, org_checksum, org_checksum_algo, stable_id, reenc_checksum from files WHERE id = %(file_id)s;'
+            cur.execute(query, { 'file_id': file_id})
+            return cur.fetchone()
+
+def set_progress(file_id, staging_name, enc_checksum, enc_checksum_algo, org_checksum, org_checksum_algo):
+    assert file_id, 'Eh? No file_id?'
+    assert staging_name, 'Eh? No staging name?'
+    LOG.debug(f'Updating status file_id {file_id}')
+    with connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute('UPDATE files '
+                        'SET status = %(status)s, '
+                        '    staging_name = %(name)s, '
+                        '    enc_checksum = %(enc_checksum)s, enc_checksum_algo = %(enc_checksum_algo)s, '
+                        '    org_checksum = %(org_checksum)s, org_checksum_algo = %(org_checksum_algo)s '
+                        'WHERE id = %(file_id)s;',
+                        {'status': Status.In_Progress.value,
+                         'file_id': file_id,
+                         'name': staging_name,
+                         'enc_checksum': enc_checksum, 'enc_checksum_algo': enc_checksum_algo,
+                         'org_checksum': org_checksum, 'org_checksum_algo': org_checksum_algo,
+                        })
 
 def set_encryption(file_id, info, digest):
     assert file_id, 'Eh? No file_id?'
@@ -140,12 +151,6 @@ def finalize_file(file_id, stable_id, filesize):
                         'WHERE id = %(file_id)s;',
                         {'stable_id': stable_id, 'file_id': file_id, 'status': Status.Archived.value, 'filesize': filesize})
 
-def get_details(file_id):
-    with connect() as conn:
-        with conn.cursor() as cur:
-            query = 'SELECT filename, org_checksum, org_checksum_algo, stable_id, reenc_checksum from files WHERE id = %(file_id)s;'
-            cur.execute(query, { 'file_id': file_id})
-            return cur.fetchone()
 
 def insert_user(elixir_id, password_hash, pubkey):
     with connect() as conn:

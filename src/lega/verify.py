@@ -20,12 +20,12 @@ import os
 
 from .conf import CONF
 from .utils import crypto, db
-from .utils import check_error, checksum
+from .utils import db_log_error_on_files, checksum
 from .utils.amqp import get_connection, consume
 
 LOG = logging.getLogger('verify')
 
-@check_error
+@db_log_error_on_files
 def work(data):
     '''Verifying that the file in the vault does decrypt properly'''
 

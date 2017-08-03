@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 '''
@@ -14,20 +13,15 @@ import io
 import os
 import asyncio
 import asyncio.subprocess
-import hashlib
 from pathlib import Path
+from hashlib import sha256
 
 from Cryptodome.PublicKey import RSA
 from Cryptodome.Random import get_random_bytes
 from Cryptodome.Cipher import AES, PKCS1_OAEP
 
 from ..conf import CONF
-from . import exceptions
-
-HASH_ALGORITHMS = {
-    'md5': hashlib.md5,
-    'sha256': hashlib.sha256,
-}
+from . import exceptions, checksum
 
 LOG = logging.getLogger('crypto')
 
@@ -52,8 +46,7 @@ def make_header(key_nr, enc_key_size, nonce_size, aes_mode):
     The key number points to a particular section of the configuration files, 
     holding the information about that key
     '''
-    header = f'{key_nr}|{enc_key_size}|{nonce_size}|{aes_mode}\n'
-    return header.encode('utf-8')
+    return f'{key_nr}|{enc_key_size}|{nonce_size}|{aes_mode}'
 
 def from_header(h):
     '''Convert the given line into differents values, doing the opposite job as `make_header`'''
@@ -116,24 +109,24 @@ class ReEncryptor(asyncio.SubprocessProtocol):
         self.target_handler = target_h
 
         LOG.info(f'Setup {hashAlgo} digest')
-        try:
-            self.digest = (HASH_ALGORITHMS[hashAlgo])()
-        except KeyError:
-            raise ValueError(f'No support for the secure hashing algorithm: {hashAlgo}')
+        self.digest = checksum.instanciate(hashAlgo)
 
         LOG.info(f'Starting the encrypting engine')
         encryption_key, mode, nonce = next(self.engine)
 
         self.header = make_header(CONF.getint('worker','active_key'), len(encryption_key), len(nonce), mode)
+
     
-        LOG.info(f'Writing header to file: {self.header[:-1]} (and enc key + nonce)')
-        self.target_handler.write(self.header)
+        LOG.info(f'Writing header to file: {self.header} (and enc key + nonce)')
+        header_b = (self.header + '\n').encode('utf-8')
+
+        self.target_handler.write(header_b)
         self.target_handler.write(encryption_key)
         self.target_handler.write(nonce)
 
         LOG.info('Setup target digest')
-        self.target_digest = hashlib.sha256()
-        self.target_digest.update(self.header)
+        self.target_digest = sha256()
+        self.target_digest.update(header_b)
         self.target_digest.update(encryption_key)
         self.target_digest.update(nonce)
 
@@ -269,13 +262,8 @@ def decrypt_from_vault( vault_filename,
                         org_hash,
                         hash_algo):
 
-    try:
-        h = HASH_ALGORITHMS.get(hash_algo)
-    except KeyError:
-        raise ValueError('No support for the secure hashing algorithm')
-    else:
-        digest = h()
-        LOG.debug(f'Digest: {hash_algo}')
+    digest = checksum.instanciate(hash_algo)
+    LOG.debug(f'Digest: {hash_algo}')
 
     with open(vault_filename, 'rb') as vault_source:
 

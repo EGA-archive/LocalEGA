@@ -29,14 +29,12 @@ def set_file_id(data):
 
     filename = data['filename']
     elixir_id = data['elixir_id']
-    enc_checksum  = data['encrypted_integrity']
-    org_checksum  = data['unencrypted_integrity']
 
     # Find user_id
     user_id = get_user(elixir_id)
 
     # Insert in database
-    file_id = insert_file(filename, enc_checksum, org_checksum, user_id) 
+    file_id = insert_file(filename, user_id) 
     assert file_id is not None, 'Ouch...database problem!'
     LOG.debug(f'Created id {file_id} for {data["filename"]}')
 

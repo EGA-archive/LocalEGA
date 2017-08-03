@@ -10,7 +10,7 @@ from aiohttp.web import HTTPUnauthorized
 
 from ..conf import CONF
 from . import db
-from .crypto import HASH_ALGORITHMS
+from . import exceptions
 
 LOG = logging.getLogger('utils')
 
@@ -28,7 +28,7 @@ def only_central_ega(async_func):
         return (await res)
     return wrapper
 
-def check_error(func):
+def db_log_error_on_files(func):
     '''Decorator to store the raised exception in the database'''
     @wraps(func)
     def wrapper(data):
@@ -63,31 +63,6 @@ def get_data(data):
         print(repr(e))
         return None
     #return json.loads(msgpack.unpackb(data))
-
-def raw_checksum(f, d, h, bsize=8192):
-    m = h()
-    while True:
-        data = f.read(bsize)
-        if not data:
-            break
-        m.update(data)
-    res = (m.hexdigest() == d)
-    LOG.debug('Calculated digest: '+m.hexdigest())
-    LOG.debug('  Original digest: '+d)
-    return res
-
-def checksum(filepath, digest, hashAlgo = 'md5', block_size=8192):
-    '''Verify the integrity of a bytes-like object against a hash value'''
-
-    assert( isinstance(digest,str) )
-
-    try:
-        h = HASH_ALGORITHMS.get(hashAlgo)
-    except KeyError:
-        raise Exception('No support for the secure hashing algorithm')
-
-    with open(filepath, 'rb') as f: # Open the file in binary mode. No encoding dance.
-        return raw_checksum(f, digest, h, bsize=block_size)
 
 alphabet = string.ascii_letters + string.digits
 def generate_password(length):

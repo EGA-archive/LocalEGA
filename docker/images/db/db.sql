@@ -107,18 +107,14 @@ $set_error$ LANGUAGE plpgsql;
 -- For a file
 CREATE FUNCTION insert_file(filename          files.filename%TYPE,
 			    user_id           files.user_id%TYPE,
-			    enc_checksum      files.enc_checksum%TYPE,
-			    enc_checksum_algo files.enc_checksum_algo%TYPE,
-			    org_checksum      files.org_checksum%TYPE,
-			    org_checksum_algo files.org_checksum_algo%TYPE,
 			    status            files.status%TYPE)
     RETURNS files.id%TYPE AS $insert_file$
     #variable_conflict use_column
     DECLARE
         file_id files.id%TYPE;
     BEGIN
-	INSERT INTO files (filename,user_id,enc_checksum,enc_checksum_algo,org_checksum,org_checksum_algo,status)
-	VALUES(filename,user_id,enc_checksum,enc_checksum_algo,org_checksum,org_checksum_algo,status) RETURNING files.id
+	INSERT INTO files (filename,user_id,status)
+	VALUES(filename,user_id,status) RETURNING files.id
 	INTO file_id;
 	RETURN file_id;
     END;

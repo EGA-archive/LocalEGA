@@ -19,13 +19,13 @@ def make_user(args):
     return msg
 
 def make_file(args):
-    return {
-        'elixir_id': args.user,
-        'filename': args.filename,
-        'encrypted_integrity': { 'hash': args.encrypted_checksum, 'algorithm': args.encrypted_checksum_algo, },
-        'unencrypted_integrity': { 'hash': args.unencrypted_checksum, 'algorithm': args.unencrypted_checksum_algo, },
-    }
-    
+    msg = { 'elixir_id': args.user, 'filename': args.filename }
+    if args.encrypted_checksum:
+        msg['encrypted_integrity'] = { 'hash': args.encrypted_checksum, 'algorithm': args.encrypted_checksum_algo, }
+    if args.unencrypted_checksum:
+        msg['unencrypted_integrity'] = { 'hash': args.unencrypted_checksum, 'algorithm': args.unencrypted_checksum_algo, }
+    return msg
+
 def main():
     CONF.setup(sys.argv[1:]) # re-conf
 
@@ -48,10 +48,10 @@ def main():
     files_parser.add_argument('user')
     files_parser.add_argument('filename')
     unenc_group = files_parser.add_argument_group('unencrypted checksum')
-    unenc_group.add_argument('--unencrypted_checksum', required=True)
+    unenc_group.add_argument('--unencrypted_checksum')
     unenc_group.add_argument('--unencrypted_checksum_algo', default='md5', help='[Default: md5]')
     enc_group = files_parser.add_argument_group('encrypted checksum')
-    enc_group.add_argument('--encrypted_checksum', required=True)
+    enc_group.add_argument('--encrypted_checksum')
     enc_group.add_argument('--encrypted_checksum_algo',   default='md5', help='[Default: md5]')
 
     users_parser = subparsers.add_parser("user", parents=[common_parser])

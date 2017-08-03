@@ -34,14 +34,14 @@ import uuid
 from multiprocessing import Process, cpu_count
 
 from .conf import CONF
-from .utils import db, exceptions
-from .utils import checksum, check_error
+from .utils import db, exceptions, checksum
+from .utils import db_log_error_on_files
 from .utils.amqp import get_connection, consume
 from .utils.crypto import ingest as crypto_ingest
 
 LOG = logging.getLogger('worker')
 
-@check_error
+@db_log_error_on_files
 def work(data):
     '''Main ingestion function
 
@@ -71,18 +71,25 @@ def work(data):
         raise exceptions.NotFoundInInbox(filename) # return early
 
     # Ok, we have the file in the inbox
-    filehash = data['encrypted_integrity']['hash']
-    hash_algo = data['encrypted_integrity']['algorithm']
-    
-    assert( isinstance(filehash,str) )
-    assert( isinstance(hash_algo,str) )
+    # Get the checksums now
+
+    try:
+        encrypted_hash = data['encrypted_integrity']['hash']
+        encrypted_algo = data['encrypted_integrity']['algorithm']
+    except KeyError:
+        LOG.info('Finding a companion file')
+        encrypted_hash, encrypted_algo = checksum.get_from_companion(inbox_filepath)
+
+
+    assert( isinstance(encrypted_hash,str) )
+    assert( isinstance(encrypted_algo,str) )
     
     ################# Check integrity of encrypted file
-    LOG.debug(f"Verifying the {hash_algo} checksum of encrypted file: {inbox_filepath}")
-    if not checksum(inbox_filepath, filehash, hashAlgo = hash_algo):
-        LOG.error(f"Invalid {hash_algo} checksum for {inbox_filepath}")
-        raise exceptions.Checksum(hash_algo, f'for {inbox_filepath}')
-    LOG.debug(f'Valid {hash_algo} checksum for {inbox_filepath}')
+    LOG.debug(f"Verifying the {encrypted_algo} checksum of encrypted file: {inbox_filepath}")
+    if not checksum.is_valid(inbox_filepath, encrypted_hash, hashAlgo = encrypted_algo):
+        LOG.error(f"Invalid {encrypted_algo} checksum for {inbox_filepath}")
+        raise exceptions.Checksum(encrypted_algo, f'for {inbox_filepath}')
+    LOG.debug(f'Valid {encrypted_algo} checksum for {inbox_filepath}')
 
     # Fetch staging area
     staging_area = Path( CONF.get('worker','staging') )
@@ -94,12 +101,18 @@ def work(data):
     unique_name = str(uuid.uuid5(uuid.NAMESPACE_OID, 'lega'))
     LOG.debug(f'Created an unique filename in the staging area: {unique_name}')
     staging_filepath = staging_area / unique_name
-    
-    unencrypted_hash = data['unencrypted_integrity']['hash']
-    unencrypted_algo = data['unencrypted_integrity']['algorithm']
-    
+
+    try:
+        unencrypted_hash = data['unencrypted_integrity']['hash']
+        unencrypted_algo = data['unencrypted_integrity']['algorithm']
+    except KeyError:
+        # Strip the suffix first.
+        LOG.info('Finding a companion file')
+        unencrypted_hash, unencrypted_algo = checksum.get_from_companion(inbox_filepath.with_suffix(''))
+
+
     LOG.debug(f'Starting the re-encryption\n\tfrom {inbox_filepath}\n\tto {staging_filepath}')
-    db.set_progress(file_id, str(staging_filepath))
+    db.set_progress(file_id, str(staging_filepath), encrypted_hash, encrypted_algo, unencrypted_hash, unencrypted_algo)
     details, staging_checksum = crypto_ingest( str(inbox_filepath),
                                                unencrypted_hash,
                                                hash_algo = unencrypted_algo,

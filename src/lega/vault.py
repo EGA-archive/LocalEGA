@@ -28,12 +28,12 @@ import select
 
 from .conf import CONF
 from .utils import db
-from .utils import check_error
+from .utils import db_log_error_on_files
 from .utils.amqp import get_connection, consume
 
 LOG = logging.getLogger('vault')
 
-@check_error
+@db_log_error_on_files
 def work(data):
     '''Procedure to handle a message'''
 
