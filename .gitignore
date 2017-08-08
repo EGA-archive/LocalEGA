@@ -9,6 +9,9 @@ docker/.env
 docker/.env.d/
 tests/
 storage
+terraform/variables.tf
+terraform/terraform.tfstate*
+terraform/.terraform
 
 # =====================================
 # Byte-compiled / optimized / DLL files
