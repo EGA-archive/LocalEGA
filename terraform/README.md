@@ -14,15 +14,11 @@ variable "os_username" {
 variable "os_password" {
   default = "<your-openstack-keystone-password>"
 }
-
-variable "ega_net" {
-  default = "<name-of-the-neutron-network>"
-}
-
 ```
 
 ## Running
 
+	terraform get
 	terraform plan  # check what's to be done
 	terraform apply # ...cue music
 	
