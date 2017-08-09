@@ -113,5 +113,16 @@ chmod 700 /root/.gnupg
 
 ##############################################################
 # Cleanup
-rm -rf /var/src/{gnupg,openssh}
 cd
+rm -rf /var/src/{gnupg,openssh}
+
+
+#################################
+# Python 3
+#################################
+
+yum -y install https://centos7.iuscommunity.org/ius-release.rpm
+yum -y install python36u
+yum -y install python36u-pip
+
+ln -s /bin/python3.6 /usr/local/bin/python3
