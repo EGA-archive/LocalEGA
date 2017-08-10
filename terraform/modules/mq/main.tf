@@ -1,5 +1,4 @@
 variable ega_key { default = "ega_key" }
-variable ega_net { default = "SNIC 2017/13-34 Internal IPv4 Network" }
 variable flavor_name { default = "ssc.small" }
 variable image_name { default = "EGA-mq" }
 
@@ -27,9 +26,8 @@ resource "openstack_compute_instance_v2" "mq" {
   image_name = "${var.image_name}"
   key_pair  = "${var.ega_key}"
   security_groups = ["default","${openstack_compute_secgroup_v2.ega_mq.name}"]
-  network { name = "${var.ega_net}" }
-}
-
-output "private_ip" {
-  value = "${openstack_compute_instance_v2.mq.network.0.fixed_ip_v4}"
+  network {
+    name = "ega_net"
+    fixed_ip_v4 = "192.168.10.11"
+  }
 }

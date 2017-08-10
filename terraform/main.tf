@@ -20,34 +20,24 @@ resource "openstack_compute_keypair_v2" "ega_key" {
   public_key = "${var.pubkey}"
 }
 
-# ========= Network =========
-resource "openstack_networking_network_v2" "ega_net" {
-  name           = "ega_net"
-  admin_state_up = "true"
-}
-
-resource "openstack_networking_subnet_v2" "ega_subnet" {
-  network_id = "${openstack_networking_network_v2.ega_net.id}"
-  cidr       = "192.168.10.0/24"
-  ip_version = 4
-}
-
-resource "openstack_networking_router_interface_v2" "ega_router_interface" {
-  router_id = "1f852a3d-f7ea-45ae-9cba-3160c2029ba1"
-  subnet_id = "${openstack_networking_subnet_v2.ega_subnet.id}"
-}
+# ========= Instances as Modules =========
+# module "ega_network" {
+#   source = "./network"
+# }
 
 # ========= Instances as Modules =========
 module "connectors" {
-  source = "./modules/connectors"
-  hosts  = "${data.template_file.hosts.rendered}"
+  source = "./modules/test"
 }
-module "db" { 
-  source = "./modules/db"
-}
-module "mq" {
-  source = "./modules/mq"
-}
+# module "connectors" {
+#   source = "./modules/connectors"
+# }
+# module "db" {
+#   source = "./modules/db"
+# }
+# module "mq" {
+#   source = "./modules/mq"
+# }
 # module "inbox" {
 #   source = "./modules/inbox"
 # }
@@ -63,18 +53,7 @@ module "mq" {
 # module "verify" {
 #   source = "./modules/verify"
 # }
-module "workers" {
-  source = "./modules/worker"
-  count = 2
-}
-
-# ========= /etc/hosts =========
-data "template_file" "hosts" {
-  template = "${file("${path.root}/hosts.tpl")}"
-
-  vars {
-    db     = "${module.db.private_ip}"
-    mq     = "${module.mq.private_ip}"
-    keys   = "${module.workers.keys_private_ip}"
-  }
-}
+# module "workers" {
+#   source = "./modules/worker"
+#   count = 2
+# }

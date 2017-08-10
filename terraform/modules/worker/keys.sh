@@ -2,7 +2,9 @@
 
 set -e
 
-pip install -e /root/ega
+git clone https://github.com/NBISweden/LocalEGA.git ~/ega
+sudo pip3.6 install PyYaml Markdown
+sudo pip3.6 install -e ~/ega/src
 
 chmod 700 /root/.gnupg
 
@@ -33,6 +35,6 @@ KEYGRIP=$(/usr/local/bin/gpg2 -k --with-keygrip ega@nbis.se | awk '/Keygrip/{pri
 unset GPG_PASSPHRASE
 
 echo "Starting the gpg-agent proxy"
-exec ega-socket-proxy '0.0.0.0:9010' /root/.gnupg/S.gpg-agent.extra \
-		     --certfile /etc/ega/ega.cert --keyfile /etc/ega/ega.key
+ega-socket-proxy '0.0.0.0:9010' /root/.gnupg/S.gpg-agent.extra \
+		 --certfile /etc/ega/ega.cert --keyfile /etc/ega/ega.key &
 		     #--log /root/ega/lega/conf/loggers/debug.yaml

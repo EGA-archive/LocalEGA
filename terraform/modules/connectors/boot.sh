@@ -2,7 +2,9 @@
 
 set -e
 
-pip install -e /root/ega
+git clone https://github.com/NBISweden/LocalEGA.git ~/ega
+sudo pip3.6 install PyYaml Markdown
+sudo pip3.6 install -e ~/ega/src
 
 echo "Waiting for Message Broker"
 until nc -4 --send-only ega-mq 5672 </dev/null &>/dev/null; do sleep 1; done
@@ -22,6 +24,4 @@ ega-connect local.broker verified \
 	    cega.broker localega.v1 sweden.file.completed &
 ega-connect local.broker account \
 	    cega.broker localega.v1 sweden.user.account &
-
-wait
 

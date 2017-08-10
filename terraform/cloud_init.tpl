@@ -1,12 +1,12 @@
 #cloud-config
 write_files:
   - encoding: b64
-    content: ${base64encode(${boot_script})}
+    content: ${boot_script}
     owner: root:root
     path: /root/boot.sh
     permissions: '0700'
   - encoding: b64
-    content: ${base64encode(${host_file})}
+    content: ${hosts}
     owner: root:root
     path: /etc/hosts
     permissions: '0644'
