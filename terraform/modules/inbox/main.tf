@@ -2,6 +2,7 @@ variable ega_key { default = "ega_key" }
 variable ega_net { default = "SNIC 2017/13-34 Internal IPv4 Network" }
 variable flavor_name { default = "ssc.small" }
 variable image_name { default = "EGA-common" }
+variable cloud_init { default = "${file("${path.module}/boot.sh")}" }
 
 resource "openstack_compute_secgroup_v2" "ega_sftp" {
   name        = "ega-sftp"
@@ -22,7 +23,7 @@ resource "openstack_compute_instance_v2" "inbox" {
   key_pair  = "${var.ega_key}"
   security_groups = ["default","${openstack_compute_secgroup_v2.ega_sftp.name}"]
   network { name = "${var.ega_net}" }
-  user_data       = "${file("${path.module}/boot.sh")}"
+  user_data       = "${var.cloud_init}"
 }
 
 # ===== Floating IP =====

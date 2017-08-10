@@ -29,3 +29,7 @@ resource "openstack_compute_instance_v2" "db" {
   security_groups = ["default","${openstack_compute_secgroup_v2.ega_db.name}"]
   network { name = "${var.ega_net}" }
 }
+
+output "private_ip" {
+  value = "${openstack_compute_instance_v2.db.network.0.fixed_ip_v4}"
+}
