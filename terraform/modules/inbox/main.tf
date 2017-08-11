@@ -3,6 +3,8 @@ variable flavor_name { default = "ssc.small" }
 variable image_name { default = "EGA-common" }
 variable volume_size { default = 100 }
 
+variable private_ip {}
+
 data "template_file" "cloud_init" {
   template = "${file("${path.root}/cloud_init.tpl")}"
 
@@ -30,7 +32,10 @@ resource "openstack_compute_instance_v2" "inbox" {
   image_name = "${var.image_name}"
   key_pair  = "${var.ega_key}"
   security_groups = ["default","${openstack_compute_secgroup_v2.ega_sftp.name}"]
-  network { name = "ega_net" }
+  network {
+    name = "ega_net"
+    fixed_ip_v4 = "${var.private_ip}"
+  }
   user_data       = "${data.template_file.cloud_init.rendered}"
 }
 

@@ -27,11 +27,12 @@ resource "openstack_networking_network_v2" "ega_net" {
 }
 
 resource "openstack_networking_subnet_v2" "ega_subnet" {
-  network_id = "${openstack_networking_network_v2.ega_net.id}"
-  name       = "ega_subnet"
-  cidr       = "192.168.10.0/24"
-  ip_version = 4
-  dns_nameservers = ["8.8.8.8", "130.239.1.90"]
+  network_id  = "${openstack_networking_network_v2.ega_net.id}"
+  name        = "ega_subnet"
+  cidr        = "192.168.10.0/24"
+  enable_dhcp = false
+  ip_version  = 4
+  dns_nameservers = ["130.239.1.90","8.8.8.8"]
 }
 
 resource "openstack_networking_router_interface_v2" "ega_router_interface" {
@@ -43,34 +44,44 @@ resource "openstack_networking_router_interface_v2" "ega_router_interface" {
 # module "test" {
 #   source = "./modules/test"
 # }
-module "connectors" {
-  source = "./modules/connectors"
-}
 module "db" {
   source = "./modules/db"
   db_password = "${var.db_password}"
+  private_ip = "192.168.10.10"
 }
 module "mq" {
   source = "./modules/mq"
+  private_ip = "192.168.10.11"
+}
+module "connectors" {
+  source = "./modules/connectors"
+  private_ip = "192.168.10.13"
 }
 module "inbox" {
   source = "./modules/inbox"
   volume_size = 400
+  private_ip = "192.168.10.14"
 }
 module "frontend" {
   source = "./modules/frontend"
+  private_ip = "192.168.10.15"
 }
 module "monitors" {
   source = "./modules/monitors"
+  private_ip = "192.168.10.16"
 }
 module "vault" {
   source = "./modules/vault"
   volume_size = 400
+  private_ip = "192.168.10.17"
 }
 module "verify" {
   source = "./modules/verify"
+  private_ip = "192.168.10.18"
 }
 module "workers" {
   source = "./modules/worker"
   count = 2
+  private_ip_keys = "192.168.10.12"
+  private_ips = ["192.168.10.100","192.168.10.101"]
 }

@@ -3,6 +3,7 @@ variable flavor_name { default = "ssc.small" }
 variable image_name { default = "EGA-db" }
 
 variable db_password {}
+variable private_ip {}
 
 resource "openstack_compute_secgroup_v2" "ega_db" {
   name        = "ega-db"
@@ -48,7 +49,7 @@ resource "openstack_compute_instance_v2" "db" {
   security_groups = ["default","${openstack_compute_secgroup_v2.ega_db.name}"]
   network {
     name = "ega_net"
-    fixed_ip_v4 = "192.168.10.10"
+    fixed_ip_v4 = "${var.private_ip}"
   }
   user_data = "${data.template_file.cloud_init.rendered}"
 }
