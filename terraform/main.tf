@@ -2,6 +2,10 @@
    Main file for the Local EGA project
    =================================== */
 
+variable os_username {}
+variable os_password {}
+variable db_password {}
+variable pubkey {}
 
 # Configure the OpenStack Provider
 provider "openstack" {

@@ -1,3 +1,7 @@
+variable os_username {}
+variable os_password {}
+variable pubkey {}
+
 # Configure the OpenStack Provider
 provider "openstack" {
   user_name   = "${var.os_username}"
