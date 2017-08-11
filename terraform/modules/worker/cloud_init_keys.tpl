@@ -36,3 +36,5 @@ write_files:
 
 runcmd:
   - /root/boot.sh
+
+final_message: "The system is finally up, after $UPTIME seconds"

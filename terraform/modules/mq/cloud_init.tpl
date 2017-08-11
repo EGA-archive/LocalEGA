@@ -15,3 +15,5 @@ runcmd:
   - systemctl enable rabbitmq-server
   - systemctl start rabbitmq-server
   - rabbitmq-plugins enable rabbitmq_management
+
+final_message: "The system is finally up, after $UPTIME seconds"
