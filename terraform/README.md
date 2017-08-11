@@ -21,7 +21,7 @@ variable "db_password" {
 
 ## Running
 
-	terraform get
+	terraform init
 	terraform plan  # check what's to be done
 	terraform apply # ...cue music
 	
