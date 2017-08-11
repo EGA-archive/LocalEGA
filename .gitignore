@@ -12,6 +12,7 @@ storage
 terraform/variables.tf
 terraform/terraform.tfstate*
 terraform/.terraform
+terraform/snic.cloud.rc
 
 # =====================================
 # Byte-compiled / optimized / DLL files
