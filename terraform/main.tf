@@ -55,6 +55,7 @@ module "mq" {
 }
 module "inbox" {
   source = "./modules/inbox"
+  volume_size = 400
 }
 module "frontend" {
   source = "./modules/frontend"
@@ -64,6 +65,7 @@ module "frontend" {
 # }
 module "vault" {
   source = "./modules/vault"
+  volume_size = 400
 }
 module "verify" {
   source = "./modules/verify"

@@ -12,13 +12,12 @@ mv /var/lib/pgsql/9.6/data/postgresql.conf /var/lib/pgsql/9.6/data/postgresql.co
 grep -v '^$\|^\s*\#' /var/lib/pgsql/9.6/data/postgresql.conf.old > /var/lib/pgsql/9.6/data/postgresql.conf
 echo "listen_addresses = '*'" >> /var/lib/pgsql/9.6/data/postgresql.conf
 
-# mv /var/lib/pgsql/9.6/data/pg_hba.conf /var/lib/pgsql/9.6/data/pg_hba.conf.old
-# grep -v '^$\|^\s*\#' /var/lib/pgsql/9.6/data/pg_hba.conf.old > /var/lib/pgsql/9.6/data/pg_hba.conf
-# echo "host	all	all	all	peer" >> /var/lib/pgsql/9.6/data/pg_hba.conf
+mv /var/lib/pgsql/9.6/data/pg_hba.conf /var/lib/pgsql/9.6/data/pg_hba.conf.old
+grep -v '^$\|^\s*\#' /var/lib/pgsql/9.6/data/pg_hba.conf.old > /var/lib/pgsql/9.6/data/pg_hba.conf
+sed -i -e "s/local\(.*\)peer/local\1trust/" /var/lib/pgsql/9.6/data/pg_hba.conf
+sed -i -e "s;host.*1/128.*ident;host all all all md5;" /var/lib/pgsql/9.6/data/pg_hba.conf
 
 systemctl start postgresql-9.6.service
-#/usr/pgsql-9.6/bin/pg_ctl -D /var/lib/pgsql/9.6/data/ -l /var/log/pgsql.log start
-#su -s /bin/sh -c "psql psql -v ON_ERROR_STOP=1 --username postgres --dbname postgres -f /tmp/db.sql" postgres
 
 
 

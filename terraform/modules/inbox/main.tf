@@ -1,6 +1,7 @@
 variable ega_key { default = "ega_key" }
 variable flavor_name { default = "ssc.small" }
 variable image_name { default = "EGA-common" }
+variable volume_size { default = 100 }
 
 data "template_file" "cloud_init" {
   template = "${file("${path.root}/cloud_init.tpl")}"
@@ -46,7 +47,7 @@ resource "openstack_compute_floatingip_associate_v2" "inbox_fip" {
 resource "openstack_blockstorage_volume_v2" "staging" {
   name = "staging"
   description = "Inbox and Staging area"
-  size = 100
+  size = "${var.volume_size}"
 }
 resource "openstack_compute_volume_attach_v2" "inbox_attach" {
   instance_id = "${openstack_compute_instance_v2.inbox.id}"

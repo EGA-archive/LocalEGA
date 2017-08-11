@@ -1,5 +1,6 @@
 variable ega_key { default = "ega_key" }
-variable flavor_name { default = "ssc.small" }
+variable flavor_name { default = "ssc.xlarge" }
+variable flavor_name_keys { default = "ssc.small" }
 variable image_name { default = "EGA-common" }
 
 variable count { default = 1 }
@@ -51,7 +52,7 @@ resource "openstack_compute_secgroup_v2" "ega_gpg" {
 
 resource "openstack_compute_instance_v2" "keys" {
   name      = "keys"
-  flavor_name = "${var.flavor_name}"
+  flavor_name = "${var.flavor_name_keys}"
   image_name = "${var.image_name}"
   key_pair  = "${var.ega_key}"
   security_groups = ["default","${openstack_compute_secgroup_v2.ega_gpg.name}"]

@@ -1,6 +1,7 @@
 variable ega_key { default = "ega_key" }
 variable flavor_name { default = "ssc.small" }
 variable image_name { default = "EGA-common" }
+variable volume_size { default = 100 }
 
 data "template_file" "cloud_init" {
   template = "${file("${path.root}/cloud_init.tpl")}"
@@ -24,7 +25,7 @@ resource "openstack_compute_instance_v2" "vault" {
 resource "openstack_blockstorage_volume_v2" "vault" {
   name = "vault"
   description = "Da vault"
-  size = 100
+  size = "${var.volume_size}"
 }
 
 resource "openstack_compute_volume_attach_v2" "vault_attach" {
