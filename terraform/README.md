@@ -19,7 +19,7 @@ Of course, it is necessary to create your own `lega.conf`, with your EGA setting
 ## Running
 
 	# Create network first
-	terraform apply -target=openstack_networking_router_interface_v2.ega_router_interface
+	terraform apply -target=module.network
 	
 	# ...and cue music
 	terraform apply
