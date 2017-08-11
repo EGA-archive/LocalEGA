@@ -7,6 +7,10 @@ variable os_password {}
 variable db_password {}
 variable pubkey {}
 
+variable rsa_home {}
+variable gpg_home {}
+variable certs {}
+
 # Configure the OpenStack Provider
 provider "openstack" {
   user_name   = "${var.os_username}"
@@ -34,7 +38,7 @@ resource "openstack_networking_subnet_v2" "ega_subnet" {
   network_id  = "${openstack_networking_network_v2.ega_net.id}"
   name        = "ega_subnet"
   cidr        = "192.168.10.0/24"
-  enable_dhcp = false
+  enable_dhcp = true
   ip_version  = 4
   dns_nameservers = ["130.239.1.90","8.8.8.8"]
 }
@@ -82,7 +86,12 @@ module "verify" {
 }
 module "workers" {
   source = "./modules/worker"
-  count = 2
+  count = 4
   private_ip_keys = "192.168.10.12"
-  private_ips = ["192.168.10.100","192.168.10.101"]
+  private_ips = ["192.168.10.100","192.168.10.101","192.168.10.102","192.168.10.103"]
+  rsa_home = "${var.rsa_home}"
+  gpg_home = "${var.gpg_home}"
+  certs = "${var.certs}"
 }
+
+

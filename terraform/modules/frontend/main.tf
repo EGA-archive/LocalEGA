@@ -5,11 +5,12 @@ variable image_name { default = "EGA-common" }
 variable private_ip {}
 
 data "template_file" "cloud_init" {
-  template = "${file("${path.root}/cloud_init.tpl")}"
+  template = "${file("${path.module}/cloud_init.tpl")}"
 
   vars {
     boot_script = "${base64encode("${file("${path.module}/boot.sh")}")}"
     hosts = "${base64encode("${file("${path.root}/hosts")}")}"
+    conf = "${base64encode("${file("${path.root}/lega.conf")}")}"
   }
 }
 
@@ -18,14 +19,8 @@ resource "openstack_compute_secgroup_v2" "ega_web" {
   description = "Web access"
 
   rule {
-    from_port   = 80
-    to_port     = 80
-    ip_protocol = "tcp"
-    cidr        = "0.0.0.0/0"
-  }
-  rule {
-    from_port   = 443
-    to_port     = 443
+    from_port   = 9000
+    to_port     = 9000
     ip_protocol = "tcp"
     cidr        = "0.0.0.0/0"
   }

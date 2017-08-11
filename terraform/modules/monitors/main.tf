@@ -5,11 +5,12 @@ variable image_name { default = "EGA-common" }
 variable private_ip {}
 
 data "template_file" "cloud_init" {
-  template = "${file("${path.root}/cloud_init.tpl")}"
+  template = "${file("${path.module}/cloud_init.tpl")}"
 
   vars {
     boot_script = "${base64encode("${file("${path.module}/boot.sh")}")}"
     hosts = "${base64encode("${file("${path.root}/hosts")}")}"
+    conf = "${base64encode("${file("${path.root}/lega.conf")}")}"
   }
 }
 

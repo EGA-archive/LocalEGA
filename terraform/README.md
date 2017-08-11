@@ -14,6 +14,8 @@ You must then initialize Terraform and, optionally, you can check what's to be d
 	terraform init
 	terraform plan
 
+Of course, it is necessary to create your own `lega.conf`, with your EGA settings (and place it in that same folder).
+
 ## Running
 
 	# Create network first

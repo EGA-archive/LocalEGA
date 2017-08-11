@@ -10,6 +10,11 @@ write_files:
     owner: root:root
     path: /etc/hosts
     permissions: '0644'
+  - encoding: b64
+    content: ${conf}
+    owner: root:root
+    path: /root/.lega/conf.ini
+    permissions: '0600'
 
 runcmd:
   - /root/boot.sh
