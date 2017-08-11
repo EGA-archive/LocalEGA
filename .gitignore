@@ -9,7 +9,7 @@ docker/.env
 docker/.env.d/
 tests/
 storage
-terraform/vars
+terraform/main.auto.tfvars
 terraform/snic.cloud.rc
 terraform/.terraform*
 terraform/terraform.tfstate*
