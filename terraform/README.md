@@ -14,6 +14,9 @@ variable "os_username" {
 variable "os_password" {
   default = "<your-openstack-keystone-password>"
 }
+variable "db_password" {
+  default = "<your-secret-password>"
+}
 ```
 
 ## Running

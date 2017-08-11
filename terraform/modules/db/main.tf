@@ -23,7 +23,7 @@ resource "openstack_compute_secgroup_v2" "ega_db" {
 }
 
 data "template_file" "boot" {
-  template = "${file("${path.root}/boot.tpl")}"
+  template = "${file("${path.module}/boot.tpl")}"
 
   vars {
     db_password = "${var.db_password}"
@@ -50,5 +50,5 @@ resource "openstack_compute_instance_v2" "db" {
     name = "ega_net"
     fixed_ip_v4 = "192.168.10.10"
   }
-  user_data = "${file("${path.module}/cloud_init")}"
+  user_data = "${data.template_file.cloud_init.rendered}"
 }
