@@ -1,3 +1,9 @@
+#!/usr/bin/env bash
+
+set -e # stop on errors
+set -x # show me the commands
+
+
 yum -y update
 
 yum -y install https://download.postgresql.org/pub/repos/yum/9.6/redhat/rhel-7-x86_64/pgdg-redhat96-9.6-3.noarch.rpm

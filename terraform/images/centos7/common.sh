@@ -113,7 +113,7 @@ chmod 700 /root/.gnupg
 
 ##############################################################
 # Cleanup
-cd
+cd /
 rm -rf /var/src/{gnupg,openssh}
 
 
