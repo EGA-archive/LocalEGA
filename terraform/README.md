@@ -9,11 +9,18 @@ os_password = "<your-openstack-keystone-password>"
 db_password = "<your-secret-password>"
 ```
 
-## Running
+You must then initialize Terraform and, optionally, you can check what's to be done with:
 
 	terraform init -var-file=vars/ega.tfvars
-	terraform plan -var-file=vars/ega.tfvars  # check what's to be done
-	terraform apply -var-file=vars/ega.tfvars # ...cue music
+	terraform plan -var-file=vars/ega.tfvars
+
+## Running
+
+	# Create network first
+	terraform apply -var-file=vars/ega.tfvars -target=openstack_networking_router_interface_v2.ega_router_interface
+	
+	# ...and cue music
+	terraform apply -var-file=vars/ega.tfvars
 	
 ## Stopping
 
