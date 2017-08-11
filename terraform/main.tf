@@ -60,9 +60,9 @@ module "inbox" {
 module "frontend" {
   source = "./modules/frontend"
 }
-# module "monitors" {
-#   source = "./modules/monitors"
-# }
+module "monitors" {
+  source = "./modules/monitors"
+}
 module "vault" {
   source = "./modules/vault"
   volume_size = 400
