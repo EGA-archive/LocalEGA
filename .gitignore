@@ -10,9 +10,9 @@ docker/.env.d/
 tests/
 storage
 terraform/variables.tf
-terraform/terraform.tfstate*
-terraform/.terraform
 terraform/snic.cloud.rc
+terraform/.terraform*
+terraform/terraform.tfstate*
 terraform/tests/
 
 # =====================================

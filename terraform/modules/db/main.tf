@@ -36,7 +36,7 @@ data "template_file" "cloud_init" {
 
   vars {
     boot_script = "${base64encode("${data.template_file.boot.rendered}")}"
-    db_sql = "${base64encode("${file("${path.root}/images/db.sql")}")}"
+    db_sql = "${base64encode("${file("${path.root}/../docker/images/db/db.sql")}")}"
   }
 }
 

@@ -41,9 +41,6 @@ resource "openstack_networking_router_interface_v2" "ega_router_interface" {
 }
 
 # ========= Instances as Modules =========
-# module "test" {
-#   source = "./modules/test"
-# }
 module "db" {
   source = "./modules/db"
   db_password = "${var.db_password}"
