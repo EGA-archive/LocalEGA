@@ -6,7 +6,7 @@ set -x # show me the commands
 
 yum -y update && \
 yum -y install gcc git curl wget make gettext texinfo \
-               zlib-devel bzip2 bzip2-devel \
+               zlib-devel bzip2 bzip2-devel unzip \
 	       file readline-devel \
 	       sqlite sqlite-devel \
 	       openssl openssl-devel openssh-server \
@@ -126,3 +126,6 @@ yum -y install python36u
 yum -y install python36u-pip
 
 ln -s /bin/python3.6 /usr/local/bin/python3
+
+# Installing required packages
+pip3.6 install PyYaml Markdown

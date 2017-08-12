@@ -14,8 +14,7 @@ unzip /tmp/certs.zip -d /etc/ega && \
 rm /tmp/certs.zip
 
 git clone https://github.com/NBISweden/LocalEGA.git ~/ega
-sudo pip3.6 install PyYaml Markdown
-sudo pip3.6 install -e ~/ega/src
+pip3.6 install -e ~/ega/src
 
 chmod 700 /root/.gnupg
 
