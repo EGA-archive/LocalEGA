@@ -5,17 +5,8 @@ tmp/
 private/
 loggers/
 !src/lega/conf/loggers
-docker/.env
-docker/.env.d/
 tests/
 storage
-terraform/main.auto.tfvars
-terraform/lega.conf
-terraform/snic.cloud.rc
-terraform/.terraform*
-terraform/terraform.tfstate*
-terraform/tests/
-terraform/module/worker/build
 
 # =====================================
 # Byte-compiled / optimized / DLL files

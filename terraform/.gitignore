@@ -1,0 +1,7 @@
+main.auto.tfvars
+lega.conf
+snic.cloud.rc
+.terraform*
+terraform.tfstate*
+tests/
+module/worker/build
