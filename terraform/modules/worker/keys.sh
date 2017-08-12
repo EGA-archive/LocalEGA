@@ -2,6 +2,17 @@
 
 set -e
 
+unzip /tmp/gpg.zip -d /root/.gnupg && \
+rm /tmp/gpg.zip
+
+mkdir -p -m 0700 /root/.rsa && \
+unzip /tmp/rsa.zip -d /root/.rsa && \
+rm /tmp/rsa.zip
+
+mkdir -p -m 0700 /etc/ega && \
+unzip /tmp/certs.zip -d /etc/ega && \
+rm /tmp/certs.zip
+
 git clone https://github.com/NBISweden/LocalEGA.git ~/ega
 sudo pip3.6 install PyYaml Markdown
 sudo pip3.6 install -e ~/ega/src
@@ -31,10 +42,13 @@ rm -rf $(gpgconf --list-dirs agent-extra-socket) || true
 
 #while gpg-connect-agent /bye; do sleep 2; done
 KEYGRIP=$(/usr/local/bin/gpg2 -k --with-keygrip ega@nbis.se | awk '/Keygrip/{print $3;exit;}')
-/usr/local/libexec/gpg-preset-passphrase --preset -P $GPG_PASSPHRASE $KEYGRIP
-unset GPG_PASSPHRASE
+if [ ! -z "$KEYGRIP" ]; then 
+    /usr/local/libexec/gpg-preset-passphrase --preset -P "$(cat /tmp/gpg_passphrase)" $KEYGRIP && \
+	rm -f /tmp/gpg_passphrase
+else
+    echo 'Skipping the GPG key preseting'
+fi
 
 echo "Starting the gpg-agent proxy"
 ega-socket-proxy '0.0.0.0:9010' /root/.gnupg/S.gpg-agent.extra \
-		 --certfile /etc/ega/ega.cert --keyfile /etc/ega/ega.key &
-		     #--log /root/ega/lega/conf/loggers/debug.yaml
+		 --certfile /etc/ega/selfsigned.cert --keyfile /etc/ega/selfsigned.key &

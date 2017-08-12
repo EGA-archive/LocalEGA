@@ -2,6 +2,17 @@
 
 set -e
 
+unzip /tmp/gpg.zip -d /root/.gnupg && \
+rm /tmp/gpg.zip
+
+mkdir -p -m 0700 /root/.rsa && \
+unzip /tmp/rsa.zip -d /root/.rsa && \
+rm /tmp/rsa.zip
+
+mkdir -p -m 0700 /etc/ega && \
+unzip /tmp/certs.zip -d /etc/ega && \
+rm /tmp/certs.zip
+
 git clone https://github.com/NBISweden/LocalEGA.git ~/ega
 sudo pip3.6 install PyYaml Markdown
 sudo pip3.6 install -e ~/ega/src
@@ -16,8 +27,7 @@ until nc -4 --send-only ega-keys 9010 </dev/null &>/dev/null; do sleep 1; done
 echo "Starting the gpg-agent forwarder"
 ega-socket-forwarder /root/.gnupg/S.gpg-agent \
 		     ega-keys:9010 \
-		     --certfile /etc/ega/ega.cert &
-    		     #--log /root/ega/lega/conf/loggers/debug.yaml &
+		     --certfile /etc/ega/selfsigned.cert &
 
 echo "Starting the worker"
 ega-worker &

@@ -7,6 +7,11 @@ pubkey = "ssh-rsa AAAABBBBB..... blabla....your ssh public key"
 os_username = "<your-openstack-keystone-username>"
 os_password = "<your-openstack-keystone-password>"
 db_password = "<your-secret-password>"
+
+gpg_home  = "<path/to/gpg/folder>"
+gpg_certs = "<path/to/certs/folder>"  # including .cert and .key files
+rsa_home  = "<path/to/rsa/folder>"    # including ega-public.pem and ega.pem files
+gpg_passphrase = "<something-complex>"
 ```
 
 You must then initialize Terraform and, optionally, you can check what's to be done with:

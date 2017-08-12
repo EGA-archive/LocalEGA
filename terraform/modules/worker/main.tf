@@ -9,34 +9,11 @@ variable private_ip_keys {}
 
 variable rsa_home {}
 variable gpg_home {}
-variable certs {}
+variable gpg_certs {}
+variable gpg_passphrase {}
 
-data "archive_file" "rsa" {
-  type        = "zip"
-  source_dir = "${var.rsa_home}"
-  output_path = "${path.module}/build/rsa.zip"
-}
-
-data "archive_file" "gpg" {
-  type        = "zip"
-  output_path = "${path.module}/build/gpg.zip"
-  source {
-    content  = "${file("${var.gpg_home}/pubring.kbx")}"
-    filename = "pubring.kbx"
-  }
-  source {
-    content  = "${file("${var.gpg_home}/trustdb.gpg")}"
-    filename = "trustdb.gpg"
-  }
-}
-
-data "archive_file" "certs" {
-  type        = "zip"
-  output_path = "${path.module}/build/certs.zip"
-  source {
-    content  = "${file("${var.certs}/cert.pem")}"
-    filename = "ega.cert"
-  }
+data "external" "archives" {
+  program = ["${path.root}/modules/worker/create_archives.sh","worker","${var.gpg_home}", "${var.rsa_home}", "${var.gpg_certs}"]
 }
 
 data "template_file" "cloud_init" {
@@ -46,9 +23,9 @@ data "template_file" "cloud_init" {
     boot_script = "${base64encode("${file("${path.module}/boot.sh")}")}"
     hosts = "${base64encode("${file("${path.root}/hosts")}")}"
     conf = "${base64encode("${file("${path.root}/lega.conf")}")}"
-    rsa = "${file("${data.archive_file.rsa.output_path}")}"
-    gpg = "${file("${data.archive_file.gpg.output_path}")}"
-    certs = "${file("${data.archive_file.certs.output_path}")}"
+    rsa = "${data.external.archives.result.rsa}"
+    gpg = "${data.external.archives.result.gpg}"
+    certs = "${data.external.archives.result.certs}"
   }
 }
 
@@ -70,38 +47,8 @@ resource "openstack_compute_instance_v2" "worker" {
 ##             Master GPG-agent
 ################################################################
 
-data "archive_file" "rsa_keys" {
-  type        = "zip"
-  source_dir = "${var.rsa_home}"
-  output_path = "${path.module}/build/rsa_keys.zip"
-}
-
-data "archive_file" "gpg_keys" {
-  type        = "zip"
-  output_path = "${path.module}/build/gpg_keys.zip"
-  source {
-    content  = "${file("${var.gpg_home}/pubring.kbx")}"
-    filename = "pubring.kbx"
-  }
-  source {
-    content  = "${file("${var.gpg_home}/trustdb.gpg")}"
-    filename = "trustdb.gpg"
-  }
-  # source_dir = "${var.gpg_home}/openpgp-revocs.d"
-  # source_dir = "${var.gpg_home}/private-keys-v1.d"
-}
-
-data "archive_file" "certs_keys" {
-  type        = "zip"
-  output_path = "${path.module}/build/certs_keys.zip"
-  source {
-    content  = "${file("${var.certs}/cert.pem")}"
-    filename = "ega.cert"
-  }
-  source {
-    content  = "${file("${var.certs}/key.pem")}"
-    filename = "ega.key"
-  }
+data "external" "archives_keys" {
+  program = ["${path.root}/modules/worker/create_archives.sh","keys","${var.gpg_home}", "${var.rsa_home}", "${var.gpg_certs}"]
 }
 
 data "template_file" "cloud_init_keys" {
@@ -111,9 +58,10 @@ data "template_file" "cloud_init_keys" {
     boot_script = "${base64encode("${file("${path.module}/keys.sh")}")}"
     hosts = "${base64encode("${file("${path.root}/hosts")}")}"
     conf = "${base64encode("${file("${path.root}/lega.conf")}")}"
-    rsa = "${file("${data.archive_file.rsa_keys.output_path}")}"
-    gpg = "${file("${data.archive_file.gpg_keys.output_path}")}"
-    certs = "${file("${data.archive_file.certs_keys.output_path}")}"
+    gpg_passphrase = "${base64encode("${var.gpg_passphrase}")}"
+    rsa = "${data.external.archives_keys.result.rsa}"
+    gpg = "${data.external.archives_keys.result.gpg}"
+    certs = "${data.external.archives_keys.result.certs}"
   }
 }
 

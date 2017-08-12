@@ -15,24 +15,21 @@ write_files:
     owner: root:root
     path: /root/.lega/conf.ini
     permissions: '0600'
-  - encoding: gzip
-    content: !!binary |
-      ${gpg}
+  - encoding: b64
+    content: ${gpg}
     owner: root:root
-    path: /root/.gnupg
-    permissions: '0755'
-  - encoding: gzip
-    content: !!binary |
-      ${certs}
+    path: /tmp/gpg.zip
+    permissions: '0600'
+  - encoding: b64
+    content: ${certs}
     owner: root:root
-    path: /etc/ega
-    permissions: '0755'
-  - encoding: gzip
-    content: !!binary |
-      ${rsa}
+    path: /tmp/certs.zip
+    permissions: '0600'
+  - encoding: b64
+    content: ${rsa}
     owner: root:root
-    path: /root/.rsa
-    permissions: '0755'
+    path: /tmp/rsa.zip
+    permissions: '0600'
 
 runcmd:
   - /root/boot.sh
