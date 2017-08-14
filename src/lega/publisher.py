@@ -28,17 +28,17 @@ def make_user(args):
 def make_file(args):
     msg = { 'elixir_id': args.user, 'filename': args.filename }
     if args.encrypted_checksum:
-        msg['encrypted_integrity'] = { 'hash': args.encrypted_checksum, 'algorithm': args.encrypted_checksum_algo, }
+        msg['encrypted_integrity'] = { 'hash': args.e, 'algorithm': args.ea, }
     if args.unencrypted_checksum:
-        msg['unencrypted_integrity'] = { 'hash': args.unencrypted_checksum, 'algorithm': args.unencrypted_checksum_algo, }
+        msg['unencrypted_integrity'] = { 'hash': args.u, 'algorithm': args.ua, }
     return msg
 
 def main():
     CONF.setup(sys.argv[1:]) # re-conf
 
-    parser = argparse.ArgumentParser(description='Publish message to a given broker.',
+    parser = argparse.ArgumentParser(description='''Publish message to a given broker.''',
                                      allow_abbrev=False,
-                                     add_help=False)
+                                     add_help=True)
 
     common_parser = argparse.ArgumentParser(add_help=False)                                 
     common_parser.add_argument('--conf', help='configuration file, in INI or YAML format')
@@ -46,22 +46,25 @@ def main():
     common_parser.add_argument('--broker',  help='Broker section in the conf file [Default: cega.broker]', default='cega.broker')
     common_parser.add_argument('--routing',  help='Where to publish the message', required=True)
     
-    subparsers = parser.add_subparsers(title='Choose between submitting a file or a user', 
-                                       help='For a file submission or a user inbox creation')
-    subparsers.required=True
+    subparsers = parser.add_subparsers()
 
-    files_parser = subparsers.add_parser("file", epilog='The supported checksum algorithms are md5 and sha256', parents=[common_parser])
+    files_parser = subparsers.add_parser("ingestion",
+                                         epilog='The supported checksum algorithms are md5 and sha256',
+                                         parents=[common_parser],
+                                         help='(for a user inbox creation)')
     files_parser.set_defaults(func=make_file)
-    files_parser.add_argument('user')
-    files_parser.add_argument('filename')
+    files_parser.add_argument('user', help='(Internal) user ID')
+    files_parser.add_argument('filename', help='Filename in the (internal) user inbox')
     unenc_group = files_parser.add_argument_group('unencrypted checksum')
-    unenc_group.add_argument('--unencrypted_checksum')
-    unenc_group.add_argument('--unencrypted_checksum_algo', default='md5', help='[Default: md5]')
+    unenc_group.add_argument('--unenc', dest='u')
+    unenc_group.add_argument('--unenc_algo', dest='ua', default='md5', help='[Default: md5]')
     enc_group = files_parser.add_argument_group('encrypted checksum')
-    enc_group.add_argument('--encrypted_checksum')
-    enc_group.add_argument('--encrypted_checksum_algo',   default='md5', help='[Default: md5]')
+    enc_group.add_argument('--enc', dest='e')
+    enc_group.add_argument('--enc_algo', dest='ea', default='md5', help='[Default: md5]')
 
-    users_parser = subparsers.add_parser("user", parents=[common_parser])
+    users_parser = subparsers.add_parser("inbox",
+                                         parents=[common_parser],
+                                         help='(for a file ingestion)')
     users_parser.set_defaults(func=make_user)
     users_parser.add_argument('name')
     users_parser.add_argument('pubkey')
