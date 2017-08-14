@@ -12,8 +12,10 @@ variable gpg_home {}
 variable gpg_certs {}
 variable gpg_passphrase {}
 
+variable lega_conf {}
+
 data "external" "archives" {
-  program = ["${path.root}/modules/worker/create_archives.sh","worker","${var.gpg_home}", "${var.rsa_home}", "${var.gpg_certs}"]
+  program = ["${path.module}/create_archives.sh","worker","${var.gpg_home}", "${var.rsa_home}", "${var.gpg_certs}"]
 }
 
 data "template_file" "cloud_init" {
@@ -22,7 +24,7 @@ data "template_file" "cloud_init" {
   vars {
     boot_script = "${base64encode("${file("${path.module}/boot.sh")}")}"
     hosts = "${base64encode("${file("${path.root}/hosts")}")}"
-    conf = "${base64encode("${file("${path.root}/lega.conf")}")}"
+    conf = "${var.lega_conf}"
     rsa = "${data.external.archives.result.rsa}"
     gpg = "${data.external.archives.result.gpg}"
     certs = "${data.external.archives.result.certs}"
@@ -48,7 +50,7 @@ resource "openstack_compute_instance_v2" "worker" {
 ################################################################
 
 data "external" "archives_keys" {
-  program = ["${path.root}/modules/worker/create_archives.sh","keys","${var.gpg_home}", "${var.rsa_home}", "${var.gpg_certs}"]
+  program = ["${path.module}/create_archives.sh","keys","${var.gpg_home}", "${var.rsa_home}", "${var.gpg_certs}"]
 }
 
 data "template_file" "cloud_init_keys" {
@@ -57,7 +59,7 @@ data "template_file" "cloud_init_keys" {
   vars {
     boot_script = "${base64encode("${file("${path.module}/keys.sh")}")}"
     hosts = "${base64encode("${file("${path.root}/hosts")}")}"
-    conf = "${base64encode("${file("${path.root}/lega.conf")}")}"
+    conf = "${var.lega_conf}"
     gpg_passphrase = "${base64encode("${var.gpg_passphrase}")}"
     rsa = "${data.external.archives_keys.result.rsa}"
     gpg = "${data.external.archives_keys.result.gpg}"

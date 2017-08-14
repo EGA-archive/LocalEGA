@@ -11,6 +11,7 @@ variable rsa_home {}
 variable gpg_home {}
 variable gpg_certs {}
 variable gpg_passphrase {}
+variable lega_conf {}
 
 # Configure the OpenStack Provider
 provider "openstack" {
@@ -37,54 +38,61 @@ resource "openstack_compute_keypair_v2" "ega_key" {
 
 # ========= Instances as Modules =========
 module "db" {
-  source = "./modules/db"
+  source = "./instances/db"
   db_password = "${var.db_password}"
   private_ip = "192.168.10.10"
   ega_key = "${openstack_compute_keypair_v2.ega_key.name}"
 }
 module "mq" {
-  source = "./modules/mq"
+  source = "./instances/mq"
   private_ip = "192.168.10.11"
   ega_key = "${openstack_compute_keypair_v2.ega_key.name}"
 }
 module "connectors" {
-  source = "./modules/connectors"
+  source = "./instances/connectors"
   private_ip = "192.168.10.13"
   ega_key = "${openstack_compute_keypair_v2.ega_key.name}"
+  lega_conf = "${base64encode("${file("${var.lega_conf}")}")}"
 }
 module "inbox" {
-  source = "./modules/inbox"
+  source = "./instances/inbox"
   volume_size = 400
   private_ip = "192.168.10.14"
   ega_key = "${openstack_compute_keypair_v2.ega_key.name}"
+  lega_conf = "${base64encode("${file("${var.lega_conf}")}")}"
 }
 module "frontend" {
-  source = "./modules/frontend"
+  source = "./instances/frontend"
   private_ip = "192.168.10.15"
   ega_key = "${openstack_compute_keypair_v2.ega_key.name}"
+  lega_conf = "${base64encode("${file("${var.lega_conf}")}")}"
 }
 module "monitors" {
-  source = "./modules/monitors"
+  source = "./instances/monitors"
   private_ip = "192.168.10.16"
   ega_key = "${openstack_compute_keypair_v2.ega_key.name}"
+  lega_conf = "${base64encode("${file("${var.lega_conf}")}")}"
 }
 module "vault" {
-  source = "./modules/vault"
+  source = "./instances/vault"
   volume_size = 400
   private_ip = "192.168.10.17"
   ega_key = "${openstack_compute_keypair_v2.ega_key.name}"
+  lega_conf = "${base64encode("${file("${var.lega_conf}")}")}"
 }
 module "verify" {
-  source = "./modules/verify"
+  source = "./instances/verify"
   private_ip = "192.168.10.18"
   ega_key = "${openstack_compute_keypair_v2.ega_key.name}"
+  lega_conf = "${base64encode("${file("${var.lega_conf}")}")}"
 }
 module "workers" {
-  source = "./modules/worker"
+  source = "./instances/workers"
   count = 4
   private_ip_keys = "192.168.10.12"
   private_ips = ["192.168.10.100","192.168.10.101","192.168.10.102","192.168.10.103"]
   ega_key = "${openstack_compute_keypair_v2.ega_key.name}"
+  lega_conf = "${base64encode("${file("${var.lega_conf}")}")}"
   rsa_home = "${var.rsa_home}"
   gpg_home = "${var.gpg_home}"
   gpg_passphrase = "${var.gpg_passphrase}"
