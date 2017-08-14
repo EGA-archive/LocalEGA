@@ -32,8 +32,8 @@ disable-scdaemon
 #disable-check-own-socket
 EOF
 
+echo "(Re-)starting the gpg-agent"
 pkill gpg-agent || true
-#/usr/local/bin/gpgconf --kill gpg-agent || true
 rm -rf $(gpgconf --list-dirs agent-extra-socket) || true
 
 # Start the GPG Agent in /root/.gnupg
@@ -42,6 +42,7 @@ rm -rf $(gpgconf --list-dirs agent-extra-socket) || true
 #while gpg-connect-agent /bye; do sleep 2; done
 KEYGRIP=$(/usr/local/bin/gpg2 -k --with-keygrip ega@nbis.se | awk '/Keygrip/{print $3;exit;}')
 if [ ! -z "$KEYGRIP" ]; then 
+    echo 'Unlocking the GPG key'
     /usr/local/libexec/gpg-preset-passphrase --preset -P "$(cat /tmp/gpg_passphrase)" $KEYGRIP && \
 	rm -f /tmp/gpg_passphrase
 else
