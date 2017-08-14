@@ -5,6 +5,7 @@ variable volume_size { default = 100 }
 
 variable private_ip {}
 variable lega_conf {}
+variable cidr {}
 
 data "template_file" "cloud_init" {
   template = "${file("${path.module}/cloud_init.tpl")}"
@@ -13,6 +14,7 @@ data "template_file" "cloud_init" {
     boot_script = "${base64encode("${file("${path.module}/boot.sh")}")}"
     hosts = "${base64encode("${file("${path.root}/hosts")}")}"
     conf = "${var.lega_conf}"
+    cidr = "${var.cidr}"
   }
 }
 

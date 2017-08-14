@@ -10,6 +10,5 @@
 192.168.10.15 ega-frontend
 192.168.10.16 ega-monitors
 192.168.10.17 ega-vault
-192.168.10.18 ega-verify
 
 # Ignoring the workers

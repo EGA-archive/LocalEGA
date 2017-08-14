@@ -53,3 +53,7 @@ resource "openstack_compute_instance_v2" "db" {
   }
   user_data = "${data.template_file.cloud_init.rendered}"
 }
+
+# output "done" {
+#   value = ""
+# }

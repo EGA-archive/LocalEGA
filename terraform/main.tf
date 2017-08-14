@@ -12,6 +12,7 @@ variable gpg_home {}
 variable gpg_certs {}
 variable gpg_passphrase {}
 variable lega_conf {}
+variable cidr { default = "192.168.10.0/24" }
 
 # Configure the OpenStack Provider
 provider "openstack" {
@@ -27,7 +28,7 @@ provider "openstack" {
 # ========= Network =========
 module "network" {
   source = "./network"
-  cidr = "192.168.10.0/24"
+  cidr = "${var.cidr}"
 }
 
 # ========= Key Pair =========
@@ -56,10 +57,11 @@ module "connectors" {
 }
 module "inbox" {
   source = "./instances/inbox"
-  volume_size = 400
+  volume_size = 600
   private_ip = "192.168.10.14"
   ega_key = "${openstack_compute_keypair_v2.ega_key.name}"
   lega_conf = "${base64encode("${file("${var.lega_conf}")}")}"
+  cidr = "${var.cidr}"
 }
 module "frontend" {
   source = "./instances/frontend"
@@ -75,14 +77,8 @@ module "monitors" {
 }
 module "vault" {
   source = "./instances/vault"
-  volume_size = 400
+  volume_size = 300
   private_ip = "192.168.10.17"
-  ega_key = "${openstack_compute_keypair_v2.ega_key.name}"
-  lega_conf = "${base64encode("${file("${var.lega_conf}")}")}"
-}
-module "verify" {
-  source = "./instances/verify"
-  private_ip = "192.168.10.18"
   ega_key = "${openstack_compute_keypair_v2.ega_key.name}"
   lega_conf = "${base64encode("${file("${var.lega_conf}")}")}"
 }

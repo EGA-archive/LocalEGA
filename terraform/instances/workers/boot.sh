@@ -21,6 +21,7 @@ until nc -4 --send-only ega-mq 5672 </dev/null &>/dev/null; do sleep 1; done
 echo "Waiting for database"
 until nc -4 --send-only ega-db 5432 </dev/null &>/dev/null; do sleep 1; done
 
+
 echo "Waiting for GPG and SSH agent"
 until nc -4 --send-only ega-keys 9010 </dev/null &>/dev/null; do sleep 1; done
 echo "Starting the gpg-agent forwarder"
@@ -30,3 +31,14 @@ ega-socket-forwarder /root/.gnupg/S.gpg-agent \
 
 echo "Starting the worker"
 ega-worker &
+
+
+echo "Mounting the staging area"
+mkdir -p -m 0700 /ega/{inbox,staging}
+mount -t nfs ega-inbox:/ega/staging /ega/staging || exit 1
+mount -t nfs ega-inbox:/home /ega/inbox || exit 1
+
+echo "Updating the /etc/fstab for the staging area"
+sed -i -e '/ega-inbox:/ d' /etc/fstab
+echo "ega-inbox:/ega/staging /ega/staging  nfs   auto,noatime,nolock,bg,nfsvers=4,intr,tcp,actimeo=1800 0 0" >> /etc/fstab
+echo "ega-inbox:/home /ega/inbox  nfs   auto,noatime,nolock,bg,nfsvers=4,intr,tcp,actimeo=1800 0 0" >> /etc/fstab

@@ -17,6 +17,6 @@ write_files:
     permissions: '0600'
 
 runcmd:
-  - /root/boot.sh
+  - /root/boot.sh "${cidr}"
 
 final_message: "The system is finally up, after $UPTIME seconds"
