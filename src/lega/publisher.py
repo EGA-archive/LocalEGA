@@ -1,3 +1,10 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+'''Publishing a message, to a given message broker, for either the
+creation of a user or the ingestion of a file.
+'''
+
 import sys
 import argparse
 import uuid
