@@ -4,6 +4,7 @@ set -e
 
 # ================
 # Do the rest as the EGA user
+su - ega
 
 unzip /tmp/gpg.zip -d ~/.gnupg && \
 rm /tmp/gpg.zip
