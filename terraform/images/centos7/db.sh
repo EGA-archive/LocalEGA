@@ -26,3 +26,12 @@ systemctl enable postgresql-9.6.service
 
 
 
+##############################################################
+# Create ega user (with default settings)
+useradd -m ega
+
+# Update cloud-init
+sed -i -e "s/name:\scentos/name: ega/" /etc/cloud/cloud.cfg
+sed -i -e "s/gecos:.*/gecos: EGA User/" /etc/cloud/cloud.cfg
+
+# Note: Update the sudo rights?
