@@ -50,6 +50,9 @@ def work(data):
                    check=True,
                    stderr = subprocess.DEVNULL)
 
+    # Make it owned by root. Necessary for chrooting
+    os.chown(str(user_home), 0, 0)
+
     # Set public key
     if pubkey:
         with open(f'/etc/ssh/authorized_keys/{user_id}', 'w') as ssh_keys:
@@ -58,7 +61,11 @@ def work(data):
 
     # Set password
     if password_hash:
-        os.system(f'echo "{user_id}:{password_hash}" | chpasswd -e')
+        cmd_password = CONF.get('inbox','update_password',raw=True) # should we sanitize first?
+        subprocess.run(cmd_password.format(user_id=user_id,password_hash=password_hash),
+                       shell=True,
+                       check=True,
+                       stderr = subprocess.DEVNULL)
 
     LOG.info(f'Account created for user {elixir_id}')
     return {
