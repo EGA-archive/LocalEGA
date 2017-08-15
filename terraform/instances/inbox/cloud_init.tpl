@@ -23,5 +23,7 @@ write_files:
 
 runcmd:
   - /root/boot.sh "${cidr}"
+  - su -c '/home/ega/boot.sh' - ega
+
 
 final_message: "The system is finally up, after $UPTIME seconds"

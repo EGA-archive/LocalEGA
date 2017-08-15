@@ -6,6 +6,7 @@ set -e
 
 echo "Mounting the staging area"
 mkdir -p -m 0700 /ega/{inbox,staging}
+chown -R ega:ega /ega/{inbox,staging}
 mount -t nfs ega-inbox:/ega/staging /ega/staging || exit 1
 mount -t nfs ega-inbox:/ega/inbox /ega/inbox || exit 1
 
