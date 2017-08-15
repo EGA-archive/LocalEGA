@@ -50,9 +50,6 @@ def work(data):
                    check=True,
                    stderr = subprocess.DEVNULL)
 
-    # Make it owned by root. Necessary for chrooting
-    os.chown(str(user_home), 0, 0)
-
     # Set public key
     if pubkey:
         with open(f'/etc/ssh/authorized_keys/{user_id}', 'w') as ssh_keys:
