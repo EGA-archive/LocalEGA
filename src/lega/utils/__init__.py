@@ -5,6 +5,8 @@ from base64 import b64encode, b64decode
 from functools import wraps
 import secrets
 import string
+import os
+import sys
 
 from aiohttp.web import HTTPUnauthorized
 
@@ -39,6 +41,11 @@ def db_log_error_on_files(func):
         except Exception as e:
             if isinstance(e,AssertionError):
                 raise e
+
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+            LOG.debug(f'Origin: exc_type: {exc_type} | fname: {fname} | line: {exc_tb.tb_lineno}')
+
             db.set_error(file_id, e)
     return wrapper
 
@@ -53,6 +60,11 @@ def catch_user_error(func):
         except Exception as e:
             if isinstance(e,AssertionError):
                 raise e
+
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+            LOG.debug(f'Origin: exc_type: {exc_type} | fname: {fname} | line: {exc_tb.tb_lineno}')
+
             db.set_user_error(user_id, e)
     return wrapper
 
