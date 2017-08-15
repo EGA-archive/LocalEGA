@@ -13,6 +13,8 @@ from enum import Enum
 import aiopg
 import psycopg2
 import socket
+import os
+import sys
 
 from ..conf import CONF
 from .exceptions import FromUser
@@ -100,6 +102,11 @@ def set_error(file_id, error):
     assert file_id, 'Eh? No file_id?'
     assert error, 'Eh? No error?'
     LOG.debug(f'Setting error for {file_id}: {error!s}')
+
+    exc_type, exc_obj, exc_tb = sys.exc_info()
+    fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+    LOG.debug(f'Origin: exc_type: {exc_type} | fname: {fname} | line: {exc_tb.tb_lineno}')
+
     from_user = isinstance(error,FromUser)
     hostname = socket.gethostname()
     with connect() as conn:
@@ -165,6 +172,11 @@ def set_user_error(user_id, error):
     assert user_id, 'Eh? No user_id?'
     assert error, 'Eh? No error?'
     LOG.debug(f'User error for {user_id}: {error!s}')
+
+    exc_type, exc_obj, exc_tb = sys.exc_info()
+    fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+    LOG.debug(f'Origin: exc_type: {exc_type} | fname: {fname} | line: {exc_tb.tb_lineno}')
+
     with connect() as conn:
         with conn.cursor() as cur:
             cur.execute('SELECT insert_user_error(%(user_id)s,%(msg)s);',
