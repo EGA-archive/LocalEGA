@@ -14,7 +14,7 @@ CREATE EXTENSION pgcrypto;
 -- ##################################################
 --                        USERS
 -- ##################################################
-CREATE SEQUENCE IF NOT EXISTS users_id_seq INCREMENT 1 MINVALUE 1000 NO MAXVALUE START 1000 NO CYCLE;
+CREATE SEQUENCE IF NOT EXISTS users_id_seq INCREMENT 1 MINVALUE 1005 NO MAXVALUE START 1005 NO CYCLE;
 
 CREATE TABLE users (
         id            INTEGER NOT NULL DEFAULT nextval('users_id_seq'::regclass), PRIMARY KEY(id), UNIQUE (id),
