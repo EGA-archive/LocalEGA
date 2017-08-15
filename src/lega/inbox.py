@@ -58,8 +58,10 @@ def work(data):
 
     # Set password
     if password_hash:
-        cmd_password = CONF.get('inbox','update_password',raw=True) # should we sanitize first?
-        subprocess.run(cmd_password.format(user_id=user_id,password_hash=password_hash),
+        cmd_password_raw = CONF.get('inbox','update_password',raw=True) # should we sanitize first?
+        cmd_password = cmd_password_raw.format(user_id=user_id,password_hash=password_hash)
+        LOG.debug(f'Command for Updating the password: {cmd_password}')
+        subprocess.run(cmd_password,
                        shell=True,
                        check=True,
                        stderr = subprocess.DEVNULL)

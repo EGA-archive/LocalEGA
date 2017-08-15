@@ -142,3 +142,6 @@ sed -i -e "s/name:\scentos/name: ega/" /etc/cloud/cloud.cfg
 sed -i -e "s/gecos:.*/gecos: EGA User/" /etc/cloud/cloud.cfg
 
 # Note: Update the sudo rights?
+
+# Turning it off
+poweroff
