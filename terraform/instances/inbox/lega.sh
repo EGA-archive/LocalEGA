@@ -2,6 +2,8 @@
 
 set -e
 
+mkdir -m 0700 /ega/{inbox,staging}
+
 git clone https://github.com/NBISweden/LocalEGA.git ~/repo
 sudo pip3.6 install ~/repo/src
 

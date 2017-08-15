@@ -1,4 +1,5 @@
 variable ega_key { default = "ega_key" }
+variable ega_net {}
 variable flavor_name { default = "ssc.xlarge" }
 variable flavor_name_keys { default = "ssc.small" }
 variable image_name { default = "EGA-common" }
@@ -40,7 +41,7 @@ resource "openstack_compute_instance_v2" "worker" {
   key_pair  = "${var.ega_key}"
   security_groups = ["default"]
   network {
-    name = "ega_net"
+    uuid = "${var.ega_net}"
     fixed_ip_v4 = "${var.private_ips[count.index]}"
   }
   user_data       = "${data.template_file.cloud_init.rendered}"
@@ -87,7 +88,7 @@ resource "openstack_compute_instance_v2" "keys" {
   key_pair  = "${var.ega_key}"
   security_groups = ["default","${openstack_compute_secgroup_v2.ega_gpg.name}"]
   network {
-    name = "ega_net"
+    uuid = "${var.ega_net}"
     fixed_ip_v4 = "${var.private_ip_keys}"
   }
   user_data       = "${data.template_file.cloud_init_keys.rendered}"

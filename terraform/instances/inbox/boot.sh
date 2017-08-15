@@ -2,24 +2,21 @@
 
 set -e
 
-mkfs -t btrfs /dev/vdb
-mkdir -m 0700 /ega
-chown -R ega:ega /ega
-mount /dev/vdb /ega
-echo '/dev/vdb /ega btrfs defaults 0 0' >> /etc/fstab
+mkfs -t btrfs -f /dev/vdb # forcing it
 
-# Creating NFS share (accessible by the EGA user)
-mkdir -p /ega/{inbox,staging}
-chmod -R 0711 /ega/{inbox,staging} # +x to make su work
-chown -R ega:ega /ega/{inbox,staging}
-chmod g+s /ega/{inbox,staging}
+rm -rf /ega && mkdir /ega
+
+echo "/dev/vdb /ega btrfs defaults 0 0" >> /etc/fstab
+mount /ega
+
+chown -R ega:ega /ega
+chmod 0700 /ega
 
 # ================
 yum -y install nfs-utils
 
 :> /etc/exports
-echo "/ega/staging $1(rw,sync,no_root_squash,no_all_squash,no_subtree_check)" >> /etc/exports
-echo "/ega/inbox $1(rw,sync,no_root_squash,no_all_squash,no_subtree_check)" >> /etc/exports
+echo "/ega $1(rw,sync,no_root_squash,no_all_squash,no_subtree_check)" >> /etc/exports
 #exportfs -ra
 
 systemctl enable rpcbind

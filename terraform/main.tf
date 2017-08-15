@@ -26,9 +26,23 @@ provider "openstack" {
 }
 
 # ========= Network =========
-module "network" {
-  source = "./network"
-  cidr = "${var.cidr}"
+resource "openstack_networking_network_v2" "ega_net" {
+  name           = "ega_net"
+  admin_state_up = "true"
+}
+
+resource "openstack_networking_subnet_v2" "ega_subnet" {
+  network_id  = "${openstack_networking_network_v2.ega_net.id}"
+  name        = "ega_subnet"
+  cidr        = "${var.cidr}"
+  enable_dhcp = true
+  ip_version  = 4
+  dns_nameservers = ["130.239.1.90","8.8.8.8"]
+}
+
+resource "openstack_networking_router_interface_v2" "ega_router_interface" {
+  router_id = "1f852a3d-f7ea-45ae-9cba-3160c2029ba1"
+  subnet_id = "${openstack_networking_subnet_v2.ega_subnet.id}"
 }
 
 # ========= Key Pair =========
@@ -43,16 +57,19 @@ module "db" {
   db_password = "${var.db_password}"
   private_ip = "192.168.10.10"
   ega_key = "${openstack_compute_keypair_v2.ega_key.name}"
+  ega_net = "${openstack_networking_network_v2.ega_net.id}"
 }
 module "mq" {
   source = "./instances/mq"
   private_ip = "192.168.10.11"
   ega_key = "${openstack_compute_keypair_v2.ega_key.name}"
+  ega_net = "${openstack_networking_network_v2.ega_net.id}"
 }
 module "connectors" {
   source = "./instances/connectors"
   private_ip = "192.168.10.13"
   ega_key = "${openstack_compute_keypair_v2.ega_key.name}"
+  ega_net = "${openstack_networking_network_v2.ega_net.id}"
   lega_conf = "${base64encode("${file("${var.lega_conf}")}")}"
 }
 module "inbox" {
@@ -60,6 +77,7 @@ module "inbox" {
   volume_size = 600
   private_ip = "192.168.10.14"
   ega_key = "${openstack_compute_keypair_v2.ega_key.name}"
+  ega_net = "${openstack_networking_network_v2.ega_net.id}"
   lega_conf = "${base64encode("${file("${var.lega_conf}")}")}"
   cidr = "${var.cidr}"
 }
@@ -67,12 +85,14 @@ module "frontend" {
   source = "./instances/frontend"
   private_ip = "192.168.10.15"
   ega_key = "${openstack_compute_keypair_v2.ega_key.name}"
+  ega_net = "${openstack_networking_network_v2.ega_net.id}"
   lega_conf = "${base64encode("${file("${var.lega_conf}")}")}"
 }
 module "monitors" {
   source = "./instances/monitors"
   private_ip = "192.168.10.16"
   ega_key = "${openstack_compute_keypair_v2.ega_key.name}"
+  ega_net = "${openstack_networking_network_v2.ega_net.id}"
   lega_conf = "${base64encode("${file("${var.lega_conf}")}")}"
 }
 module "vault" {
@@ -80,6 +100,7 @@ module "vault" {
   volume_size = 300
   private_ip = "192.168.10.17"
   ega_key = "${openstack_compute_keypair_v2.ega_key.name}"
+  ega_net = "${openstack_networking_network_v2.ega_net.id}"
   lega_conf = "${base64encode("${file("${var.lega_conf}")}")}"
 }
 module "workers" {
@@ -88,6 +109,7 @@ module "workers" {
   private_ip_keys = "192.168.10.12"
   private_ips = ["192.168.10.100","192.168.10.101","192.168.10.102","192.168.10.103"]
   ega_key = "${openstack_compute_keypair_v2.ega_key.name}"
+  ega_net = "${openstack_networking_network_v2.ega_net.id}"
   lega_conf = "${base64encode("${file("${var.lega_conf}")}")}"
   rsa_home = "${var.rsa_home}"
   gpg_home = "${var.gpg_home}"

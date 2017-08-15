@@ -12,20 +12,17 @@ gpg_home  = "<path/to/gpg/folder>"
 gpg_certs = "<path/to/certs/folder>"  # including .cert and .key files
 rsa_home  = "<path/to/rsa/folder>"    # including ega-public.pem and ega.pem files
 gpg_passphrase = "<something-complex>"
+
+lega_conf = "<path/to/your/ini/file>"
 ```
 
-You must then initialize Terraform and, optionally, you can check what's to be done with:
+You must then initialize Terraform:
 
 	terraform init
-	terraform plan
-
-Of course, it is necessary to create your own `lega.conf`, with your EGA settings (and place it in that same folder).
+	terraform plan # to see what's to be done (optional)
 
 ## Running
 
-	# Create network first
-	terraform apply -target=module.network
-	
 	# ...and cue music
 	terraform apply
 	
