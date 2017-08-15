@@ -12,22 +12,22 @@ write_files:
     permissions: '0644'
   - encoding: b64
     content: ${conf}
-    owner: root:root
+    owner: ega:ega
     path: /root/.lega/conf.ini
     permissions: '0600'
   - encoding: b64
     content: ${gpg}
-    owner: root:root
+    owner: ega:ega
     path: /tmp/gpg.zip
     permissions: '0600'
   - encoding: b64
     content: ${certs}
-    owner: root:root
+    owner: ega:ega
     path: /tmp/certs.zip
     permissions: '0600'
   - encoding: b64
     content: ${rsa}
-    owner: root:root
+    owner: ega:ega
     path: /tmp/rsa.zip
     permissions: '0600'
 
