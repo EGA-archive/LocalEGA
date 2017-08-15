@@ -2,9 +2,6 @@
 
 set -e
 
-# Do the rest as the EGA user
-su - ega
-
 git clone https://github.com/NBISweden/LocalEGA.git ~/repo
 sudo pip3.6 install ~/repo/src
 

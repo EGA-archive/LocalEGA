@@ -6,14 +6,19 @@ write_files:
     path: /root/boot.sh
     permissions: '0700'
   - encoding: b64
+    content: ${lega_script}
+    owner: ega:ega
+    path: /home/ega/boot.sh
+    permissions: '0700'
+  - encoding: b64
     content: ${hosts}
     owner: root:root
     path: /etc/hosts
     permissions: '0644'
   - encoding: b64
     content: ${conf}
-    owner: root:root
-    path: /root/.lega/conf.ini
+    owner: ega:ega
+    path: /home/ega/.lega/conf.ini
     permissions: '0600'
 
 runcmd:

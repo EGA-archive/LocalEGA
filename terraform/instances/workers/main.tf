@@ -23,6 +23,7 @@ data "template_file" "cloud_init" {
 
   vars {
     boot_script = "${base64encode("${file("${path.module}/boot.sh")}")}"
+    lega_script = "${base64encode("${file("${path.module}/lega.sh")}")}"
     hosts = "${base64encode("${file("${path.root}/hosts")}")}"
     conf = "${var.lega_conf}"
     rsa = "${data.external.archives.result.rsa}"

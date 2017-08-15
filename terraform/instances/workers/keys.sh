@@ -2,10 +2,6 @@
 
 set -e
 
-# ================
-# Do the rest as the EGA user
-su - ega
-
 unzip /tmp/gpg.zip -d ~/.gnupg && \
 rm /tmp/gpg.zip
 
@@ -30,7 +26,7 @@ max-cache-ttl 31536000    # one year
 pinentry-program /usr/local/bin/pinentry-curses
 allow-loopback-pinentry
 enable-ssh-support
-extra-socket /root/.gnupg/S.gpg-agent.extra
+extra-socket /home/ega/.gnupg/S.gpg-agent.extra
 browser-socket /dev/null
 disable-scdaemon
 #disable-check-own-socket
