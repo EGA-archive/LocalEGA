@@ -21,8 +21,40 @@ chown ega:ega /ega/staging
 
 chmod 0755 /ega/{inbox,staging}
 
-sed -i -e "/UMASK/ d" /etc/login.defs
-echo "UMASK 022" >> /etc/login.defs
+sed -i '/^UMASK/c\UMASK 022' /etc/login.defs
+sed -i '/^ENCRYPT_METHOD/c\ENCRYPT_METHOD SHA512' /etc/login.defs
+sed -i '/^MD5_CRYPT_ENAB/c\MD5_CRYPT_ENAB no' /etc/login.defs
+
+cat > /usr/local/bin/ega_userdel <<'EOF'
+#!/bin/bash
+
+# Check for the required argument.
+if [ $# != 1 ]; then
+    echo "Usage: $0 username"
+    exit 1
+fi
+
+# Remove cron jobs.
+crontab -r -u $1
+
+# Remove at jobs.
+# Note that it will remove any jobs owned by the same UID,
+# even if it was shared by a different username.
+AT_SPOOL_DIR=/var/spool/cron/atjobs
+find $AT_SPOOL_DIR -name "[^.]*" -type f -user $1 -delete \;
+
+# Remove the home, cuz owned by root
+user_home=$(getent passwd $1 | cut -d: -f6)
+if [ "$user_home" == "/ega/inbox/*" ]; then
+    rm -rf "$user_home"
+fi
+
+# All done.
+exit 0
+EOF
+chmod +x /usr/local/bin/ega_userdel
+
+sed -i '/^USERDEL_CMD/c\USERDEL_CMD /usr/local/bin/ega_userdel' /etc/login.defs
 
 # ================
 yum -y install nfs-utils
@@ -81,7 +113,12 @@ EOF
 
 mkdir -p /etc/ssh/authorized_keys
 
+cat > /etc/ega-banner <<EOF
+Welcome to Local EGA (Sweden)
+EOF
+
 cat > /etc/ssh/sshd_config <<EOF
+Banner /etc/ega-banner
 Protocol 2
 HostKey /etc/ssh/ssh_host_rsa_key
 HostKey /etc/ssh/ssh_host_ecdsa_key
@@ -94,7 +131,6 @@ SyslogFacility AUTHPRIV
 # due to root ownership on user's home folder
 
 UsePAM yes
-# Not supported on RedHat
 
 # Faster connection
 UseDNS no
@@ -103,6 +139,7 @@ UseDNS no
 PermitRootLogin no
 X11Forwarding no
 AllowTcpForwarding no
+#AllowStreamLocalForwarding no
 PermitTunnel no
 PasswordAuthentication no
 ChallengeResponseAuthentication no
