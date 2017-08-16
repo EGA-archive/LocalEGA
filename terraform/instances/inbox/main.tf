@@ -21,13 +21,31 @@ data "template_file" "cloud_init" {
   }
 }
 
-resource "openstack_compute_secgroup_v2" "ega_sftp" {
-  name        = "ega-sftp"
-  description = "SFTP access"
+resource "openstack_compute_secgroup_v2" "ega_inbox" {
+  name        = "ega-inbox"
+  description = "Inbox access"
 
   rule {
     from_port   = 22
     to_port     = 22
+    ip_protocol = "tcp"
+    cidr        = "0.0.0.0/0"
+  }
+  rule {
+    from_port   = 21
+    to_port     = 21
+    ip_protocol = "tcp"
+    cidr        = "0.0.0.0/0"
+  }
+  rule {
+    from_port   = 6000
+    to_port     = 6000
+    ip_protocol = "tcp"
+    cidr        = "0.0.0.0/0"
+  }
+  rule {
+    from_port   = 6001
+    to_port     = 6001
     ip_protocol = "tcp"
     cidr        = "0.0.0.0/0"
   }
@@ -38,7 +56,7 @@ resource "openstack_compute_instance_v2" "inbox" {
   flavor_name = "${var.flavor_name}"
   image_name = "${var.image_name}"
   key_pair  = "${var.ega_key}"
-  security_groups = ["default","${openstack_compute_secgroup_v2.ega_sftp.name}"]
+  security_groups = ["default","${openstack_compute_secgroup_v2.ega_inbox.name}"]
   network {
     uuid = "${var.ega_net}"
     fixed_ip_v4 = "${var.private_ip}"

@@ -22,39 +22,8 @@ chown ega:ega /ega/staging
 chmod 0755 /ega/{inbox,staging}
 
 sed -i '/^UMASK/c\UMASK 022' /etc/login.defs
-sed -i '/^ENCRYPT_METHOD/c\ENCRYPT_METHOD SHA512' /etc/login.defs
-sed -i '/^MD5_CRYPT_ENAB/c\MD5_CRYPT_ENAB no' /etc/login.defs
-
-cat > /usr/local/bin/ega_userdel <<'EOF'
-#!/bin/bash
-
-# Check for the required argument.
-if [ $# != 1 ]; then
-    echo "Usage: $0 username"
-    exit 1
-fi
-
-# Remove cron jobs.
-crontab -r -u $1
-
-# Remove at jobs.
-# Note that it will remove any jobs owned by the same UID,
-# even if it was shared by a different username.
-AT_SPOOL_DIR=/var/spool/cron/atjobs
-find $AT_SPOOL_DIR -name "[^.]*" -type f -user $1 -delete \;
-
-# Remove the home, cuz owned by root
-user_home=$(getent passwd $1 | cut -d: -f6)
-if [ "$user_home" == "/ega/inbox/*" ]; then
-    rm -rf "$user_home"
-fi
-
-# All done.
-exit 0
-EOF
-chmod +x /usr/local/bin/ega_userdel
-
-sed -i '/^USERDEL_CMD/c\USERDEL_CMD /usr/local/bin/ega_userdel' /etc/login.defs
+#sed -i '/^ENCRYPT_METHOD/c\ENCRYPT_METHOD SHA512' /etc/login.defs
+# overrides MD5_CRYPT_ENAB
 
 # ================
 yum -y install nfs-utils
@@ -75,7 +44,7 @@ systemctl restart nfs-idmap
 
 # ================
 # Group for newly created users (Local EGA users)
-groupadd --system sftp_users
+groupadd --system ega_users
 
 # Skeleton for them
 #rm -rf /etc/skel/.bash*
@@ -83,7 +52,7 @@ mkdir -p /etc/skel/inbox && \
     chmod 700 /etc/skel/inbox
 
 cat > /etc/default/useradd <<EOF
-GROUP=sftp_users
+GROUP=ega_users
 HOME=/ega/inbox
 INACTIVE=-1
 EXPIRE=
@@ -109,61 +78,30 @@ EOF
 # systemctl restart fail2ban
 
 # ========================
-# sshd_config
+# No SELinux
+echo "Disabling SElinux"
+[ -f /etc/sysconfig/selinux ] && sed -i 's/SELINUX=.*/SELINUX=disabled/' /etc/sysconfig/selinux
+[ -f /etc/selinux/config ] && sed -i 's/SELINUX=.*/SELINUX=disabled/' /etc/selinux/config
 
-mkdir -p /etc/ssh/authorized_keys
+# ========================
+# ProFTPd
+echo "ProFTPd"
+yum install -y proftpd proftpd-utils
 
-cat > /etc/ega-banner <<EOF
-Welcome to Local EGA (Sweden)
-EOF
+echo "PassivePorts    6000    6100" >> /etc/proftpd.conf
+setsebool -P allow_ftpd_full_access=1
 
-cat > /etc/ssh/sshd_config <<EOF
-Banner /etc/ega-banner
-Protocol 2
-HostKey /etc/ssh/ssh_host_rsa_key
-HostKey /etc/ssh/ssh_host_ecdsa_key
-HostKey /etc/ssh/ssh_host_ed25519_key
+# Generating the FTP certificate for TLS encryption
+openssl req -subj "/C=SE/L=Uppsala/O=NBIS/OU=System Developers/emailAddress=ega@nbis.se" \
+-x509 -nodes -newkey rsa:4096 -keyout /etc/pki/tls/certs/proftpd.pem -out /etc/pki/tls/certs/proftpd.pem
 
-AuthorizedKeysFile .ssh/authorized_keys
-SyslogFacility AUTHPRIV
+chmod  0440 /etc/pki/tls/certs/proftpd.pem
 
-# Fixing path for authorized keys,
-# due to root ownership on user's home folder
+# Chrooting the users
+sed -i '/DefaultRoot/c\DefaultRoot ~/inbox ega_users,!adm' /etc/proftpd.conf
+sed -i '/^PROFTPD_OPTIONS/c\PROFTPD_OPTIONS="-DTLS"' /etc/sysconfig/proftpd
 
-UsePAM yes
+systemctl restart proftpd.service
+systemctl enable proftpd.service
 
-# Faster connection
-UseDNS no
 
-# Limited access
-PermitRootLogin no
-X11Forwarding no
-AllowTcpForwarding no
-#AllowStreamLocalForwarding no
-PermitTunnel no
-PasswordAuthentication no
-ChallengeResponseAuthentication no
-GSSAPIAuthentication yes
-GSSAPICleanupCredentials no
-
-UsePrivilegeSeparation sandbox
-
-AcceptEnv LANG LC_CTYPE LC_NUMERIC LC_TIME LC_COLLATE LC_MONETARY LC_MESSAGES
-AcceptEnv LC_PAPER LC_NAME LC_ADDRESS LC_TELEPHONE LC_MEASUREMENT
-AcceptEnv LC_IDENTIFICATION LC_ALL LANGUAGE
-AcceptEnv XMODIFIERS
-
-# Force sftp and chroot jail
-#Subsystem sftp  /usr/libexec/openssh/sftp-server
-Subsystem sftp internal-sftp
-
-# Force sftp and chroot jail (for all but root)
-MATCH GROUP sftp_users
-  AuthorizedKeysFile /etc/ssh/authorized_keys/%u
-  PasswordAuthentication yes
-  ChrootDirectory %h
-  # -d (remote start directory relative user root)
-  ForceCommand internal-sftp -d /inbox
-EOF
-
-systemctl restart sshd
