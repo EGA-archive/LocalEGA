@@ -67,15 +67,16 @@ systemctl restart nfs-idmap
 
 # ================
 # Group for newly created users (Local EGA users)
-groupadd --system ega_users
+#groupadd --system ega_users
 
-# Skeleton for them
-#rm -rf /etc/skel/.bash*
+# Skeleton (with setgid permissions)
+rm -rf /etc/skel/.bash*
 mkdir -p /etc/skel/inbox && \
-    chmod 700 /etc/skel/inbox
+chmod 750 /etc/skel/inbox && \
+chmod g+s /etc/skel/inbox # rwxr-s---
 
 cat > /etc/default/useradd <<EOF
-GROUP=ega_users
+GROUP=ega
 HOME=/ega/inbox
 INACTIVE=-1
 EXPIRE=
@@ -84,32 +85,8 @@ SKEL=/etc/skel
 CREATE_MAIL_SPOOL=no
 EOF
 
-# # ========================
-# # ProFTPd
-# echo "ProFTPd"
-# yum install -y proftpd proftpd-utils
-
-# echo "PassivePorts    6000    6100" >> /etc/proftpd.conf
-# setsebool -P allow_ftpd_full_access=1
-
-# # Generating the FTP certificate for TLS encryption
-# openssl req -subj "/C=SE/L=Uppsala/O=NBIS/OU=System Developers/emailAddress=ega@nbis.se" \
-# -x509 -nodes -newkey rsa:4096 -keyout /etc/pki/tls/certs/proftpd.pem -out /etc/pki/tls/certs/proftpd.pem
-
-# chmod  0440 /etc/pki/tls/certs/proftpd.pem
-
-# # Chrooting the users
-# sed -i '/DefaultRoot/c\DefaultRoot ~/inbox ega_users,!adm' /etc/proftpd.conf
-# sed -i '/^PROFTPD_OPTIONS/c\PROFTPD_OPTIONS="-DTLS"' /etc/sysconfig/proftpd
-
-# systemctl restart proftpd.service
-# systemctl enable proftpd.service
-
-
 # ========================
 # sshd_config
-
-mkdir -p /etc/ssh/authorized_keys
 
 cat > /ega/banner <<EOF
 Welcome to Local EGA (Sweden)
@@ -134,7 +111,7 @@ GSSAPICleanupCredentials no
 # Faster connection
 UseDNS no
 # Limited access
-AllowGroups ega ega_users
+AllowGroups ega
 PermitRootLogin no
 X11Forwarding no
 AllowTcpForwarding no
@@ -148,14 +125,11 @@ AcceptEnv XMODIFIERS
 # Force sftp and chroot jail
 # ===========================
 Subsystem sftp internal-sftp
-# Force sftp and chroot jail (for users in the ega_users group, but not ega)
-MATCH GROUP ega_users
+# Force sftp and chroot jail (for users in the ega group, but not ega)
+MATCH GROUP ega USER *,!ega
   Banner /ega/banner
-  #AuthorizedKeysFile /etc/ssh/authorized_keys/%u
-  # Fixing path for authorized keys,
-  # due to root ownership on user's home folder
-  #AuthenticationMethods publickey,keyboard-interactive
   ChrootDirectory %h
+  AuthorizedKeysFile %h/.pubkey
   # -d (remote start directory relative user root)
   ForceCommand internal-sftp -d /inbox
 EOF
