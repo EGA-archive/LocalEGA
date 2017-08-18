@@ -60,13 +60,13 @@ def work(data):
                    stderr = subprocess.DEVNULL)
 
     os.chown(str(user_home), 0, -1) # owned by root, but don't change group id
-    user_home.chmod(stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR |
-                    stat.S_IRGRP | stat.S_IXGRP | stat.S_ISGID) # rwxr-s---
+    # user_home.chmod(stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR |
+    #                 stat.S_IRGRP | stat.S_IXGRP | stat.S_ISGID) # rwxr-s---
 
     # Set public key
     if pubkey:
         authorized_keys = user_home / '.pubkey'
-        with open(authorized_keys, 'w') as ssh_keys:
+        with open(authorized_keys, 'w') as ssh_keys: # we are root
             ssh_keys.write(pubkey)
             ssh_keys.write('\n')
             os.chown(str(authorized_keys),user_id, -1)
@@ -74,10 +74,8 @@ def work(data):
 
     # Set password
     if password_hash:
-        cmd_password_raw = CONF.get('inbox','update_password',raw=True) # should we sanitize first?
-        cmd_password = cmd_password_raw.format(user_id=user_id,password_hash=password_hash)
-        LOG.debug(f'Command for Updating the password: {cmd_password}')
-        subprocess.run(cmd_password,
+        password_cmd = CONF.get('inbox','update_password',raw=True) # should we sanitize first?
+        subprocess.run(password_cmd.format(user_id=user_id,password_hash=password_hash),
                        shell=True,
                        check=True,
                        stderr = subprocess.DEVNULL)
