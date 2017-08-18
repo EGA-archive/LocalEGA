@@ -18,8 +18,6 @@ import os
 import logging
 import subprocess
 from pathlib import Path
-import grp
-import stat
 
 from .conf import CONF
 from .utils import db, exceptions
@@ -36,7 +34,6 @@ def work(data):
     '''
 
     user_id = int(data['user_id'])
-    group_id = grp.getgrnam("ega").gr_gid
     elixir_id = data['elixir_id']
     password_hash = data.get('password_hash', None)
     pubkey = data.get('pubkey',None)
@@ -60,8 +57,6 @@ def work(data):
                    stderr = subprocess.DEVNULL)
 
     os.chown(str(user_home), 0, -1) # owned by root, but don't change group id
-    # user_home.chmod(stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR |
-    #                 stat.S_IRGRP | stat.S_IXGRP | stat.S_ISGID) # rwxr-s---
 
     # Set public key
     if pubkey:
