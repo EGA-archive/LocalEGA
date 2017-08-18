@@ -82,4 +82,5 @@ resource "openstack_blockstorage_volume_v2" "disk" {
 resource "openstack_compute_volume_attach_v2" "inbox_attach" {
   instance_id = "${openstack_compute_instance_v2.inbox.id}"
   volume_id   = "${openstack_blockstorage_volume_v2.disk.id}"
+  device = "/dev/vdb" # might cause re-attaching upon each 'apply'
 }

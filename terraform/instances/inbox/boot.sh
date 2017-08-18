@@ -27,10 +27,11 @@ EOF
 
 # ================
 # Mounting the volume
-mkfs -t btrfs -f /dev/vdb # forcing it
 
 rm -rf /ega
 mkdir -m 0755 /ega # owned by root
+
+mkfs -t btrfs -f /dev/vdb # forcing it
 
 echo "/dev/vdb /ega btrfs defaults 0 0" >> /etc/fstab
 mount /ega
