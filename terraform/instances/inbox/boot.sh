@@ -43,10 +43,6 @@ mkdir -m 0755 /ega/{inbox,staging}
 chown root:ega /ega/{inbox,staging}
 chmod g+s /ega/{inbox,staging} # setgid bit
 
-sed -i '/^UMASK/c\UMASK 022' /etc/login.defs
-#sed -i '/^ENCRYPT_METHOD/c\ENCRYPT_METHOD SHA512' /etc/login.defs
-# overrides MD5_CRYPT_ENAB
-
 # ================
 # NFS configuration
 yum -y install nfs-utils
@@ -68,6 +64,11 @@ systemctl restart nfs-idmap
 # ================
 # Group for newly created users (Local EGA users)
 #groupadd --system ega_users
+
+sed -i '/^UMASK/c\UMASK 022' /etc/login.defs
+#sed -i '/^ENCRYPT_METHOD/c\ENCRYPT_METHOD SHA512' /etc/login.defs # overrides MD5_CRYPT_ENAB
+# set the primary group of the new user to the value specified by the GROUP variable in /etc/skel
+sed -i '/^USERGROUPS_ENAB/c\USERGROUPS_ENAB no' /etc/login.defs
 
 # Skeleton (with setgid permissions)
 rm -rf /etc/skel/.bash*
@@ -129,7 +130,6 @@ Subsystem sftp internal-sftp
 MATCH GROUP ega USER *,!ega
   Banner /ega/banner
   ChrootDirectory %h
-  AuthorizedKeysFile %h/.pubkey
   # -d (remote start directory relative user root)
   ForceCommand internal-sftp -d /inbox
 EOF

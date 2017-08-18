@@ -23,6 +23,8 @@ The settings are loaded, in order:
 * from {_config_files[1]}
 * and finally from the file specified as the `--conf` argument.
 
+The files must be either in `INI` format or in `YAML` format, in
+which case, it must end in `.yaml` or `.yml`.
 
 See `https://github.com/NBISweden/LocalEGA` for a full documentation.
 :copyright: (c) 2017, NBIS System Developers.
@@ -35,16 +37,7 @@ class Configuration(configparser.ConfigParser):
     log_conf = None
 
     def _load_conf(self,args=None, encoding='utf-8'):
-        f'''Loads the configuration files in order:
-           1) {_config_files[0]}
-           2) {_config_files[1]}
-           3) the command line arguments following `--conf`
-
-        When done, the logging settings are loaded
-        from the file specified after the `--log` argument.
-
-        The latter file must be either in `INI` format
-        or in `YAML` format, in which case, it must end in `.yaml` or `.yml`.'''
+        '''Loads a configuration file from `args`'''
 
         # Finding the --conf file
         try:
@@ -64,7 +57,15 @@ class Configuration(configparser.ConfigParser):
         self.read(_config_files, encoding=encoding)
 
     def _load_log_file(self,filename):
+        '''Tries to load `filename` as configuration file'''
+
         LOG.info(f'Reading the log configuration from: {filename}')
+
+        if filename and not filename.exists():
+            LOG.error(f"The file '{filename}' does not exist")
+            self.log_conf = None
+            return
+
         if filename.suffix in ('.yaml', '.yml'):
             with open(filename, 'r') as stream:
                 dictConfig(yaml.load(stream))
@@ -88,9 +89,10 @@ class Configuration(configparser.ConfigParser):
             pass # No log conf
         except IndexError:
             LOG.error("Wrong use of --log <file>")
+            print("Wrong use of --log <file>", file=sys.stderr)
             sys.exit(2)
         except Exception as e:
-            print(e)
+            print('Error with --log:', repr(e), file=sys.stderr)
             #sys.exit(2)
 
     def setup(self,args=None, encoding='utf-8'):
