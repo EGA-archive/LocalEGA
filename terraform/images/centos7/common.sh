@@ -129,6 +129,10 @@ ln -s /bin/python3.6 /usr/local/bin/python3
 # Installing required packages
 pip3.6 install PyYaml Markdown
 
+# And some extra ones, to speed up booting the VMs
+pip3.6 install pika==0.10.0 aiohttp==2.0.5 pycryptodomex==3.4.5 aiopg==0.13.0 colorama==0.3.7 aiohttp-jinja2==0.13.0
+
+
 ##############################################################
 # Create ega user (with default settings)
 useradd -m ega
@@ -138,3 +142,6 @@ sed -i -e "s/name:\scentos/name: ega/" /etc/cloud/cloud.cfg
 sed -i -e "s/gecos:.*/gecos: EGA User/" /etc/cloud/cloud.cfg
 
 # Note: Update the sudo rights?
+
+# Turning it off
+poweroff

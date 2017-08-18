@@ -18,6 +18,8 @@ import os
 import logging
 import subprocess
 from pathlib import Path
+import grp
+import stat
 
 from .conf import CONF
 from .utils import db, exceptions
@@ -33,7 +35,8 @@ def work(data):
     '''Creates a user account, given the details from `data`.
     '''
 
-    user_id = data['user_id']
+    user_id = int(data['user_id'])
+    group_id = grp.getgrnam("ega").gr_gid
     elixir_id = data['elixir_id']
     password_hash = data.get('password_hash', None)
     pubkey = data.get('pubkey',None)
@@ -44,22 +47,37 @@ def work(data):
     user_home = Path( CONF.get('inbox','user_home',raw=True) % { 'user_id': user_id } )
 
     # Create user (might raise exception)
-    cmd = CONF.get('inbox','create_account',raw=True) # should we sanitize first?
-    subprocess.run(cmd.format(home=user_home,comment=elixir_id,user_id=user_id),
+    delete_cmd = CONF.get('inbox','delete_account',raw=True) # should we sanitize first?
+    subprocess.run(delete_cmd.format(home=user_home,user_id=user_id),
+                   shell=True,
+                   check=False, # do not check for errors
+                   stderr = subprocess.DEVNULL)
+
+    create_cmd = CONF.get('inbox','create_account',raw=True) # should we sanitize first?
+    subprocess.run(create_cmd.format(home=user_home,comment=elixir_id,user_id=user_id),
                    shell=True,
                    check=True,
                    stderr = subprocess.DEVNULL)
 
+    os.chown(str(user_home), 0, -1) # owned by root, but don't change group id
+    user_home.chmod(stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR |
+                    stat.S_IRGRP | stat.S_IXGRP | stat.S_ISGID) # rwxr-s---
+
     # Set public key
     if pubkey:
-        with open(f'/etc/ssh/authorized_keys/{user_id}', 'w') as ssh_keys:
+        authorized_keys = user_home / '.pubkey'
+        with open(authorized_keys, 'w') as ssh_keys:
             ssh_keys.write(pubkey)
             ssh_keys.write('\n')
+            os.chown(str(authorized_keys),user_id, -1)
+            authorized_keys.chmod(0o600)
 
     # Set password
     if password_hash:
-        cmd_password = CONF.get('inbox','update_password',raw=True) # should we sanitize first?
-        subprocess.run(cmd_password.format(user_id=user_id,password_hash=password_hash),
+        cmd_password_raw = CONF.get('inbox','update_password',raw=True) # should we sanitize first?
+        cmd_password = cmd_password_raw.format(user_id=user_id,password_hash=password_hash)
+        LOG.debug(f'Command for Updating the password: {cmd_password}')
+        subprocess.run(cmd_password,
                        shell=True,
                        check=True,
                        stderr = subprocess.DEVNULL)
@@ -74,6 +92,10 @@ def work(data):
     }
 
 def main(args=None):
+
+    if os.geteuid() != 0:
+        print("You need to have root privileges to run this script. Exiting.", file=sys.stderr)
+        sys.exit(1)
 
     if not args:
         args = sys.argv[1:]

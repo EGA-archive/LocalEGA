@@ -2,29 +2,53 @@
 
 set -e
 
-setsebool -P ssh_chroot_rw_homedirs on
+# ========================
+# No SELinux
+echo "Disabling SElinux"
+[ -f /etc/sysconfig/selinux ] && sed -i 's/SELINUX=.*/SELINUX=disabled/' /etc/sysconfig/selinux
+[ -f /etc/selinux/config ] && sed -i 's/SELINUX=.*/SELINUX=disabled/' /etc/selinux/config
+#setsebool -P ssh_chroot_rw_homedirs on
 
-mkfs -t btrfs -f /dev/vdb # forcing it
+# ========================
+# Only requests from Sweden (or local ones)
+
+cat > /etc/hosts.allow <<EOF
+sshd: 192.168.10.     : spawn (/usr/bin/logger -i -p authpriv.info "%d[%p]\: %h (allowed local)")&  : ALLOW
+sshd: .se             : spawn (/usr/bin/logger -i -p authpriv.info "%d[%p]\: %h (allowed .se)")&    : ALLOW
+ALL : ALL             : spawn (/usr/bin/logger -i -p authpriv.info "%d[%p]\: %h (denied)")&         : DENY
+EOF
+
+# # ========================
+# # Fail2Ban
+
+# yum -y install fail2ban
+# systemctl enable fail2ban
+# systemctl restart fail2ban
+
+# ================
+# Mounting the volume
 
 rm -rf /ega
-mkdir -m 0700 /ega # owned by root
+mkdir -m 0755 /ega # owned by root
+
+mkfs -t btrfs -f /dev/vdb # forcing it
 
 echo "/dev/vdb /ega btrfs defaults 0 0" >> /etc/fstab
 mount /ega
 
-chown root:root /ega
-chmod 0755 /ega # readable by ega
+chown root:ega /ega
+chmod g+s /ega
 
 mkdir -m 0755 /ega/{inbox,staging}
-chown root:root /ega/inbox # for chrooting
-chown ega:ega /ega/staging
+chown root:ega /ega/{inbox,staging}
+chmod g+s /ega/{inbox,staging} # setgid bit
 
-chmod 0755 /ega/{inbox,staging}
-
-sed -i -e "/UMASK/ d" /etc/login.defs
-echo "UMASK 022" >> /etc/login.defs
+sed -i '/^UMASK/c\UMASK 022' /etc/login.defs
+#sed -i '/^ENCRYPT_METHOD/c\ENCRYPT_METHOD SHA512' /etc/login.defs
+# overrides MD5_CRYPT_ENAB
 
 # ================
+# NFS configuration
 yum -y install nfs-utils
 
 :> /etc/exports
@@ -43,15 +67,16 @@ systemctl restart nfs-idmap
 
 # ================
 # Group for newly created users (Local EGA users)
-groupadd --system sftp_users
+#groupadd --system ega_users
 
-# Skeleton for them
-#rm -rf /etc/skel/.bash*
+# Skeleton (with setgid permissions)
+rm -rf /etc/skel/.bash*
 mkdir -p /etc/skel/inbox && \
-    chmod 700 /etc/skel/inbox
+chmod 750 /etc/skel/inbox && \
+chmod g+s /etc/skel/inbox # rwxr-s---
 
 cat > /etc/default/useradd <<EOF
-GROUP=sftp_users
+GROUP=ega
 HOME=/ega/inbox
 INACTIVE=-1
 EXPIRE=
@@ -61,70 +86,50 @@ CREATE_MAIL_SPOOL=no
 EOF
 
 # ========================
-# Only requests from Sweden (or local ones)
-
-cat > /etc/hosts.allow <<EOF
-sshd: 192.168.10.     : spawn (/usr/bin/logger -i -p authpriv.info "%d[%p]\: %h (allowed local)")&  : ALLOW
-sshd: .se             : spawn (/usr/bin/logger -i -p authpriv.info "%d[%p]\: %h (allowed .se)")&    : ALLOW
-ALL : ALL             : spawn (/usr/bin/logger -i -p authpriv.info "%d[%p]\: %h (denied)")&         : DENY
-EOF
-
-# # ========================
-# # Fail2Ban
-
-# yum -y install fail2ban
-# systemctl enable fail2ban
-# systemctl restart fail2ban
-
-# ========================
 # sshd_config
 
-mkdir -p /etc/ssh/authorized_keys
+cat > /ega/banner <<EOF
+Welcome to Local EGA (Sweden)
+EOF
+
 
 cat > /etc/ssh/sshd_config <<EOF
 Protocol 2
 HostKey /etc/ssh/ssh_host_rsa_key
 HostKey /etc/ssh/ssh_host_ecdsa_key
 HostKey /etc/ssh/ssh_host_ed25519_key
-
-AuthorizedKeysFile .ssh/authorized_keys
 SyslogFacility AUTHPRIV
-
-# Fixing path for authorized keys,
-# due to root ownership on user's home folder
-
+# Authentication
 UsePAM yes
-# Not supported on RedHat
-
+PubkeyAuthentication yes
+AuthorizedKeysFile .ssh/authorized_keys
+PasswordAuthentication no
+ChallengeResponseAuthentication yes
+KerberosAuthentication no
+GSSAPIAuthentication no
+GSSAPICleanupCredentials no
 # Faster connection
 UseDNS no
-
 # Limited access
+AllowGroups ega
 PermitRootLogin no
 X11Forwarding no
 AllowTcpForwarding no
 PermitTunnel no
-PasswordAuthentication no
-ChallengeResponseAuthentication no
-GSSAPIAuthentication yes
-GSSAPICleanupCredentials no
-
 UsePrivilegeSeparation sandbox
-
 AcceptEnv LANG LC_CTYPE LC_NUMERIC LC_TIME LC_COLLATE LC_MONETARY LC_MESSAGES
 AcceptEnv LC_PAPER LC_NAME LC_ADDRESS LC_TELEPHONE LC_MEASUREMENT
 AcceptEnv LC_IDENTIFICATION LC_ALL LANGUAGE
 AcceptEnv XMODIFIERS
-
+# ===========================
 # Force sftp and chroot jail
-#Subsystem sftp  /usr/libexec/openssh/sftp-server
+# ===========================
 Subsystem sftp internal-sftp
-
-# Force sftp and chroot jail (for all but root)
-MATCH GROUP sftp_users
-  AuthorizedKeysFile /etc/ssh/authorized_keys/%u
-  PasswordAuthentication yes
+# Force sftp and chroot jail (for users in the ega group, but not ega)
+MATCH GROUP ega USER *,!ega
+  Banner /ega/banner
   ChrootDirectory %h
+  AuthorizedKeysFile %h/.pubkey
   # -d (remote start directory relative user root)
   ForceCommand internal-sftp -d /inbox
 EOF

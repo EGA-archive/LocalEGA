@@ -21,8 +21,8 @@ resource "openstack_compute_keypair_v2" "ega_key" {
 
 # ========= Instances =========
 
-resource "openstack_compute_instance_v2" "ega_build_common" {
-  name      = "ega-build-common"
+resource "openstack_compute_instance_v2" "common" {
+  name      = "ega-common"
   flavor_name = "ssc.small"
   image_name = "CentOS 7 - latest"
   key_pair  = "${openstack_compute_keypair_v2.ega_key.name}"
@@ -31,8 +31,8 @@ resource "openstack_compute_instance_v2" "ega_build_common" {
   user_data = "${file("${path.module}/common.sh")}"
 }
 
-resource "openstack_compute_instance_v2" "ega_build_db" {
-  name      = "ega-build-db"
+resource "openstack_compute_instance_v2" "db" {
+  name      = "ega-db"
   flavor_name = "ssc.small"
   image_name = "CentOS 7 - latest"
   key_pair  = "${openstack_compute_keypair_v2.ega_key.name}"
@@ -41,8 +41,8 @@ resource "openstack_compute_instance_v2" "ega_build_db" {
   user_data = "${file("${path.module}/db.sh")}"
 }
 
-resource "openstack_compute_instance_v2" "ega_build_mq" {
-  name      = "ega-build-mq"
+resource "openstack_compute_instance_v2" "mq" {
+  name      = "ega-mq"
   flavor_name = "ssc.small"
   image_name = "CentOS 7 - latest"
   key_pair  = "${openstack_compute_keypair_v2.ega_key.name}"

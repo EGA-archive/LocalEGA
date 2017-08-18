@@ -3,7 +3,7 @@
 You need to create a `main.auto.tfvars` file (in that same folder) with the following information:
 
 ```
-pubkey = "<path/to/your/public/key>"
+pubkey      = "ssh-rsa AAAABBBBBB ... bla bla....your-public-key"
 os_username = "<your-openstack-keystone-username>"
 os_password = "<your-openstack-keystone-password>"
 db_password = "<your-secret-password>"
