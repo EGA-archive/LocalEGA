@@ -8,9 +8,9 @@
 
 #define CFGFILE "/usr/local/etc/nss-ega.conf"
 
-int readconfig(char type, char* configfile);
+int readconfig(char* configfile);
 void cleanup(void);
-char *getcfg(const char *key);
+char* getcfg(const char* key);
 
 int backend_isopen();
 int backend_open();
