@@ -13,6 +13,11 @@ static int _isopen = 0;
 /*
  * read configuration and connect to database
  */
+int backend_isopen()
+{
+  return (_isopen > 0);
+}
+
 int backend_open()
 {
   int config;
@@ -101,7 +106,8 @@ enum nss_status res2pwd(PGresult *res, struct passwd *result,
 			int *errnop)
 {
 	enum nss_status status = NSS_STATUS_NOTFOUND;
-	char* tmp, homes, query;
+	char* tmp;
+	char* homes;
 	if(!PQntuples(res)) {
 		goto BAIL_OUT;
 	}
