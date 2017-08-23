@@ -12,9 +12,9 @@ int readconfig(char* configfile);
 void cleanup(void);
 char* getcfg(const char* key);
 
-int backend_isopen();
-int backend_open();
-void backend_close();
+int backend_isopen(void);
+int backend_open(void);
+void backend_close(void);
 
 enum nss_status backend_getpwuid(uid_t uid,
 				 struct passwd *result,
