@@ -1,6 +1,4 @@
 #include "nss-ega.h"
-#include <stdio.h>
-#include <stdlib.h>
 #include <pthread.h>
 
 static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
@@ -73,23 +71,6 @@ _nss_ega_getpwnam_r(const char *pwnam,
   return retval;
 }
 
-enum nss_status
-_nss_ega_getpwuid_r(uid_t uid,
-		    struct passwd *result,
-		    char *buffer, size_t buflen,
-		    int *errnop)
-{
-  enum nss_status retval = NSS_STATUS_UNAVAIL;
-  int lerrno = 0;
-
-  pthread_mutex_lock(&lock);
-  if(backend_open()) {
-    retval = backend_getpwuid(uid, result, buffer, buflen, &lerrno);
-  }
-  *errnop = lerrno;
-  backend_close();
-  pthread_mutex_unlock(&lock);
-
-  return retval;
-}
-
+/*
+ * group functions? No, thanks
+ */

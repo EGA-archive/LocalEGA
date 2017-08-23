@@ -1,28 +1,42 @@
 # Makefile for the NSS module used in Local EGA
 
-SOURCES = interface.c config.c backend.c
-OBJECTS = $(SOURCES:.c=.o)
+LD_SONAME=-Wl,-soname,libnss_ega.so.2
+LIBRARY=libnss_ega.so.2.0
+LINKS=libnss_ega.so.2 libnss_ega.so
 
+CC=gcc
+CFLAGS=-Wall -Wstrict-prototypes -Werror -fPIC -O2 -I.
 LIBS=-lpthread -lpq
 
-all: libnss_ega.so.2
+LIBDIR=/usr/local/lib
 
-.SUFFIXES: .c .o .so
+SOURCES = interface.c config.c backend.c
+OBJECTS = $(SOURCES:%.c=%.o)
 
-libnss_ega.so.2: nss-ega.h $(OBJECTS)
-	gcc -shared -o $@ -Wl,-soname,$@ $(LIBS) $(OBJECTS)
-#	gcc -g -O2 -o $@ -rpath /usr/local/lib -module -version-info 2 -lpq $(OBJECTS)
+.PHONY: clean install
+.SUFFIXES: .c .o .so .so.2 .so.2.0
 
-clean:
-	-rm -f libnss_ega.so.2 $(OBJECTS)
+all: $(LIBRARY)
+
+debug: CFLAGS += -DDEBUG -DDEBUG_SYSLOG -g
+debug: $(LIBRARY)
+
+$(LIBRARY): nss-ega.h $(OBJECTS)
+	$(CC) -shared $(LD_SONAME) -o $@ $(LIBS) $(OBJECTS)
 
 %.o: %.c
 	@echo "Compiling $<"
-	gcc -I. -g -O2 -fPIC -c $<
+	@$(CC) $(CFLAGS) -c -o $@ $<
 
-install: libnss_ega.so.2
-	@echo 'Installing'
-	cp $< /usr/local/lib/$<
-	[ -L /usr/local/lib/libnss_ega.so ] && unlink /usr/local/lib/libnss_ega.so
-	cd /usr/local/lib/ && ln -s $< libnss_ega.so
-	cp nss-ega.conf /usr/local/etc/nss-ega.conf
+
+install:
+	@[ -d $(LIBDIR) ] || { echo "Creating lib dir: $(LIBDIR)"; install -d $(LIBDIR); }
+	@echo "Installing $(LIBRARY) into $(LIBDIR)"
+	@install $(LIBRARY) $(LIBDIR)
+	@echo 'Adding links'
+	@cd $(LIBDIR); for link in $(LINKS); do ln -sf $(LIBRARY) $$link ; done
+	@echo "Copying conf file to /usr/local/etc/nss-ega.conf"
+	@cp nss-ega.conf /usr/local/etc/nss-ega.conf
+
+clean:
+	-rm -f $(LIBRARY) $(OBJECTS)

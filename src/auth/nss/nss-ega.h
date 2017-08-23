@@ -18,26 +18,39 @@ void backend_close();
 
 enum nss_status backend_getpwuid(uid_t uid,
 				 struct passwd *result,
-				 char *buffer,
-				 size_t buflen,
-				 int *errnop);
+				 char *buffer, size_t buflen,
+				 int *errnop)
+  
 enum nss_status backend_getpwnam(const char *name,
 				 struct passwd *result,
 				 char *buffer,
 				 size_t buflen,
 				 int *errnop);
 
+enum nss_status backend_getpwent(struct passwd *result,
+				 char *buffer, size_t buflen,
+				 int *errnop)
+
+
 #ifdef DEBUG
+#ifdef DEBUG_SYSLOG
 #include <syslog.h>
+#endif /* !DEBUG_SYSLOG */
 #define DBGLOG(x...)  do {                                          \
-                          openlog("NSS_pgsql", LOG_PID, LOG_AUTH);  \
+                          fprintf(stderr, ##x);                     \
+#ifdef DEBUG_SYSLOG
+                          openlog("NSS_ega", LOG_PID, LOG_USER);    \
                           syslog(LOG_DEBUG, ##x);                   \
                           closelog();                               \
+#endif /* !DEBUG_SYSLOG */
                       } while(0);
 #define SYSLOG(x...)  do {                                          \
-                          openlog("NSS_pgsql", LOG_PID, LOG_AUTH);  \
+                          fprintf(stderr, ##x);                     \
+#ifdef DEBUG_SYSLOG
+                          openlog("NSS_ega", LOG_PID, LOG_USER);    \
                           syslog(LOG_INFO, ##x);                    \
                           closelog();                               \
+#endif /* !DEBUG_SYSLOG */
                       } while(0);
 #else
 #define DBGLOG(x...)
@@ -45,3 +58,4 @@ enum nss_status backend_getpwnam(const char *name,
 #endif /* !DEBUG */
 
 #endif /* !__NSS_PGSQL_H_INCLUDED__ */
+
