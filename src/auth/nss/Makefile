@@ -5,7 +5,7 @@ LIBRARY=libnss_ega.so.2.0
 LINKS=libnss_ega.so.2 libnss_ega.so
 
 CC=gcc
-CFLAGS=-Wall -Wstrict-prototypes -Werror -fPIC -O2 -I.
+CFLAGS=-Wall -Wstrict-prototypes -Werror -fPIC -O2 -I. -I/usr/pgsql-9.6/include
 LIBS=-lpthread -lpq
 
 LIBDIR=/usr/local/lib
