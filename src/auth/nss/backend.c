@@ -102,7 +102,6 @@ enum nss_status res2pwd(PGresult *res, struct passwd *result,
                         char *buffer, size_t buflen,
 			int *errnop)
 {
-  const char *sptr;
   enum nss_status status = NSS_STATUS_NOTFOUND;
   if(!PQntuples(res)) {
     goto BAIL_OUT;
@@ -174,7 +173,7 @@ backend_getpwent(struct passwd *result,
 		 char *buffer, size_t buflen,
 		 int *errnop)
 {
-  PGresult *res;
+  /* PGresult *res; */
   enum nss_status status = NSS_STATUS_NOTFOUND;
 
   /* res = PQexecParams(_conn, getcfg("getpwent"), 1, NULL, params, NULL, NULL, 0); */
