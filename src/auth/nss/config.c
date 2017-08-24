@@ -1,7 +1,5 @@
 #include "nss-ega.h"
-#include <stdio.h>
 #include <string.h>
-#include <stdlib.h>
 #include <errno.h>
 
 #define HASHMAX 73

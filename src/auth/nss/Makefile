@@ -6,7 +6,7 @@ LINKS=libnss_ega.so.2 libnss_ega.so
 
 CC=gcc
 CFLAGS=-Wall -Wstrict-prototypes -Werror -fPIC -O2 -I. -I/usr/pgsql-9.6/include
-LIBS=-lpthread -lpq
+LIBS=-pthread -lpq
 
 LIBDIR=/usr/local/lib
 
@@ -35,8 +35,8 @@ install:
 	@install $(LIBRARY) $(LIBDIR)
 	@echo 'Adding links'
 	@cd $(LIBDIR); for link in $(LINKS); do ln -sf $(LIBRARY) $$link ; done
-	@echo "Copying conf file to /usr/local/etc/nss-ega.conf"
-	@cp nss-ega.conf /usr/local/etc/nss-ega.conf
+	@echo "Do not forget to create/configure the file /usr/local/etc/nss-ega.conf"
+	@echo "Look at the nss-ega.conf here for example"
 
 clean:
 	-rm -f $(LIBRARY) $(OBJECTS)

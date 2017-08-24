@@ -1,5 +1,5 @@
-#include "nss-ega.h"
 #include <pthread.h>
+#include "nss-ega.h"
 
 static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 
