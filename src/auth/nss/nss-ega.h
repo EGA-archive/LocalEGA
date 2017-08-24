@@ -38,15 +38,13 @@ enum nss_status backend_getpwent(struct passwd *result,
 
 #ifdef DEBUG
 #define DBGLOG(x...)  do {                                          \
-                          fprintf(stderr, ##x);                     \
                           openlog("NSS_ega", LOG_PID, LOG_USER);    \
                           syslog(LOG_DEBUG, ##x);                   \
                           closelog();                               \
                       } while(0);
 #define SYSLOG(x...)  do {                                          \
-                          fprintf(stderr, ##x);                     \
                           openlog("NSS_ega", LOG_PID, LOG_USER);    \
-                          syslog(LOG_INFO, ##x);                    \
+                          syslog(LOG_AUTHPRIV, ##x);                \
                           closelog();                               \
                       } while(0);
 #else
