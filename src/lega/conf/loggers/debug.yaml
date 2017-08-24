@@ -6,67 +6,67 @@ root:
 loggers:
   connect:
     level: DEBUG
-    handlers: [debugFile,console]
+    handlers: [syslog,debugFile,console]
   frontend:
     level: DEBUG
-    handlers: [debugFile,console]
+    handlers: [syslog,debugFile,console]
   worker:
     level: DEBUG
-    handlers: [debugFile,console]
+    handlers: [syslog,debugFile,console]
   vault:
     level: DEBUG
-    handlers: [debugFile,console]
+    handlers: [syslog,debugFile,console]
   verify:
     level: DEBUG
-    handlers: [debugFile,console]
+    handlers: [syslog,debugFile,console]
   socket-utils:
     level: DEBUG
-    handlers: [debugFile,console]
+    handlers: [syslog,debugFile,console]
   inbox:
     level: DEBUG
-    handlers: [debugFile,console]
+    handlers: [syslog,debugFile,console]
   utils:
     level: DEBUG
-    handlers: [debugFile,console]
+    handlers: [syslog,debugFile,console]
   sys-monitor:
     level: DEBUG
-    handlers: [debugFile,console]
+    handlers: [syslog,debugFile,console]
   user-monitor:
     level: DEBUG
-    handlers: [debugFile,console]
+    handlers: [syslog,debugFile,console]
   amqp:
     level: DEBUG
-    handlers: [debugFile,console]
+    handlers: [syslog,debugFile,console]
   db:
     level: DEBUG
-    handlers: [debugFile,console]
+    handlers: [syslog,debugFile,console]
   crypto:
     level: DEBUG
-    handlers: [debugFile,console]
+    handlers: [syslog,debugFile,console]
   asyncio:
     level: DEBUG
-    handlers: [debugFile]
+    handlers: [syslog,debugFile]
   aiopg:
     level: DEBUG
-    handlers: [debugFile]
+    handlers: [syslog,debugFile]
   aiohttp.access:
     level: DEBUG
-    handlers: [debugFile]
+    handlers: [syslog,debugFile]
   aiohttp.client:
     level: DEBUG
-    handlers: [debugFile]
+    handlers: [syslog,debugFile]
   aiohttp.internal:
     level: DEBUG
-    handlers: [debugFile]
+    handlers: [syslog,debugFile]
   aiohttp.server:
     level: DEBUG
-    handlers: [debugFile]
+    handlers: [syslog,debugFile]
   aiohttp.web:
     level: DEBUG
-    handlers: [debugFile]
+    handlers: [syslog,debugFile]
   aiohttp.websocket:
     level: DEBUG
-    handlers: [debugFile]
+    handlers: [syslog,debugFile]
 
 
 handlers:
@@ -80,8 +80,14 @@ handlers:
   debugFile:
     class: logging.FileHandler
     formatter: lega
-    filename: '/tmp/ega-debug.log'
+    filename: '/var/log/ega-debug.log'
     mode: 'w'
+  syslog:
+    class: logging.handlers.SysLogHandler
+    formatter: lega
+    address: ('ega-db', logging.handlers.SysLogHandler.SYSLOG_UDP_PORT)
+    facility: logging.handlers.SysLogHandler.LOG_LOCAL0
+    # socktype: socket.SOCK_STREAM
 
 formatters:
   lega:
