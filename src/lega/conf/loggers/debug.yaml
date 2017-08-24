@@ -80,7 +80,7 @@ handlers:
   debugFile:
     class: logging.FileHandler
     formatter: lega
-    filename: '/var/log/ega-debug.log'
+    filename: '/tmp/ega-debug.log'
     mode: 'w'
   syslog:
     class: logging.handlers.SysLogHandler

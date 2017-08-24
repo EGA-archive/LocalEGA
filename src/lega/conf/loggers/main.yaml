@@ -36,7 +36,7 @@ handlers:
   mainFile:
     class: logging.FileHandler
     formatter: lega
-    filename: '/var/log/ega.log'
+    filename: '/tmp/ega.log'
     mode: 'w'
   syslog:
     class: logging.handlers.SysLogHandler
