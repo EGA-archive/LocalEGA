@@ -40,10 +40,10 @@ handlers:
     mode: 'w'
   syslog:
     class: logging.handlers.SysLogHandler
+    address: !!python/tuple ['ega-db', 514]
     formatter: lega
-    address: ('ega-db', logging.handlers.SysLogHandler.SYSLOG_UDP_PORT)
-    facility: logging.handlers.SysLogHandler.LOG_LOCAL0
-    # socktype: socket.SOCK_STREAM
+    facility: 'local1'
+    # socktype: socket.SOCK_STREAM # for tcp. Defaults to udp
 
 formatters:
   lega:
