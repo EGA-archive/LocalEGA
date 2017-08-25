@@ -15,3 +15,5 @@ ega-verify &
 
 echo "Starting the vault listener"
 ega-vault &
+
+echo "LEGA ready"

@@ -17,3 +17,5 @@ local1.* /var/log/ega.log
 LOGEOF
 systemctl restart rsyslog
 EOF
+
+echo "LEGA ready"

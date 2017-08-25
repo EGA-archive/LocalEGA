@@ -24,3 +24,4 @@ ega-connect local.broker verified \
 ega-connect local.broker account \
 	    cega.broker localega.v1 sweden.user.account &
 
+echo "LEGA ready"

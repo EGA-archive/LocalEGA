@@ -245,13 +245,4 @@ cp /etc/nsswitch.conf /etc/nsswitch.conf.bak
 sed -i -e 's/^passwd:\(.*\)files/passwd:\1ega files/' /etc/nsswitch.conf
 sed -i -e 's/^shadow:\(.*\)files/shadow:\1ega files/' /etc/nsswitch.conf
 
-################################################################################
-# Temporary test users
-PGPASSWORD=${db_password} psql -U postgres -h ega-db -d lega <<-'EOSQL'
-SELECT insert_user('fred', '$6$jEcri8b7b5cEReYe$lqJcpzjDpSWNMDwD87h8MAgNg90rgtJknbqeUtonGCW9yTpEVc/LSlESwV8.0zBN4cnk5noiKLodMv/UMwnxM.', 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCcLiS1a/+ul3LOGsBvprYLk1a8XYx6isqkVXQ05PlPLOOs83Qv9aN+uh8YOaebPYK3qlXEH4Tbmk/WJTgJJVkhefNZK+Stk3Pkk6oUqwHfZ7+lDWCqP7/Cvm4+HvVsAO+HBhv/8AhKxk6AI7X0ongrWhJLLJDuraFEYmswKAJOWiuxyKM9EbmmAhocKEx9cUHxnj8Rr3EGJ9urCwQxAIclZUfB5SqHQaGv6ApmVs5S2x6F3RG6upx6eXop4h357psaH7HTi90u6aLEjNf3uYdoCyh8AphqZ6NDVamUCXciO+1jKV03gDBC7xuLCk4ZCF0uRMXoFTmmr77AL33LuysL fred@snic-cloud');
-SELECT insert_user('fred2@elixir-europe.org', '$6$jEcri8b7b5cEReYe$lqJcpzjDpSWNMDwD87h8MAgNg90rgtJknbqeUtonGCW9yTpEVc/LSlESwV8.0zBN4cnk5noiKLodMv/UMwnxM.', '' );
-EOSQL
-
-mkdir -p /ega/inbox/fred{,2}/inbox
-chown ega:ega /ega/inbox/fred{,2}/inbox
-
+echo "Inbox ready"

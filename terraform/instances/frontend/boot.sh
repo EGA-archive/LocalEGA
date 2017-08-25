@@ -10,3 +10,5 @@ until nc -4 --send-only ega-db 5432 </dev/null &>/dev/null; do sleep 1; done
 
 echo "Starting the frontend"
 ega-frontend &
+
+echo "LEGA ready"

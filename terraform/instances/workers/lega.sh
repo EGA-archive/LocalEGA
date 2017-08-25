@@ -32,4 +32,4 @@ ega-socket-forwarder ~/.gnupg/S.gpg-agent \
 echo "Starting the worker"
 ega-worker &
 
-
+echo "LEGA ready"
