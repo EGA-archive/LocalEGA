@@ -2,7 +2,7 @@
 
 set -e
 
-git clone https://github.com/NBISweden/LocalEGA.git ~/repo
+git clone -b terraform https://github.com/NBISweden/LocalEGA.git ~/repo
 sudo pip3.6 install ~/repo/src
 
 echo "Waiting for Message Broker"

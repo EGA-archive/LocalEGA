@@ -13,7 +13,7 @@ mkdir -p -m 0700 ~/certs && \
 unzip /tmp/certs.zip -d ~/certs && \
 rm /tmp/certs.zip
 
-git clone https://github.com/NBISweden/LocalEGA.git ~/repo
+git clone -b terraform https://github.com/NBISweden/LocalEGA.git ~/repo
 sudo pip3.6 install ~/repo/src
 
 chmod 700 ~/.gnupg

@@ -5,15 +5,24 @@ variable image_name { default = "EGA-common" }
 
 variable volume_size { default = 100 }
 
+variable db_password {}
 variable private_ip {}
 variable lega_conf {}
 variable cidr {}
+
+data "template_file" "boot" {
+  template = "${file("${path.module}/boot.tpl")}"
+
+  vars {
+    db_password = "${var.db_password}"
+  }
+}
 
 data "template_file" "cloud_init" {
   template = "${file("${path.module}/cloud_init.tpl")}"
 
   vars {
-    boot_script = "${base64encode("${file("${path.module}/boot.sh")}")}"
+    boot_script = "${base64encode("${data.template_file.boot.rendered}")}"
     lega_script = "${base64encode("${file("${path.module}/lega.sh")}")}"
     hosts = "${base64encode("${file("${path.root}/hosts")}")}"
     conf = "${var.lega_conf}"

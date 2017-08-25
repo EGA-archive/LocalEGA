@@ -75,6 +75,7 @@ module "connectors" {
 module "inbox" {
   source = "./instances/inbox"
   volume_size = 600
+  db_password = "${var.db_password}"
   private_ip = "192.168.10.14"
   ega_key = "${openstack_compute_keypair_v2.ega_key.name}"
   ega_net = "${openstack_networking_network_v2.ega_net.id}"
