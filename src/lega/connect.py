@@ -18,43 +18,10 @@ import logging
 import argparse
 
 from .conf import CONF
-from .utils.db import insert_file, get_user, insert_user
 from .utils.amqp import get_connection, forward
+from .utils import set_file_id, sanitize_user_id
 
 LOG = logging.getLogger('connect')
-
-def set_file_id(data):
-    '''Adding the related file into the database
-    and adding the return file id into the message'''
-
-    filename = data['filename']
-    elixir_id = data['elixir_id']
-
-    # Find user_id
-    user_id = get_user(elixir_id)
-
-    # Insert in database
-    file_id = insert_file(filename, user_id) 
-    assert file_id is not None, 'Ouch...database problem!'
-    LOG.debug(f'Created id {file_id} for {data["filename"]}')
-
-    data['file_id'] = file_id
-    data['user_id'] = user_id
-    return data
-
-def set_user_id(data):
-    '''Adding the user into the database
-    and updating the return user id into the message'''
-
-    elixir_id = data['elixir_id']
-    password_hash = data.get('password_hash', None)
-    pubkey = data.get('pubkey',None)
-    # Insert in database
-    user_id = insert_user(elixir_id, password_hash, pubkey)
-    assert user_id is not None, 'Ouch...database problem!'
-    LOG.debug(f'Created id {user_id} for user {elixir_id}')
-    data['user_id'] = user_id
-    return data
 
 def main():
     CONF.setup(sys.argv[1:]) # re-conf

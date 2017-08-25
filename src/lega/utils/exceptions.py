@@ -41,12 +41,6 @@ class Checksum(FromUser):
     def __str__(self):
         return f'Invalid {self.algo} checksum {self.msg}'
 
-class Unauthorized(FromUser):
-    def __init__(self, user_id):
-        self.user_id = user_id
-    def __str__(self):
-        return f'Error: Unauthorized user {self.user_id}'
-
 
 # Any other exception is caught by us
 class MessageError(Exception):
@@ -75,4 +69,7 @@ class AlreadyProcessed(Warning):
 
 
 class InboxCreationError(Exception):
-    pass
+    def __init__(self, msg):
+        self.msg = msg
+    def __str__(self):
+        return f'Inbox creation failed: {self.msg}'
