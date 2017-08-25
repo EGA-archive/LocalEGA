@@ -92,6 +92,7 @@ module "frontend" {
 module "monitors" {
   source = "./instances/monitors"
   private_ip = "192.168.10.16"
+  cidr        = "${var.cidr}"
   ega_key = "${openstack_compute_keypair_v2.ega_key.name}"
   ega_net = "${openstack_networking_network_v2.ega_net.id}"
   lega_conf = "${base64encode("${file("${var.lega_conf}")}")}"

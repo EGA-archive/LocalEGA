@@ -84,7 +84,7 @@ handlers:
     mode: 'w'
   syslog:
     class: logging.handlers.SysLogHandler
-    address: !!python/tuple ['ega-db', 514]
+    address: !!python/tuple ['ega-monitors', 10514]
     formatter: lega
     facility: 'local1'
     # socktype: socket.SOCK_STREAM # for tcp. Defaults to udp
