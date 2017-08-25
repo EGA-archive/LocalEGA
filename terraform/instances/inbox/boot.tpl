@@ -191,8 +191,9 @@ popd
 # Skeleton (with setgid permissions) for the homedir
 rm -rf /ega/skel
 mkdir -p /ega/skel/inbox && \
-chmod 750 /ega/skel/inbox && \
-chmod g+s /ega/skel/inbox # rwxr-s---
+chmod 750 /ega/skel && \
+chmod 770 /ega/skel/inbox && \
+chmod g+s /ega/skel/inbox # rwxrws---
 
 cp /etc/pam.d/sshd /etc/pam.d/sshd.bak
 

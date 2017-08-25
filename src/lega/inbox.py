@@ -16,15 +16,11 @@ It inserts it in the database and creates the necessary location in the inbox se
 import sys
 import os
 import logging
-import subprocess
-from pathlib import Path
 import shutil
-from pwd import getpwuid
-from grp import getgrnam
 
 from .conf import CONF
 from .utils import exceptions
-from .utils import catch_user_error, generate_password
+from .utils import catch_user_error
 from .utils.db import insert_user
 from .utils.amqp import get_connection, consume
 from .utils.crypto import generate_key
@@ -37,18 +33,18 @@ def create_homedir(user_id):
     Raises an exception in case of failure.'''
     LOG.info(f'Creating homedir for user {user_id}')
 
-    home = CONF.get('inbox','home')
-    if not home:
-        raise exceptions.InboxCreationError('home settings not set in [inbox]')
-
     assert( '@' not in user_id )
-    homedir = Path(home) / user_id
-    
-    LOG.debug(f'Creating {homedir}')
-    homedir.mkdir(mode=0o770, parents=False, exist_ok=True) # Parents should be there
+    homedir = CONF.get('inbox','home',raw=True) % { 'user_id': user_id }
 
-    LOG.debug('Making its home folder owned by root')
-    os.chown(str(homedir), 0, -1) # owned by root, but don't change group id
+    if not os.path.exists(homedir):
+        skel = CONF.get('inbox','home_skel')
+        LOG.debug(f'Creating {homedir} (from skeleton {skel})')
+        shutil.copytree(skel,homedir, copy_function=shutil.copy) # no metadata
+        # Note: ownership is already on root.
+        # No metadata means that the setgid will make the folders ega group.
+    else:
+        LOG.debug(f'Homedir {homedir} already exists')
+
 
 @catch_user_error
 def work(data):
@@ -67,7 +63,7 @@ def work(data):
     LOG.debug(f'User {user_id} added to the database (as entry {internal_id}).')
 
     # Create homefolder (might raise exception)
-    create_account(user_id)
+    create_homedir(user_id)
 
     LOG.info(f'Account created for user {user_id}')
     return data # return the same message
