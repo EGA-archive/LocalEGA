@@ -2,13 +2,12 @@
 
 LD_SONAME=-Wl,-soname,libnss_ega.so.2
 LIBRARY=libnss_ega.so.2.0
-LINKS=libnss_ega.so.2 libnss_ega.so
 
 CC=gcc
 CFLAGS=-Wall -Wstrict-prototypes -Werror -fPIC -O2 -I. -I/usr/pgsql-9.6/include
 LIBS=-pthread -lpq
 
-LIBDIR=/usr/local/lib
+LIBDIR=/usr/local/lib/ega
 
 SOURCES = interface.c config.c backend.c
 OBJECTS = $(SOURCES:%.c=%.o)
@@ -33,9 +32,7 @@ install:
 	@[ -d $(LIBDIR) ] || { echo "Creating lib dir: $(LIBDIR)"; install -d $(LIBDIR); }
 	@echo "Installing $(LIBRARY) into $(LIBDIR)"
 	@install $(LIBRARY) $(LIBDIR)
-	@echo 'Adding links'
-	@cd $(LIBDIR); for link in $(LINKS); do ln -sf $(LIBRARY) $$link ; done
-	@echo "Do not forget to create/configure the file /usr/local/etc/nss-ega.conf"
+	@echo "Do not forget to run ldconfig and create/configure the file /usr/local/etc/nss-ega.conf"
 	@echo "Look at the nss-ega.conf here for example"
 
 clean:
