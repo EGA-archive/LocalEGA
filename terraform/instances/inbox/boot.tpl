@@ -145,6 +145,7 @@ yum -y install postgresql-devel
 mkdir -p /usr/local/lib/ega
 cat > /etc/ld.so.conf.d/ega.conf <<EOF
 /usr/local/lib/ega
+/usr/local/lib/ega/security
 EOF
 
 # Check against the DB on ega-db first
@@ -181,7 +182,7 @@ popd
 git clone https://github.com/pam-pgsql/pam-pgsql.git ~/pam-pgsql
 pushd ~/pam-pgsql
 ./autogen.sh
-./configure
+./configure --libdir=/usr/local/lib/ega
 make
 make install
 popd
@@ -196,11 +197,11 @@ cp /etc/pam.d/sshd /etc/pam.d/sshd.bak
 
 cat > /etc/pam.d/ega <<EOF
 #%PAM-1.0
-auth       sufficient   /usr/local/lib/ega/pam_pgsql.so
-account    sufficient   /usr/local/lib/ega/pam_pgsql.so
-password   sufficient   /usr/local/lib/ega/pam_pgsql.so
+auth       sufficient   /usr/local/lib/ega/security/pam_pgsql.so
+account    sufficient   /usr/local/lib/ega/security/pam_pgsql.so
+password   sufficient   /usr/local/lib/ega/security/pam_pgsql.so
 #session    optional     pam_echo.so file=/ega/login.msg
-session    sufficient   /usr/local/lib/ega/pam_pgsql.so
+session    sufficient   /usr/local/lib/ega/security/pam_pgsql.so
 session    required     pam_mkhomedir.so skel=/ega/skel/ umask=0022
 EOF
 
@@ -244,7 +245,7 @@ sed -i -e 's/^shadow:\(.*\)files/shadow:\1ega files/' /etc/nsswitch.conf
 
 ################################################################################
 # Temporary test users
-psql -h ega-db -U postgres -d lega <<-'EOSQL'
+PGPASSWORD=${db_password} psql -U postgres -h ega-db -d lega <<-'EOSQL'
 SELECT insert_user('fred', '$6$jEcri8b7b5cEReYe$lqJcpzjDpSWNMDwD87h8MAgNg90rgtJknbqeUtonGCW9yTpEVc/LSlESwV8.0zBN4cnk5noiKLodMv/UMwnxM.', 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCcLiS1a/+ul3LOGsBvprYLk1a8XYx6isqkVXQ05PlPLOOs83Qv9aN+uh8YOaebPYK3qlXEH4Tbmk/WJTgJJVkhefNZK+Stk3Pkk6oUqwHfZ7+lDWCqP7/Cvm4+HvVsAO+HBhv/8AhKxk6AI7X0ongrWhJLLJDuraFEYmswKAJOWiuxyKM9EbmmAhocKEx9cUHxnj8Rr3EGJ9urCwQxAIclZUfB5SqHQaGv6ApmVs5S2x6F3RG6upx6eXop4h357psaH7HTi90u6aLEjNf3uYdoCyh8AphqZ6NDVamUCXciO+1jKV03gDBC7xuLCk4ZCF0uRMXoFTmmr77AL33LuysL fred@snic-cloud');
 SELECT insert_user('fred2@elixir-europe.org', '$6$jEcri8b7b5cEReYe$lqJcpzjDpSWNMDwD87h8MAgNg90rgtJknbqeUtonGCW9yTpEVc/LSlESwV8.0zBN4cnk5noiKLodMv/UMwnxM.', '' );
 EOSQL
