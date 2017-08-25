@@ -176,6 +176,7 @@ getspent = SELECT elixir_id,password_hash,'','','','','','','' FROM users LIMIT 
 EOF
 chown root:root /usr/local/etc/nss-ega.conf
 chmod 600 /usr/local/etc/nss-ega.conf
+setfacl -m u:ega:r /usr/local/etc/nss-ega.conf
 popd
 
 ############# PAM code
