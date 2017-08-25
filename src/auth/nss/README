@@ -1,3 +1,0 @@
-Update /etc/nsswitch.conf and add the ega module first, for passwd
-
-passwd: ega files ...
