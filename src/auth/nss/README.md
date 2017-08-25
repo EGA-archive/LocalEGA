@@ -4,18 +4,18 @@ An NSS module to find the EGA users in a (remote) database
 
 	make
 
-# Add the library to the system:
+# Add it to the system
 
 	make install
-	cat > /etc/ld.so.conf.d/ega.conf <<EOF
-	/usr/local/lib/ega
-	EOF
+
+	echo '/usr/local/lib/ega' > /etc/ld.so.conf.d/ega.conf
+	
 	ldconfig -v
 
-`ldconfig` recreates the ld cache and also create some extra links.
+`ldconfig` recreates the ld cache and also creates some extra links. (important!).
 
 # Make the system use it
 
-Update /etc/nsswitch.conf and add the ega module first, for passwd
+Update `/etc/nsswitch.conf` and add the ega module first, for passwd
 
-passwd: ega files ...
+	passwd: ega files ...
