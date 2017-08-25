@@ -49,25 +49,6 @@ def db_log_error_on_files(func):
             db.set_error(file_id, e)
     return wrapper
 
-def catch_user_error(func):
-    '''Decorator to store the raised exception in the database'''
-    @wraps(func)
-    def wrapper(data):
-        user_id = data['user_id'] # I should have it
-        try:
-            res = func(data)
-            return res
-        except Exception as e:
-            if isinstance(e,AssertionError):
-                raise e
-
-            exc_type, exc_obj, exc_tb = sys.exc_info()
-            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-            LOG.debug(f'Origin: exc_type: {exc_type} | fname: {fname} | line: {exc_tb.tb_lineno}')
-
-            db.set_user_error(user_id, e)
-    return wrapper
-
 def get_data(data):
     try:
         return json.loads(b64decode(data))

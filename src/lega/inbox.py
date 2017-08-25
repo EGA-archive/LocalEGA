@@ -20,7 +20,6 @@ import shutil
 
 from .conf import CONF
 from .utils import exceptions
-from .utils import catch_user_error
 from .utils.db import insert_user
 from .utils.amqp import get_connection, consume
 from .utils.crypto import generate_key
@@ -46,7 +45,6 @@ def create_homedir(user_id):
         LOG.debug(f'Homedir {homedir} already exists')
 
 
-@catch_user_error
 def work(data):
     '''Creates a user account, given the details from `data`.'''
 

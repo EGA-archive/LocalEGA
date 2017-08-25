@@ -153,12 +153,3 @@ def insert_user(user_id, password_hash, pubkey):
                           'pk': pubkey })
             return (cur.fetchone())[0]
 
-def set_user_error(user_id, error):
-    assert user_id, 'Eh? No user_id?'
-    assert error, 'Eh? No error?'
-    LOG.debug(f'User error for {user_id}: {error!s}')
-    with connect() as conn:
-        with conn.cursor() as cur:
-            cur.execute('SELECT insert_user_error(%(user_id)s,%(msg)s);',
-                        {'msg':f"{error.__class__.__name__}: {error!s}", 'user_id': user_id})
-

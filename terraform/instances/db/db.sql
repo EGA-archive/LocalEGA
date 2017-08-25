@@ -43,22 +43,6 @@ CREATE FUNCTION insert_user(elixir_id     users.elixir_id%TYPE,
     END;
 $insert_user$ LANGUAGE plpgsql;
 
-
-CREATE TABLE user_errors (
-        id            SERIAL, PRIMARY KEY(id), UNIQUE (id),
-	elixir_id     TEXT REFERENCES users (elixir_id) ON DELETE CASCADE,
-	msg           TEXT NOT NULL,
-	occured_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT clock_timestamp()
-);
-
-CREATE FUNCTION insert_user_error(elixir_id  user_errors.elixir_id%TYPE,
-                                  msg        user_errors.msg%TYPE)
-    RETURNS void AS $set_user_error$
-    BEGIN
-       INSERT INTO user_errors (elixir_id,msg) VALUES(elixir_id,msg);
-    END;
-$set_user_error$ LANGUAGE plpgsql;
-
 -- ##################################################
 --                        FILES
 -- ##################################################
