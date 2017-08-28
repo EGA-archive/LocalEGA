@@ -71,11 +71,15 @@ def forward():
         CHUNK_SIZE = args.chunk
         syslog(LOG_INFO, f'Chunk size: {args.chunk}')
 
+    certfile = Path(args.certfile).expanduser() if args.certfile else None
+    syslog(LOG_DEBUG, f'Certfile: {certfile}')
     ssl_ctx = ssl.create_default_context(ssl.Purpose.SERVER_AUTH, 
-                                         cafile=args.certfile) if (args.certfile and Path(args.certfile).exists()) else None
+                                         cafile=certfile) if (certfile and certfile.exists()) else None
 
     if not ssl_ctx:
         syslog(LOG_WARNING, 'No SSL encryption')
+    else:
+        syslog(LOG_INFO, 'With SSL encryption')
 
     host,port = args.remote_machine.split(':')
 
@@ -126,13 +130,19 @@ def proxy():
         syslog(LOG_INFO, f'Chunk size: {args.chunk}')
 
     ssl_ctx = None
-    if (args.certfile and Path(args.certfile).exists() and 
-        args.keyfile and Path(args.keyfile).exists()):
+    certfile = Path(args.certfile).expanduser() if args.certfile else None
+    keyfile = Path(args.keyfile).expanduser() if args.keyfile else None
+    syslog(LOG_DEBUG, f'Certfile: {certfile}')
+    syslog(LOG_DEBUG, f'Keyfile: {keyfile}')
+    if (certfile and certfile.exists() and 
+        keyfile and keyfile.exists()):
         ssl_ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-        ssl_ctx.load_cert_chain(args.certfile, args.keyfile)
+        ssl_ctx.load_cert_chain(certfile, keyfile)
 
     if not ssl_ctx:
         syslog(LOG_WARNING, 'No SSL encryption')
+    else:
+        syslog(LOG_INFO, 'With SSL encryption')
 
     address,port = args.address.split(':')
 
