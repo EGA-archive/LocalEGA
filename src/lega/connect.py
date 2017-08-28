@@ -16,7 +16,6 @@ re-publish it in message broker B.
 import sys
 import logging
 import argparse
-from multiprocessing import Process
 
 from .conf import CONF
 from .utils.amqp import get_connection, forward
@@ -24,7 +23,14 @@ from .utils import set_file_id, sanitize_user_id
 
 LOG = logging.getLogger('connect')
 
-def connect(from_domain, from_queue, to_domain, to_exchange, to_routing, transform=None):
+_from_cega_to_lega = {
+    'cega:lega:users': 'cega.broker:sweden.v1.commands.user:local.broker:lega:lega.users:sanitize_user_id',
+    'cega:lega:files': 'cega.broker:sweden.v1.commands.file:local.broker:lega:lega.tasks:set_file_id',
+    'lega:cega:users': 'local.broker:verified:cega.broker:localega.v1:sweden.file.completed',
+    'lega:cega:files': 'local.broker:account:cega.broker:localega.v1:sweden.user.account',
+}
+
+def _connect(from_domain, from_queue, to_domain, to_exchange, to_routing, transform=None):
 
     if transform and isinstance(transform,str):
         transform = getattr(sys.modules[__name__], transform, None)
@@ -54,44 +60,36 @@ def connect(from_domain, from_queue, to_domain, to_exchange, to_routing, transfo
         to_connection.close()
         to_connection.close()
 
-def connect_cega_to_lega(args=None):
+def connect(args=None):
 
     if not args:
         args = sys.argv[1:]
 
-    parser = argparse.ArgumentParser(description="Forward message between CentralEGA's broker and the local one",
+    parser = argparse.ArgumentParser(description="Forward message from a (broker,queue) to a (broker,exchange,routing_key)",
                                      allow_abbrev=False)
     parser.add_argument('--conf', help='configuration file, in INI or YAML format')
     parser.add_argument('--log',  help='configuration file for the loggers')
-    pargs = parser.parse_args(args)
+    parser.add_argument('connection',
+                        action='store',
+                        required=True, 
+                        choices=list(_from_cega_to_lega.keys()),
+                        help='Special values')
+    pargs = parser.parse_args()
 
     CONF.setup(args) # re-conf
 
-    LOG.info(f'Creating the subprocesses')
-    processes = [
-        Process(group=None, target=connect, name='EGA connect from cega to lega (for users)',
-                args=('cega.broker', 'sweden.v1.commands.user', 'local.broker', 'lega', 'lega.users'),
-                kwargs={'transform':sanitize_user_id},
-                daemon=True),
-        Process(group=None, target=connect, name='EGA connect from cega to lega (for files)',
-                args=('cega.broker', 'sweden.v1.commands.file', 'local.broker', 'lega', 'lega.tasks'), 
-                kwargs={'transform':set_file_id},
-                daemon=True),
-        Process(group=None, target=connect, name='EGA connect from lega to cega (for files)',
-                args=('local.broker', 'verified', 'cega.broker', 'localega.v1', 'sweden.file.completed'),
-                daemon=True),
-        Process(group=None, target=connect, name='EGA connect from lega to cega (for users)',
-                args=('local.broker', 'account', 'cega.broker', 'localega.v1', 'sweden.user.account'),
-                daemon=True)
-    ]
+    connection = _from_cega_to_lega[pargs.connection].split(':') # Should be there!
+    kwargs = {}
+    if len(connection) > 5:
+        kwargs = { 'transform': connection[5] }
+        del connection[-1]
 
-    LOG.info(f'Starting the {len(processes)} subprocesses')
-    for p in processes:
-        p.start()
-    LOG.debug(f'Waiting for them')
-    for p in processes:
-        p.join()
-    LOG.debug(f'Done')
+    LOG.info(f'Connection {connection[0]} to {connection[2]}')
+    LOG.debug(f'From queue: {connection[1]}')
+    LOG.debug(f'To exchange: {connection[3]}')
+    LOG.debug(f'To routing key: {connection[4]}')
+
+    _connect(*connection, **kwargs)
 
 def main(args=None):
 
@@ -121,10 +119,9 @@ def main(args=None):
     LOG.debug(f'To exchange: {pargs.to_exchange}')
     LOG.debug(f'To routing key: {pargs.to_routing}')
 
-    connect(pargs.from_domain, pargs.from_queue,
+    _connect(pargs.from_domain, pargs.from_queue,
             pargs.to_domain, pargs.to_exchange, pargs.to_routing,
             transform=pargs.transform)
-
 
 if __name__ == '__main__':
     main()
