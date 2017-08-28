@@ -11,11 +11,11 @@ echo "Waiting for database"
 until nc -4 --send-only ega-db 5432 </dev/null &>/dev/null; do sleep 1; done
 
 echo "Starting the verifier"
-systemctl start ega-verify
-systemctl enable ega-verify
+sudo systemctl start ega-verify
+sudo systemctl enable ega-verify
 
 echo "Starting the vault listener"
-systemctl start ega-vault
-systemctl enable ega-vault
+sudo systemctl start ega-vault
+sudo systemctl enable ega-vault
 
 echo "LEGA ready"

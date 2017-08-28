@@ -58,7 +58,7 @@ fi
 
 ##############
 echo "Starting the gpg-agent proxy"
-systemctl start ega-socket-proxy
-systemctl enable ega-socket-proxy
+sudo systemctl start ega-socket-proxy
+sudo systemctl enable ega-socket-proxy
 
 echo "Master GPG-agent ready"

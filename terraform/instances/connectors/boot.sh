@@ -10,7 +10,7 @@ until nc -4 --send-only ega-mq 5672 </dev/null &>/dev/null; do sleep 1; done
 echo "Waiting for database"
 until nc -4 --send-only ega-db 5432 </dev/null &>/dev/null; do sleep 1; done
 
-systemctl start ega-connectors
-systemctl enable ega-connectors
+sudo systemctl start ega-connectors
+sudo systemctl enable ega-connectors
 
 echo "LEGA ready"

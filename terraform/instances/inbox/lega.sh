@@ -11,6 +11,7 @@ echo "Waiting for database"
 until nc -4 --send-only ega-db 5432 </dev/null &>/dev/null; do sleep 1; done
 
 echo "Starting the inbox listener"
-sudo ega-inbox --conf /home/ega/.lega/conf.ini --log /home/ega/repo/src/lega/conf/loggers/syslog.yaml &
+sudo systemctl start ega-inbox.service
+sudo systemctl enable ega-inbox.service
 
 echo "LEGA ready"

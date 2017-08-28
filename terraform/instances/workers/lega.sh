@@ -25,11 +25,11 @@ echo "Waiting for GPG and SSH agent"
 until /bin/nc -4 --send-only ega-keys 9010 </dev/null &>/dev/null; do /bin/sleep 1; done
 
 echo "Starting the gpg-agent forwarder"
-systemctl start ega-socket-forwarder
-systemctl enable ega-socket-forwarder
+sudo systemctl start ega-socket-forwarder
+sudo systemctl enable ega-socket-forwarder
 
 echo "Starting the worker"
-systemctl start ega-worker
-systemctl enable ega-worker
+sudo systemctl start ega-worker
+sudo systemctl enable ega-worker
 
 echo "LEGA ready"
