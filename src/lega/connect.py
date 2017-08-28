@@ -16,6 +16,7 @@ re-publish it in message broker B.
 import sys
 import logging
 import argparse
+from multiprocessing import Process
 
 from .conf import CONF
 from .utils.amqp import get_connection, forward
@@ -23,10 +24,73 @@ from .utils import set_file_id, sanitize_user_id
 
 LOG = logging.getLogger('connect')
 
-def main():
-    CONF.setup(sys.argv[1:]) # re-conf
+def connect(from_domain, from_queue, to_domain, to_exchange, to_routing, transform=None):
+
+    if transform and isinstance(transform,str):
+        transform = getattr(sys.modules[__name__], transform, None)
+
+    if transform:
+        LOG.debug(f'Transform function: {transform}')
+
+    from_connection = get_connection(from_domain)
+    from_channel = from_connection.channel()
+
+    to_connection = get_connection(to_domain)
+    to_channel = to_connection.channel()
+    to_channel.basic_qos(prefetch_count=1) # One job at a time
+
+    LOG.info(f'Forwarding messages')
+
+    try:
+        forward(from_channel,
+                from_queue  = from_queue,
+                to_channel  = to_channel,
+                to_exchange = to_exchange,
+                to_routing  = to_routing,
+                transform   = transform)
+    except KeyboardInterrupt:
+        from_channel.stop_consuming()
+    finally:
+        to_connection.close()
+        to_connection.close()
+
+def connect_cega_to_lega(args=None):
 
     parser = argparse.ArgumentParser(description="Forward message between CentralEGA's broker and the local one",
+                                     allow_abbrev=False)
+    parser.add_argument('--conf', help='configuration file, in INI or YAML format')
+    parser.add_argument('--log',  help='configuration file for the loggers')
+    args = parser.parse_args()
+
+    if not args:
+        args = sys.argv[1:]
+
+    CONF.setup(args) # re-conf
+
+    LOG.info(f'Creating the subprocesses')
+    processes = [
+        Process(group=None, target=connect, name='EGA connect from cega to lega (for users)',
+                args=('cega.broker', 'sweden.v1.commands.user', 'local.broker', 'lega', 'lega.users'),
+                kwargs={'transform':sanitize_user_id},
+                daemon=True),
+        Process(group=None, target=connect, name='EGA connect from cega to lega (for files)',
+                args=('cega.broker', 'sweden.v1.commands.file', 'local.broker', 'lega', 'lega.tasks'), 
+                kwargs={'transform':set_file_id},
+                daemon=True),
+        Process(group=None, target=connect, name='EGA connect from lega to cega (for files)',
+                args=('local.broker', 'verified', 'cega.broker', 'localega.v1', 'sweden.file.completed'),
+                daemon=True),
+        Process(group=None, target=connect, name='EGA connect from lega to cega (for users)',
+                args=('local.broker', 'account', 'cega.broker', 'localega.v1', 'sweden.user.account'),
+                daemon=True)
+    ]
+    LOG.info(f'Starting the {len(processes)} subprocesses')
+    for p in processes:
+        p.start()
+
+def main(args=None):
+
+    parser = argparse.ArgumentParser(description="Forward message from a (broker,queue) to a (broker,exchange,routing_key)",
                                      allow_abbrev=False)
     parser.add_argument('--conf', help='configuration file, in INI or YAML format')
     parser.add_argument('--log',  help='configuration file for the loggers')
@@ -42,38 +106,18 @@ def main():
 
     args = parser.parse_args()
 
+    if not args:
+        args = sys.argv[1:]
+
+    CONF.setup(args) # re-conf
+
     LOG.info(f'Connection {args.from_domain} to {args.to_domain}')
     LOG.debug(f'From queue: {args.from_queue}')
     LOG.debug(f'To exchange: {args.to_exchange}')
     LOG.debug(f'To routing key: {args.to_routing}')
 
-    transform = None
-    if args.transform:
-        transform = getattr(sys.modules[__name__], args.transform, None)
-    if transform:
-        LOG.debug(f'Transform function: {transform}')
+    connect(args.from_domain, args.from_queue, args.to_domain, args.to_exchange, args.to_routing, transform=args.transform)
 
-    from_connection = get_connection(args.from_domain)
-    from_channel = from_connection.channel()
-
-    to_connection = get_connection(args.to_domain)
-    to_channel = to_connection.channel()
-    to_channel.basic_qos(prefetch_count=1) # One job at a time
-
-    LOG.info(f'Forwarding messages')
-
-    try:
-        forward(from_channel,
-                from_queue  = args.from_queue,
-                to_channel  = to_channel,
-                to_exchange = args.to_exchange,
-                to_routing  = args.to_routing,
-                transform   = transform)
-    except KeyboardInterrupt:
-        from_channel.stop_consuming()
-    finally:
-        to_connection.close()
-        to_connection.close()
 
 if __name__ == '__main__':
     main()

@@ -62,12 +62,13 @@ class Configuration(configparser.ConfigParser):
 
     def _load_log_file(self,filename):
         '''Tries to load `filename` as configuration file'''
-        assert( isinstance(filename,str) )
 
         if not filename:
             print('No logging supplied', file=sys.stderr)
             self.log_conf = None
             return
+
+        assert( isinstance(filename,str) )
 
         # Try first a default logger
         if filename in _loggers: # keys
