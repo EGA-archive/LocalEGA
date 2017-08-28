@@ -15,6 +15,11 @@ write_files:
     owner: ega:ega
     path: /home/ega/.lega/conf.ini
     permissions: '0600'
+  - encoding: b64
+    content: ${ega_service}
+    owner: root:root
+    path: /etc/systemd/system/ega-frontend.service
+    permissions: '0750'
 
 runcmd:
   - su -c "/home/ega/boot.sh" - ega
