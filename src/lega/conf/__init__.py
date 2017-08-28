@@ -45,7 +45,7 @@ class Configuration(configparser.ConfigParser):
 
         # Finding the --conf file
         try:
-            conf_file = Path(args[ args.index('--conf') + 1 ])
+            conf_file = Path(args[ args.index('--conf') + 1 ]).expanduser()
             if conf_file not in _config_files:
                 _config_files.append( conf_file )
             print(f"Overriding configuration settings with {conf_file}", file=sys.stderr)
