@@ -56,14 +56,14 @@ def connect(from_domain, from_queue, to_domain, to_exchange, to_routing, transfo
 
 def connect_cega_to_lega(args=None):
 
+    if not args:
+        args = sys.argv[1:]
+
     parser = argparse.ArgumentParser(description="Forward message between CentralEGA's broker and the local one",
                                      allow_abbrev=False)
     parser.add_argument('--conf', help='configuration file, in INI or YAML format')
     parser.add_argument('--log',  help='configuration file for the loggers')
-    args = parser.parse_args()
-
-    if not args:
-        args = sys.argv[1:]
+    pargs = parser.parse_args(args)
 
     CONF.setup(args) # re-conf
 
@@ -84,11 +84,15 @@ def connect_cega_to_lega(args=None):
                 args=('local.broker', 'account', 'cega.broker', 'localega.v1', 'sweden.user.account'),
                 daemon=True)
     ]
+
     LOG.info(f'Starting the {len(processes)} subprocesses')
     for p in processes:
         p.start()
 
 def main(args=None):
+
+    if not args:
+        args = sys.argv[1:]
 
     parser = argparse.ArgumentParser(description="Forward message from a (broker,queue) to a (broker,exchange,routing_key)",
                                      allow_abbrev=False)
@@ -104,19 +108,18 @@ def main(args=None):
     group_out.add_argument('to_exchange')
     group_out.add_argument('to_routing')
 
-    args = parser.parse_args()
-
-    if not args:
-        args = sys.argv[1:]
+    pargs = parser.parse_args()
 
     CONF.setup(args) # re-conf
 
-    LOG.info(f'Connection {args.from_domain} to {args.to_domain}')
-    LOG.debug(f'From queue: {args.from_queue}')
-    LOG.debug(f'To exchange: {args.to_exchange}')
-    LOG.debug(f'To routing key: {args.to_routing}')
+    LOG.info(f'Connection {pargs.from_domain} to {pargs.to_domain}')
+    LOG.debug(f'From queue: {pargs.from_queue}')
+    LOG.debug(f'To exchange: {pargs.to_exchange}')
+    LOG.debug(f'To routing key: {pargs.to_routing}')
 
-    connect(args.from_domain, args.from_queue, args.to_domain, args.to_exchange, args.to_routing, transform=args.transform)
+    connect(pargs.from_domain, pargs.from_queue,
+            pargs.to_domain, pargs.to_exchange, pargs.to_routing,
+            transform=pargs.transform)
 
 
 if __name__ == '__main__':

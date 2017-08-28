@@ -74,35 +74,35 @@ class Configuration(configparser.ConfigParser):
         if filename in _loggers: # keys
             _logger = _loggers[filename]
             with open(_logger, 'r') as stream:
-                print(f'Reading the default log configuration from: {_logger}', file=sys.stderr)
+                #print(f'Reading the default log configuration from: {_logger}', file=sys.stderr)
                 dictConfig(yaml.load(stream))
                 self.log_conf = _logger
                 return
 
         # Otherwise trying it as a path
         filename = Path(filename)
-        print(f'Reading the log configuration from: {filename}', file=sys.stderr)
 
         if not filename.exists():
             print(f"The file '{filename}' does not exist", file=sys.stderr)
             self.log_conf = None
             return
 
+        #print(f'Reading the log configuration from: {filename}', file=sys.stderr)
         if filename.suffix in ('.yaml', '.yml'):
             with open(filename, 'r') as stream:
-                print(f"Loading YAML log configuration", file=sys.stderr)
+                #print(f"Loading YAML log configuration", file=sys.stderr)
                 dictConfig(yaml.load(stream))
                 self.log_conf = filename
                 return
 
         if filename.suffix in ('.ini', '.INI'):
             with open(filename, 'r') as stream:
-                print(f"Loading INI log configuration", file=sys.stderr)
+                #print(f"Loading INI log configuration", file=sys.stderr)
                 fileConfig(filename)
                 self.log_conf = filename
                 return
 
-        print(f"Unsupported log format", file=sys.stderr)
+        print(f"Unsupported log format for {filename}", file=sys.stderr)
         self.log_conf = None
             
 
@@ -110,10 +110,10 @@ class Configuration(configparser.ConfigParser):
         # Finding the --log file
         try:
             lconf = args[ args.index('--log') + 1 ]
-            print("--log argument:",lconf,file=sys.stderr)
+            #print("--log argument:",lconf,file=sys.stderr)
             self._load_log_file(lconf)
         except ValueError:
-            print("--log <file> was not mentioned",file=sys.stderr)
+            #print("--log <file> was not mentioned",file=sys.stderr)
             self._load_log_file( self.get('DEFAULT','log_conf',fallback=None) )
         except (TypeError, AttributeError): # if args = None
             pass # No log conf
