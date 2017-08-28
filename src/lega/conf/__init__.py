@@ -37,8 +37,6 @@ See `https://github.com/NBISweden/LocalEGA` for a full documentation.
 
 """
 
-LOG = logging.getLogger('lega-conf')
-
 class Configuration(configparser.ConfigParser):
     log_conf = None
 
@@ -50,59 +48,75 @@ class Configuration(configparser.ConfigParser):
             conf_file = Path(args[ args.index('--conf') + 1 ])
             if conf_file not in _config_files:
                 _config_files.append( conf_file )
-            LOG.info(f"Overriding configuration settings with {conf_file}")
+            print(f"Overriding configuration settings with {conf_file}", file=sys.stderr)
         except ValueError:
-            LOG.info("--conf <file> was not mentioned\n"
-                     "Using the default configuration files")
+            print("--conf <file> was not mentioned\n"
+                  "Using the default configuration files", file=sys.stderr)
         except (TypeError, AttributeError): # if args = None
-            LOG.info("Using the default configuration files")
+            print("Using the default configuration files",file=sys.stderr)
         except IndexError:
-            LOG.error("Wrong use of --conf <file>")
+            print("Wrong use of --conf <file>",file=sys.stderr)
             raise ValueError("Wrong use of --conf <file>")
 
         self.read(_config_files, encoding=encoding)
 
     def _load_log_file(self,filename):
         '''Tries to load `filename` as configuration file'''
+        assert( isinstance(filename,str) )
 
-        if filename in ('default', 'debug', 'syslog'):
-            with open(_loggers[filename], 'r') as stream:
+        if not filename:
+            print('No logging supplied', file=sys.stderr)
+            self.log_conf = None
+            return
+
+        # Try first a default logger
+        if filename in _loggers: # keys
+            _logger = _loggers[filename]
+            with open(_logger, 'r') as stream:
+                print(f'Reading the default log configuration from: {_logger}', file=sys.stderr)
                 dictConfig(yaml.load(stream))
-                self.log_conf = filename + ' logger'
-                LOG.info(f'Reading the default log configuration from: {filename}')
+                self.log_conf = _logger
                 return
-            
-        # Otherwise it's a path
-        LOG.info(f'Reading the log configuration from: {filename}')
 
-        if filename and not filename.exists():
-            LOG.error(f"The file '{filename}' does not exist")
+        # Otherwise trying it as a path
+        filename = Path(filename)
+        print(f'Reading the log configuration from: {filename}', file=sys.stderr)
+
+        if not filename.exists():
+            print(f"The file '{filename}' does not exist", file=sys.stderr)
             self.log_conf = None
             return
 
         if filename.suffix in ('.yaml', '.yml'):
             with open(filename, 'r') as stream:
+                print(f"Loading YAML log configuration", file=sys.stderr)
                 dictConfig(yaml.load(stream))
                 self.log_conf = filename
-        else: # It's an ini file
-            fileConfig(filename)
-            self.log_conf = filename
+                return
+
+        if filename.suffix in ('.ini', '.INI'):
+            with open(filename, 'r') as stream:
+                print(f"Loading INI log configuration", file=sys.stderr)
+                fileConfig(filename)
+                self.log_conf = filename
+                return
+
+        print(f"Unsupported log format", file=sys.stderr)
+        self.log_conf = None
+            
 
     def _load_log_conf(self,args=None):
         # Finding the --log file
         try:
-            lconf = Path(args[ args.index('--log') + 1 ])
+            lconf = args[ args.index('--log') + 1 ]
+            print("--log argument:",lconf,file=sys.stderr)
             self._load_log_file(lconf)
         except ValueError:
-            LOG.info("--log <file> was not mentioned")
-            default_log_conf = self.get('DEFAULT','log_conf',fallback=None)
-            if default_log_conf:
-                default_log_conf = Path(default_log_conf)
-                self._load_log_file(default_log_conf)
+            print("--log <file> was not mentioned",file=sys.stderr)
+            self._load_log_file( self.get('DEFAULT','log_conf',fallback=None) )
         except (TypeError, AttributeError): # if args = None
             pass # No log conf
         except IndexError:
-            LOG.error("Wrong use of --log <file>")
             print("Wrong use of --log <file>", file=sys.stderr)
             sys.exit(2)
         except Exception as e:

@@ -19,7 +19,7 @@ loggers:
   verify:
     level: DEBUG
     handlers: [syslog]
- socket-utils:
+  socket-utils:
     level: DEBUG
     handlers: [syslog]
   inbox:
@@ -67,7 +67,6 @@ loggers:
   aiohttp.websocket:
     level: DEBUG
     handlers: [syslogSimple]
-
 
 handlers:
   noHandler:
