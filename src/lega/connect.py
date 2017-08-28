@@ -88,6 +88,10 @@ def connect_cega_to_lega(args=None):
     LOG.info(f'Starting the {len(processes)} subprocesses')
     for p in processes:
         p.start()
+    LOG.debug(f'Waiting for them')
+    for p in processes:
+        p.join()
+    LOG.debug(f'Done')
 
 def main(args=None):
 
