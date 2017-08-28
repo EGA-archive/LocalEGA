@@ -2,16 +2,16 @@
 
 set -e
 
-unzip /tmp/gpg.zip -d ~/.gnupg && \
-rm /tmp/gpg.zip
+unzip /tmp/gpg_public.zip -d ~/.gnupg && \
+rm /tmp/gpg_public.zip
 
 mkdir -p -m 0700 ~/.rsa && \
-unzip /tmp/rsa.zip -d ~/.rsa && \
-rm /tmp/rsa.zip
+unzip /tmp/rsa_public.zip -d ~/.rsa && \
+rm /tmp/rsa_public.zip
 
-mkdir -p -m 0700 /etc/ega && \
-unzip /tmp/certs.zip -d ~/certs && \
-rm /tmp/certs.zip
+mkdir -p -m 0700 ~/certs && \
+unzip /tmp/certs_public.zip -d ~/certs && \
+rm /tmp/certs_public.zip
 
 git clone -b terraform https://github.com/NBISweden/LocalEGA.git ~/repo
 sudo pip3.6 install ~/repo/src

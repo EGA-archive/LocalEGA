@@ -2,22 +2,39 @@
 
 set -e
 
-unzip /tmp/gpg.zip -d ~/.gnupg && \
-rm /tmp/gpg.zip
+chmod 700 ~/.gnupg
+##############
+# Public part
+unzip /tmp/gpg_public.zip -d ~/.gnupg && \
+rm /tmp/gpg_public.zip
 
 mkdir -p -m 0700 ~/.rsa && \
-unzip /tmp/rsa.zip -d ~/.rsa && \
-rm /tmp/rsa.zip
+unzip /tmp/rsa_public.zip -d ~/.rsa && \
+rm /tmp/rsa_public.zip
 
 mkdir -p -m 0700 ~/certs && \
-unzip /tmp/certs.zip -d ~/certs && \
-rm /tmp/certs.zip
+unzip /tmp/certs_public.zip -d ~/certs && \
+rm /tmp/certs_public.zip
 
+##############
+# Private part
+mkdir -p -m 0700 ~/.gnupg/private-keys-v1.d && \
+unzip /tmp/gpg_private.zip -d ~/.gnupg/private-keys-v1.d && \
+rm /tmp/gpg_private.zip
+
+mkdir -p -m 0700 ~/.rsa && \
+unzip /tmp/rsa_private.zip -d ~/.rsa && \
+rm /tmp/rsa_private.zip
+
+mkdir -p -m 0700 ~/certs && \
+unzip /tmp/certs_private.zip -d ~/certs && \
+rm /tmp/certs_private.zip
+
+##############
 git clone -b terraform https://github.com/NBISweden/LocalEGA.git ~/repo
 sudo pip3.6 install ~/repo/src
 
-chmod 700 ~/.gnupg
-
+##############
 cat > ~/.gnupg/gpg-agent.conf <<EOF
 #log-file gpg-agent.log
 allow-preset-passphrase
@@ -39,6 +56,7 @@ rm -rf $(gpgconf --list-dirs agent-extra-socket) || true
 # Start the GPG Agent in ~/.gnupg
 /usr/local/bin/gpg-agent --daemon
 
+##############
 #while gpg-connect-agent /bye; do sleep 2; done
 KEYGRIP=$(/usr/local/bin/gpg2 -k --with-keygrip ega@nbis.se | awk '/Keygrip/{print $3;exit;}')
 if [ ! -z "$KEYGRIP" ]; then 
@@ -49,6 +67,7 @@ else
     echo 'Skipping the GPG key preseting'
 fi
 
+##############
 echo "Starting the gpg-agent proxy"
 ega-socket-proxy '0.0.0.0:9010' ~/.gnupg/S.gpg-agent.extra \
 		 --certfile ~/certs/selfsigned.cert --keyfile ~/certs/selfsigned.key &
