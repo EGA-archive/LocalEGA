@@ -1,0 +1,94 @@
+version: 1
+root:
+  level: NOTSET
+  handlers: [noHandler]
+
+loggers:
+  connect:
+    level: DEBUG
+    handlers: [syslog]
+  frontend:
+    level: DEBUG
+    handlers: [syslog]
+  worker:
+    level: DEBUG
+    handlers: [syslog]
+  vault:
+    level: DEBUG
+    handlers: [syslog]
+  verify:
+    level: DEBUG
+    handlers: [syslog]
+ socket-utils:
+    level: DEBUG
+    handlers: [syslog]
+  inbox:
+    level: DEBUG
+    handlers: [syslog]
+  utils:
+    level: DEBUG
+    handlers: [syslog]
+  sys-monitor:
+    level: DEBUG
+    handlers: [syslog]
+  user-monitor:
+    level: DEBUG
+    handlers: [syslog]
+  amqp:
+    level: DEBUG
+    handlers: [syslog]
+  db:
+    level: DEBUG
+    handlers: [syslog]
+  crypto:
+    level: DEBUG
+    handlers: [syslog]
+  asyncio:
+    level: DEBUG
+    handlers: [syslogSimple]
+  aiopg:
+    level: DEBUG
+    handlers: [syslogSimple]
+  aiohttp.access:
+    level: DEBUG
+    handlers: [syslogSimple]
+  aiohttp.client:
+    level: DEBUG
+    handlers: [syslogSimple]
+  aiohttp.internal:
+    level: DEBUG
+    handlers: [syslogSimple]
+  aiohttp.server:
+    level: DEBUG
+    handlers: [syslogSimple]
+  aiohttp.web:
+    level: DEBUG
+    handlers: [syslogSimple]
+  aiohttp.websocket:
+    level: DEBUG
+    handlers: [syslogSimple]
+
+
+handlers:
+  noHandler:
+    class: logging.NullHandler
+    level: NOTSET
+  syslog:
+    class: logging.handlers.SysLogHandler
+    address: !!python/tuple ['ega-monitors', 10514]
+    formatter: lega
+    facility: 'local1'
+  syslogSimple:
+    class: logging.handlers.SysLogHandler
+    address: !!python/tuple ['ega-monitors', 10514]
+    formatter: simple
+    facility: 'local1'
+
+formatters:
+  lega:
+    format: '[{asctime}][{name:^10}][pid:{process:^5d}][{levelname:^6}][{funcName}<L:{lineno}>] {message}'
+    style: '{'
+    datefmt: '%Y-%m-%d %H:%M:%S'
+  simple:
+    format: '[{name:^10}][{levelname:^6}] {message}'
+    style: '{'

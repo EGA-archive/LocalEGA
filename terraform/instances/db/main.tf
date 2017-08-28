@@ -5,6 +5,7 @@ variable image_name { default = "EGA-db" }
 
 variable db_password {}
 variable private_ip {}
+variable cidr {}
 
 resource "openstack_compute_secgroup_v2" "ega_db" {
   name        = "ega-db"
@@ -14,13 +15,13 @@ resource "openstack_compute_secgroup_v2" "ega_db" {
     from_port   = 5432
     to_port     = 5432
     ip_protocol = "tcp"
-    cidr        = "0.0.0.0/0"
+    cidr        = "${var.cidr}"
   }
   rule {
     from_port   = 5050
     to_port     = 5050
     ip_protocol = "tcp"
-    cidr        = "0.0.0.0/0"
+    cidr        = "${var.cidr}"
   }
 }
 

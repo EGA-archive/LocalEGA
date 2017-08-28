@@ -2,32 +2,30 @@
 
 set -e
 
-chmod 700 ~/.gnupg
 ##############
 # Public part
-unzip /tmp/gpg_public.zip -d ~/.gnupg && \
+mkdir -p ~/.gnupg && chmod 700 ~/.gnupg
+mkdir -p ~/.rsa && chmod 700 ~/.rsa
+mkdir -p ~/certs && chmod 700 ~/certs
+
+unzip /tmp/gpg_public.zip -d ~/.gnupg
+unzip /tmp/rsa_public.zip -d ~/.rsa
+unzip /tmp/certs_public.zip -d ~/certs
+
 rm /tmp/gpg_public.zip
-
-mkdir -p -m 0700 ~/.rsa && \
-unzip /tmp/rsa_public.zip -d ~/.rsa && \
 rm /tmp/rsa_public.zip
-
-mkdir -p -m 0700 ~/certs && \
-unzip /tmp/certs_public.zip -d ~/certs && \
 rm /tmp/certs_public.zip
 
 ##############
 # Private part
-mkdir -p -m 0700 ~/.gnupg/private-keys-v1.d && \
-unzip /tmp/gpg_private.zip -d ~/.gnupg/private-keys-v1.d && \
+mkdir -p ~/.gnupg/private-keys-v1.d && chmod 700 ~/.gnupg/private-keys-v1.d
+
+unzip /tmp/gpg_private.zip -d ~/.gnupg/private-keys-v1.d
+unzip /tmp/rsa_private.zip -d ~/.rsa
+unzip /tmp/certs_private.zip -d ~/certs
+
 rm /tmp/gpg_private.zip
-
-mkdir -p -m 0700 ~/.rsa && \
-unzip /tmp/rsa_private.zip -d ~/.rsa && \
 rm /tmp/rsa_private.zip
-
-mkdir -p -m 0700 ~/certs && \
-unzip /tmp/certs_private.zip -d ~/certs && \
 rm /tmp/certs_private.zip
 
 ##############

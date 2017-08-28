@@ -41,13 +41,15 @@ resource "openstack_compute_keypair_v2" "ega_key" {
 module "db" {
   source = "./instances/db"
   db_password = "${var.db_password}"
-  private_ip = "192.168.10.10"
+  private_ip  = "192.168.10.10"
+  cidr        = "${var.cidr}"
   ega_key = "${openstack_compute_keypair_v2.ega_key.name}"
   ega_net = "${module.network.net_id}"
 }
 module "mq" {
   source = "./instances/mq"
   private_ip = "192.168.10.11"
+  cidr       = "${var.cidr}"
   ega_key = "${openstack_compute_keypair_v2.ega_key.name}"
   ega_net = "${module.network.net_id}"
 }
@@ -96,6 +98,7 @@ module "workers" {
   count = 4
   private_ip_keys = "192.168.10.12"
   private_ips = ["192.168.10.100","192.168.10.101","192.168.10.102","192.168.10.103"]
+  cidr        = "${var.cidr}"
   ega_key = "${openstack_compute_keypair_v2.ega_key.name}"
   ega_net = "${module.network.net_id}"
   lega_conf = "${base64encode("${file("${var.lega_conf}")}")}"

@@ -2,15 +2,16 @@
 
 set -e
 
-unzip /tmp/gpg_public.zip -d ~/.gnupg && \
+mkdir -p ~/.gnupg && chmod 700 ~/.gnupg
+mkdir -p ~/.rsa && chmod 700 ~/.rsa
+mkdir -p ~/certs && chmod 700 ~/certs
+
+unzip /tmp/gpg_public.zip -d ~/.gnupg
+unzip /tmp/rsa_public.zip -d ~/.rsa
+unzip /tmp/certs_public.zip -d ~/certs
+
 rm /tmp/gpg_public.zip
-
-mkdir -p -m 0700 ~/.rsa && \
-unzip /tmp/rsa_public.zip -d ~/.rsa && \
 rm /tmp/rsa_public.zip
-
-mkdir -p -m 0700 ~/certs && \
-unzip /tmp/certs_public.zip -d ~/certs && \
 rm /tmp/certs_public.zip
 
 git clone -b terraform https://github.com/NBISweden/LocalEGA.git ~/repo

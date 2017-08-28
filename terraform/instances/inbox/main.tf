@@ -40,24 +40,6 @@ resource "openstack_compute_secgroup_v2" "ega_inbox" {
     ip_protocol = "tcp"
     cidr        = "0.0.0.0/0"
   }
-  rule {
-    from_port   = 21
-    to_port     = 21
-    ip_protocol = "tcp"
-    cidr        = "0.0.0.0/0"
-  }
-  rule {
-    from_port   = 6000
-    to_port     = 6000
-    ip_protocol = "tcp"
-    cidr        = "0.0.0.0/0"
-  }
-  rule {
-    from_port   = 6001
-    to_port     = 6001
-    ip_protocol = "tcp"
-    cidr        = "0.0.0.0/0"
-  }
 }
 
 resource "openstack_compute_instance_v2" "inbox" {

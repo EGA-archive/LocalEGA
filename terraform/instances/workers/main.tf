@@ -5,6 +5,7 @@ variable flavor_name_keys { default = "ssc.small" }
 variable image_name { default = "EGA-common" }
 
 variable count { default = 1 }
+variable cidr {}
 variable private_ips { type = "list" }
 variable private_ip_keys {}
 variable lega_conf {}
@@ -149,7 +150,7 @@ resource "openstack_compute_secgroup_v2" "ega_gpg" {
     from_port   = 9010
     to_port     = 9010
     ip_protocol = "tcp"
-    cidr        = "0.0.0.0/0"
+    cidr        = "${var.cidr}"
   }
 }
 
