@@ -12,7 +12,7 @@ _loggers =  {
     'default': _here / 'loggers/default.yaml', 
     'debug':  _here / 'loggers/debug.yaml', 
     'syslog': _here / 'loggers/syslog.yaml', 
-]
+}
 
 f"""This module provides a dictionary-like with configuration settings.
 It also loads the logging settings when `setup` is called.
