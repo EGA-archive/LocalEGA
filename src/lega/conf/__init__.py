@@ -5,9 +5,13 @@ from logging.config import fileConfig, dictConfig
 from pathlib import Path
 import yaml
 
-_config_files = [
-    Path(__file__).parent / 'defaults.ini',
-    Path.home() / '.lega/conf.ini'
+_here = Path(__file__).parent
+_config_files =  [ _here / 'defaults.ini' ]
+
+_loggers =  {
+    'default': _here / 'loggers/default.yaml', 
+    'debug':  _here / 'loggers/debug.yaml', 
+    'syslog': _here / 'loggers/syslog.yaml', 
 ]
 
 f"""This module provides a dictionary-like with configuration settings.
@@ -15,25 +19,27 @@ It also loads the logging settings when `setup` is called.
 
 The `--log <file>` argument is used to configuration where the logs go.
 Without it, there is no logging capabilities.
-The <file> can be in `INI` or `YAML` format.
+
+The <file> can be a path to an `INI` or `YAML` format, or a string
+representing the defaults loggers (ie default, debug or syslog)
+
 
 The `--conf <file>` allows the user to override the configuration settings.
 The settings are loaded, in order:
 * from {_config_files[0]}
-* from {_config_files[1]}
-* and finally from the file specified as the `--conf` argument.
+* from the file specified as the `--conf` argument.
 
 The files must be either in `INI` format or in `YAML` format, in
 which case, it must end in `.yaml` or `.yml`.
 
 See `https://github.com/NBISweden/LocalEGA` for a full documentation.
 :copyright: (c) 2017, NBIS System Developers.
+
 """
 
 LOG = logging.getLogger('lega-conf')
 
 class Configuration(configparser.ConfigParser):
-    conf_file = None
     log_conf = None
 
     def _load_conf(self,args=None, encoding='utf-8'):
@@ -41,10 +47,10 @@ class Configuration(configparser.ConfigParser):
 
         # Finding the --conf file
         try:
-            self.conf_file = Path(args[ args.index('--conf') + 1 ])
-            if self.conf_file not in _config_files:
-                _config_files.append( self.conf_file )
-            LOG.info(f"Overriding configuration settings with {self.conf_file}")
+            conf_file = Path(args[ args.index('--conf') + 1 ])
+            if conf_file not in _config_files:
+                _config_files.append( conf_file )
+            LOG.info(f"Overriding configuration settings with {conf_file}")
         except ValueError:
             LOG.info("--conf <file> was not mentioned\n"
                      "Using the default configuration files")
@@ -59,6 +65,14 @@ class Configuration(configparser.ConfigParser):
     def _load_log_file(self,filename):
         '''Tries to load `filename` as configuration file'''
 
+        if filename in ('default', 'debug', 'syslog'):
+            with open(_loggers[filename], 'r') as stream:
+                dictConfig(yaml.load(stream))
+                self.log_conf = filename + ' logger'
+                LOG.info(f'Reading the default log configuration from: {filename}')
+                return
+            
+        # Otherwise it's a path
         LOG.info(f'Reading the log configuration from: {filename}')
 
         if filename and not filename.exists():
