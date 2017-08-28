@@ -2,6 +2,14 @@
 
 set -e
 
+# ========================
+# No SELinux
+echo "Disabling SElinux"
+[ -f /etc/sysconfig/selinux ] && sudo sed -i 's/SELINUX=.*/SELINUX=disabled/' /etc/sysconfig/selinux
+[ -f /etc/selinux/config ] && sudo sed -i 's/SELINUX=.*/SELINUX=disabled/' /etc/selinux/config
+sudo setenforce 0
+
+
 ##############
 # Public + Private parts
 mkdir -p ~/.gnupg && chmod 700 ~/.gnupg
@@ -18,6 +26,15 @@ rm /tmp/gpg.zip
 rm /tmp/gpg_private.zip
 rm /tmp/rsa.zip
 rm /tmp/certs.zip
+
+chmod 600 ~/.gnupg/{pubring.kbx,trustdb.gpg}
+chmod 700 ~/.gnupg/private-keys-v1.d
+chmod 700 ~/.gnupg/private-keys-v1.d/*
+chmod 640 ~/certs/*.cert
+chmod 600 ~/certs/*.key
+chmod 640 ~/certs/*.cert
+chmod 600 ~/.rsa/ega.pem
+chmod 640 ~/.rsa/ega-public.pem
 
 ##############
 git clone -b terraform https://github.com/NBISweden/LocalEGA.git ~/repo
@@ -37,6 +54,7 @@ browser-socket /dev/null
 disable-scdaemon
 #disable-check-own-socket
 EOF
+chmod 640 ~/.gnupg/gpg-agent.conf
 
 echo "(Re-)starting the gpg-agent"
 pkill gpg-agent || true
@@ -58,7 +76,7 @@ fi
 
 ##############
 echo "Starting the gpg-agent proxy"
-sudo systemctl start ega-socket-proxy
-sudo systemctl enable ega-socket-proxy
+sudo systemctl start ega-socket-proxy@9010
+sudo systemctl enable ega-socket-proxy@9010
 
 echo "Master GPG-agent ready"

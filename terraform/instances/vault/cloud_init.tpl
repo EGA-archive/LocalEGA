@@ -19,12 +19,12 @@ write_files:
     content: ${ega_service_verify}
     owner: root:root
     path: /etc/systemd/system/ega-verify.service
-    permissions: '0750'
+    permissions: '0644'
   - encoding: b64
     content: ${ega_service_vault}
     owner: root:root
     path: /etc/systemd/system/ega-vault.service
-    permissions: '0750'
+    permissions: '0644'
 
 runcmd:
   - mkfs -t btrfs -f /dev/vdb

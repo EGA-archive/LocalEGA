@@ -43,8 +43,8 @@ write_files:
   - encoding: b64
     content: ${ega_service}
     owner: root:root
-    path: /etc/systemd/system/ega-socket-proxy.service
-    permissions: '0750'
+    path: /etc/systemd/system/ega-socket-proxy@.service
+    permissions: '0644'
 
 runcmd:
   - su -c "/home/ega/boot.sh" - ega

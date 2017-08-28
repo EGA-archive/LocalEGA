@@ -1,5 +1,5 @@
 [Unit]
-Description=EGA Verify service
+Description=EGA Connector service (%I)
 After=syslog.target
 After=network.target
 
@@ -8,13 +8,15 @@ Type=simple
 User=ega
 Group=ega
 
-ExecStart=/bin/ega-verify --conf $EGA_CONF --log $EGA_LOG
+# CentralEGA to LocalEGA
+ExecStart=/bin/ega-connect --conf $EGA_CONF --log $EGA_LOG %i
 
 Environment=EGA_CONF=~/.lega/conf.ini
 Environment=EGA_LOG=syslog
 
 StandardOutput=syslog
 StandardError=syslog
+
 
 [Install]
 WantedBy=multi-user.target

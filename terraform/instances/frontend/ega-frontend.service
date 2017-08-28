@@ -8,8 +8,12 @@ Type=simple
 User=ega
 Group=ega
 ExecStart=/bin/ega-frontend --conf $EGA_CONF --log $EGA_LOG
-KillMode=process
-Restart=on-failure
 
 Environment=EGA_CONF=~/.lega/conf.ini
 Environment=EGA_LOG=syslog
+
+StandardOutput=syslog
+StandardError=syslog
+
+[Install]
+WantedBy=multi-user.target

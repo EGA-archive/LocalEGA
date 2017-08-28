@@ -24,12 +24,12 @@ data "archive_file" "rsa" {
   output_path = "${path.module}/rsa_public.zip"
 
   source {
-    content  = "${var.rsa_home}/ega-public.pem"
+    content  = "${file("${var.rsa_home}/ega-public.pem")}"
     filename = "ega-public.pem"
   }
 
   source { # to be removed
-    content  = "${var.rsa_home}/ega.pem"
+    content  = "${file("${var.rsa_home}/ega.pem")}"
     filename = "ega.pem"
   }
 
@@ -40,12 +40,12 @@ data "archive_file" "gpg" {
   output_path = "${path.module}/gpg_public.zip"
 
   source {
-    content  = "${var.gpg_home}/pubring.kbx"
+    content  = "${file("${var.gpg_home}/pubring.kbx")}"
     filename = "pubring.kbx"
   }
 
   source {
-    content  = "${var.gpg_home}/trustdb.gpg"
+    content  = "${file("${var.gpg_home}/trustdb.gpg")}"
     filename = "trustdb.gpg"
   }
 }
@@ -55,7 +55,7 @@ data "archive_file" "certs" {
   output_path = "${path.module}/certs_public.zip"
 
   source {
-    content  = "${var.gpg_certs}/${var.certfile}"
+    content  = "${file("${var.gpg_certs}/${var.certfile}")}"
     filename = "selfsigned.cert"
   }
 }
@@ -71,7 +71,7 @@ data "template_file" "cloud_init" {
     rsa = "${base64encode("${file("${data.archive_file.rsa.output_path}")}")}"
     gpg = "${base64encode("${file("${data.archive_file.gpg.output_path}")}")}"
     certs = "${base64encode("${file("${data.archive_file.certs.output_path}")}")}"
-    ega_service_forwarder = "${base64encode("${file("${path.module}/ega-socket-forwarder.service")}")}"
+    ega_service_forwarder = "${base64encode("${file("${path.module}/ega-socket-forwarder@.service")}")}"
     ega_service_worker = "${base64encode("${file("${path.module}/ega-worker.service")}")}"
   }
 }
@@ -99,12 +99,12 @@ data "archive_file" "rsa_private" {
   output_path = "${path.module}/rsa_private.zip"
 
   source {
-    content  = "${var.rsa_home}/ega-public.pem"
+    content  = "${file("${var.rsa_home}/ega-public.pem")}"
     filename = "ega-public.pem"
   }
 
   source {
-    content  = "${var.rsa_home}/ega.pem"
+    content  = "${file("${var.rsa_home}/ega.pem")}"
     filename = "ega.pem"
   }
 
@@ -122,7 +122,12 @@ data "archive_file" "certs_private" {
   output_path = "${path.module}/certs_private.zip"
 
   source {
-    content  = "${var.gpg_certs}/${var.certkey}"
+    content  = "${file("${var.gpg_certs}/${var.certfile}")}"
+    filename = "selfsigned.cert"
+  }
+
+  source {
+    content  = "${file("${var.gpg_certs}/${var.certkey}")}"
     filename = "selfsigned.key"
   }
 }
@@ -139,7 +144,7 @@ data "template_file" "cloud_init_keys" {
     certs = "${base64encode("${file("${data.archive_file.certs_private.output_path}")}")}"
     gpg = "${base64encode("${file("${data.archive_file.gpg.output_path}")}")}"
     gpg_private = "${base64encode("${file("${data.archive_file.gpg_private.output_path}")}")}"
-    ega_service = "${base64encode("${file("${path.module}/ega-socket-proxy.service")}")}"
+    ega_service = "${base64encode("${file("${path.module}/ega-socket-proxy@.service")}")}"
   }
 }
 

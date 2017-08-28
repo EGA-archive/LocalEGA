@@ -19,7 +19,7 @@ write_files:
     content: ${ega_service}
     owner: root:root
     path: /etc/systemd/system/ega-frontend.service
-    permissions: '0750'
+    permissions: '0644'
 
 runcmd:
   - su -c "/home/ega/boot.sh" - ega

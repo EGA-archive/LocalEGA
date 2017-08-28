@@ -24,7 +24,7 @@ write_files:
     content: ${ega_service}
     owner: root:root
     path: /etc/systemd/system/ega-inbox.service
-    permissions: '0750'
+    permissions: '0644'
 
 runcmd:
   - /root/boot.sh "${cidr}"
