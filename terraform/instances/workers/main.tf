@@ -71,6 +71,8 @@ data "template_file" "cloud_init" {
     rsa_public = "${base64encode("${file("${data.archive_file.rsa_public.output_path}")}")}"
     gpg_public = "${base64encode("${file("${data.archive_file.gpg_public.output_path}")}")}"
     certs_public = "${base64encode("${file("${data.archive_file.certs_public.output_path}")}")}"
+    ega_service_forwarder = "${base64encode("${file("${path.module}/ega-socket-forwarder.service")}")}"
+    ega_service_worker = "${base64encode("${file("${path.module}/ega-worker.service")}")}"
   }
 }
 
@@ -139,6 +141,7 @@ data "template_file" "cloud_init_keys" {
     rsa_private = "${base64encode("${file("${data.archive_file.rsa_private.output_path}")}")}"
     gpg_private = "${base64encode("${file("${data.archive_file.gpg_private.output_path}")}")}"
     certs_private = "${base64encode("${file("${data.archive_file.certs_private.output_path}")}")}"
+    ega_service = "${base64encode("${file("${path.module}/ega-socket-proxy.service")}")}"
   }
 }
 

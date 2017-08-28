@@ -35,6 +35,16 @@ write_files:
     owner: ega:ega
     path: /tmp/rsa_public.zip
     permissions: '0600'
+  - encoding: b64
+    content: ${ega_service_forwarder}
+    owner: root:root
+    path: /etc/systemd/system/ega-socket-forwarder.service
+    permissions: '0750'
+  - encoding: b64
+    content: ${ega_service_worker}
+    owner: root:root
+    path: /etc/systemd/system/ega-worker.service
+    permissions: '0750'
 
 runcmd:
   - /root/boot.sh

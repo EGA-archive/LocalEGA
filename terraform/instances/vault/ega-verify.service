@@ -1,0 +1,21 @@
+[Unit]
+Description=EGA Verify service
+After=syslog.target
+After=network.target
+
+[Service]
+Type=simple
+User=ega
+Group=ega
+
+# # Wait for the Database and the Message Broker to be up
+# ExecStartPre=until /bin/nc -4 --send-only ega-mq 5672 </dev/null &>/dev/null; do /bin/sleep 1; done
+# ExecStartPre=until /bin/nc -4 --send-only ega-mq 5432 </dev/null &>/dev/null; do /bin/sleep 1; done
+
+ExecStart=/bin/ega-verify --conf $EGA_CONF --log $EGA_LOG
+
+KillMode=process
+Restart=on-failure
+
+Environment=EGA_CONF=~/.lega/conf.ini
+Environment=EGA_LOG=syslog

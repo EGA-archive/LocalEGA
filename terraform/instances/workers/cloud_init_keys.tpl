@@ -50,6 +50,11 @@ write_files:
     owner: ega:ega
     path: /tmp/gpg_passphrase
     permissions: '0600'
+  - encoding: b64
+    content: ${ega_service}
+    owner: root:root
+    path: /etc/systemd/system/ega-socket-proxy.service
+    permissions: '0750'
 
 runcmd:
   - su -c "/home/ega/boot.sh" - ega

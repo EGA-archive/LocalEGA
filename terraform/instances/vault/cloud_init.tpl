@@ -15,6 +15,16 @@ write_files:
     owner: ega:ega
     path: /home/ega/.lega/conf.ini
     permissions: '0600'
+  - encoding: b64
+    content: ${ega_service_verify}
+    owner: root:root
+    path: /etc/systemd/system/ega-verify.service
+    permissions: '0750'
+  - encoding: b64
+    content: ${ega_service_vault}
+    owner: root:root
+    path: /etc/systemd/system/ega-vault.service
+    permissions: '0750'
 
 runcmd:
   - mkfs -t btrfs -f /dev/vdb

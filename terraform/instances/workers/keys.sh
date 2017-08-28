@@ -67,7 +67,7 @@ fi
 
 ##############
 echo "Starting the gpg-agent proxy"
-ega-socket-proxy '0.0.0.0:9010' ~/.gnupg/S.gpg-agent.extra \
-		 --certfile ~/certs/selfsigned.cert --keyfile ~/certs/selfsigned.key &
+systemctl start ega-socket-proxy
+systemctl enable ega-socket-proxy
 
 echo "Master GPG-agent ready"

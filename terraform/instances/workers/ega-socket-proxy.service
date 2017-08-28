@@ -1,0 +1,16 @@
+[Unit]
+Description=EGA Socket Proxy service
+After=syslog.target
+After=network.target
+
+[Service]
+Type=simple
+User=ega
+Group=ega
+ExecStart=/bin/ega-socket-proxy --conf $EGA_CONF --log $EGA_LOG '192.168.10.0/24:9010' ~/.gnupg/S.gpg-agent.extra --certfile ~/certs/selfsigned.cert --keyfile ~/certs/selfsigned.key
+KillMode=process
+Restart=on-failure
+
+Environment=EGA_CONF=~/.lega/conf.ini
+Environment=EGA_LOG=syslog
+

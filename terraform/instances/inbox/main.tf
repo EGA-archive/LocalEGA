@@ -27,6 +27,7 @@ data "template_file" "cloud_init" {
     hosts = "${base64encode("${file("${path.root}/hosts")}")}"
     conf = "${var.lega_conf}"
     cidr = "${var.cidr}"
+    ega_service = "${base64encode("${file("${path.module}/ega-inbox.service")}")}"
   }
 }
 

@@ -1,0 +1,16 @@
+[Unit]
+Description=EGA Socket forwarding service
+After=syslog.target
+After=network.target
+
+[Service]
+Type=simple
+User=ega
+Group=ega
+ExecStart=/bin/ega-socket-forwarder --conf $EGA_CONF --log $EGA_LOG ~/.gnupg/S.gpg-agent ega-keys:9010 --certfile ~/certs/selfsigned.cert
+KillMode=process
+Restart=on-failure
+
+Environment=EGA_CONF=~/.lega/conf.ini
+Environment=EGA_LOG=syslog
+

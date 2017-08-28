@@ -9,6 +9,9 @@ echo "Disabling SElinux"
 [ -f /etc/selinux/config ] && sed -i 's/SELINUX=.*/SELINUX=disabled/' /etc/selinux/config
 setenforce 0
 
+# ========================
+systemctl start postgresql-9.6.service
+systemctl enable postgresql-9.6.service
 
 # ========================
 # Postgres setup
