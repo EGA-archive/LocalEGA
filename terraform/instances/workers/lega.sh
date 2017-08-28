@@ -6,13 +6,13 @@ mkdir -p ~/.gnupg && chmod 700 ~/.gnupg
 mkdir -p ~/.rsa && chmod 700 ~/.rsa
 mkdir -p ~/certs && chmod 700 ~/certs
 
-unzip /tmp/gpg_public.zip -d ~/.gnupg
-unzip /tmp/rsa_public.zip -d ~/.rsa
-unzip /tmp/certs_public.zip -d ~/certs
+unzip /tmp/gpg.zip -d ~/.gnupg
+unzip /tmp/rsa.zip -d ~/.rsa
+unzip /tmp/certs.zip -d ~/certs
 
-rm /tmp/gpg_public.zip
-rm /tmp/rsa_public.zip
-rm /tmp/certs_public.zip
+rm /tmp/gpg.zip
+rm /tmp/rsa.zip
+rm /tmp/certs.zip
 
 git clone -b terraform https://github.com/NBISweden/LocalEGA.git ~/repo
 sudo pip3.6 install ~/repo/src

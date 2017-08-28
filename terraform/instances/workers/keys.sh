@@ -3,30 +3,21 @@
 set -e
 
 ##############
-# Public part
+# Public + Private parts
 mkdir -p ~/.gnupg && chmod 700 ~/.gnupg
 mkdir -p ~/.rsa && chmod 700 ~/.rsa
 mkdir -p ~/certs && chmod 700 ~/certs
-
-unzip /tmp/gpg_public.zip -d ~/.gnupg
-unzip /tmp/rsa_public.zip -d ~/.rsa
-unzip /tmp/certs_public.zip -d ~/certs
-
-rm /tmp/gpg_public.zip
-rm /tmp/rsa_public.zip
-rm /tmp/certs_public.zip
-
-##############
-# Private part
 mkdir -p ~/.gnupg/private-keys-v1.d && chmod 700 ~/.gnupg/private-keys-v1.d
 
+unzip /tmp/gpg.zip -d ~/.gnupg
 unzip /tmp/gpg_private.zip -d ~/.gnupg/private-keys-v1.d
-unzip /tmp/rsa_private.zip -d ~/.rsa
-unzip /tmp/certs_private.zip -d ~/certs
+unzip /tmp/rsa.zip -d ~/.rsa
+unzip /tmp/certs.zip -d ~/certs
 
+rm /tmp/gpg.zip
 rm /tmp/gpg_private.zip
-rm /tmp/rsa_private.zip
-rm /tmp/certs_private.zip
+rm /tmp/rsa.zip
+rm /tmp/certs.zip
 
 ##############
 git clone -b terraform https://github.com/NBISweden/LocalEGA.git ~/repo

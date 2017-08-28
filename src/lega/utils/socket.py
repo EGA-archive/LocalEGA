@@ -12,14 +12,12 @@ Usefull to forward gpg requests to a remote GPG-agent.
 '''
 
 import sys
-import logging
+from syslog import syslog, LOG_DEBUG, LOG_INFO, LOG_WARNING
 import argparse
 import asyncio
 import ssl
 from functools import partial
 from pathlib import Path
-
-LOG = logging.getLogger('socket-utils')
 
 CHUNK_SIZE=4096
 
@@ -31,7 +29,7 @@ async def copy_chunk(reader,writer):
         data = await reader.read(CHUNK_SIZE)
         if not data:
             return
-        #LOG.debug(f'DATA: {data}')
+        #syslog(LOG_DEBUG,f'DATA: {data}')
         writer.write(data)
         await writer.drain()
 
@@ -64,30 +62,20 @@ def forward():
     parser.add_argument('remote_machine', help='Remote location <host:port>')
     parser.add_argument('--certfile', help='Certificat for SSL communication')
     parser.add_argument('--chunk', help='Size of the chunk to forward. [Default: 4096]', type=int)
-    parser.add_argument('--log', help=f'Log configuration')
     args = parser.parse_args()
 
-    LOG.info(f'Socket: {args.socket}')
-    LOG.info(f'Remote machine: {args.remote_machine}')
-
-    if args.log:
-        import yaml
-        from logging.config import dictConfig
-        try:
-            with open(args.log, 'r') as stream:
-                dictConfig(yaml.load(stream))
-        except:
-            pass
+    syslog(LOG_INFO, f'Socket: {args.socket}')
+    syslog(LOG_INFO, f'Remote machine: {args.remote_machine}')
 
     if args.chunk:
         CHUNK_SIZE = args.chunk
-        LOG.info(f'Chunk size: {args.chunk}')
+        syslog(LOG_INFO, f'Chunk size: {args.chunk}')
 
     ssl_ctx = ssl.create_default_context(ssl.Purpose.SERVER_AUTH, 
                                          cafile=args.certfile) if (args.certfile and Path(args.certfile).exists()) else None
 
     if not ssl_ctx:
-        LOG.warning('No SSL encryption')
+        syslog(LOG_WARNING, 'No SSL encryption')
 
     host,port = args.remote_machine.split(':')
 
@@ -103,7 +91,7 @@ def forward():
     try:
         loop.run_forever()
     except Exception as e:
-        LOG.debug(repr(e))
+        syslog(LOG_DEBUG, repr(e))
         server.close()
     
     loop.close()
@@ -128,24 +116,14 @@ def proxy():
     parser.add_argument('--certfile', help='Certificat for SSL communication')
     parser.add_argument('--keyfile', help='Private key for SSL communication')
     parser.add_argument('--chunk', help=f'Size of the chunk to forward. [Default: {CHUNK_SIZE}]', type=int)
-    parser.add_argument('--log', help=f'Log configuration')
     args = parser.parse_args()
 
-    LOG.info(f'Remote: {args.address}')
-    LOG.info(f'Socket: {args.socket}')
-
-    if args.log:
-        import yaml
-        from logging.config import dictConfig
-        try:
-            with open(args.log, 'r') as stream:
-                dictConfig(yaml.load(stream))
-        except:
-            pass
+    syslog(LOG_INFO, f'Remote: {args.address}')
+    syslog(LOG_INFO, f'Socket: {args.socket}')
 
     if args.chunk:
         CHUNK_SIZE = args.chunk
-        LOG.info(f'Chunk size: {args.chunk}')
+        syslog(LOG_INFO, f'Chunk size: {args.chunk}')
 
     ssl_ctx = None
     if (args.certfile and Path(args.certfile).exists() and 
@@ -154,7 +132,7 @@ def proxy():
         ssl_ctx.load_cert_chain(args.certfile, args.keyfile)
 
     if not ssl_ctx:
-        LOG.warning('No SSL encryption')
+        syslog(LOG_WARNING, 'No SSL encryption')
 
     address,port = args.address.split(':')
 
@@ -170,7 +148,7 @@ def proxy():
     try:
         loop.run_forever()
     except Exception as e:
-        LOG.debug(repr(e))
+        syslog(LOG_DEBUG, repr(e))
         server.close()
     
     loop.close()

@@ -19,7 +19,7 @@ variable certfile { default = "selfsigned.cert" }
 variable certkey { default = "selfsigned.key" }
 
 
-data "archive_file" "rsa_public" {
+data "archive_file" "rsa" {
   type        = "zip"
   output_path = "${path.module}/rsa_public.zip"
 
@@ -28,14 +28,14 @@ data "archive_file" "rsa_public" {
     filename = "ega-public.pem"
   }
 
-  source { # To be updated removed
+  source { # to be removed
     content  = "${var.rsa_home}/ega.pem"
     filename = "ega.pem"
   }
-  
+
 }
 
-data "archive_file" "gpg_public" {
+data "archive_file" "gpg" {
   type        = "zip"
   output_path = "${path.module}/gpg_public.zip"
 
@@ -50,7 +50,7 @@ data "archive_file" "gpg_public" {
   }
 }
 
-data "archive_file" "certs_public" {
+data "archive_file" "certs" {
   type        = "zip"
   output_path = "${path.module}/certs_public.zip"
 
@@ -68,9 +68,9 @@ data "template_file" "cloud_init" {
     lega_script = "${base64encode("${file("${path.module}/lega.sh")}")}"
     hosts = "${base64encode("${file("${path.root}/hosts")}")}"
     conf = "${var.lega_conf}"
-    rsa_public = "${base64encode("${file("${data.archive_file.rsa_public.output_path}")}")}"
-    gpg_public = "${base64encode("${file("${data.archive_file.gpg_public.output_path}")}")}"
-    certs_public = "${base64encode("${file("${data.archive_file.certs_public.output_path}")}")}"
+    rsa = "${base64encode("${file("${data.archive_file.rsa.output_path}")}")}"
+    gpg = "${base64encode("${file("${data.archive_file.gpg.output_path}")}")}"
+    certs = "${base64encode("${file("${data.archive_file.certs.output_path}")}")}"
     ega_service_forwarder = "${base64encode("${file("${path.module}/ega-socket-forwarder.service")}")}"
     ega_service_worker = "${base64encode("${file("${path.module}/ega-worker.service")}")}"
   }
@@ -100,14 +100,14 @@ data "archive_file" "rsa_private" {
 
   source {
     content  = "${var.rsa_home}/ega-public.pem"
-    filename = "ega-private.pem"
+    filename = "ega-public.pem"
   }
 
   source {
     content  = "${var.rsa_home}/ega.pem"
     filename = "ega.pem"
   }
-  
+
 }
 
 data "archive_file" "gpg_private" {
@@ -135,12 +135,10 @@ data "template_file" "cloud_init_keys" {
     hosts = "${base64encode("${file("${path.root}/hosts")}")}"
     conf = "${var.lega_conf}"
     gpg_passphrase = "${base64encode("${var.gpg_passphrase}")}"
-    rsa_public = "${base64encode("${file("${data.archive_file.rsa_public.output_path}")}")}"
-    gpg_public = "${base64encode("${file("${data.archive_file.gpg_public.output_path}")}")}"
-    certs_public = "${base64encode("${file("${data.archive_file.certs_public.output_path}")}")}"
-    rsa_private = "${base64encode("${file("${data.archive_file.rsa_private.output_path}")}")}"
+    rsa = "${base64encode("${file("${data.archive_file.rsa_private.output_path}")}")}"
+    certs = "${base64encode("${file("${data.archive_file.certs_private.output_path}")}")}"
+    gpg = "${base64encode("${file("${data.archive_file.gpg.output_path}")}")}"
     gpg_private = "${base64encode("${file("${data.archive_file.gpg_private.output_path}")}")}"
-    certs_private = "${base64encode("${file("${data.archive_file.certs_private.output_path}")}")}"
     ega_service = "${base64encode("${file("${path.module}/ega-socket-proxy.service")}")}"
   }
 }

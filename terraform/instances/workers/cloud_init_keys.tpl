@@ -16,9 +16,9 @@ write_files:
     path: /home/ega/.lega/conf.ini
     permissions: '0600'
   - encoding: b64
-    content: ${gpg_public}
+    content: ${gpg}
     owner: ega:ega
-    path: /tmp/gpg_public.zip
+    path: /tmp/gpg.zip
     permissions: '0600'
   - encoding: b64
     content: ${gpg_private}
@@ -26,24 +26,14 @@ write_files:
     path: /tmp/gpg_private.zip
     permissions: '0600'
   - encoding: b64
-    content: ${certs_public}
+    content: ${certs}
     owner: ega:ega
-    path: /tmp/certs_public.zip
+    path: /tmp/certs.zip
     permissions: '0600'
   - encoding: b64
-    content: ${certs_private}
+    content: ${rsa}
     owner: ega:ega
-    path: /tmp/certs_private.zip
-    permissions: '0600'
-  - encoding: b64
-    content: ${rsa_public}
-    owner: ega:ega
-    path: /tmp/rsa_public.zip
-    permissions: '0600'
-  - encoding: b64
-    content: ${rsa_private}
-    owner: ega:ega
-    path: /tmp/rsa_private.zip
+    path: /tmp/rsa.zip
     permissions: '0600'
   - encoding: b64
     content: ${gpg_passphrase}
