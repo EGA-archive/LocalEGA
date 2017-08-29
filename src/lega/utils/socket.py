@@ -64,17 +64,18 @@ def forward():
     parser.add_argument('--chunk', help='Size of the chunk to forward. [Default: 4096]', type=int)
     args = parser.parse_args()
 
-    syslog(LOG_INFO, f'Socket: {args.socket}')
+    socket = Path(args.socket).expanduser()
+    certfile = Path(args.certfile).expanduser() if args.certfile else None
+
+    syslog(LOG_INFO, f'Socket: {socket}')
     syslog(LOG_INFO, f'Remote machine: {args.remote_machine}')
+    syslog(LOG_DEBUG, f'Certfile: {certfile}')
 
     if args.chunk:
         CHUNK_SIZE = args.chunk
         syslog(LOG_INFO, f'Chunk size: {args.chunk}')
 
-    certfile = Path(args.certfile).expanduser() if args.certfile else None
-    syslog(LOG_DEBUG, f'Certfile: {certfile}')
-    ssl_ctx = ssl.create_default_context(ssl.Purpose.SERVER_AUTH, 
-                                         cafile=certfile) if (certfile and certfile.exists()) else None
+    ssl_ctx = ssl.create_default_context(ssl.Purpose.SERVER_AUTH, cafile=certfile) if (certfile and certfile.exists()) else None
 
     if not ssl_ctx:
         syslog(LOG_WARNING, 'No SSL encryption')
@@ -89,7 +90,7 @@ def forward():
                                                           ssl=ssl_ctx)
     server = loop.run_until_complete(
         asyncio.start_unix_server(partial(handle_connection,connection_factory),
-                                  path=args.socket, # re-created if stale
+                                  path=socket, # re-created if stale
                                   loop=loop)
     )
     try:
