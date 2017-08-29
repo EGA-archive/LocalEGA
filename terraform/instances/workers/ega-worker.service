@@ -2,8 +2,9 @@
 Description=EGA Worker service
 After=syslog.target
 After=network.target
-After=ega-socket-forwarder@.service
-BindsTo=ega-socket-forwarder@.service
+
+After=ega-socket-forwarder.service
+BindsTo=ega-socket-forwarder.service
 
 [Service]
 Type=simple

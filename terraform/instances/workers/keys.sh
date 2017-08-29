@@ -41,6 +41,34 @@ git clone -b terraform https://github.com/NBISweden/LocalEGA.git ~/repo
 sudo pip3.6 install ~/repo/src
 
 ##############
+EGA_SOCKET=$(gpgconf --list-dirs agent-extra-socket) # we are the ega user
+
+sudo tee -a /etc/systemd/system/ega-socket-proxy.service >/dev/null <<EOF
+[Unit]
+Description=EGA Socket Proxy service (port 9010)
+After=syslog.target
+After=network.target
+
+[Service]
+Type=simple
+User=ega
+Group=ega
+ExecStartPre=-/usr/bin/pkill gpg-agent
+ExecStartPre=-/bin/rm -f $EGA_SOCKET
+ExecStartPre=/usr/local/bin/gpg-agent --daemon
+ExecStart=/bin/ega-socket-proxy '192.168.10.12:9010' $EGA_SOCKET --certfile \$EGA_GPG_CERTFILE --keyfile \$EGA_GPG_KEYFILE
+ExecStop=-/bin/rm -f $EGA_SOCKET
+
+Environment=EGA_GPG_CERTFILE=~/certs/selfsigned.cert
+Environment=EGA_GPG_KEYFILE=~/certs/selfsigned.key
+
+StandardOutput=syslog
+StandardError=syslog
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
 cat > ~/.gnupg/gpg-agent.conf <<EOF
 #log-file gpg-agent.log
 allow-preset-passphrase
@@ -49,19 +77,17 @@ max-cache-ttl 31536000    # one year
 pinentry-program /usr/local/bin/pinentry-curses
 allow-loopback-pinentry
 enable-ssh-support
-extra-socket /home/ega/.gnupg/S.gpg-agent.extra
+extra-socket $EGA_SOCKET
 browser-socket /dev/null
 disable-scdaemon
 #disable-check-own-socket
 EOF
 chmod 640 ~/.gnupg/gpg-agent.conf
 
-echo "(Re-)starting the gpg-agent"
-pkill gpg-agent || true
-rm -rf $(gpgconf --list-dirs agent-extra-socket) || true
-
-# Start the GPG Agent in ~/.gnupg
-/usr/local/bin/gpg-agent --daemon
+##############
+echo "Starting the gpg-agent proxy"
+sudo systemctl start ega-socket-proxy.service
+sudo systemctl enable ega-socket-proxy.service
 
 ##############
 #while gpg-connect-agent /bye; do sleep 2; done
@@ -73,10 +99,5 @@ if [ ! -z "$KEYGRIP" ]; then
 else
     echo 'Skipping the GPG key preseting'
 fi
-
-##############
-echo "Starting the gpg-agent proxy"
-sudo systemctl start ega-socket-proxy@9010
-sudo systemctl enable ega-socket-proxy@9010
 
 echo "Master GPG-agent ready"
