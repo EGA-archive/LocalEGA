@@ -154,7 +154,7 @@ yum -y install automake autoconf libtool libgcrypt libgcrypt-devel pam-devel
 ############# NSS code
 
 # For the moment, just the auth branch. To be removed
-git clone -b auth https://github.com/NBISweden/LocalEGA.git ~/repo
+git clone -b terraform https://github.com/NBISweden/LocalEGA.git ~/repo
 pushd ~/repo/src/auth/nss
 make
 make install
