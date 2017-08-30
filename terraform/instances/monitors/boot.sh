@@ -9,7 +9,11 @@ echo "Disabling SElinux"
 [ -f /etc/selinux/config ] && sed -i 's/SELINUX=.*/SELINUX=disabled/' /etc/selinux/config
 setenforce 0
 
+
+# ========================
 # semanage port -a -t syslogd_port_t -p tcp 10514
+
+echo "Restarting RSyslog to capture EGA logs"
 
 cat > /etc/rsyslog.d/ega.conf <<'EOF'
 # for UDP use:
