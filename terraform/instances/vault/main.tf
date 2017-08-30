@@ -14,8 +14,6 @@ data "template_file" "cloud_init" {
     boot_script = "${base64encode("${file("${path.module}/boot.sh")}")}"
     hosts = "${base64encode("${file("${path.root}/hosts")}")}"
     conf = "${var.lega_conf}"
-    ega_service_verify = "${base64encode("${file("${path.module}/ega-verify.service")}")}"
-    ega_service_vault = "${base64encode("${file("${path.module}/ega-vault.service")}")}"
   }
 }
 

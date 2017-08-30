@@ -10,11 +10,6 @@ write_files:
     owner: root:root
     path: /etc/hosts
     permissions: '0644'
-  - encoding: b64
-    content: ${conf}
-    owner: ega:ega
-    path: /home/ega/.lega/conf.ini
-    permissions: '0600'
 
 runcmd:
   - su -c "/home/ega/boot.sh" - ega

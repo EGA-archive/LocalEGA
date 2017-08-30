@@ -5,9 +5,14 @@ set -e
 git clone -b terraform https://github.com/NBISweden/LocalEGA.git ~/repo
 pip3.6 install ~/repo/src
 
+
 #########################################
 # Systemd files
 #########################################
+cat > /etc/ega/options <<EOF
+EGA_OPTIONS=""
+EOF
+
 cat > /etc/systemd/system/ega.slice <<EOF
 [Unit]
 Description=EGA Slice
@@ -56,12 +61,10 @@ Slice=ega.slice
 Type=simple
 User=ega
 Group=ega
+EnvironmentFile=/etc/ega/options
 
 # CentralEGA to LocalEGA
-ExecStart=/bin/ega-connect --conf $EGA_CONF --log $EGA_LOG %i
-
-Environment=EGA_CONF=~/.lega/conf.ini
-Environment=EGA_LOG=syslog
+ExecStart=/bin/ega-connect $EGA_OPTIONS %i
 
 StandardOutput=syslog
 StandardError=syslog

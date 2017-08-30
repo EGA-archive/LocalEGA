@@ -15,6 +15,7 @@ data "template_file" "boot" {
 
   vars {
     db_password = "${var.db_password}"
+    cidr = "${var.cidr}"
   }
 }
 
@@ -25,7 +26,6 @@ data "template_file" "cloud_init" {
     boot_script = "${base64encode("${data.template_file.boot.rendered}")}"
     hosts = "${base64encode("${file("${path.root}/hosts")}")}"
     conf = "${var.lega_conf}"
-    cidr = "${var.cidr}"
   }
 }
 

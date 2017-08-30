@@ -5,71 +5,89 @@ set -e
 # ========================
 # No SELinux
 echo "Disabling SElinux"
-[ -f /etc/sysconfig/selinux ] && sudo sed -i 's/SELINUX=.*/SELINUX=disabled/' /etc/sysconfig/selinux
-[ -f /etc/selinux/config ] && sudo sed -i 's/SELINUX=.*/SELINUX=disabled/' /etc/selinux/config
-sudo setenforce 0
-
+[ -f /etc/sysconfig/selinux ] && sed -i 's/SELINUX=.*/SELINUX=disabled/' /etc/sysconfig/selinux
+[ -f /etc/selinux/config ] && sed -i 's/SELINUX=.*/SELINUX=disabled/' /etc/selinux/config
+setenforce 0
 
 ##############
 # Public + Private parts
-mkdir -p ~/.gnupg && chmod 700 ~/.gnupg
-mkdir -p ~/.rsa && chmod 700 ~/.rsa
-mkdir -p ~/certs && chmod 700 ~/certs
-mkdir -p ~/.gnupg/private-keys-v1.d && chmod 700 ~/.gnupg/private-keys-v1.d
+mkdir -p ~ega/.gnupg && chmod 700 ~ega/.gnupg
+mkdir -p ~ega/.rsa && chmod 700 ~ega/.rsa
+mkdir -p ~ega/certs && chmod 700 ~ega/certs
+mkdir -p ~ega/.gnupg/private-keys-v1.d && chmod 700 ~ega/.gnupg/private-keys-v1.d
 
-unzip /tmp/gpg.zip -d ~/.gnupg
-unzip /tmp/gpg_private.zip -d ~/.gnupg/private-keys-v1.d
-unzip /tmp/rsa.zip -d ~/.rsa
-unzip /tmp/certs.zip -d ~/certs
+unzip /tmp/gpg.zip -d ~ega/.gnupg
+unzip /tmp/gpg_private.zip -d ~ega/.gnupg/private-keys-v1.d
+unzip /tmp/rsa.zip -d ~ega/.rsa
+unzip /tmp/certs.zip -d ~ega/.certs
 
 rm /tmp/gpg.zip
 rm /tmp/gpg_private.zip
 rm /tmp/rsa.zip
 rm /tmp/certs.zip
 
-chmod 600 ~/.gnupg/{pubring.kbx,trustdb.gpg}
-chmod 700 ~/.gnupg/private-keys-v1.d
-chmod 700 ~/.gnupg/private-keys-v1.d/*
-chmod 640 ~/certs/*.cert
-chmod 600 ~/certs/*.key
-chmod 640 ~/certs/*.cert
-chmod 600 ~/.rsa/ega.pem
-chmod 640 ~/.rsa/ega-public.pem
+chown -R ega:ega ~ega/.gnupg
+chown -R ega:ega ~ega/.rsa
+chown -R ega:ega ~ega/.certs
+
+chmod 600 ~ega/.gnupg/{pubring.kbx,trustdb.gpg}
+chmod 700 ~ega/.gnupg/private-keys-v1.d
+chmod 700 ~ega/.gnupg/private-keys-v1.d/*
+chmod 640 ~ega/certs/*.cert
+chmod 600 ~ega/certs/*.key
+chmod 640 ~ega/certs/*.cert
+chmod 600 ~ega/.rsa/ega.pem
+chmod 640 ~ega/.rsa/ega-public.pem
 
 ##############
 git clone -b terraform https://github.com/NBISweden/LocalEGA.git ~/repo
-sudo pip3.6 install ~/repo/src
+pip3.6 install ~/repo/src
 
 ##############
-EGA_SOCKET=$(gpgconf --list-dirs agent-extra-socket) # we are the ega user
+EGA_SOCKET=$(su -c "gpgconf --list-dirs agent-extra-socket" - ega) # as ega user
 
-sudo tee -a /etc/systemd/system/ega-socket-proxy.service >/dev/null <<EOF
+cat > /etc/systemd/system/ega.slice <<EOF
+[Unit]
+Description=EGA Slice
+DefaultDependencies=no
+Before=slices.target
+
+#[Slice]
+#CPUShares=512
+#MemoryLimit=2G
+EOF
+
+cat > /etc/systemd/system/ega-socket-proxy.service <<EOF
 [Unit]
 Description=EGA Socket Proxy service (port 9010)
 After=syslog.target
 After=network.target
 
 [Service]
+Slice=ega.slice
 Type=simple
 User=ega
 Group=ega
 ExecStartPre=-/usr/bin/pkill gpg-agent
 ExecStartPre=-/bin/rm -f $EGA_SOCKET
 ExecStartPre=/usr/local/bin/gpg-agent --daemon
-ExecStart=/bin/ega-socket-proxy '192.168.10.12:9010' $EGA_SOCKET --certfile \$EGA_GPG_CERTFILE --keyfile \$EGA_GPG_KEYFILE
-ExecStop=-/bin/rm -f $EGA_SOCKET
+ExecStart=/bin/ega-socket-proxy '0.0.0.0:9010' $EGA_SOCKET --certfile \$EGA_GPG_CERTFILE --keyfile \$EGA_GPG_KEYFILE
 
-Environment=EGA_GPG_CERTFILE=~/certs/selfsigned.cert
-Environment=EGA_GPG_KEYFILE=~/certs/selfsigned.key
+Environment=EGA_GPG_CERTFILE=~/.certs/selfsigned.cert
+Environment=EGA_GPG_KEYFILE=~/.certs/selfsigned.key
 
 StandardOutput=syslog
 StandardError=syslog
+
+Restart=on-failure
+RestartSec=10
+TimeoutSec=600
 
 [Install]
 WantedBy=multi-user.target
 EOF
 
-cat > ~/.gnupg/gpg-agent.conf <<EOF
+cat > ~ega/.gnupg/gpg-agent.conf <<EOF
 #log-file gpg-agent.log
 allow-preset-passphrase
 default-cache-ttl 2592000 # one month
@@ -82,22 +100,11 @@ browser-socket /dev/null
 disable-scdaemon
 #disable-check-own-socket
 EOF
-chmod 640 ~/.gnupg/gpg-agent.conf
+chown ega:ega ~ega/.gnupg/gpg-agent.conf
+chmod 640 ~ega/.gnupg/gpg-agent.conf
 
 ##############
 echo "Starting the gpg-agent proxy"
-sudo systemctl start ega-socket-proxy.service
-sudo systemctl enable ega-socket-proxy.service
+systemctl start ega-socket-proxy.service
+systemctl enable ega-socket-proxy.service
 
-##############
-#while gpg-connect-agent /bye; do sleep 2; done
-KEYGRIP=$(/usr/local/bin/gpg2 -k --with-keygrip ega@nbis.se | awk '/Keygrip/{print $3;exit;}')
-if [ ! -z "$KEYGRIP" ]; then 
-    echo 'Unlocking the GPG key'
-    /usr/local/libexec/gpg-preset-passphrase --preset -P "$(cat /tmp/gpg_passphrase)" $KEYGRIP && \
-	rm -f /tmp/gpg_passphrase
-else
-    echo 'Skipping the GPG key preseting'
-fi
-
-echo "Master GPG-agent ready"

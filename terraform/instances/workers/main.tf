@@ -65,13 +65,11 @@ data "template_file" "cloud_init" {
 
   vars {
     boot_script = "${base64encode("${file("${path.module}/boot.sh")}")}"
-    lega_script = "${base64encode("${file("${path.module}/lega.sh")}")}"
     hosts = "${base64encode("${file("${path.root}/hosts")}")}"
     conf = "${var.lega_conf}"
     rsa = "${base64encode("${file("${data.archive_file.rsa.output_path}")}")}"
     gpg = "${base64encode("${file("${data.archive_file.gpg.output_path}")}")}"
     certs = "${base64encode("${file("${data.archive_file.certs.output_path}")}")}"
-    ega_worker_unit = "${base64encode("${file("${path.module}/ega-worker.service")}")}"
   }
 }
 
@@ -136,6 +134,7 @@ data "template_file" "cloud_init_keys" {
 
   vars {
     boot_script = "${base64encode("${file("${path.module}/keys.sh")}")}"
+    preset_script = "${base64encode("${file("${path.module}/preset.sh")}")}"
     hosts = "${base64encode("${file("${path.root}/hosts")}")}"
     conf = "${var.lega_conf}"
     gpg_passphrase = "${base64encode("${var.gpg_passphrase}")}"

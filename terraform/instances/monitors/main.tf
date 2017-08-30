@@ -26,7 +26,6 @@ data "template_file" "cloud_init" {
   vars {
     boot_script = "${base64encode("${file("${path.module}/boot.sh")}")}"
     hosts = "${base64encode("${file("${path.root}/hosts")}")}"
-    conf = "${var.lega_conf}"
   }
 }
 

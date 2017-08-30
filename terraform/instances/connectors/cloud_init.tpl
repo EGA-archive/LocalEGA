@@ -13,7 +13,7 @@ write_files:
   - encoding: b64
     content: ${conf}
     owner: ega:ega
-    path: /home/ega/.lega/conf.ini
+    path: /etc/ega/conf.ini
     permissions: '0600'
 
 runcmd:

@@ -2,15 +2,6 @@
 
 set -e
 
-# git clone -b terraform https://github.com/NBISweden/LocalEGA.git ~/repo
-# sudo pip3.6 install ~/repo/src
-
-# echo -n "Waiting for database"
-# until nc -4 --send-only ega-db 5432 </dev/null &>/dev/null; do echo -n '.'; sleep 1; done
-# ega-monitor --sys &
-# ega-monitor --user &
-
-
 # ========================
 # No SELinux
 echo "Disabling SElinux"

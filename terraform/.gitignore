@@ -1,3 +1,4 @@
+ega.conf
 main.auto.tfvars
 snic.cloud.rc
 .terraform*
