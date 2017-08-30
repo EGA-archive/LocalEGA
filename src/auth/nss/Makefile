@@ -33,7 +33,7 @@ install:
 	@echo "Installing $(LIBRARY) into $(LIBDIR)"
 	@install $(LIBRARY) $(LIBDIR)
 	@echo "Do not forget to run ldconfig and create/configure the file /usr/local/etc/nss-ega.conf"
-	@echo "Look at the nss-ega.conf here for example"
+	@echo "Look at the nss-ega.conf.sample here for example"
 
 clean:
 	-rm -f $(LIBRARY) $(OBJECTS)
