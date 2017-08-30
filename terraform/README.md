@@ -26,19 +26,23 @@ You need to create a `main.auto.tfvars` file (in that same folder) with the foll
 	# ...and cue music
 	terraform apply
 
-If it fails, it might be a good idea to bring them up little at a time:
+If it fails, it might be a good idea to bring them up little at a time.
 
-	# Network first
+So... network first:
+
 	terraform apply -target=module.network
-	# Database, Message Borker and Logger
+
+...database, Message Borker and Logger:
+
 	terraform apply -target=module.db -target=module.mq -target=module.monitors
-	# Connecting to CentralEGA
+
+...connecting to CentralEGA:
+
 	terraform apply -target=module.connectors
-	# The rest
-	terraform apply -target=module.frontend
-	terraform apply -target=module.inbox
-	terraform apply -target=module.vault
-	terraform apply -target=module.workers
+
+...and the rest:
+
+	terraform apply
 
 ## Stopping
 
