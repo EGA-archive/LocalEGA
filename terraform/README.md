@@ -6,12 +6,12 @@ You need to create a `main.auto.tfvars` file (in that same folder) with the foll
 	os_password = "<your-openstack-keystone-password>"
 	pubkey      = "ssh-rsa AAAABBBBBB ... bla bla....your-public-key"
 	
-	lega_conf = "<path/to/your/ini/file>"
+	lega_conf   = "<path/to/your/ini/file>"
 	db_password = "<your-secret-password>"
 
-	gpg_home  = "<path/to/gpg/folder>"
-	gpg_certs = "<path/to/certs/folder>"  # including .cert and .key files
-	rsa_home  = "<path/to/rsa/folder>"    # including ega-public.pem and ega.pem files
+	gpg_home    = "<path/to/gpg/folder>"
+	gpg_certs   = "<path/to/certs/folder>"  # including .cert and .key files
+	rsa_home    = "<path/to/rsa/folder>"    # including ega-public.pem and ega.pem files
 	gpg_passphrase = "<something-complex>"
 
 ## Initialize Terraform
