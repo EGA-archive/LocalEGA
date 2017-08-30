@@ -6,28 +6,28 @@ root:
 loggers:
   connect:
     level: INFO
-    handlers: [mainFile]
+    handlers: [syslog,mainFile]
   frontend:
     level: INFO
-    handlers: [mainFile]
+    handlers: [syslog,mainFile]
   worker:
     level: INFO
-    handlers: [mainFile]
+    handlers: [syslog,mainFile]
   vault:
     level: INFO
-    handlers: [mainFile]
+    handlers: [syslog,mainFile]
   verify:
     level: INFO
-    handlers: [mainFile]
+    handlers: [syslog,mainFile]
   inbox:
     level: INFO
-    handlers: [mainFile]
+    handlers: [syslog,mainFile]
   sys-monitor:
     level: INFO
-    handlers: [mainFile]
+    handlers: [syslog,mainFile]
   user-monitor:
     level: INFO
-    handlers: [mainFile]
+    handlers: [syslog,mainFile]
 
 handlers:
   noHandler:
@@ -38,6 +38,12 @@ handlers:
     formatter: lega
     filename: '/tmp/ega.log'
     mode: 'w'
+  syslog:
+    class: logging.handlers.SysLogHandler
+    address: !!python/tuple ['ega-db', 514]
+    formatter: lega
+    facility: 'local1'
+    # socktype: socket.SOCK_STREAM # for tcp. Defaults to udp
 
 formatters:
   lega:

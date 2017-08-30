@@ -57,14 +57,6 @@ async def get_user_info(pool, user_id):
         await cur.execute(query, {'user_id': user_id})
         return await cur.fetchall()
 
-async def get_internal_user_id(pool, elixir_id):
-    assert elixir_id, 'Eh? No elixir_id?'
-    with (await pool.cursor()) as cur:
-        await cur.execute('SELECT id FROM users WHERE elixir_id = %(elixir_id)s',
-                          {'elixir_id': elixir_id})
-        one = await cur.fetchone()
-        return one if one is None else one[0]
-
 ######################################
 ##         "Classic" code           ##
 ######################################
@@ -152,28 +144,12 @@ def finalize_file(file_id, stable_id, filesize):
                         {'stable_id': stable_id, 'file_id': file_id, 'status': Status.Archived.value, 'filesize': filesize})
 
 
-def insert_user(elixir_id, password_hash, pubkey):
+def insert_user(user_id, password_hash, pubkey):
     with connect() as conn:
         with conn.cursor() as cur:
-            cur.execute('SELECT insert_user(%(eid)s,%(ph)s,%(pk)s);',
-                        { 'eid': elixir_id,
+            cur.execute('SELECT insert_user(%(uid)s,%(ph)s,%(pk)s);',
+                        { 'uid': user_id,
                           'ph': password_hash,
                           'pk': pubkey })
             return (cur.fetchone())[0]
-
-def set_user_error(user_id, error):
-    assert user_id, 'Eh? No user_id?'
-    assert error, 'Eh? No error?'
-    LOG.debug(f'User error for {user_id}: {error!s}')
-    with connect() as conn:
-        with conn.cursor() as cur:
-            cur.execute('SELECT insert_user_error(%(user_id)s,%(msg)s);',
-                        {'msg':f"{error.__class__.__name__}: {error!s}", 'user_id': user_id})
-
-def get_user(elixir_id):
-    with connect() as conn:
-        with conn.cursor() as cur:
-            cur.execute('SELECT id FROM users WHERE elixir_id = (%(elixir_id)s);', { 'elixir_id': elixir_id })
-            one = cur.fetchone()
-            return one if one is None else one[0]
 

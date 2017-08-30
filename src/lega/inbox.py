@@ -16,73 +16,55 @@ It inserts it in the database and creates the necessary location in the inbox se
 import sys
 import os
 import logging
-import subprocess
-from pathlib import Path
+import shutil
 
 from .conf import CONF
-from .utils import db, exceptions
-from .utils import catch_user_error, generate_password
+from .utils import exceptions
+from .utils.db import insert_user
 from .utils.amqp import get_connection, consume
 from .utils.crypto import generate_key
 
 LOG = logging.getLogger('inbox')
 
+def create_homedir(user_id):
+    '''Create a user home_folder and gives its ownership to root.
 
-@catch_user_error
+    Raises an exception in case of failure.'''
+    LOG.info(f'Creating homedir for user {user_id}')
+
+    assert( '@' not in user_id )
+    homedir = CONF.get('inbox','home',raw=True) % { 'user_id': user_id }
+
+    if not os.path.exists(homedir):
+        skel = CONF.get('inbox','home_skel')
+        LOG.debug(f'Creating {homedir} (from skeleton {skel})')
+        shutil.copytree(skel,homedir, copy_function=shutil.copy) # no metadata
+        # Note: ownership is already on root.
+        # No metadata means that the setgid will make the folders ega group.
+    else:
+        LOG.debug(f'Homedir {homedir} already exists')
+
+
 def work(data):
-    '''Creates a user account, given the details from `data`.
-    '''
+    '''Creates a user account, given the details from `data`.'''
 
-    user_id = int(data['user_id'])
-    elixir_id = data['elixir_id']
+    user_id = data['user_id']
     password_hash = data.get('password_hash', None)
     pubkey = data.get('pubkey',None)
     assert password_hash or pubkey
 
-    LOG.info(f'Handling account creation for user {elixir_id}')
+    LOG.info(f'Handling account creation for user {user_id}')
 
-    user_home = Path( CONF.get('inbox','user_home',raw=True) % { 'user_id': user_id } )
+    # Insert in database
+    internal_id = insert_user(user_id, password_hash, pubkey)
+    assert internal_id is not None, 'Ouch...database problem!'
+    LOG.debug(f'User {user_id} added to the database (as entry {internal_id}).')
 
-    # Create user (might raise exception)
-    delete_cmd = CONF.get('inbox','delete_account',raw=True) # should we sanitize first?
-    subprocess.run(delete_cmd.format(home=user_home,user_id=user_id),
-                   shell=True,
-                   check=False, # do not check for errors
-                   stderr = subprocess.DEVNULL)
+    # Create homefolder (might raise exception)
+    create_homedir(user_id)
 
-    create_cmd = CONF.get('inbox','create_account',raw=True) # should we sanitize first?
-    subprocess.run(create_cmd.format(home=user_home,comment=elixir_id,user_id=user_id),
-                   shell=True,
-                   check=True,
-                   stderr = subprocess.DEVNULL)
-
-    os.chown(str(user_home), 0, -1) # owned by root, but don't change group id
-
-    # Set public key
-    if pubkey:
-        authorized_keys = user_home / '.pubkey'
-        with open(authorized_keys, 'w') as ssh_keys: # we are root
-            ssh_keys.write(pubkey)
-            ssh_keys.write('\n')
-            os.chown(str(authorized_keys),user_id, -1)
-            authorized_keys.chmod(0o600)
-
-    # Set password
-    if password_hash:
-        password_cmd = CONF.get('inbox','update_password',raw=True) # should we sanitize first?
-        subprocess.run(password_cmd.format(user_id=user_id,password_hash=password_hash),
-                       shell=True,
-                       check=True,
-                       stderr = subprocess.DEVNULL)
-
-    LOG.info(f'Account created for user {elixir_id}')
-    return {
-        'user_id': user_id,
-        'elixir_id': elixir_id,
-        # 'pubkey' : pubkey,
-        # 'seckey': seckey,
-        # 'password': password,
-    }
+    LOG.info(f'Account created for user {user_id}')
+    return data # return the same message
 
 def main(args=None):
 

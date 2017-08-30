@@ -5,18 +5,59 @@ variable flavor_name_keys { default = "ssc.small" }
 variable image_name { default = "EGA-common" }
 
 variable count { default = 1 }
+variable cidr {}
 variable private_ips { type = "list" }
 variable private_ip_keys {}
+variable lega_conf {}
 
 variable rsa_home {}
 variable gpg_home {}
 variable gpg_certs {}
 variable gpg_passphrase {}
 
-variable lega_conf {}
+variable certfile { default = "selfsigned.cert" }
+variable certkey { default = "selfsigned.key" }
 
-data "external" "archives" {
-  program = ["${path.module}/create_archives.sh","worker","${var.gpg_home}", "${var.rsa_home}", "${var.gpg_certs}"]
+
+data "archive_file" "rsa" {
+  type        = "zip"
+  output_path = "${path.module}/rsa_public.zip"
+
+  source {
+    content  = "${file("${var.rsa_home}/ega-public.pem")}"
+    filename = "ega-public.pem"
+  }
+
+  source { # to be removed
+    content  = "${file("${var.rsa_home}/ega.pem")}"
+    filename = "ega.pem"
+  }
+
+}
+
+data "archive_file" "gpg" {
+  type        = "zip"
+  output_path = "${path.module}/gpg_public.zip"
+
+  source {
+    content  = "${file("${var.gpg_home}/pubring.kbx")}"
+    filename = "pubring.kbx"
+  }
+
+  source {
+    content  = "${file("${var.gpg_home}/trustdb.gpg")}"
+    filename = "trustdb.gpg"
+  }
+}
+
+data "archive_file" "certs" {
+  type        = "zip"
+  output_path = "${path.module}/certs_public.zip"
+
+  source {
+    content  = "${file("${var.gpg_certs}/${var.certfile}")}"
+    filename = "selfsigned.cert"
+  }
 }
 
 data "template_file" "cloud_init" {
@@ -27,9 +68,10 @@ data "template_file" "cloud_init" {
     lega_script = "${base64encode("${file("${path.module}/lega.sh")}")}"
     hosts = "${base64encode("${file("${path.root}/hosts")}")}"
     conf = "${var.lega_conf}"
-    rsa = "${data.external.archives.result.rsa}"
-    gpg = "${data.external.archives.result.gpg}"
-    certs = "${data.external.archives.result.certs}"
+    rsa = "${base64encode("${file("${data.archive_file.rsa.output_path}")}")}"
+    gpg = "${base64encode("${file("${data.archive_file.gpg.output_path}")}")}"
+    certs = "${base64encode("${file("${data.archive_file.certs.output_path}")}")}"
+    ega_worker_unit = "${base64encode("${file("${path.module}/ega-worker.service")}")}"
   }
 }
 
@@ -51,8 +93,42 @@ resource "openstack_compute_instance_v2" "worker" {
 ##             Master GPG-agent
 ################################################################
 
-data "external" "archives_keys" {
-  program = ["${path.module}/create_archives.sh","keys","${var.gpg_home}", "${var.rsa_home}", "${var.gpg_certs}"]
+data "archive_file" "rsa_private" {
+  type        = "zip"
+  output_path = "${path.module}/rsa_private.zip"
+
+  source {
+    content  = "${file("${var.rsa_home}/ega-public.pem")}"
+    filename = "ega-public.pem"
+  }
+
+  source {
+    content  = "${file("${var.rsa_home}/ega.pem")}"
+    filename = "ega.pem"
+  }
+
+}
+
+data "archive_file" "gpg_private" {
+  type        = "zip"
+  output_path = "${path.module}/gpg_private.zip"
+  source_dir = "${var.gpg_home}/private-keys-v1.d"
+  # Not packaging the openpgp-revocs.d folder
+}
+
+data "archive_file" "certs_private" {
+  type        = "zip"
+  output_path = "${path.module}/certs_private.zip"
+
+  source {
+    content  = "${file("${var.gpg_certs}/${var.certfile}")}"
+    filename = "selfsigned.cert"
+  }
+
+  source {
+    content  = "${file("${var.gpg_certs}/${var.certkey}")}"
+    filename = "selfsigned.key"
+  }
 }
 
 data "template_file" "cloud_init_keys" {
@@ -63,9 +139,10 @@ data "template_file" "cloud_init_keys" {
     hosts = "${base64encode("${file("${path.root}/hosts")}")}"
     conf = "${var.lega_conf}"
     gpg_passphrase = "${base64encode("${var.gpg_passphrase}")}"
-    rsa = "${data.external.archives_keys.result.rsa}"
-    gpg = "${data.external.archives_keys.result.gpg}"
-    certs = "${data.external.archives_keys.result.certs}"
+    rsa = "${base64encode("${file("${data.archive_file.rsa_private.output_path}")}")}"
+    certs = "${base64encode("${file("${data.archive_file.certs_private.output_path}")}")}"
+    gpg = "${base64encode("${file("${data.archive_file.gpg.output_path}")}")}"
+    gpg_private = "${base64encode("${file("${data.archive_file.gpg_private.output_path}")}")}"
   }
 }
 
@@ -77,7 +154,7 @@ resource "openstack_compute_secgroup_v2" "ega_gpg" {
     from_port   = 9010
     to_port     = 9010
     ip_protocol = "tcp"
-    cidr        = "0.0.0.0/0"
+    cidr        = "${var.cidr}"
   }
 }
 

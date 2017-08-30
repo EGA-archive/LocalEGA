@@ -1,0 +1,19 @@
+[Unit]
+Description=EGA Frontend service
+After=syslog.target
+After=network.target
+
+[Service]
+Type=simple
+User=ega
+Group=ega
+ExecStart=/bin/ega-frontend --conf $EGA_CONF --log $EGA_LOG
+
+Environment=EGA_CONF=~/.lega/conf.ini
+Environment=EGA_LOG=syslog
+
+StandardOutput=syslog
+StandardError=syslog
+
+[Install]
+WantedBy=multi-user.target

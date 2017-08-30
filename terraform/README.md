@@ -20,6 +20,9 @@ You must then initialize Terraform:
 
 	terraform init
 	terraform plan # to see what's to be done (optional)
+	
+	# it helps to create the network components first
+	terraform apply -target=module.network
 
 ## Running
 

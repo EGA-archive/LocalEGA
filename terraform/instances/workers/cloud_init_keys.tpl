@@ -21,6 +21,11 @@ write_files:
     path: /tmp/gpg.zip
     permissions: '0600'
   - encoding: b64
+    content: ${gpg_private}
+    owner: ega:ega
+    path: /tmp/gpg_private.zip
+    permissions: '0600'
+  - encoding: b64
     content: ${certs}
     owner: ega:ega
     path: /tmp/certs.zip

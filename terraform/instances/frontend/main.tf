@@ -13,6 +13,7 @@ data "template_file" "cloud_init" {
     boot_script = "${base64encode("${file("${path.module}/boot.sh")}")}"
     hosts = "${base64encode("${file("${path.root}/hosts")}")}"
     conf = "${var.lega_conf}"
+    ega_service = "${base64encode("${file("${path.module}/ega-frontend.service")}")}"
   }
 }
 
@@ -23,6 +24,18 @@ resource "openstack_compute_secgroup_v2" "ega_web" {
   rule {
     from_port   = 9000
     to_port     = 9000
+    ip_protocol = "tcp"
+    cidr        = "0.0.0.0/0"
+  }
+  rule {
+    from_port   = 80
+    to_port     = 80
+    ip_protocol = "tcp"
+    cidr        = "0.0.0.0/0"
+  }
+  rule {
+    from_port   = 443
+    to_port     = 443
     ip_protocol = "tcp"
     cidr        = "0.0.0.0/0"
   }

@@ -5,19 +5,29 @@ variable image_name { default = "EGA-common" }
 
 variable volume_size { default = 100 }
 
+variable db_password {}
 variable private_ip {}
 variable lega_conf {}
 variable cidr {}
+
+data "template_file" "boot" {
+  template = "${file("${path.module}/boot.tpl")}"
+
+  vars {
+    db_password = "${var.db_password}"
+  }
+}
 
 data "template_file" "cloud_init" {
   template = "${file("${path.module}/cloud_init.tpl")}"
 
   vars {
-    boot_script = "${base64encode("${file("${path.module}/boot.sh")}")}"
+    boot_script = "${base64encode("${data.template_file.boot.rendered}")}"
     lega_script = "${base64encode("${file("${path.module}/lega.sh")}")}"
     hosts = "${base64encode("${file("${path.root}/hosts")}")}"
     conf = "${var.lega_conf}"
     cidr = "${var.cidr}"
+    ega_service = "${base64encode("${file("${path.module}/ega-inbox.service")}")}"
   }
 }
 
@@ -28,24 +38,6 @@ resource "openstack_compute_secgroup_v2" "ega_inbox" {
   rule {
     from_port   = 22
     to_port     = 22
-    ip_protocol = "tcp"
-    cidr        = "0.0.0.0/0"
-  }
-  rule {
-    from_port   = 21
-    to_port     = 21
-    ip_protocol = "tcp"
-    cidr        = "0.0.0.0/0"
-  }
-  rule {
-    from_port   = 6000
-    to_port     = 6000
-    ip_protocol = "tcp"
-    cidr        = "0.0.0.0/0"
-  }
-  rule {
-    from_port   = 6001
-    to_port     = 6001
     ip_protocol = "tcp"
     cidr        = "0.0.0.0/0"
   }

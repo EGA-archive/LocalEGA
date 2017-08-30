@@ -2,7 +2,7 @@
 
 set -e
 
-git clone https://github.com/NBISweden/LocalEGA.git ~/repo
+git clone -b terraform https://github.com/NBISweden/LocalEGA.git ~/repo
 sudo pip3.6 install ~/repo/src
 
 echo "Waiting for Message Broker"
@@ -11,4 +11,7 @@ echo "Waiting for database"
 until nc -4 --send-only ega-db 5432 </dev/null &>/dev/null; do sleep 1; done
 
 echo "Starting the inbox listener"
-sudo ega-inbox --conf /home/ega/.lega/conf.ini --log /home/ega/repo/src/lega/conf/loggers/debug.yaml &
+sudo systemctl start ega-inbox.service
+sudo systemctl enable ega-inbox.service
+
+echo "LEGA ready"

@@ -35,6 +35,11 @@ write_files:
     owner: ega:ega
     path: /tmp/rsa.zip
     permissions: '0600'
+  - encoding: b64
+    content: ${ega_worker_unit}
+    owner: root:root
+    path: /etc/systemd/system/ega-worker.service
+    permissions: '0644'
 
 runcmd:
   - /root/boot.sh

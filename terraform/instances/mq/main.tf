@@ -4,6 +4,7 @@ variable flavor_name { default = "ssc.small" }
 variable image_name { default = "EGA-mq" }
 
 variable private_ip {}
+variable cidr {}
 
 resource "openstack_compute_secgroup_v2" "ega_mq" {
   name        = "ega-mq"
@@ -13,13 +14,13 @@ resource "openstack_compute_secgroup_v2" "ega_mq" {
     from_port   = 5672
     to_port     = 5672
     ip_protocol = "tcp"
-    cidr        = "0.0.0.0/0"
+    cidr        = "${var.cidr}"
   }
   rule {
     from_port   = 15672
     to_port     = 15672
     ip_protocol = "tcp"
-    cidr        = "0.0.0.0/0"
+    cidr        = "0.0.0.0/0" # Soon changed to "${var.cidr}"
   }
 }
 

@@ -2,8 +2,7 @@
 
 The [code](./src) is written in Python (3.6+).
 
-You can provision and deploy, locally, the different components
-using [docker-compose](./docker).
+You can provision and deploy the different components:
 
-We plan on having a provisioning script for OpenStack, along with a
-deployment script using Ansible. Stay tuned.
+* locally, using [docker-compose](./docker).
+* on an OpenStack cluster, using [terraform](./terraform).

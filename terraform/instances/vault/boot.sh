@@ -2,7 +2,7 @@
 
 set -e
 
-git clone https://github.com/NBISweden/LocalEGA.git ~/repo
+git clone -b terraform https://github.com/NBISweden/LocalEGA.git ~/repo
 sudo pip3.6 install ~/repo/src
 
 echo "Waiting for Message Broker"
@@ -11,7 +11,11 @@ echo "Waiting for database"
 until nc -4 --send-only ega-db 5432 </dev/null &>/dev/null; do sleep 1; done
 
 echo "Starting the verifier"
-ega-verify &
+sudo systemctl start ega-verify
+sudo systemctl enable ega-verify
 
 echo "Starting the vault listener"
-ega-vault &
+sudo systemctl start ega-vault
+sudo systemctl enable ega-vault
+
+echo "LEGA ready"
