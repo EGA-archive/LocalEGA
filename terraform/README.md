@@ -23,7 +23,6 @@ You need to create a `main.auto.tfvars` file (in that same folder) with the foll
 	
 ## Running
 
-	# ...and cue music
 	terraform apply
 	
 That's it.	
