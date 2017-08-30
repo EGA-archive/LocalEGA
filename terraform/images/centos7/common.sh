@@ -9,7 +9,8 @@ yum -y install gcc git curl wget make gettext texinfo \
 	       file readline-devel \
 	       sqlite sqlite-devel \
 	       openssl openssl-devel openssh-server \
-	       nss-tools nc nmap tcpdump lsof
+	       nss-tools nc nmap tcpdump lsof strace \
+	       bash-completion bash-completion-extras
 
 LIBGPG_ERROR_VERSION=1.27
 LIBGCRYPT_VERSION=1.7.6
