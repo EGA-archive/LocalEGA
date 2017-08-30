@@ -1,6 +1,6 @@
 main.auto.tfvars
 snic.cloud.rc
 .terraform*
-terraform.tfstate*
+*.tfstate*
 tests/
-module/worker/build
+instances/workers/*.zip

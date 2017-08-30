@@ -14,6 +14,12 @@ variable gpg_passphrase {}
 variable lega_conf {}
 variable cidr { default = "192.168.10.0/24" }
 
+terraform {
+  backend "local" {
+    path = ".terraform/ega.tfstate"
+  }
+}
+
 # Configure the OpenStack Provider
 provider "openstack" {
   user_name   = "${var.os_username}"
