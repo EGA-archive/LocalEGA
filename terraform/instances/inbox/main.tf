@@ -23,11 +23,9 @@ data "template_file" "cloud_init" {
 
   vars {
     boot_script = "${base64encode("${data.template_file.boot.rendered}")}"
-    lega_script = "${base64encode("${file("${path.module}/lega.sh")}")}"
     hosts = "${base64encode("${file("${path.root}/hosts")}")}"
     conf = "${var.lega_conf}"
     cidr = "${var.cidr}"
-    ega_service = "${base64encode("${file("${path.module}/ega-inbox.service")}")}"
   }
 }
 

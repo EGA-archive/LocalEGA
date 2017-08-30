@@ -245,4 +245,85 @@ cp /etc/nsswitch.conf /etc/nsswitch.conf.bak
 sed -i -e 's/^passwd:\(.*\)files/passwd:\1ega files/' /etc/nsswitch.conf
 sed -i -e 's/^shadow:\(.*\)files/shadow:\1ega files/' /etc/nsswitch.conf
 
+#########################################
+# Systemd files
+#########################################
+cat > /etc/systemd/system/ega.slice <<EOF
+[Unit]
+Description=EGA Slice
+DefaultDependencies=no
+Before=slices.target
+
+#[Slice]
+#CPUShares=512
+#MemoryLimit=2G
+EOF
+
+cat > /etc/systemd/system/ega-db.socket <<EOF
+[Unit]
+Description=EGA Database socket activation
+After=syslog.target
+After=network.target
+
+[Socket]
+ListenStream=ega-db:5432
+
+[Install]
+WantedBy=sockets.target
+EOF
+
+cat > /etc/systemd/system/ega-mq.socket <<EOF
+[Unit]
+Description=EGA Message Broker socket activation
+After=syslog.target
+After=network.target
+
+[Socket]
+ListenStream=ega-mq:5432
+
+[Install]
+WantedBy=sockets.target
+EOF
+
+cat > /etc/systemd/system/ega-inbox.service <<'EOF'
+[Unit]
+Description=EGA Inbox service
+After=syslog.target
+After=network.target
+
+[Service]
+Slice=ega.slice
+Type=simple
+User=root
+Group=root
+
+ExecStart=/bin/ega-inbox --conf $EGA_CONF --log $EGA_LOG
+
+Environment=EGA_CONF=~ega/.lega/conf.ini
+Environment=EGA_LOG=syslog
+
+StandardOutput=syslog
+StandardError=syslog
+
+Restart=on-failure
+RestartSec=10
+TimeoutSec=600
+
+Sockets=ega-db.socket ega-mq.socket
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+####################################
+
+pushd ~/repo
+git checkout terraform
+pip3.6 install src/
+popd
+
+echo "Starting the inbox listener"
+systemctl start ega-inbox.service
+systemctl enable ega-inbox.service
+
 echo "Inbox ready"

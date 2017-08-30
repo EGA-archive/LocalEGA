@@ -17,6 +17,11 @@ Environment=EGA_LOG=syslog
 StandardOutput=syslog
 StandardError=syslog
 
+Restart=on-failure
+RestartSec=10  # seconds
+TimeoutSec=600 # seconds
+
+Sockets=ega-db.socket ega-mq.socket
 
 [Install]
 WantedBy=multi-user.target
