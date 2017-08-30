@@ -25,7 +25,10 @@ You need to create a `main.auto.tfvars` file (in that same folder) with the foll
 
 	# ...and cue music
 	terraform apply
+	
+That's it.	
 
+----
 If it fails, it might be a good idea to bring them up little at a time.
 
 So... network first:
