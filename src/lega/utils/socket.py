@@ -12,17 +12,22 @@ Usefull to forward gpg requests to a remote GPG-agent.
 '''
 
 import sys
+import os
 from syslog import syslog, LOG_DEBUG, LOG_INFO, LOG_WARNING
 import argparse
 import asyncio
 import ssl
 from functools import partial
 from pathlib import Path
+import socket
 
 CHUNK_SIZE=4096
 
 # Monkey-patching ssl
 ssl.match_hostname = lambda cert, hostname: True
+
+LISTEN_FDS = int(os.environ.get("LISTEN_FDS", 0))
+#LISTEN_PID = os.environ.get("LISTEN_PID", None) or os.getpid()
 
 async def copy_chunk(reader,writer):
     while True:
@@ -64,10 +69,10 @@ def forward():
     parser.add_argument('--chunk', help='Size of the chunk to forward. [Default: 4096]', type=int)
     args = parser.parse_args()
 
-    socket = Path(args.socket).expanduser()
+    socket_path = Path(args.socket).expanduser()
     certfile = Path(args.certfile).expanduser() if args.certfile else None
 
-    syslog(LOG_INFO, f'Socket: {socket}')
+    syslog(LOG_INFO, f'Socket: {socket_path}')
     syslog(LOG_INFO, f'Remote machine: {args.remote_machine}')
     syslog(LOG_DEBUG, f'Certfile: {certfile}')
 
@@ -84,13 +89,20 @@ def forward():
 
     host,port = args.remote_machine.split(':')
 
+    if LISTEN_FDS == 0:
+        _sock = None
+    else: # reuse the socket from systemd
+        socket_path=None
+        _sock=socket.fromfd(3, socket.AF_UNIX, socket.SOCK_STREAM, proto=0)
+
     loop = asyncio.get_event_loop()
     connection_factory = lambda : asyncio.open_connection(host=host,
                                                           port=int(port),
                                                           ssl=ssl_ctx)
     server = loop.run_until_complete(
         asyncio.start_unix_server(partial(handle_connection,connection_factory),
-                                  path=socket, # re-created if stale
+                                  path=socket_path, # re-created if stale
+                                  sock=_sock,
                                   loop=loop)
     )
     try:
@@ -146,9 +158,15 @@ def proxy():
         syslog(LOG_INFO, 'With SSL encryption')
 
     address,port = args.address.split(':')
+    if LISTEN_FDS == 0:
+        socket_path = args.socket
+        _sock = None
+    else: # reuse the socket from systemd
+        socket_path = None
+        _sock=socket.fromfd(3, socket.AF_UNIX, socket.SOCK_STREAM, proto=0)
 
     loop = asyncio.get_event_loop()
-    connection_factory = lambda : asyncio.open_unix_connection(path=args.socket)
+    connection_factory = lambda : asyncio.open_unix_connection(path=socket_path, sock=_sock)
     server = loop.run_until_complete(
         asyncio.start_server(partial(handle_connection,connection_factory),
                              host=address,

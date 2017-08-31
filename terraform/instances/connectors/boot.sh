@@ -44,7 +44,7 @@ After=syslog.target
 After=network.target
 
 [Socket]
-ListenStream=ega-mq:5432
+ListenStream=ega-mq:5672
 
 [Install]
 WantedBy=sockets.target

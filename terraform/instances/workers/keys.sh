@@ -13,7 +13,7 @@ setenforce 0
 # Public + Private parts
 mkdir -p ~ega/.gnupg && chmod 700 ~ega/.gnupg
 mkdir -p ~ega/.rsa && chmod 700 ~ega/.rsa
-mkdir -p ~ega/certs && chmod 700 ~ega/certs
+mkdir -p ~ega/.certs && chmod 700 ~ega/.certs
 mkdir -p ~ega/.gnupg/private-keys-v1.d && chmod 700 ~ega/.gnupg/private-keys-v1.d
 
 unzip /tmp/gpg.zip -d ~ega/.gnupg
@@ -31,13 +31,11 @@ chown -R ega:ega ~ega/.rsa
 chown -R ega:ega ~ega/.certs
 
 chmod 600 ~ega/.gnupg/{pubring.kbx,trustdb.gpg}
-chmod 700 ~ega/.gnupg/private-keys-v1.d
-chmod 700 ~ega/.gnupg/private-keys-v1.d/*
-chmod 640 ~ega/certs/*.cert
-chmod 600 ~ega/certs/*.key
-chmod 640 ~ega/certs/*.cert
-chmod 600 ~ega/.rsa/ega.pem
+chmod -R 700 ~ega/.gnupg/private-keys-v1.d
+chmod 640 ~ega/.certs/*.cert
+chmod 600 ~ega/.certs/*.key
 chmod 640 ~ega/.rsa/ega-public.pem
+chmod 600 ~ega/.rsa/ega.pem
 
 ##############
 git clone -b terraform https://github.com/NBISweden/LocalEGA.git ~/repo
@@ -57,21 +55,39 @@ Before=slices.target
 #MemoryLimit=2G
 EOF
 
-cat > /etc/systemd/system/ega-socket-proxy.service <<EOF
+cat > /etc/systemd/system/ega-socket-proxy@.socket <<EOF
 [Unit]
-Description=EGA Socket Proxy service (port 9010)
+Description=EGA GPG-agent (limited) socket activation
 After=syslog.target
 After=network.target
+
+[Socket]
+ListenStream=/run/ega/S.gpg-agent.extra
+SocketUser=ega
+SocketGroup=ega
+SocketMode=0600
+DirectoryMode=0755
+
+[Install]
+WantedBy=sockets.target
+EOF
+
+cat > /etc/systemd/system/ega-socket-proxy@.service <<'EOF'
+[Unit]
+Description=EGA Socket Proxy service (%i)
+After=syslog.target
+After=network.target
+
+Requires=ega-socket-proxy@.socket
 
 [Service]
 Slice=ega.slice
 Type=simple
 User=ega
 Group=ega
-ExecStartPre=-/usr/bin/pkill gpg-agent
-ExecStartPre=-/bin/rm -f $EGA_SOCKET
-ExecStartPre=/usr/local/bin/gpg-agent --daemon
-ExecStart=/bin/ega-socket-proxy '0.0.0.0:9010' $EGA_SOCKET --certfile \$EGA_GPG_CERTFILE --keyfile \$EGA_GPG_KEYFILE
+ExecStartPre=/usr/local/bin/gpg-agent --supervised
+ExecStart=/bin/ega-socket-proxy %i /run/ega/S.gpg-agent.extra --certfile $EGA_GPG_CERTFILE --keyfile $EGA_GPG_KEYFILE
+#ExecReload=/usr/local/bin/gpgconf --reload gpg-agent
 
 Environment=EGA_GPG_CERTFILE=~/.certs/selfsigned.cert
 Environment=EGA_GPG_KEYFILE=~/.certs/selfsigned.key
@@ -82,6 +98,8 @@ StandardError=syslog
 Restart=on-failure
 RestartSec=10
 TimeoutSec=600
+
+Sockets=ega-socket-proxy@.socket
 
 [Install]
 WantedBy=multi-user.target
@@ -95,7 +113,7 @@ max-cache-ttl 31536000    # one year
 pinentry-program /usr/local/bin/pinentry-curses
 allow-loopback-pinentry
 enable-ssh-support
-extra-socket $EGA_SOCKET
+extra-socket /run/ega/S.gpg-agent.extra
 browser-socket /dev/null
 disable-scdaemon
 #disable-check-own-socket
@@ -105,6 +123,6 @@ chmod 640 ~ega/.gnupg/gpg-agent.conf
 
 ##############
 echo "Starting the gpg-agent proxy"
-systemctl start ega-socket-proxy.service
-systemctl enable ega-socket-proxy.service
+systemctl start ega-socket-proxy@0.0.0.0:9010 -t service
+systemctl enable ega-socket-proxy@0.0.0.0:9010 -t service
 
