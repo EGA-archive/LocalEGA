@@ -43,7 +43,7 @@ mkdir -m 0755 /ega # owned by root
 
 mkfs -t btrfs -f /dev/vdb # forcing it
 
-echo "/dev/vdb /ega btrfs defaults 0 0" >> /etc/fstab
+echo "/dev/vdb1 /ega btrfs defaults 0 0" >> /etc/fstab
 mount /ega
 
 chown root:ega /ega
@@ -321,6 +321,8 @@ EOF
 ####################################
 # Will systemd restart the processes because they could not contact
 # the database and message broker?
+
+pip3.6 install ~/repo/src/
 
 echo "Starting the inbox listener"
 systemctl start ega-inbox.service
