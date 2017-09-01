@@ -22,7 +22,7 @@ The following images are created locally:
 |------------|:--------:|------|
 | nbis/ega   | db       | Sets up a postgres database with appropriate tables |
 | nbis/ega   | mq       | Sets up a RabbitMQ message broker with appropriate accounts, exchanges, queues and bindings |
-| nbis/ega   | common   | Image including python 3.6.1, GnuPG 2.1.20 and OpenSSH 7.5 |
+| nbis/ega   | common   | Image including python 3.6.1, GnuPG 2.2.0 and OpenSSH 7.5 |
 | nbis/ega   | inbox    | SFTP server on top of `nbis/ega:common` |
 | nbis/ega   | frontend | Documentation for the users |
 | nbis/ega   | worker   | LocalEGA code on top of `nbis/ega:common`, including forwarding the gpg-agent |

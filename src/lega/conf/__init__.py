@@ -6,7 +6,10 @@ from pathlib import Path
 import yaml
 
 _here = Path(__file__).parent
-_config_files =  [ _here / 'defaults.ini' ]
+_config_files =  [ 
+                _here / 'defaults.ini' ,
+                '/etc/ega/conf.ini'
+              ]
 
 _loggers =  {
     'default': _here / 'loggers/default.yaml', 
