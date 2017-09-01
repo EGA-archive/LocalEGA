@@ -55,7 +55,7 @@ Before=slices.target
 #MemoryLimit=2G
 EOF
 
-cat > /etc/systemd/system/ega-socket-proxy@.socket <<EOF
+cat > /etc/systemd/system/ega-socket-proxy.socket <<EOF
 [Unit]
 Description=EGA GPG-agent (limited) socket activation
 After=syslog.target
@@ -72,13 +72,13 @@ DirectoryMode=0755
 WantedBy=sockets.target
 EOF
 
-cat > /etc/systemd/system/ega-socket-proxy@.service <<'EOF'
+cat > /etc/systemd/system/ega-socket-proxy.service <<'EOF'
 [Unit]
-Description=EGA Socket Proxy service (%i)
+Description=EGA Socket Proxy service (GPG-master on port 9010)
 After=syslog.target
 After=network.target
 
-Requires=ega-socket-proxy@.socket
+Requires=ega-socket-proxy.socket
 
 [Service]
 Slice=ega.slice
@@ -86,7 +86,7 @@ Type=simple
 User=ega
 Group=ega
 ExecStartPre=/usr/local/bin/gpg-agent --supervised
-ExecStart=/bin/ega-socket-proxy %i /run/ega/S.gpg-agent.extra --certfile $EGA_GPG_CERTFILE --keyfile $EGA_GPG_KEYFILE
+ExecStart=/bin/ega-socket-proxy 'ega-keys:9010' /run/ega/S.gpg-agent.extra --certfile $EGA_GPG_CERTFILE --keyfile $EGA_GPG_KEYFILE
 #ExecReload=/usr/local/bin/gpgconf --reload gpg-agent
 
 Environment=EGA_GPG_CERTFILE=~/.certs/selfsigned.cert
@@ -98,8 +98,6 @@ StandardError=syslog
 Restart=on-failure
 RestartSec=10
 TimeoutSec=600
-
-Sockets=ega-socket-proxy@.socket
 
 [Install]
 WantedBy=multi-user.target
@@ -123,6 +121,9 @@ chmod 640 ~ega/.gnupg/gpg-agent.conf
 
 ##############
 echo "Starting the gpg-agent proxy"
-systemctl start ega-socket-proxy@0.0.0.0:9010 -t service
-systemctl enable ega-socket-proxy@0.0.0.0:9010 -t service
+systemctl start ega-socket-proxy.socket
+systemctl start ega-socket-proxy.service
+
+systemctl enable ega-socket-proxy.socket
+systemctl enable ega-socket-proxy.service
 

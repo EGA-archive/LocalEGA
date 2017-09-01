@@ -197,14 +197,42 @@ chmod g+s /ega/skel/inbox # rwxrws---
 
 cp /etc/pam.d/sshd /etc/pam.d/sshd.bak
 
+cat > /usr/local/sbin/ega_homedir.sh <<'EOF'
+#!/bin/bash
+
+echo "EGA homedir for $PAM_USER: Running as $(whoami)"
+
+[[ "$PAM_USER" = "ega" ]] && echo "Welcome ega...ok...not touching your homedir" && exit 0
+
+[[ -z "$PAM_USER" ]] && exit 2
+
+echo "EGA homedir: Running as $(whoami)"
+
+skel=/ega/skel 
+umask=0022
+
+if [[ ! -d ~$PAM_USER ]]; then
+   mkdir -p ~$PAM_USER
+   cp -a $skel/. ~$PAM_USER
+
+   chown root:ega ~$PAM_USER
+   chmod 750 ~$PAM_USER
+   chown -R ega:ega ~$PAM_USER/*
+else
+   echo "Not touching the homedir: $HOME"
+fi
+EOF
+chmod 700 /usr/local/sbin/ega_homedir.sh
+
 cat > /etc/pam.d/ega <<EOF
 #%PAM-1.0
 auth       sufficient   /usr/local/lib/ega/security/pam_pgsql.so
 account    sufficient   /usr/local/lib/ega/security/pam_pgsql.so
 password   sufficient   /usr/local/lib/ega/security/pam_pgsql.so
 #session    optional     pam_echo.so file=/ega/login.msg
-session    sufficient   /usr/local/lib/ega/security/pam_pgsql.so
-session    required     pam_mkhomedir.so skel=/ega/skel/ umask=0022
+session    required    /usr/local/lib/ega/security/pam_pgsql.so
+#session    required     pam_exec.so /usr/local/sbin/ega_homedir.sh
+#session    required     pam_mkhomedir.so skel=/ega/skel/ umask=0022
 EOF
 
 cat > /etc/pam.d/sshd <<EOF
@@ -264,32 +292,6 @@ Before=slices.target
 #MemoryLimit=2G
 EOF
 
-cat > /etc/systemd/system/ega-db.socket <<EOF
-[Unit]
-Description=EGA Database socket activation
-After=syslog.target
-After=network.target
-
-[Socket]
-ListenStream=ega-db:5432
-
-[Install]
-WantedBy=sockets.target
-EOF
-
-cat > /etc/systemd/system/ega-mq.socket <<EOF
-[Unit]
-Description=EGA Message Broker socket activation
-After=syslog.target
-After=network.target
-
-[Socket]
-ListenStream=ega-mq:5432
-
-[Install]
-WantedBy=sockets.target
-EOF
-
 cat > /etc/systemd/system/ega-inbox.service <<'EOF'
 [Unit]
 Description=EGA Inbox service
@@ -312,18 +314,13 @@ Restart=on-failure
 RestartSec=10
 TimeoutSec=600
 
-Sockets=ega-db.socket ega-mq.socket
-
 [Install]
 WantedBy=multi-user.target
 EOF
 
 ####################################
-
-pushd ~/repo
-git checkout terraform
-pip3.6 install src/
-popd
+# Will systemd restart the processes because they could not contact
+# the database and message broker?
 
 echo "Starting the inbox listener"
 systemctl start ega-inbox.service

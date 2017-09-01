@@ -23,32 +23,6 @@ Before=slices.target
 #MemoryLimit=2G
 EOF
 
-cat > /etc/systemd/system/ega-db.socket <<EOF
-[Unit]
-Description=EGA Database socket activation
-After=syslog.target
-After=network.target
-
-[Socket]
-ListenStream=ega-db:5432
-
-[Install]
-WantedBy=sockets.target
-EOF
-
-cat > /etc/systemd/system/ega-mq.socket <<EOF
-[Unit]
-Description=EGA Message Broker socket activation
-After=syslog.target
-After=network.target
-
-[Socket]
-ListenStream=ega-mq:5672
-
-[Install]
-WantedBy=sockets.target
-EOF
-
 cat > /etc/systemd/system/ega-frontend.service <<'EOF'
 [Unit]
 Description=EGA Frontend service
@@ -71,12 +45,12 @@ Restart=on-failure
 RestartSec=10
 TimeoutSec=600
 
-Sockets=ega-db.socket ega-mq.socket
-
 [Install]
 WantedBy=multi-user.target
 EOF
 
+# Will systemd restart the processes because they could not contact
+# the database and message broker?
 
 echo "Starting the frontend"
 systemctl start ega-frontend

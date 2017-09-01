@@ -43,32 +43,6 @@ Before=slices.target
 #MemoryLimit=2G
 EOF
 
-cat > /etc/systemd/system/ega-db.socket <<EOF
-[Unit]
-Description=EGA Database socket activation
-After=syslog.target
-After=network.target
-
-[Socket]
-ListenStream=ega-db:5432
-
-[Install]
-WantedBy=sockets.target
-EOF
-
-cat > /etc/systemd/system/ega-mq.socket <<EOF
-[Unit]
-Description=EGA Message Broker socket activation
-After=syslog.target
-After=network.target
-
-[Socket]
-ListenStream=ega-mq:5672
-
-[Install]
-WantedBy=sockets.target
-EOF
-
 cat > /etc/systemd/system/ega-worker.service <<'EOF'
 [Unit]
 Description=EGA Worker service
@@ -94,8 +68,6 @@ Restart=on-failure
 RestartSec=10
 TimeoutSec=600
 
-Sockets=ega-db.socket ega-mq.socket
-
 [Install]
 WantedBy=multi-user.target
 EOF
@@ -120,7 +92,7 @@ rm /tmp/certs.zip
 
 ##################################################
 
-cat > /etc/systemd/system/ega-socket-forwarder@.socket <<EOF
+cat > /etc/systemd/system/ega-socket-forwarder.socket <<EOF
 [Unit]
 Description=EGA GPG-agent socket activation
 After=syslog.target
@@ -145,20 +117,20 @@ chown ega:ega ~ega/.gnupg/S.gpg-agent
 chmod 600 ~ega/.gnupg/S.gpg-agent
 
 
-cat > /etc/systemd/system/ega-socket-forwarder@.service <<'EOF'
+cat > /etc/systemd/system/ega-socket-forwarder.service <<'EOF'
 [Unit]
-Description=EGA Socket forwarding service (to %I)
+Description=EGA Socket forwarding service (to GPG-master on port 9010)
 After=syslog.target
 After=network.target
 
-Requires=ega-socket-forwarder@.socket
+Requires=ega-socket-forwarder.socket
 
 [Service]
 Slice=ega.slice
 Type=simple
 User=ega
 Group=ega
-ExecStart=/bin/ega-socket-forwarder /run/ega/S.gpg-agent %i --certfile $EGA_GPG_CERTFILE
+ExecStart=/bin/ega-socket-forwarder /run/ega/S.gpg-agent ega-keys:9010 --certfile $EGA_GPG_CERTFILE
 
 Environment=EGA_GPG_CERTFILE=~/.certs/selfsigned.cert
 
@@ -166,20 +138,22 @@ Restart=on-failure
 RestartSec=10
 TimeoutSec=600
 
-Sockets=ega-socket-forwarder@.socket
+Sockets=ega-socket-forwarder.socket
 
 [Install]
 WantedBy=multi-user.target
 EOF
 
 echo "Starting the gpg-agent forwarder"
-systemctl start ega-socket-forwarder@ega-keys:9010.service
+systemctl start ega-socket-forwarder.socket
+systemctl start ega-socket-forwarder.service
 
 echo "Starting the worker"
 systemctl start ega-worker.service
 
 echo "Enabling services"
-systemctl enable ega-socket-forwarder@ega-keys:9010.service
+systemctl enable ega-socket-forwarder.socket
+systemctl enable ega-socket-forwarder.service
 systemctl enable ega-worker.service
 
 echo "Workers ready"
