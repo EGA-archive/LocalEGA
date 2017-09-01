@@ -27,6 +27,7 @@ The folder referenced by `GPG_HOME` should contain the following:
 | `private-keys-v1.d/`| idem |
 | `certs/selfsigned.{cert,key}` | ... ssl encryption of the traffic between the workers and the gpg-agent master |
 
+These files are created in advance by GPG (version 2.1+).
 
 Moreover, some of the containers need extra variables. There are located in:
 * `.env.d/gpg` with
