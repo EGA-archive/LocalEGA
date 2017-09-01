@@ -43,7 +43,7 @@ services:
     image: nbis/ega:inbox
     volumes:
        - ${CODE}:/root/ega
-       - ${CONF}:/root/.lega/conf.ini:ro
+       - ${CONF}:/etc/ega/conf.ini:ro
        - ${INBOX}:/home
        - ./entrypoints/inbox.sh:/usr/local/bin/inbox.sh:ro
        # - ${ORG_FILE}:/root/org_file
@@ -66,7 +66,7 @@ services:
     image: nbis/ega:frontend
     volumes:
        - ${CODE}:/root/ega
-       - ${CONF}:/root/.lega/conf.ini:ro
+       - ${CONF}:/etc/ega/conf.ini:ro
        - ./entrypoints/frontend.sh:/usr/local/bin/frontend.sh:ro
     command: frontend.sh
 
@@ -81,7 +81,7 @@ services:
     image: nbis/ega:common
     volumes:
        - ${CODE}:/root/ega
-       - ${CONF}:/root/.lega/conf.ini:ro
+       - ${CONF}:/etc/ega/conf.ini:ro
        - ${STAGING}:/ega/staging
        - ${VAULT}:/ega/vault
        - ./entrypoints/vault.sh:/usr/local/bin/vault.sh:ro
@@ -98,7 +98,7 @@ services:
     image: nbis/ega:common
     volumes:
        - ${CODE}:/root/ega
-       - ${CONF}:/root/.lega/conf.ini:ro
+       - ${CONF}:/etc/ega/conf.ini:ro
        - ${VAULT}:/ega/vault
        - ./entrypoints/verify.sh:/usr/local/bin/verify.sh:ro
     command: verify.sh
@@ -114,7 +114,7 @@ services:
     image: nbis/ega:common
     volumes:
        - ${CODE}:/root/ega
-       - ${CONF}:/root/.lega/conf.ini:ro
+       - ${CONF}:/etc/ega/conf.ini:ro
        - ./entrypoints/connectors.sh:/usr/local/bin/connectors.sh:ro
     command: ["connectors.sh"] 
     # Exec form, not shell form
@@ -129,7 +129,7 @@ services:
     image: nbis/ega:common
     volumes:
        - ${CODE}:/root/ega
-       - ${CONF}:/root/.lega/conf.ini:ro
+       - ${CONF}:/etc/ega/conf.ini:ro
        - ./entrypoints/monitors.sh:/usr/local/bin/monitors.sh:ro
     command: monitors.sh
 
@@ -147,7 +147,7 @@ services:
     stdin_open: true
     volumes:
        - ${CODE}:/root/ega
-       - ${CONF}:/root/.lega/conf.ini:ro
+       - ${CONF}:/etc/ega/conf.ini:ro
        - ${INBOX}:/home
        - ${STAGING}:/ega/staging
        - ${GPG_HOME}/pubring.kbx:/root/.gnupg/pubring.kbx
@@ -169,7 +169,7 @@ services:
     tty: true
     volumes:
        - ${CODE}:/root/ega
-       - ${CONF}:/root/.lega/conf.ini:ro
+       - ${CONF}:/etc/ega/conf.ini:ro
        - ${INBOX}:/home
        - ${STAGING}:/ega/staging
        - ${GPG_HOME}/pubring.kbx:/root/.gnupg/pubring.kbx
@@ -190,7 +190,7 @@ services:
     tty: true
     volumes:
        - ${CODE}:/root/ega
-       - ${CONF}:/root/.lega/conf.ini:ro
+       - ${CONF}:/etc/ega/conf.ini:ro
        - ${GPG_HOME}/pubring.kbx:/root/.gnupg/pubring.kbx
        - ${GPG_HOME}/trustdb.gpg:/root/.gnupg/trustdb.gpg
        - ${GPG_HOME}/openpgp-revocs.d:/root/.gnupg/openpgp-revocs.d:ro
