@@ -4,7 +4,7 @@ set -e
 
 ##############
 #while gpg-connect-agent /bye; do sleep 2; done
-KEYGRIP=$(/usr/local/bin/gpg2 -k --with-keygrip ega@nbis.se | awk '/Keygrip/{print $3;exit;}')
+KEYGRIP=$(/usr/local/bin/gpg -k --with-keygrip ega@nbis.se | awk '/Keygrip/{print $3;exit;}')
 if [ ! -z "$KEYGRIP" ]; then 
     echo 'Unlocking the GPG key'
     /usr/local/libexec/gpg-preset-passphrase --preset -P "$(cat /tmp/gpg_passphrase)" $KEYGRIP && \
