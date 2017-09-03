@@ -43,7 +43,7 @@ mkdir -m 0755 /ega # owned by root
 
 mkfs -t btrfs -f /dev/vdb # forcing it
 
-echo "/dev/vdb1 /ega btrfs defaults 0 0" >> /etc/fstab
+echo "/dev/vdb /ega btrfs defaults 0 0" >> /etc/fstab
 mount /ega
 
 chown root:ega /ega
