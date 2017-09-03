@@ -15,14 +15,24 @@ setenforce 0
 
 echo "Restarting RSyslog to capture EGA logs"
 
-cat > /etc/rsyslog.d/ega.conf <<'EOF'
-# for UDP use:
-module(load="imudp") # needs to be done just once 
-input(type="imudp" port="10514")
-#$ModLoad imudp
-#$InputUDPServerRun 10514
 
-local1.* /var/log/ega.log
+cat > /etc/rsyslog.d/ega.conf <<'EOF'
+# Module
+$ModLoad imtcp
+
+# Template: log every host in its own file
+$template EGAlogs,"/var/log/ega/%HOSTNAME%.log"
+
+# Remote Logging
+$RuleSet EGARules
+local1.* /var/log/ega-old.log
+*.* ?EGAlogs
+
+# bind ruleset to tcp listener
+$InputTCPServerBindRuleset EGARules
+
+# and activate it:
+$InputTCPServerRun 10514
 EOF
 
 systemctl restart rsyslog
