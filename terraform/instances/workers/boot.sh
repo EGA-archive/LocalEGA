@@ -49,28 +49,32 @@ Before=slices.target
 #MemoryLimit=2G
 EOF
 
+# Cloud init should run late enough, so that /run/user/1001 exists
+EGA_SOCKET=$(su -c "gpgconf --list-dirs agent-socket" - ega) # as ega user
+
 cat > /etc/systemd/system/ega-socket-forwarder.socket <<EOF
 [Unit]
-Description=EGA GPG-agent socket activation
+Description=GPG-agent socket activation
 After=syslog.target
 After=network.target
 
 [Socket]
-ListenStream=/run/ega/S.gpg-agent
+ListenStream=$EGA_SOCKET
 SocketUser=ega
 SocketGroup=ega
 SocketMode=0600
-DirectoryMode=0755
+ExecStartPre=/usr/bin/su - ega -c "gpgconf --create-socketdir"
 
 [Install]
 WantedBy=sockets.target
 EOF
 
-cat > /etc/systemd/system/ega-socket-forwarder.service <<'EOF'
+cat > /etc/systemd/system/ega-socket-forwarder.service <<EOF
 [Unit]
 Description=EGA Socket forwarding service (to GPG-master on port 9010)
 After=syslog.target
 After=network.target
+After=user.slice systemd-logind.service
 
 Requires=ega-socket-forwarder.socket
 After=ega-socket-forwarder.socket
@@ -80,8 +84,8 @@ Slice=ega.slice
 Type=simple
 User=ega
 Group=ega
-ExecStart=/bin/ega-socket-forwarder /run/ega/S.gpg-agent ega-keys:9010 --certfile $EGA_GPG_CERTFILE
-
+ExecStart=/bin/ega-socket-forwarder $EGA_SOCKET ega-keys:9010 --certfile \$EGA_GPG_CERTFILE
+RuntimeDirectory=ega
 Environment=EGA_GPG_CERTFILE=~/.certs/selfsigned.cert
 
 Restart=on-failure
@@ -95,26 +99,6 @@ WantedBy=ega-worker.service
 RequiredBy=ega-worker.service
 EOF
 
-# To be run as EGA user
-cat > /usr/local/bin/ega_create_socket_link.sh <<'EOF'
-#!/bin/bash
-[[ $# -ne 1 ]] && echo "Specify one argument (only): Bailing out..." && exit 1
-EGA_GPG_SOCKET=$(gpgconf --list-dirs $1-socket)
-[[ -z "$EGA_GPG_SOCKET" ]] && echo "We couldn't find the gpg socket location: Bailing out..." && exit 2
-[[ -f "$EGA_GPG_SOCKET" ]] && echo "GPG socket link already in $EGA_GPG_SOCKET" && exit 0
-# otherwise, create the file
-mkdir -p $(dirname $EGA_GPG_SOCKET)
-cat > $EGA_GPG_SOCKET <<EOFSOCKET
-%Assuan%
-socket=/run/ega/S.gpg-$1
-EOFSOCKET
-#chown ega:ega $EGA_GPG_SOCKET
-chmod 600 $EGA_GPG_SOCKET
-echo "GPG socket link created (see $EGA_GPG_SOCKET)"
-EOF
-chown ega:ega /usr/local/bin/ega_create_socket_link.sh
-chmod 700 /usr/local/bin/ega_create_socket_link.sh
-
 cat > /etc/systemd/system/ega-worker.service <<EOF
 [Unit]
 Description=EGA Worker service
@@ -124,17 +108,12 @@ After=network.target
 After=ega-socket-forwarder.socket
 BindsTo=ega-socket-forwarder.socket
 
-# For the runtime directory to be correctly set
-After=systemd-logind.service
-After=user@$(id -u ega).service
-
 [Service]
 Slice=ega.slice
 Type=simple
 User=ega
 Group=ega
 EnvironmentFile=/etc/ega/options
-ExecStartPre=/usr/local/bin/ega_create_socket_link.sh agent
 ExecStart=/bin/ega-worker \$EGA_OPTIONS
 
 StandardOutput=syslog

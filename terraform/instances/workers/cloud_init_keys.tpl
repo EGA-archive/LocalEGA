@@ -6,11 +6,6 @@ write_files:
     path: /root/boot.sh
     permissions: '0700'
   - encoding: b64
-    content: ${preset_script}
-    owner: ega:ega
-    path: /home/ega/preset.sh
-    permissions: '0700'
-  - encoding: b64
     content: ${hosts}
     owner: root:root
     path: /etc/hosts
@@ -48,6 +43,5 @@ write_files:
 
 runcmd:
   - /root/boot.sh
-  - su -c "/home/ega/preset.sh" - ega
 
 final_message: "The system is finally up, after $UPTIME seconds"
