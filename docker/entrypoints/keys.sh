@@ -14,7 +14,7 @@ rm -rf $(gpgconf --list-dirs agent-extra-socket) || true
 /usr/local/bin/gpg-agent --daemon
 
 #while gpg-connect-agent /bye; do sleep 2; done
-KEYGRIP=$(/usr/local/bin/gpg2 -k --with-keygrip ega@nbis.se | awk '/Keygrip/{print $3;exit;}')
+KEYGRIP=$(/usr/local/bin/gpg -k --with-keygrip ega@nbis.se | awk '/Keygrip/{print $3;exit;}')
 /usr/local/libexec/gpg-preset-passphrase --preset -P $GPG_PASSPHRASE $KEYGRIP
 unset GPG_PASSPHRASE
 
