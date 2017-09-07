@@ -31,7 +31,7 @@ services:
 
   # SFTP inbox
   inbox:
-    #env_file: .env.d/inbox
+    env_file: .env.d/db
     build: images/inbox
     hostname: ega-inbox
     depends_on:
@@ -44,7 +44,7 @@ services:
     volumes:
        - ${CODE}:/root/ega
        - ${CONF}:/etc/ega/conf.ini:ro
-       - ${INBOX}:/home
+       - ${INBOX}:/ega/inbox
        - ./entrypoints/inbox.sh:/usr/local/bin/inbox.sh:ro
        # - ${ORG_FILE}:/root/org_file
        # - ${ENC_FILE}:/root/enc_file
@@ -59,9 +59,9 @@ services:
       - db
     hostname: ega-frontend
     ports:
-      - "9000:9000"
+      - "9000:80"
     expose:
-      - 9000
+      - 80
     container_name: ega-frontend
     image: nbis/ega:frontend
     volumes:
@@ -121,17 +121,17 @@ services:
 
   # Error Monitors
   monitors:
-    build: images/common
-    depends_on:
-      - db
+    build: images/monitors
+    # depends_on:
+    #   - db
+    ports:
+      - "10514:10514"
+    expose:
+      - 10514
     hostname: ega-monitors
     container_name: ega-monitors
-    image: nbis/ega:common
-    volumes:
-       - ${CODE}:/root/ega
-       - ${CONF}:/etc/ega/conf.ini:ro
-       - ./entrypoints/monitors.sh:/usr/local/bin/monitors.sh:ro
-    command: monitors.sh
+    image: nbis/ega:monitors
+    command: ["rsyslogd", "-n"]
 
   # Workers
   worker-1:

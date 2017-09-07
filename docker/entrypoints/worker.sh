@@ -11,6 +11,7 @@ until nc -4 --send-only ega-db 5432 </dev/null &>/dev/null; do sleep 1; done
 
 echo "Waiting for GPG and SSH agent"
 until nc -4 --send-only ega-keys 9010 </dev/null &>/dev/null; do sleep 1; done
+
 echo "Starting the gpg-agent forwarder"
 ega-socket-forwarder /root/.gnupg/S.gpg-agent \
 		     ega-keys:9010 \
