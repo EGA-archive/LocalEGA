@@ -37,6 +37,7 @@ services:
     depends_on:
       - db
       - mq
+#      - monitors
     ports:
       - "2222:22"
     container_name: ega-inbox
@@ -57,6 +58,7 @@ services:
     build: images/common
     depends_on:
       - db
+#      - monitors
     hostname: ega-frontend
     ports:
       - "9000:80"
@@ -76,6 +78,7 @@ services:
     depends_on:
       - db
       - mq
+#      - monitors
     hostname: ega-vault
     container_name: ega-vault
     image: nbis/ega:common
@@ -87,28 +90,13 @@ services:
        - ./entrypoints/vault.sh:/usr/local/bin/vault.sh:ro
     command: vault.sh
 
-  # Verify
-  verify:
-    build: images/common
-    depends_on:
-      - db
-      - mq
-    hostname: ega-verify
-    container_name: ega-verify
-    image: nbis/ega:common
-    volumes:
-       - ${CODE}:/root/ega
-       - ${CONF}:/etc/ega/conf.ini:ro
-       - ${VAULT}:/ega/vault
-       - ./entrypoints/verify.sh:/usr/local/bin/verify.sh:ro
-    command: verify.sh
-
   # Connectors between CEGA and LEGA
   connectors:
     build: images/common
     depends_on:
       - db
       - mq
+#      - monitors
     hostname: ega-connectors
     container_name: ega-connectors
     image: nbis/ega:common
@@ -119,19 +107,19 @@ services:
     command: ["connectors.sh"] 
     # Exec form, not shell form
 
-  # Error Monitors
-  monitors:
-    build: images/monitors
-    # depends_on:
-    #   - db
-    ports:
-      - "10514:10514"
-    expose:
-      - 10514
-    hostname: ega-monitors
-    container_name: ega-monitors
-    image: nbis/ega:monitors
-    command: ["rsyslogd", "-n"]
+  # # Error Monitors
+  # monitors:
+  #   build: images/monitors
+  #   # depends_on:
+  #   #   - db
+  #   ports:
+  #     - "10514:10514"
+  #   expose:
+  #     - 10514
+  #   hostname: ega-monitors
+  #   container_name: ega-monitors
+  #   image: nbis/ega:monitors
+  #   command: ["rsyslogd", "-n"]
 
   # Workers
   worker-1:
@@ -140,6 +128,7 @@ services:
       - db
       - mq
       - keys
+#      - monitors
     hostname: ega-worker-1
     container_name: ega-worker-1
     image: nbis/ega:worker
@@ -163,6 +152,7 @@ services:
       - db
       - mq
       - keys
+#      - monitors
     hostname: ega-worker-2
     container_name: ega-worker-2
     image: nbis/ega:worker
@@ -183,6 +173,8 @@ services:
   # GPG Agent
   keys:
     build: images/keys
+    # depends_on:
+    #   - monitors
     env_file: .env.d/gpg
     hostname: ega-keys
     container_name: ega-keys

@@ -27,6 +27,7 @@ import os
 import logging
 import asyncio
 from pathlib import Path
+from functools import wraps
 
 from aiohttp import web
 import jinja2

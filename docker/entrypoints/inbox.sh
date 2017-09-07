@@ -34,8 +34,8 @@ until nc -4 --send-only ega-db 5432 </dev/null &>/dev/null; do sleep 1; done
 
 
 echo "Starting the inbox listener"
-#pip install -e /root/ega
-#ega-inbox &
+pip install -e /root/ega
+ega-inbox &
 
 echo "Starting the SFTP server"
 exec /usr/sbin/sshd -D -e

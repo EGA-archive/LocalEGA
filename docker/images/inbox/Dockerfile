@@ -56,3 +56,4 @@ RUN cp /etc/nsswitch.conf /etc/nsswitch.conf.bak && \
     sed -i -e 's/^passwd:\(.*\)files/passwd:\1ega files/' /etc/nsswitch.conf && \
     sed -i -e 's/^shadow:\(.*\)files/shadow:\1ega files/' /etc/nsswitch.conf
 
+RUN useradd ega
