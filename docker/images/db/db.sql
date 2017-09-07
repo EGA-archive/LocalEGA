@@ -14,23 +14,14 @@ CREATE EXTENSION pgcrypto;
 -- ##################################################
 --                        USERS
 -- ##################################################
-CREATE SEQUENCE IF NOT EXISTS users_id_seq INCREMENT 1 MINVALUE 1005 NO MAXVALUE START 1005 NO CYCLE;
-
 CREATE TABLE users (
-        id            INTEGER NOT NULL DEFAULT nextval('users_id_seq'::regclass), PRIMARY KEY(id), UNIQUE (id),
-	elixir_id     TEXT NOT NULL UNIQUE,
+        id            SERIAL, PRIMARY KEY(id), UNIQUE(id),
+        elixir_id     TEXT NOT NULL, UNIQUE(elixir_id),
 	password_hash TEXT,
 	pubkey        TEXT,
 	created_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT clock_timestamp(),
 	last_modified TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT clock_timestamp(),
 	CHECK (password_hash IS NOT NULL OR pubkey IS NOT NULL)
-);
-
-CREATE TABLE user_errors (
-        id            SERIAL, PRIMARY KEY(id), UNIQUE (id),
-	user_id       INTEGER REFERENCES users (id) ON DELETE CASCADE,
-	msg           TEXT NOT NULL,
-	occured_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT clock_timestamp()
 );
 
 CREATE FUNCTION insert_user(elixir_id     users.elixir_id%TYPE,
@@ -40,22 +31,17 @@ CREATE FUNCTION insert_user(elixir_id     users.elixir_id%TYPE,
     RETURNS users.id%TYPE AS $insert_user$
     #variable_conflict use_column
     DECLARE
-        user_id users.id%TYPE;
+        user_id users.elixir_id%TYPE;
+	eid     users.elixir_id%TYPE;
     BEGIN
-	INSERT INTO users (elixir_id,password_hash,pubkey) VALUES(elixir_id,password_hash,public_key)
+        -- eid := trim(trailing '@elixir-europe.org' from elixir_id);
+	eid := regexp_replace(elixir_id, '@.*', '');
+	INSERT INTO users (elixir_id,password_hash,pubkey) VALUES(eid,password_hash,public_key)
 	ON CONFLICT (elixir_id) DO UPDATE SET last_modified = DEFAULT
 	RETURNING users.id INTO user_id;
 	RETURN user_id;
     END;
 $insert_user$ LANGUAGE plpgsql;
-
-CREATE FUNCTION insert_user_error(user_id    user_errors.user_id%TYPE,
-                                  msg        user_errors.msg%TYPE)
-    RETURNS void AS $set_user_error$
-    BEGIN
-       INSERT INTO user_errors (user_id,msg) VALUES(user_id,msg);
-    END;
-$set_user_error$ LANGUAGE plpgsql;
 
 -- ##################################################
 --                        FILES
