@@ -135,13 +135,20 @@ mount -t nfs ega-inbox:/ega /ega || exit 1
 
 echo "Updating the /etc/fstab for the staging area"
 sed -i -e '/ega-inbox:/ d' /etc/fstab
-echo "ega-inbox:/ega /ega  nfs   auto,noatime,nolock,bg,nfsvers=4,intr,tcp,actimeo=1800 0 0" >> /etc/fstab
+echo "ega-inbox:/ega /ega  nfs  noauto,x-systemd.automount,x-systemd.device-timeout=10,timeo=14,x-systemd.idle-timeout=1min 0 0" >> /etc/fstab
+# AutoMount points will be created after reboot
 
 # ================
-echo "Starting the worker"
-systemctl start ega-worker.service ega-socket-forwarder.service ega-socket-forwarder.socket
+# echo "Starting the worker"
+# systemctl start ega-worker.service ega-socket-forwarder.service ega-socket-forwarder.socket
+
+echo "Enabling the ega user to linger"
+loginctl enable-linger ega
 
 echo "Enabling services"
 systemctl enable ega-worker.service ega-socket-forwarder.service ega-socket-forwarder.socket
 
+
 echo "Workers ready"
+echo "Rebooting"
+systemctl reboot

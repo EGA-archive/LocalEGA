@@ -26,10 +26,6 @@ rm /tmp/gpg_private.zip
 rm /tmp/rsa.zip
 rm /tmp/certs.zip
 
-# chown -R ega:ega ~/.gnupg
-# chown -R ega:ega ~/.rsa
-# chown -R ega:ega ~/.certs
-
 chmod 600 ~/.gnupg/{pubring.kbx,trustdb.gpg}
 chmod -R 700 ~/.gnupg/private-keys-v1.d
 chmod 640 ~/.certs/*.cert
@@ -174,3 +170,5 @@ else
 fi
 
 echo "Master GPG-agent ready"
+echo "Rebooting"
+systemctl reboot
