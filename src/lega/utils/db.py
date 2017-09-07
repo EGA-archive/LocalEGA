@@ -12,7 +12,7 @@ import logging
 from enum import Enum
 import aiopg
 import psycopg2
-import socket
+from socket import gethostname
 
 from ..conf import CONF
 from .exceptions import FromUser
@@ -93,7 +93,7 @@ def set_error(file_id, error):
     assert error, 'Eh? No error?'
     LOG.debug(f'Setting error for {file_id}: {error!s}')
     from_user = isinstance(error,FromUser)
-    hostname = socket.gethostname()
+    hostname = gethostname()
     with connect() as conn:
         with conn.cursor() as cur:
             cur.execute('SELECT insert_error(%(file_id)s,%(msg)s,%(from_user)s);',

@@ -8,27 +8,11 @@ import string
 import os
 import sys
 
-from aiohttp.web import HTTPUnauthorized
-
 from ..conf import CONF
 from . import db
 from . import exceptions
 
 LOG = logging.getLogger('utils')
-
-def only_central_ega(async_func):
-    '''Decorator restrain endpoint access to only Central EGA'''
-    @wraps(async_func)
-    async def wrapper(request):
-        # Just an example
-        if request.headers.get('X-CentralEGA', 'no') != 'yes':
-            raise HTTPUnauthorized(text='Not authorized. You should be Central EGA.\n')
-        # Otherwise, it is from CentralEGA, we continue
-        res = async_func(request)
-        res.__name__ = getattr(async_func, '__name__', None)
-        res.__qualname__ = getattr(async_func, '__qualname__', None)
-        return (await res)
-    return wrapper
 
 def db_log_error_on_files(func):
     '''Decorator to store the raised exception in the database'''
