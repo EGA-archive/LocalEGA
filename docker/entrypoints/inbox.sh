@@ -16,7 +16,7 @@ ldconfig -v
 cat > /etc/pam_pgsql.conf <<EOF
 database=lega
 table=users
-host=ega-db
+host=ega_db
 port=5432
 user=postgres
 password=${POSTGRES_PASSWORD}
@@ -30,7 +30,7 @@ user_column=elixir_id
 EOF
 
 cat > /usr/local/etc/nss-ega.conf <<EOF
-connection = host=ega-db port=5432 dbname=lega user=postgres password=${POSTGRES_PASSWORD} connect_timeout=1 sslmode=disable
+connection = host=ega_db port=5432 dbname=lega user=postgres password=${POSTGRES_PASSWORD} connect_timeout=1 sslmode=disable
 
 ##################
 # Queries
@@ -50,9 +50,9 @@ EOF
 pip install -e /root/ega
 
 echo "Waiting for Message Broker"
-until nc -4 --send-only ega-mq 5672 </dev/null &>/dev/null; do sleep 1; done
+until nc -4 --send-only ega_mq 5672 </dev/null &>/dev/null; do sleep 1; done
 echo "Waiting for database"
-until nc -4 --send-only ega-db 5432 </dev/null &>/dev/null; do sleep 1; done
+until nc -4 --send-only ega_db 5432 </dev/null &>/dev/null; do sleep 1; done
 
 echo "Starting the inbox listener"
 ega-inbox &

@@ -8,21 +8,21 @@ services:
   mq:
     #env_file: .env.d/mq
     build: images/mq
-    hostname: ega-mq
+    hostname: ega_mq
     ports:
       - "15672:15672"
     image: nbis/ega:mq
-    container_name: ega-mq
+    container_name: ega_mq
 
   # Postgres Database
   db:
     env_file: .env.d/db
     build: images/db
-    hostname: ega-db
+    hostname: ega_db
     ports:
       - "5050:5050"
       - "5051:5051"
-    container_name: ega-db
+    container_name: ega_db
     image: nbis/ega:db
     volumes:
        - ./entrypoints/db.sh:/usr/local/bin/db.sh:ro
@@ -33,14 +33,14 @@ services:
   inbox:
     env_file: .env.d/db
     build: images/inbox
-    hostname: ega-inbox
+    hostname: ega_inbox
     depends_on:
       - db
       - mq
 #      - monitors
     ports:
       - "2222:22"
-    container_name: ega-inbox
+    container_name: ega_inbox
     image: nbis/ega:inbox
     volumes:
        - ${CODE}:/root/ega
@@ -55,12 +55,12 @@ services:
     depends_on:
       - db
 #      - monitors
-    hostname: ega-frontend
+    hostname: ega_frontend
     ports:
       - "9000:80"
     expose:
       - 80
-    container_name: ega-frontend
+    container_name: ega_frontend
     image: nbis/ega:frontend
     volumes:
        - ${CODE}:/root/ega
@@ -75,8 +75,8 @@ services:
       - db
       - mq
 #      - monitors
-    hostname: ega-vault
-    container_name: ega-vault
+    hostname: ega_vault
+    container_name: ega_vault
     image: nbis/ega:common
     volumes:
        - ${CODE}:/root/ega
@@ -93,8 +93,8 @@ services:
       - db
       - mq
 #      - monitors
-    hostname: ega-connectors
-    container_name: ega-connectors
+    hostname: ega_connectors
+    container_name: ega_connectors
     image: nbis/ega:common
     volumes:
        - ${CODE}:/root/ega
@@ -112,8 +112,8 @@ services:
   #     - "10514:10514"
   #   expose:
   #     - 10514
-  #   hostname: ega-monitors
-  #   container_name: ega-monitors
+  #   hostname: ega_monitors
+  #   container_name: ega_monitors
   #   image: nbis/ega:monitors
   #   command: ["rsyslogd", "-n"]
 
@@ -125,8 +125,6 @@ services:
       - mq
       - keys
 #      - monitors
-    hostname: ega-worker
-    container_name: ega-worker
     image: nbis/ega:worker
     tty: true
     stdin_open: true
@@ -148,8 +146,8 @@ services:
     # depends_on:
     #   - monitors
     env_file: .env.d/gpg
-    hostname: ega-keys
-    container_name: ega-keys
+    hostname: ega_keys
+    container_name: ega_keys
     image: nbis/ega:keys
     tty: true
     volumes:
