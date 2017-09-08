@@ -33,7 +33,7 @@ Subsystem sftp internal-sftp
 MATCH GROUP ega USER *,!ega
   Banner /ega/banner
   ChrootDirectory %h
-  AuthorizedKeysCommand /usr/local/bin/ega-ssh-keys.sh
+  AuthorizedKeysCommand /usr/local/bin/ega_ssh_keys.sh
   AuthorizedKeysCommandUser ega
   AuthenticationMethods "publickey" "keyboard-interactive:pam"
   # -d (remote start directory relative user root)

@@ -1,16 +1,24 @@
 FROM nbis/ega:common
 LABEL maintainer "Frédéric Haziza, NBIS"
 
-# Clean from ega-common
-RUN rm -rf /ega/{vault,staging}
-
 RUN pip install pika==0.10.0 aiopg==0.13.0
 
-RUN yum -y install postgresql-devel automake autoconf libtool libgcrypt libgcrypt-devel pam-devel
+RUN yum -y install postgresql-devel automake autoconf libtool libgcrypt libgcrypt-devel pam-devel btrfs-progs
 RUN git clone https://github.com/pam-pgsql/pam-pgsql.git ~/pam-pgsql
 
 ##################################
-# For SFTP
+RUN mkdir -p /usr/local/lib/ega
+COPY ega.ld.conf /etc/ld.so.conf.d/ega.conf
+
+RUN pushd ~/pam-pgsql && \
+    ./autogen.sh && \
+    ./configure --libdir=/usr/local/lib/ega && \
+    make && \
+    make install && \
+    ldconfig -v && \
+    popd
+
+
 ##################################
 RUN mkdir -p /var/run/sshd
 EXPOSE 22
@@ -28,32 +36,21 @@ RUN rm -rf /ega/skel && \
     chmod g+s /ega/skel/inbox # rwxrws---
 
 
-COPY sshd_config /etc/ssh/sshd_config
-COPY ega-ssh-keys.sh /usr/local/bin/ega-ssh-keys.sh
-COPY banner /ega/banner
-
 ##################################
-# For PAM and NSS
-##################################
-RUN mkdir -p /usr/local/lib/ega
-COPY ega.ld.conf /etc/ld.so.conf.d/ega.conf
 COPY ega_homedir.sh /usr/local/bin/ega_homedir.sh
-
-RUN cp /etc/pam.d/sshd /etc/pam.d/sshd.bak
 COPY pam.ega /etc/pam.d/ega
+RUN mv /etc/pam.d/sshd /etc/pam.d/sshd.bak
 COPY pam.sshd /etc/pam.d/sshd
-COPY pam.pgsql.conf /etc/pam_pgsql.conf
-
-RUN pushd ~/pam-pgsql && \
-    ./autogen.sh && \
-    ./configure --libdir=/usr/local/lib/ega && \
-    make && \
-    make install && \
-    ldconfig -v && \
-    popd
 
 RUN cp /etc/nsswitch.conf /etc/nsswitch.conf.bak && \
     sed -i -e 's/^passwd:\(.*\)files/passwd:\1ega files/' /etc/nsswitch.conf && \
     sed -i -e 's/^shadow:\(.*\)files/shadow:\1ega files/' /etc/nsswitch.conf
 
+COPY sshd_config /etc/ssh/sshd_config
+COPY ega_ssh_keys.sh /usr/local/bin/ega_ssh_keys.sh
+RUN chmod 755 /usr/local/bin/ega_ssh_keys.sh
+COPY banner /ega/banner
+
 RUN useradd ega
+
+VOLUME /ega/inbox

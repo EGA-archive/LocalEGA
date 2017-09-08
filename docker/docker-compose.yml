@@ -1,4 +1,4 @@
-version: '3.1'
+version: '3.2'
 
 services:
 
@@ -45,12 +45,8 @@ services:
     volumes:
        - ${CODE}:/root/ega
        - ${CONF}:/etc/ega/conf.ini:ro
-       - ${INBOX}:/ega/inbox
+       - inbox:/ega/inbox
        - ./entrypoints/inbox.sh:/usr/local/bin/inbox.sh:ro
-       # - ${ORG_FILE}:/root/org_file
-       # - ${ENC_FILE}:/root/enc_file
-       # - ${SUBMIT_USER}:/root/submit_user.sh
-       # - ${SUBMIT_FILES}:/root/submit_files.sh
     command: inbox.sh
 
   # ReST frontend
@@ -85,8 +81,8 @@ services:
     volumes:
        - ${CODE}:/root/ega
        - ${CONF}:/etc/ega/conf.ini:ro
-       - ${STAGING}:/ega/staging
-       - ${VAULT}:/ega/vault
+       - staging:/ega/staging
+       - vault:/ega/vault
        - ./entrypoints/vault.sh:/usr/local/bin/vault.sh:ro
     command: vault.sh
 
@@ -122,53 +118,29 @@ services:
   #   command: ["rsyslogd", "-n"]
 
   # Workers
-  worker-1:
+  worker:
     build: images/worker
     depends_on:
       - db
       - mq
       - keys
 #      - monitors
-    hostname: ega-worker-1
-    container_name: ega-worker-1
+    hostname: ega-worker
+    container_name: ega-worker
     image: nbis/ega:worker
     tty: true
     stdin_open: true
     volumes:
        - ${CODE}:/root/ega
        - ${CONF}:/etc/ega/conf.ini:ro
-       - ${INBOX}:/home
-       - ${STAGING}:/ega/staging
+       - inbox:/ega/inbox
+       - staging:/ega/staging
        - ${GPG_HOME}/pubring.kbx:/root/.gnupg/pubring.kbx
        - ${GPG_HOME}/trustdb.gpg:/root/.gnupg/trustdb.gpg
        - ${GPG_HOME}/certs/selfsigned.cert:/etc/ega/ega.cert:ro
        - ${RSA_HOME}:/root/.rsa:ro
        - ./entrypoints/worker.sh:/usr/local/bin/worker.sh:ro
     command: worker.sh
-
-  worker-2:
-    build: images/worker
-    depends_on:
-      - db
-      - mq
-      - keys
-#      - monitors
-    hostname: ega-worker-2
-    container_name: ega-worker-2
-    image: nbis/ega:worker
-    tty: true
-    volumes:
-       - ${CODE}:/root/ega
-       - ${CONF}:/etc/ega/conf.ini:ro
-       - ${INBOX}:/home
-       - ${STAGING}:/ega/staging
-       - ${GPG_HOME}/pubring.kbx:/root/.gnupg/pubring.kbx
-       - ${GPG_HOME}/trustdb.gpg:/root/.gnupg/trustdb.gpg
-       - ${GPG_HOME}/certs/selfsigned.cert:/etc/ega/ega.cert:ro
-       - ${RSA_HOME}:/root/.rsa:ro
-       - ./entrypoints/worker.sh:/usr/local/bin/worker.sh:ro
-    command: worker.sh
-
 
   # GPG Agent
   keys:
@@ -192,3 +164,10 @@ services:
        - ${RSA_HOME}:/root/.rsa:ro
        - ./entrypoints/keys.sh:/usr/local/bin/keys.sh:ro
     command: ["keys.sh"]
+
+
+# Use the default driver for volume creation
+volumes:
+  inbox:
+  staging:
+  vault:
