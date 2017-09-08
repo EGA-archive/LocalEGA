@@ -54,11 +54,12 @@ def set_file_id(data):
     del data['elixir_id']
 
     filename = data['filename']
+    user_id = data['user_id']
 
     # Insert in database
     file_id = db.insert_file(filename, user_id) 
     assert file_id is not None, 'Ouch...database problem!'
-    LOG.debug(f'Created id {file_id} for {data["filename"]}')
+    LOG.debug(f'Created id {file_id} for {filename}')
 
     data['file_id'] = file_id
     return data

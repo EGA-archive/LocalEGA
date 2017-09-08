@@ -27,9 +27,9 @@ def make_user(args):
 
 def make_file(args):
     msg = { 'elixir_id': args.user, 'filename': args.filename }
-    if args.encrypted_checksum:
+    if args.e:
         msg['encrypted_integrity'] = { 'hash': args.e, 'algorithm': args.ea, }
-    if args.unencrypted_checksum:
+    if args.u:
         msg['unencrypted_integrity'] = { 'hash': args.u, 'algorithm': args.ua, }
     return msg
 
@@ -53,8 +53,8 @@ def main():
                                          parents=[common_parser],
                                          help='(for a user inbox creation)')
     files_parser.set_defaults(func=make_file)
-    files_parser.add_argument('user', help='(Internal) user ID')
-    files_parser.add_argument('filename', help='Filename in the (internal) user inbox')
+    files_parser.add_argument('user', help='Elixir ID')
+    files_parser.add_argument('filename', help='Filename in the user inbox')
     unenc_group = files_parser.add_argument_group('unencrypted checksum')
     unenc_group.add_argument('--unenc', dest='u')
     unenc_group.add_argument('--unenc_algo', dest='ua', default='md5', help='[Default: md5]')
