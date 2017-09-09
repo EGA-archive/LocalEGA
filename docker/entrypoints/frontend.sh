@@ -2,7 +2,7 @@
 
 set -e
 
-pip install -e /root/ega
+pip3.6 install /root/ega
 
 echo "Waiting for database"
 until nc -4 --send-only ega_db 5432 </dev/null &>/dev/null; do sleep 1; done

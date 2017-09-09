@@ -1,8 +1,6 @@
 FROM nbis/ega:common
 LABEL maintainer "Frédéric Haziza, NBIS"
 
-RUN pip install pika==0.10.0 aiopg==0.13.0
-
 RUN yum -y install postgresql-devel automake autoconf libtool libgcrypt libgcrypt-devel pam-devel btrfs-progs
 RUN git clone https://github.com/pam-pgsql/pam-pgsql.git ~/pam-pgsql
 

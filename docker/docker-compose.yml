@@ -61,7 +61,7 @@ services:
     expose:
       - 80
     container_name: ega_frontend
-    image: nbis/ega:frontend
+    image: nbis/ega:common
     volumes:
        - ${CODE}:/root/ega
        - ${CONF}:/etc/ega/conf.ini:ro
@@ -119,13 +119,13 @@ services:
 
   # Workers
   worker:
-    build: images/worker
+    build: images/common
     depends_on:
       - db
       - mq
       - keys
 #      - monitors
-    image: nbis/ega:worker
+    image: nbis/ega:common
     tty: true
     stdin_open: true
     volumes:
@@ -142,13 +142,13 @@ services:
 
   # GPG Agent
   keys:
-    build: images/keys
+    build: images/common
     # depends_on:
     #   - monitors
     env_file: .env.d/gpg
     hostname: ega_keys
     container_name: ega_keys
-    image: nbis/ega:keys
+    image: nbis/ega:common
     tty: true
     volumes:
        - ${CODE}:/root/ega

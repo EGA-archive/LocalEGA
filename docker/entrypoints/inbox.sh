@@ -47,7 +47,7 @@ getspent = SELECT elixir_id,password_hash,'','','','','','','' FROM users LIMIT 
 EOF
 
 
-pip install -e /root/ega
+pip3.6 install /root/ega
 
 echo "Waiting for Message Broker"
 until nc -4 --send-only ega_mq 5672 </dev/null &>/dev/null; do sleep 1; done

@@ -1,5 +1,5 @@
 
-EGA_IMAGES=common db mq inbox frontend worker keys monitors
+EGA_IMAGES=common db mq inbox monitors
 
 all: $(EGA_IMAGES)
 

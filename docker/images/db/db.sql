@@ -48,7 +48,7 @@ $insert_user$ LANGUAGE plpgsql;
 -- ##################################################
 CREATE TABLE files (
         id             SERIAL, PRIMARY KEY(id), UNIQUE (id),
-	user_id        INTEGER REFERENCES users (id) ON DELETE CASCADE,
+	elixir_id      TEXT REFERENCES users (elixir_id) ON DELETE CASCADE,
 	filename       TEXT NOT NULL,
 	enc_checksum   TEXT,
 	enc_checksum_algo hash_algo,
@@ -64,6 +64,25 @@ CREATE TABLE files (
 	last_modified  TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT clock_timestamp()
 );
 
+CREATE FUNCTION insert_file(filename    files.filename%TYPE,
+			    eid         files.elixir_id%TYPE,
+			    status      files.status%TYPE)
+    RETURNS files.id%TYPE AS $insert_file$
+    #variable_conflict use_column
+    DECLARE
+        file_id files.id%TYPE;
+    BEGIN
+	INSERT INTO files (filename,elixir_id,status)
+	VALUES(filename,eid,status) RETURNING files.id
+	INTO file_id;
+	RETURN file_id;
+    END;
+$insert_file$ LANGUAGE plpgsql;
+
+
+-- ##################################################
+--                      ERRORS
+-- ##################################################
 CREATE TABLE errors (
         id            SERIAL, PRIMARY KEY(id), UNIQUE (id),
 	file_id       INTEGER REFERENCES files (id) ON DELETE CASCADE,
@@ -77,8 +96,6 @@ CREATE TABLE errors (
 -- The key size, the algorithm and the selected master key is recorded in the re-encrypted file (first line)
 -- and in the database.
 
-
--- For an error
 CREATE FUNCTION insert_error(file_id    errors.file_id%TYPE,
                              msg        errors.msg%TYPE,
                              from_user  errors.from_user%TYPE)
@@ -89,20 +106,4 @@ CREATE FUNCTION insert_error(file_id    errors.file_id%TYPE,
     END;
 $set_error$ LANGUAGE plpgsql;
 
-
--- For a file
-CREATE FUNCTION insert_file(filename          files.filename%TYPE,
-			    user_id           files.user_id%TYPE,
-			    status            files.status%TYPE)
-    RETURNS files.id%TYPE AS $insert_file$
-    #variable_conflict use_column
-    DECLARE
-        file_id files.id%TYPE;
-    BEGIN
-	INSERT INTO files (filename,user_id,status)
-	VALUES(filename,user_id,status) RETURNING files.id
-	INTO file_id;
-	RETURN file_id;
-    END;
-$insert_file$ LANGUAGE plpgsql;
 

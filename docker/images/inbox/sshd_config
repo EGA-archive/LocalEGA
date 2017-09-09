@@ -15,8 +15,8 @@ GSSAPICleanupCredentials no
 # Faster connection
 UseDNS no
 # Limited access
-AllowGroups ega
-PermitRootLogin no
+AllowGroups ega root
+PermitRootLogin yes
 X11Forwarding no
 AllowTcpForwarding no
 PermitTunnel no
