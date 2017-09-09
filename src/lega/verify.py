@@ -19,7 +19,7 @@ import logging
 import os
 
 from .conf import CONF
-from .utils import crypto, db
+from .utils import crypto, db, checksum
 from .utils import db_log_error_on_files, checksum
 from .utils.amqp import get_connection, consume
 
@@ -32,7 +32,7 @@ def work(data):
     file_id = data['file_id']
     filename, org_hash, org_hash_algo, vault_filename, vault_checksum = db.get_details(file_id)
 
-    if not checksum(vault_filename, vault_checksum, hashAlgo='sha256'):
+    if not checksum.is_valid(vault_filename, vault_checksum, hashAlgo='sha256'):
         raise VaultDecryption(vault_filename)
 
     return { 'vault_name': vault_filename, 'org_name': filename }
