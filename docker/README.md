@@ -56,3 +56,22 @@ will be created on-the-fly by docker-compose.
 ## Status
 
 	docker-compose ps
+
+## Example
+
+	1) docker-compose up -d
+
+We now create a "user" message in the broker. For that, we use the frontend and ega-publisher.
+
+	2) docker-compose exec frontend ega-publisher inbox --broker 'cega.broker' --routing 'sweden.user' 'test' 'ssh-pub-key' 'some-hash'
+
+We upload an encrypted file (here named data1)
+
+	3) sftp -P 2222 test@localhost
+	sftp> put <absolute/or/relative/path/to/file/named/data1>
+	
+Finally, we create a "file" message, again using the frontend.
+	
+	4) docker-compose exec frontend ega-publisher ingestion --broker 'cega.broker' --routing 'sweden.file' --enc "<bla>" --enc_algo 'md5' --unenc "<bla...>" --unenc_algo 'md5' test data1
+
+Check now that the vault has the file and the message broker sent a message back in the CentralEGA queue, named `sweden.v1.commands.completed`.
