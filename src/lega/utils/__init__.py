@@ -1,3 +1,6 @@
+import sys
+import os
+import traceback
 import json
 import logging
 from pathlib import Path
@@ -5,8 +8,6 @@ from base64 import b64encode, b64decode
 from functools import wraps
 import secrets
 import string
-import os
-import sys
 
 from ..conf import CONF
 from . import db
@@ -27,8 +28,16 @@ def db_log_error_on_files(func):
                 raise e
 
             exc_type, exc_obj, exc_tb = sys.exc_info()
-            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-            LOG.debug(f'Origin: exc_type: {exc_type} | fname: {fname} | line: {exc_tb.tb_lineno}')
+            g = traceback.walk_tb(exc_tb)
+            frame, lineno = next(g) # that should be the decorator
+            try:
+                frame, lineno = next(g) # that should be where is happened
+            except StopIteration:
+                pass # In case the trace is too short
+
+            #fname = os.path.split(frame.f_code.co_filename)[1]
+            fname = frame.f_code.co_filename
+            LOG.debug(f'Exception: {exc_type} in {fname} on line: {lineno}')
 
             db.set_error(file_id, e)
     return wrapper

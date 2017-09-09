@@ -24,10 +24,10 @@ from .utils import set_file_id, sanitize_user_id
 LOG = logging.getLogger('connect')
 
 _from_cega_to_lega = {
-    'cega:lega:users': (('cega.broker','sweden.v1.commands.user','local.broker','lega','lega.users'), {'transform':sanitize_user_id}),
-    'cega:lega:files': (('cega.broker','sweden.v1.commands.file','local.broker','lega','lega.tasks'), {'transform':set_file_id}),
-    'lega:cega:users': (('local.broker','verified','cega.broker','localega.v1','sweden.file.completed'),{}),
-    'lega:cega:files': (('local.broker','account', 'cega.broker','localega.v1','sweden.user.account'),{}),
+    'cega:lega:users': (('cega.broker' ,'sweden.v1.commands.user','local.broker', 'lega'       ,'lega.users'           ),{'transform':sanitize_user_id}),
+    'cega:lega:files': (('cega.broker' ,'sweden.v1.commands.file','local.broker', 'lega'       ,'lega.tasks'           ),{'transform':set_file_id     }),
+    'lega:cega:users': (('local.broker','account'                ,'cega.broker' , 'localega.v1','sweden.user.account'  ),{                            }),
+    'lega:cega:files': (('local.broker','verified'               ,'cega.broker' , 'localega.v1','sweden.file.completed'),{                            }),
 }
 
 def _connect(from_domain, from_queue, to_domain, to_exchange, to_routing, transform=None):
