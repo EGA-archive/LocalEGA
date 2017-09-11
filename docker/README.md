@@ -59,6 +59,9 @@ will be created on-the-fly by docker-compose.
 
 ## Example
 
+<script type="text/javascript" src="https://asciinema.org/a/nhHCuLd7mYjL4UgKQDI7uRJHs.js" id="asciicast-nhHCuLd7mYjL4UgKQDI7uRJHs" async></script>
+
+
 	1) docker-compose up -d
 
 We now create a "user" message in the broker. For that, we use the frontend and ega-publisher.
