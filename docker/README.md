@@ -59,8 +59,9 @@ will be created on-the-fly by docker-compose.
 
 ## Example
 
-<script type="text/javascript" src="https://asciinema.org/a/nhHCuLd7mYjL4UgKQDI7uRJHs.js" id="asciicast-nhHCuLd7mYjL4UgKQDI7uRJHs" async></script>
-
+<a href="https://asciinema.org/a/nhHCuLd7mYjL4UgKQDI7uRJHs">
+<img src="https://asciinema.org/a/nhHCuLd7mYjL4UgKQDI7uRJHs.png" width="836" style="display:block;margin:0 auto;"/>
+</a>
 
 	1) docker-compose up -d
 
