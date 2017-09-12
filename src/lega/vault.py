@@ -20,16 +20,14 @@ When a message is consumed, it must at least contain:
 
 import sys
 import logging
-import json
 from pathlib import Path
 import shutil
-import os
-import select
 
 from .conf import CONF
-from .utils import db
 from .utils import db_log_error_on_files
+from .utils.db import finalize_file
 from .utils.amqp import get_connection, consume
+
 
 LOG = logging.getLogger('vault')
 
@@ -56,7 +54,7 @@ def work(data):
     shutil.move(str(filepath), starget)
     
     # Mark it as processed in DB
-    db.finalize_file(file_id, starget, target.stat().st_size)
+    finalize_file(file_id, starget, target.stat().st_size)
 
     # Send message to Archived queue
     return { 'file_id': file_id } # I could have the details in here. Fetching from DB instead.
@@ -71,6 +69,6 @@ def main(args=None):
     from_broker = (connection, 'completed')
     to_broker = (connection, 'lega', 'lega.archived')
     consume(from_broker, work, to_broker)
-    
+
 if __name__ == '__main__':
     main()

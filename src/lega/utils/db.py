@@ -13,6 +13,8 @@ from enum import Enum
 import aiopg
 import psycopg2
 import socket
+import traceback
+from functools import wraps
 
 from ..conf import CONF
 from .exceptions import FromUser
@@ -164,3 +166,34 @@ def insert_user(user_id, password_hash, pubkey):
                 raise Exception('Database issue with insert_user')
 
 
+
+######################################
+##           Decorator              ##
+######################################
+
+def log_error_on_files(func):
+    '''Decorator to store the raised exception in the database'''
+    @wraps(func)
+    def wrapper(data):
+        file_id = data['file_id'] # I should have it
+        try:
+            res = func(data)
+            return res
+        except Exception as e:
+            if isinstance(e,AssertionError):
+                raise e
+
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            g = traceback.walk_tb(exc_tb)
+            frame, lineno = next(g) # that should be the decorator
+            try:
+                frame, lineno = next(g) # that should be where is happened
+            except StopIteration:
+                pass # In case the trace is too short
+
+            #fname = os.path.split(frame.f_code.co_filename)[1]
+            fname = frame.f_code.co_filename
+            LOG.debug(f'Exception: {exc_type} in {fname} on line: {lineno}')
+
+            set_error(file_id, e)
+    return wrapper

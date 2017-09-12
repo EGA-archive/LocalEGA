@@ -39,7 +39,7 @@ from .utils import db_log_error_on_files
 from .utils.amqp import get_connection, consume
 from .utils.crypto import ingest as crypto_ingest
 
-LOG = logging.getLogger('worker')
+LOG = logging.getLogger('ingestion')
 
 @db_log_error_on_files
 def work(data):
