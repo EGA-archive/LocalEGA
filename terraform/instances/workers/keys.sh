@@ -98,7 +98,7 @@ Type=simple
 ExecStart=/usr/local/bin/gpg-agent --supervised
 ExecReload=/usr/local/bin/gpgconf --reload gpg-agent
 #ExecStop=/usr/bin/pkill gpg-agent
-ExecPost=/root/preset.sh
+ExecStartPost=/root/preset.sh
 
 StandardOutput=syslog
 StandardError=syslog
