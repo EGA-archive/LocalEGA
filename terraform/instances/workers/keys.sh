@@ -98,6 +98,7 @@ Type=simple
 ExecStart=/usr/local/bin/gpg-agent --supervised
 ExecReload=/usr/local/bin/gpgconf --reload gpg-agent
 #ExecStop=/usr/bin/pkill gpg-agent
+ExecPost=/root/preset.sh
 
 StandardOutput=syslog
 StandardError=syslog
@@ -153,22 +154,13 @@ disable-scdaemon
 EOF
 
 ##############
+# echo "Enabling the ega user to linger"
+# loginctl enable-linger ega
+
 echo "Starting the gpg-agent proxy"
 systemctl start gpg-agent.socket gpg-agent-extra.socket gpg-agent.service ega-socket-proxy.service
 systemctl enable gpg-agent.socket gpg-agent-extra.socket gpg-agent.service ega-socket-proxy.service
 
-##############
-#while gpg-connect-agent /bye; do sleep 2; done
-KEYGRIP=$(/usr/local/bin/gpg -k --with-keygrip ega@nbis.se | awk '/Keygrip/{print $3;exit;}')
-if [ ! -z "$KEYGRIP" ]; then 
-    echo 'Unlocking the GPG key'
-    # This will use the standard socket. The proxy forwards to the extra socket.
-    /usr/local/libexec/gpg-preset-passphrase --preset -P "$(cat /tmp/gpg_passphrase)" $KEYGRIP && \
-	rm -f /tmp/gpg_passphrase
-else
-    echo 'Skipping the GPG key preseting'
-fi
-
 echo "Master GPG-agent ready"
-echo "Rebooting"
-systemctl reboot
+# echo "Rebooting"
+# systemctl reboot

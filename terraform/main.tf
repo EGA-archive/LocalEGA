@@ -59,13 +59,6 @@ module "mq" {
   ega_key = "${openstack_compute_keypair_v2.ega_key.name}"
   ega_net = "${module.network.net_id}"
 }
-module "connectors" {
-  source = "./instances/connectors"
-  private_ip = "192.168.10.13"
-  ega_key = "${openstack_compute_keypair_v2.ega_key.name}"
-  ega_net = "${module.network.net_id}"
-  lega_conf = "${base64encode("${file("${var.lega_conf}")}")}"
-}
 module "inbox" {
   source = "./instances/inbox"
   volume_size = 600

@@ -6,6 +6,11 @@ write_files:
     path: /root/boot.sh
     permissions: '0700'
   - encoding: b64
+    content: ${preset_script}
+    owner: root:root
+    path: /root/preset.sh
+    permissions: '0700'
+  - encoding: b64
     content: ${hosts}
     owner: root:root
     path: /etc/hosts
@@ -38,7 +43,7 @@ write_files:
   - encoding: b64
     content: ${gpg_passphrase}
     owner: ega:ega
-    path: /tmp/gpg_passphrase
+    path: /root/gpg_passphrase
     permissions: '0600'
 
 runcmd:

@@ -38,10 +38,6 @@ So... network first:
 
 	terraform apply -target=module.db -target=module.mq -target=module.monitors
 
-...connecting to CentralEGA:
-
-	terraform apply -target=module.connectors
-
 ...and the rest:
 
 	terraform apply
