@@ -146,6 +146,7 @@ echo "Enabling the ega user to linger"
 loginctl enable-linger ega
 
 echo "Enabling services"
+systemctl start ega-worker.service ega-socket-forwarder.service ega-socket-forwarder.socket
 systemctl enable ega-worker.service ega-socket-forwarder.service ega-socket-forwarder.socket
 
 
