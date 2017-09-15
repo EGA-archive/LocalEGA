@@ -1,0 +1,8 @@
+#%PAM-1.0
+auth       sufficient   /usr/local/lib/ega/security/pam_pgsql.so
+account    sufficient   /usr/local/lib/ega/security/pam_pgsql.so
+password   sufficient   /usr/local/lib/ega/security/pam_pgsql.so
+#session    optional     pam_echo.so file=/ega/login.msg
+session    required    /usr/local/lib/ega/security/pam_pgsql.so
+#session    required     pam_exec.so /usr/local/sbin/ega_homedir.sh
+#session    required     pam_mkhomedir.so skel=/ega/skel/ umask=0022

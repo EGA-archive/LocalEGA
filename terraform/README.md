@@ -6,12 +6,12 @@ You need to create a `main.auto.tfvars` file (in that same folder) with the foll
 	os_password = "<your-openstack-keystone-password>"
 	pubkey      = "ssh-rsa AAAABBBBBB ... bla bla....your-public-key"
 	
-	lega_conf = "<path/to/your/ini/file>"
+	lega_conf   = "<path/to/your/ini/file>"
 	db_password = "<your-secret-password>"
 
-	gpg_home  = "<path/to/gpg/folder>"
-	gpg_certs = "<path/to/certs/folder>"  # including .cert and .key files
-	rsa_home  = "<path/to/rsa/folder>"    # including ega-public.pem and ega.pem files
+	gpg_home    = "<path/to/gpg/folder>"
+	gpg_certs   = "<path/to/certs/folder>"  # including .cert and .key files
+	rsa_home    = "<path/to/rsa/folder>"    # including ega-public.pem and ega.pem files
 	gpg_passphrase = "<something-complex>"
 
 ## Initialize Terraform
@@ -23,22 +23,28 @@ You need to create a `main.auto.tfvars` file (in that same folder) with the foll
 	
 ## Running
 
-	# ...and cue music
 	terraform apply
+	
+That's it.	
 
-If it fails, it might be a good idea to bring them up little at a time:
+----
+If it fails, it might be a good idea to bring them up little at a time.
 
-	# Network first
+So... network first:
+
 	terraform apply -target=module.network
-	# Database, Message Borker and Logger
+
+...database, Message Borker and Logger:
+
 	terraform apply -target=module.db -target=module.mq -target=module.monitors
-	# Connecting to CentralEGA
+
+...connecting to CentralEGA:
+
 	terraform apply -target=module.connectors
-	# The rest
-	terraform apply -target=module.frontend
-	terraform apply -target=module.inbox
-	terraform apply -target=module.vault
-	terraform apply -target=module.workers
+
+...and the rest:
+
+	terraform apply
 
 ## Stopping
 

@@ -12,8 +12,8 @@ write_files:
     permissions: '0644'
 
 runcmd:
-  - systemctl enable rabbitmq-server
   - systemctl start rabbitmq-server
   - rabbitmq-plugins enable rabbitmq_management
+  - systemctl enable rabbitmq-server
 
 final_message: "The system is finally up, after $UPTIME seconds"

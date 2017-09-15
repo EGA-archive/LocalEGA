@@ -11,10 +11,16 @@ resource "openstack_compute_secgroup_v2" "ega_syslog" {
   name        = "ega-syslog"
   description = "Receiving Syslogs from other machines"
 
+  # rule {
+  #   from_port   = 10514
+  #   to_port     = 10514
+  #   ip_protocol = "udp"
+  #   cidr        = "${var.cidr}"
+  # }
   rule {
     from_port   = 10514
     to_port     = 10514
-    ip_protocol = "udp"
+    ip_protocol = "tcp"
     cidr        = "${var.cidr}"
   }
 }
@@ -26,7 +32,6 @@ data "template_file" "cloud_init" {
   vars {
     boot_script = "${base64encode("${file("${path.module}/boot.sh")}")}"
     hosts = "${base64encode("${file("${path.root}/hosts")}")}"
-    conf = "${var.lega_conf}"
   }
 }
 

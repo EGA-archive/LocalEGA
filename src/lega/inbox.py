@@ -59,6 +59,7 @@ def work(data):
     internal_id = insert_user(user_id, password_hash, pubkey)
     assert internal_id is not None, 'Ouch...database problem!'
     LOG.debug(f'User {user_id} added to the database (as entry {internal_id}).')
+    #data['internal_id'] = internal_id
 
     # Create homefolder (might raise exception)
     create_homedir(user_id)

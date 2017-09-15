@@ -2,8 +2,8 @@
 write_files:
   - encoding: b64
     content: ${boot_script}
-    owner: ega:ega
-    path: /home/ega/boot.sh
+    owner: root:root
+    path: /root/boot.sh
     permissions: '0700'
   - encoding: b64
     content: ${hosts}
@@ -13,7 +13,7 @@ write_files:
   - encoding: b64
     content: ${conf}
     owner: ega:ega
-    path: /home/ega/.lega/conf.ini
+    path: /etc/ega/conf.ini
     permissions: '0600'
   - encoding: b64
     content: ${gpg}
@@ -42,6 +42,6 @@ write_files:
     permissions: '0600'
 
 runcmd:
-  - su -c "/home/ega/boot.sh" - ega
+  - /root/boot.sh
 
 final_message: "The system is finally up, after $UPTIME seconds"

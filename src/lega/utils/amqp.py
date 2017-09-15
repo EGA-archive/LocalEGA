@@ -80,6 +80,7 @@ def consume(from_channel, work, from_queue, to_channel=None, to_exchange=None, t
         channel.basic_ack(delivery_tag=method_frame.delivery_tag)
 
     # Let's do this
+    LOG.debug(f'Consuming message from {from_queue}')
     from_channel.basic_consume(process_request, queue=from_queue)
     from_channel.start_consuming()
 

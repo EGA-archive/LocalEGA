@@ -23,7 +23,7 @@ setenforce 0
 # Only requests from Sweden (or local ones)
 
 cat > /etc/hosts.allow <<EOF
-sshd: 192.168.10.     : spawn (/usr/bin/logger -i -p authpriv.info "%d[%p]\: %h (allowed local)")&  : ALLOW
+sshd: ${cidr}     : spawn (/usr/bin/logger -i -p authpriv.info "%d[%p]\: %h (allowed local)")&  : ALLOW
 sshd: .se             : spawn (/usr/bin/logger -i -p authpriv.info "%d[%p]\: %h (allowed .se)")&    : ALLOW
 ALL : ALL             : spawn (/usr/bin/logger -i -p authpriv.info "%d[%p]\: %h (denied)")&         : DENY
 EOF
@@ -58,7 +58,7 @@ chmod g+s /ega/{inbox,staging} # setgid bit
 yum -y install nfs-utils
 
 :> /etc/exports
-echo "/ega $1(rw,sync,no_root_squash,no_all_squash,no_subtree_check)" >> /etc/exports
+echo "/ega ${cidr}(rw,sync,no_root_squash,no_all_squash,no_subtree_check)" >> /etc/exports
 #exportfs -ra
 
 systemctl enable rpcbind
@@ -154,7 +154,7 @@ yum -y install automake autoconf libtool libgcrypt libgcrypt-devel pam-devel
 ############# NSS code
 
 # For the moment, just the auth branch. To be removed
-git clone -b auth https://github.com/NBISweden/LocalEGA.git ~/repo
+git clone -b terraform https://github.com/NBISweden/LocalEGA.git ~/repo
 pushd ~/repo/src/auth/nss
 make
 make install
@@ -197,14 +197,42 @@ chmod g+s /ega/skel/inbox # rwxrws---
 
 cp /etc/pam.d/sshd /etc/pam.d/sshd.bak
 
+cat > /usr/local/sbin/ega_homedir.sh <<'EOF'
+#!/bin/bash
+
+echo "EGA homedir for $PAM_USER: Running as $(whoami)"
+
+[[ "$PAM_USER" = "ega" ]] && echo "Welcome ega...ok...not touching your homedir" && exit 0
+
+[[ -z "$PAM_USER" ]] && exit 2
+
+echo "EGA homedir: Running as $(whoami)"
+
+skel=/ega/skel 
+umask=0022
+
+if [[ ! -d ~$PAM_USER ]]; then
+   mkdir -p ~$PAM_USER
+   cp -a $skel/. ~$PAM_USER
+
+   chown root:ega ~$PAM_USER
+   chmod 750 ~$PAM_USER
+   chown -R ega:ega ~$PAM_USER/*
+else
+   echo "Not touching the homedir: $HOME"
+fi
+EOF
+chmod 700 /usr/local/sbin/ega_homedir.sh
+
 cat > /etc/pam.d/ega <<EOF
 #%PAM-1.0
 auth       sufficient   /usr/local/lib/ega/security/pam_pgsql.so
 account    sufficient   /usr/local/lib/ega/security/pam_pgsql.so
 password   sufficient   /usr/local/lib/ega/security/pam_pgsql.so
 #session    optional     pam_echo.so file=/ega/login.msg
-session    sufficient   /usr/local/lib/ega/security/pam_pgsql.so
-session    required     pam_mkhomedir.so skel=/ega/skel/ umask=0022
+session    required    /usr/local/lib/ega/security/pam_pgsql.so
+#session    required     pam_exec.so /usr/local/sbin/ega_homedir.sh
+#session    required     pam_mkhomedir.so skel=/ega/skel/ umask=0022
 EOF
 
 cat > /etc/pam.d/sshd <<EOF
@@ -244,5 +272,60 @@ ldconfig -v
 cp /etc/nsswitch.conf /etc/nsswitch.conf.bak
 sed -i -e 's/^passwd:\(.*\)files/passwd:\1ega files/' /etc/nsswitch.conf
 sed -i -e 's/^shadow:\(.*\)files/shadow:\1ega files/' /etc/nsswitch.conf
+
+
+#########################################
+# Systemd files
+#########################################
+cat > /etc/ega/options <<EOF
+EGA_OPTIONS=""
+EOF
+
+cat > /etc/systemd/system/ega.slice <<EOF
+[Unit]
+Description=EGA Slice
+DefaultDependencies=no
+Before=slices.target
+
+#[Slice]
+#CPUShares=512
+#MemoryLimit=2G
+EOF
+
+cat > /etc/systemd/system/ega-inbox.service <<'EOF'
+[Unit]
+Description=EGA Inbox service
+After=syslog.target
+After=network.target
+
+[Service]
+Slice=ega.slice
+Type=simple
+User=root
+Group=root
+EnvironmentFile=/etc/ega/options
+
+ExecStart=/bin/ega-inbox $EGA_OPTIONS
+
+StandardOutput=syslog
+StandardError=syslog
+
+Restart=on-failure
+RestartSec=10
+TimeoutSec=600
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+####################################
+# Will systemd restart the processes because they could not contact
+# the database and message broker?
+
+pip3.6 install ~/repo/src/
+
+echo "Starting the inbox listener"
+systemctl start ega-inbox.service
+systemctl enable ega-inbox.service
 
 echo "Inbox ready"

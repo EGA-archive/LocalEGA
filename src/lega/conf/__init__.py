@@ -6,10 +6,10 @@ from pathlib import Path
 import yaml
 
 _here = Path(__file__).parent
-_config_files =  [ 
-                _here / 'defaults.ini' ,
-                '/etc/ega/conf.ini'
-              ]
+_config_files =  [
+    _here / 'defaults.ini',
+    '/etc/ega/conf.ini'
+ ]
 
 _loggers =  {
     'default': _here / 'loggers/default.yaml', 
@@ -30,6 +30,7 @@ representing the defaults loggers (ie default, debug or syslog)
 The `--conf <file>` allows the user to override the configuration settings.
 The settings are loaded, in order:
 * from {_config_files[0]}
+* from {_config_files[1]}
 * from the file specified as the `--conf` argument.
 
 The files must be either in `INI` format or in `YAML` format, in
@@ -51,12 +52,14 @@ class Configuration(configparser.ConfigParser):
             conf_file = Path(args[ args.index('--conf') + 1 ]).expanduser()
             if conf_file not in _config_files:
                 _config_files.append( conf_file )
-            print(f"Overriding configuration settings with {conf_file}", file=sys.stderr)
+                print(f"Overriding configuration settings with {conf_file}", file=sys.stderr)
         except ValueError:
-            print("--conf <file> was not mentioned\n"
-                  "Using the default configuration files", file=sys.stderr)
+            # print("--conf <file> was not mentioned\n"
+            #       "Using the default configuration files", file=sys.stderr)
+            pass
         except (TypeError, AttributeError): # if args = None
-            print("Using the default configuration files",file=sys.stderr)
+            #print("Using the default configuration files",file=sys.stderr)
+            pass
         except IndexError:
             print("Wrong use of --conf <file>",file=sys.stderr)
             raise ValueError("Wrong use of --conf <file>")
@@ -122,7 +125,7 @@ class Configuration(configparser.ConfigParser):
             pass # No log conf
         except IndexError:
             print("Wrong use of --log <file>", file=sys.stderr)
-            sys.exit(2)
+            #sys.exit(2)
         except Exception as e:
             print('Error with --log:', repr(e), file=sys.stderr)
             #sys.exit(2)

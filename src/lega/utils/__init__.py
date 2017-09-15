@@ -1,3 +1,6 @@
+import sys
+import os
+import traceback
 import json
 import logging
 from pathlib import Path
@@ -5,30 +8,12 @@ from base64 import b64encode, b64decode
 from functools import wraps
 import secrets
 import string
-import os
-import sys
-
-from aiohttp.web import HTTPUnauthorized
 
 from ..conf import CONF
 from . import db
 from . import exceptions
 
 LOG = logging.getLogger('utils')
-
-def only_central_ega(async_func):
-    '''Decorator restrain endpoint access to only Central EGA'''
-    @wraps(async_func)
-    async def wrapper(request):
-        # Just an example
-        if request.headers.get('X-CentralEGA', 'no') != 'yes':
-            raise HTTPUnauthorized(text='Not authorized. You should be Central EGA.\n')
-        # Otherwise, it is from CentralEGA, we continue
-        res = async_func(request)
-        res.__name__ = getattr(async_func, '__name__', None)
-        res.__qualname__ = getattr(async_func, '__qualname__', None)
-        return (await res)
-    return wrapper
 
 def db_log_error_on_files(func):
     '''Decorator to store the raised exception in the database'''
@@ -43,8 +28,16 @@ def db_log_error_on_files(func):
                 raise e
 
             exc_type, exc_obj, exc_tb = sys.exc_info()
-            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-            LOG.debug(f'Origin: exc_type: {exc_type} | fname: {fname} | line: {exc_tb.tb_lineno}')
+            g = traceback.walk_tb(exc_tb)
+            frame, lineno = next(g) # that should be the decorator
+            try:
+                frame, lineno = next(g) # that should be where is happened
+            except StopIteration:
+                pass # In case the trace is too short
+
+            #fname = os.path.split(frame.f_code.co_filename)[1]
+            fname = frame.f_code.co_filename
+            LOG.debug(f'Exception: {exc_type} in {fname} on line: {lineno}')
 
             db.set_error(file_id, e)
     return wrapper
@@ -70,11 +63,12 @@ def set_file_id(data):
     del data['elixir_id']
 
     filename = data['filename']
+    user_id = data['user_id']
 
     # Insert in database
     file_id = db.insert_file(filename, user_id) 
     assert file_id is not None, 'Ouch...database problem!'
-    LOG.debug(f'Created id {file_id} for {data["filename"]}')
+    LOG.debug(f'Created id {file_id} for {filename}')
 
     data['file_id'] = file_id
     return data
