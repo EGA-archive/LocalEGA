@@ -10,7 +10,10 @@ loggers:
   frontend:
     level: INFO
     handlers: [syslog,mainFile]
-  worker:
+  keyserver:
+    level: INFO
+    handlers: [syslog,console]
+  ingestion:
     level: INFO
     handlers: [syslog,mainFile]
   vault:

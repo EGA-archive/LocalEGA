@@ -1,0 +1,18 @@
+[DEFAULT]
+active_master_key = 2
+active_pgp_key = 1
+
+[master.key.1]
+key = /root/.rsa/file1.pem
+pubkey = /root/.rsa/file1-public.pem
+passphrase = something
+
+[master.key.2]
+key = /root/.rsa/file2.pem
+pubkey = /root/.rsa/file2-public.pem
+passphrase = something-else
+
+[pgp.key.1]
+key = /etc/ega/file3.key
+pubkey = /etc/ega/file3-public.key
+passphrase = something-complex

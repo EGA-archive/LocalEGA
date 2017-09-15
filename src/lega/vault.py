@@ -31,8 +31,7 @@ from .utils.amqp import get_connection, consume
 
 LOG = logging.getLogger('vault')
 
-@db_log_error_on_files
-def work(data):
+@db.catch_errordef work(data):
     '''Procedure to handle a message'''
 
     file_id       = data['file_id']

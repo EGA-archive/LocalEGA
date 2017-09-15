@@ -8,13 +8,16 @@
 ####################################
 '''
 
+import sys
+import traceback
+from functools import wraps
 import logging
 from enum import Enum
 import aiopg
 import psycopg2
-import socket
 import traceback
 from functools import wraps
+from socket import gethostname
 
 from ..conf import CONF
 from .exceptions import FromUser
@@ -101,7 +104,7 @@ def set_error(file_id, error):
     assert error, 'Eh? No error?'
     LOG.debug(f'Setting error for {file_id}: {error!s}')
     from_user = isinstance(error,FromUser)
-    hostname = socket.gethostname()
+    hostname = gethostname()
     with connect() as conn:
         with conn.cursor() as cur:
             cur.execute('SELECT insert_error(%(file_id)s,%(msg)s,%(from_user)s);',
@@ -165,13 +168,11 @@ def insert_user(user_id, password_hash, pubkey):
             else:
                 raise Exception('Database issue with insert_user')
 
-
-
 ######################################
 ##           Decorator              ##
 ######################################
 
-def log_error_on_files(func):
+def catch_error(func):
     '''Decorator to store the raised exception in the database'''
     @wraps(func)
     def wrapper(data):
@@ -196,4 +197,5 @@ def log_error_on_files(func):
             LOG.debug(f'Exception: {exc_type} in {fname} on line: {lineno}')
 
             set_error(file_id, e)
+            return None
     return wrapper

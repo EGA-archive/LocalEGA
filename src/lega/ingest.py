@@ -26,23 +26,26 @@ When a message is consumed, it must be of the form:
 import sys
 import os
 import logging
-import json
 from pathlib import Path
 import shutil
 import stat
 import uuid
 from multiprocessing import Process, cpu_count
+import ssl
+from functools import partial
+from pgpy import PGPKey
+from Cryptodome.PublicKey import RSA
 
 from .conf import CONF
 from .utils import db, exceptions, checksum
-from .utils import db_log_error_on_files
 from .utils.amqp import get_connection, consume
 from .utils.crypto import ingest as crypto_ingest
+from .keyserver import get_ingestion_keys
 
 LOG = logging.getLogger('ingestion')
 
-@db_log_error_on_files
-def work(data):
+@db.catch_error
+def work(pgp_seckey, pgp_passphrase, master_pubkey, data):
     '''Main ingestion function
 
     The data is of the form:
@@ -113,7 +116,6 @@ def work(data):
         LOG.info('Finding a companion file')
         unencrypted_hash, unencrypted_algo = checksum.get_from_companion(inbox_filepath.with_suffix(''))
 
-
     LOG.debug(f'Starting the re-encryption\n\tfrom {inbox_filepath}\n\tto {staging_filepath}')
     db.set_progress(file_id, str(staging_filepath), encrypted_hash, encrypted_algo, unencrypted_hash, unencrypted_algo)
     details, staging_checksum = crypto_ingest( str(inbox_filepath),
@@ -140,9 +142,36 @@ def main(args=None):
 
     CONF.setup(args) # re-conf
 
-    from_broker = (get_connection('cega.broker'), CONF.get('cega.broker','file_queue'))
-    to_broker = (get_connection('local.broker'), 'lega', 'lega.complete')
-    consume(from_broker, work, to_broker)
+    # Prepare to contact the Keyserver for the PGP key
+    host = CONF.get('ingestion','keyserver_host')
+    port = CONF.getint('ingestion','keyserver_port')
+    ssl_certfile = Path(CONF.get('ingestion','keyserver_ssl_certfile')).expanduser()
+
+    ssl_ctx = ssl.create_default_context(ssl.Purpose.SERVER_AUTH, cafile=ssl_certfile) if (ssl_certfile and ssl_certfile.exists()) else None
+
+    if not ssl_ctx:
+        LOG.error('No SSL encryption. Exiting...')
+        sys.exit(2)
+    else:
+        LOG.info('With SSL encryption')
+
+    try:
+        LOG.info('Retrieving keys')
+        # Retrieve the keys
+        pgp_private_keyblob, pgp_passphrase, master_public_keyblob = get_ingestion_keys(host, port, ssl=ssl_ctx)
+
+        # Might raise exception
+        pgp_seckey, _ = PGPKey.from_blob(pgp_private_keyblob) # Not unlocked yet
+        master_pubkey = RSA.import_key(master_public_keyblob) # Public key: No passphrase
+
+    except Exception as e:
+        LOG.error(repr(e))
+        LOG.critical('Problem contacting the Keyserver. Ingestion Worker terminated')
+        sys.exit(1)
+    else:
+        from_broker = (get_connection('cega.broker'), CONF.get('cega.broker','file_queue'))
+        to_broker = (get_connection('local.broker'), 'lega', 'lega.complete')
+        consume(from_broker, work, to_broker)
 
 if __name__ == '__main__':
     main()

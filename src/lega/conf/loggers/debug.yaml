@@ -10,7 +10,10 @@ loggers:
   frontend:
     level: DEBUG
     handlers: [debugFile,console]
-  worker:
+  ingestion:
+    level: DEBUG
+    handlers: [debugFile,console]
+  keyserver:
     level: DEBUG
     handlers: [debugFile,console]
   vault:

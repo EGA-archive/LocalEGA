@@ -92,19 +92,15 @@ services:
        - ${CONF}:/etc/ega/conf.ini:ro
        - inbox:/ega/inbox
        - staging:/ega/staging
-       - ${GPG_HOME}/pubring.kbx:/root/.gnupg/pubring.kbx
-       - ${GPG_HOME}/trustdb.gpg:/root/.gnupg/trustdb.gpg
-       - ${GPG_HOME}/certs/selfsigned.cert:/etc/ega/ega.cert:ro
-       - ${RSA_HOME}:/root/.rsa:ro
-       - ./entrypoints/worker.sh:/usr/local/bin/worker.sh:ro
-    command: worker.sh
+       - ${SSL_CERT}:/etc/ega/ssl.cert:ro
+       - ./entrypoints/ingest.sh:/usr/local/bin/ingest.sh:ro
+    command: ingest.sh
 
-  # GPG Agent
+  # Key server
   keys:
     build: images/common
     # depends_on:
     #   - monitors
-    env_file: .env.d/gpg
     hostname: ega_keys
     container_name: ega_keys
     image: nbis/ega:common
@@ -112,13 +108,13 @@ services:
     volumes:
        - ${CODE}:/root/ega
        - ${CONF}:/etc/ega/conf.ini:ro
-       - ${GPG_HOME}/pubring.kbx:/root/.gnupg/pubring.kbx
-       - ${GPG_HOME}/trustdb.gpg:/root/.gnupg/trustdb.gpg
-       - ${GPG_HOME}/openpgp-revocs.d:/root/.gnupg/openpgp-revocs.d:ro
-       - ${GPG_HOME}/private-keys-v1.d:/root/.gnupg/private-keys-v1.d:ro
-       - ${GPG_HOME}/certs/selfsigned.cert:/etc/ega/ega.cert:ro
-       - ${GPG_HOME}/certs/selfsigned.key:/etc/ega/ega.key:ro
-       - ${RSA_HOME}:/root/.rsa:ro
+       - ${KEYS}:/etc/ega/keys.ini:ro
+       - ${SSL_CERT}:/etc/ega/ssl.cert:ro
+       - ${SSL_KEY}:/etc/ega/ssl.key:ro
+       - ${PGP_SEC}:/etc/ega/pgp/sec.key:ro
+       - ${PGP_PUB}:/etc/ega/pgp/pub.key:ro
+       - ${RSA_SEC}:/etc/ega/rsa/sec.pem:ro
+       - ${RSA_PUB}:/etc/ega/rsa/pub.pem:ro
        - ./entrypoints/keys.sh:/usr/local/bin/keys.sh:ro
     command: ["keys.sh"]
 

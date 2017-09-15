@@ -27,7 +27,7 @@ from .utils.amqp import get_connection, consume
 
 LOG = logging.getLogger('verify')
 
-@db_log_error_on_files
+@db.catch_error
 def work(data):
     '''Verifying that the file in the vault does decrypt properly'''
 
