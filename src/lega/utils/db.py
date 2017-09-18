@@ -79,7 +79,13 @@ def insert_file(filename, user_id):
                 'filename': filename,
                 'user_id': user_id,
                 'status' : Status.Received.value })
-            return (cur.fetchone())[0]
+            file_id = (cur.fetchone())[0]
+            if file_id:
+                LOG.debug(f'Created id {file_id} for {filename}')
+                return file_id
+            else:
+                raise Exception('Database issue with insert_file')
+ 
 
 def get_errors(from_user=False):
     query = 'SELECT * from errors WHERE from_user = true;' if from_user else 'SELECT * from errors;'
@@ -151,5 +157,10 @@ def insert_user(user_id, password_hash, pubkey):
                         { 'uid': user_id,
                           'ph': password_hash,
                           'pk': pubkey })
-            return (cur.fetchone())[0]
+            internal_id = (cur.fetchone())[0]
+            if internal_id:
+                LOG.debug(f'User {user_id} added to the database (as entry {internal_id}).')
+            else:
+                raise Exception('Database issue with insert_user')
+
 

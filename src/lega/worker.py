@@ -54,15 +54,19 @@ def work(data):
     The hash algorithm we support are MD5 and SHA256, for the moment.
     '''
 
-    file_id = data['file_id']
-    user_id = data['user_id']
-    
-    # Find inbox
-    inbox = Path( CONF.get('worker','inbox',raw=True) % { 'user_id': user_id } )
-    LOG.info(f"Inbox area: {inbox}")
-
     filename = data['filename']
     LOG.info(f"Processing {filename}")
+
+    # Use user_id, and not elixir_id
+    user_id = sanitize_user_id(data)
+
+    # Insert in database
+    file_id = db.insert_file(filename, user_id)
+    data['file_id'] = file_id
+
+    # Find inbox
+    inbox = Path( CONF.get('ingestion','inbox',raw=True) % { 'user_id': user_id } )
+    LOG.info(f"Inbox area: {inbox}")
 
     # Check if file is in inbox
     inbox_filepath = inbox / filename
@@ -83,7 +87,7 @@ def work(data):
     assert( isinstance(encrypted_hash,str) )
     assert( isinstance(encrypted_algo,str) )
     
-    ################# Check integrity of encrypted file
+    # Check integrity of encrypted file
     LOG.debug(f"Verifying the {encrypted_algo} checksum of encrypted file: {inbox_filepath}")
     if not checksum.is_valid(inbox_filepath, encrypted_hash, hashAlgo = encrypted_algo):
         LOG.error(f"Invalid {encrypted_algo} checksum for {inbox_filepath}")
@@ -91,7 +95,7 @@ def work(data):
     LOG.debug(f'Valid {encrypted_algo} checksum for {inbox_filepath}')
 
     # Fetch staging area
-    staging_area = Path( CONF.get('worker','staging') )
+    staging_area = Path( CONF.get('ingestion','staging') )
     LOG.info(f"Staging area: {staging_area}")
     #staging_area.mkdir(parents=True, exist_ok=True) # re-create
         
@@ -115,6 +119,9 @@ def work(data):
     details, staging_checksum = crypto_ingest( str(inbox_filepath),
                                                unencrypted_hash,
                                                hash_algo = unencrypted_algo,
+                                               pgp_key=pgp_seckey,
+                                               pgp_passphrase=pgp_passphrase,
+                                               master_key=master_pubkey,
                                                target = staging_filepath)
     db.set_encryption(file_id, details, staging_checksum)
     LOG.debug(f'Re-encryption completed')
@@ -127,46 +134,15 @@ def work(data):
     LOG.debug(f"Reply message: {reply!r}")
     return reply
 
-def consume_forever():
-
-    connection = get_connection('local.broker')
-    channel = connection.channel()
-    channel.basic_qos(prefetch_count=1) # One job per worker
-
-    try:
-        consume(channel,
-                work,
-                from_queue  = CONF.get('local.broker','tasks_queue'),
-                to_channel  = channel,
-                to_exchange = CONF.get('local.broker','exchange'),
-                to_routing  = CONF.get('local.broker','routing_complete'))
-    except KeyboardInterrupt:
-        channel.stop_consuming()
-    finally:
-        connection.close()
-
 def main(args=None):
     if not args:
         args = sys.argv[1:]
 
     CONF.setup(args) # re-conf
 
-    if hasattr(os, 'sched_getaffinity'):
-        nb_cores = len(os.sched_getaffinity(0))
-    else:
-        nb_cores = cpu_count()
-
-    LOG.debug(f'Number of Cores: {nb_cores}')
-
-    extra_workers = []
-    for _ in range(2, nb_cores, 2):
-        p = Process(group=None, target=consume_forever) # no name
-        p.start()
-        extra_workers.append(p)
-        
-    if extra_workers:
-        LOG.info(f'Starting {len(extra_workers)} extra workers')
-    consume_forever() # and this one
+    from_broker = (get_connection('cega.broker'), CONF.get('cega.broker','file_queue'))
+    to_broker = (get_connection('local.broker'), 'lega', 'lega.complete')
+    consume(from_broker, work, to_broker)
 
 if __name__ == '__main__':
     main()

@@ -44,6 +44,7 @@ def get_connection(domain, blocking=True):
             'cert_reqs': 2 #ssl.CERT_REQUIRED is actually <VerifyMode.CERT_REQUIRED: 2>
         } 
 
+    LOG.info(f'Getting a connection to {domain}')
     LOG.debug(params)
 
     if blocking:
@@ -51,14 +52,32 @@ def get_connection(domain, blocking=True):
     return pika.SelectConnection( pika.ConnectionParameters(**params) )
     
 
-def consume(from_channel, work, from_queue, to_channel=None, to_exchange=None, to_routing=None):
-    '''Blocking function, registering callback to be called, on each message from the queue `from_queue`
+def consume(from_broker, work, to_broker):
+    '''Blocking function, registering callback `work` to be called.
 
-    If there are no message in `from_queue`, the function blocks and waits for new messages.
+    from_broker must be a pair (from_connection: pika:Connection, from_queue: str)
+    to_broker must be a triplet (to_connection: pika:Connection, to_exchange: str, to_routing: str)
 
-    If `routing_to` is supplied, and the function `work` returns a non-None message,
-    the new message is published to the exchange with `routing_to` as the routing key.
+    If there are no message in `from_queue`, the function blocks and
+    waits for new messages.
+
+    If the function `work` returns a non-None message, the latter is
+    published to the exchange `to_exchange` with `to_routing` as the
+    routing key.
     '''
+
+    assert( from_broker and to_broker )
+    from_connection, from_queue = from_broker
+    to_connection, to_exchange, to_routing = to_broker
+
+    assert( from_connection and from_queue and
+            to_connection and to_exchange and to_routing)
+
+    LOG.debug(f'Consuming message from {from_queue}')
+
+    from_channel = from_connection.channel()
+    from_channel.basic_qos(prefetch_count=1) # One job per worker
+    to_channel = to_connection.channel()
 
     def process_request(channel, method_frame, props, body):
         correlation_id = props.correlation_id
@@ -69,7 +88,7 @@ def consume(from_channel, work, from_queue, to_channel=None, to_exchange=None, t
         answer = work( json.loads(body) ) # Exceptions should be already caught
 
         # Publish the answer
-        if to_channel and to_exchange and to_routing and answer:
+        if answer:
             LOG.debug(f'Replying to {to_routing} with {answer}')
             to_channel.basic_publish(exchange    = to_exchange,
                                      routing_key = to_routing,
@@ -78,42 +97,14 @@ def consume(from_channel, work, from_queue, to_channel=None, to_exchange=None, t
         # Acknowledgment: Cancel the message resend in case MQ crashes
         LOG.debug(f'Sending ACK for message {message_id} (Correlation ID: {correlation_id})')
         channel.basic_ack(delivery_tag=method_frame.delivery_tag)
-
+            
     # Let's do this
-    LOG.debug(f'Consuming message from {from_queue}')
-    from_channel.basic_consume(process_request, queue=from_queue)
-    from_channel.start_consuming()
-
-def forward(from_channel, from_queue, to_channel, to_exchange, to_routing, transform=None):
-    '''Blocking function, registering callback to be called, on each message from the queue `from_queue`
-
-    If there are no message in `from_queue`, the function blocks and waits for new messages.
-
-    The `transform` parameter accepts a function that takes a message body and returns another message.
-
-    When a message is received, it is passed to transform function and its result to the exchange with the given routing key.
-    If transform is None, the received message is sent verbatim to the exchange.
-    '''
-
-    assert to_channel and to_exchange and to_routing
-
-    def process_request(channel, method_frame, props, body):
-        correlation_id = props.correlation_id
-        message_id = method_frame.delivery_tag
-        LOG.debug(f'Forwarding message {message_id} (Correlation ID: {correlation_id})')
-
-        if transform:
-            body = json.dumps(transform(json.loads(body)))
-
-        # Forward the answer
-        to_channel.basic_publish(exchange    = to_exchange,
-                                 routing_key = to_routing,
-                                 properties  = pika.BasicProperties( correlation_id = props.correlation_id ),
-                                 body        = body)
-        # Acknowledgment: Cancel the message resend in case MQ crashes
-        LOG.debug(f'Sending ACK for message {message_id} (Correlation ID: {correlation_id})')
-        channel.basic_ack(delivery_tag=method_frame.delivery_tag)
-
-    # Let's do this
-    from_channel.basic_consume(process_request, queue=from_queue)
-    from_channel.start_consuming()
+    try:
+        from_channel.basic_consume(process_request, queue=from_queue)
+        from_channel.start_consuming()
+    except KeyboardInterrupt:
+        from_channel.stop_consuming()
+    finally:
+        from_connection.close()
+        if to_connection and from_connection is not to_connection: # not same physical object
+            to_connection.close()

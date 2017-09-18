@@ -25,17 +25,25 @@ from . import exceptions, checksum
 
 LOG = logging.getLogger('crypto')
 
-def _master_key(key_nr=None, public=False):
-    '''Fetch a RSA key from file'''
-    if not key_nr:
-        key_nr = CONF.getint('worker','active_key')
-    domain = f'master.key.{key_nr}'
-    LOG.debug(f"Fetching the RSA master key number {key_nr}")
-    keyfile = CONF.get(domain,'pub_key' if public else 'key')
-    passphrase = None if public else CONF.get(domain,'passphrase')
-    LOG.debug(f"Fetching the RSA master key from {keyfile}")
-    with open( keyfile, 'rb') as key_h:
-        return RSA.import_key(key_h.read(), passphrase = passphrase)
+def chunker(stream, chunk_size=None):
+    """Lazy function (generator) to read a stream one chunk at a time."""
+
+    if not chunk_size:
+        chunk_size = CONF.getint('worker','random_access_chunk_size',fallback=1 << 26) # 67 MB or 2**26
+
+    assert(chunk_size >= 16)
+    #assert(chunk_size % 16 == 0)
+    LOG.debug(f'\tchunk size = {chunk_size}')
+    yield chunk_size
+    while True:
+        data = stream.read(chunk_size)
+        if not data:
+            return None # No more data
+        yield data
+
+###########################################################
+# Ingestion
+###########################################################
 
 def make_header(key_nr, enc_key_size, nonce_size, aes_mode):
     '''Create the header line for the re-encrypted files
@@ -222,21 +230,10 @@ def ingest(enc_file,
         assert Path(target).exists()
         return (reencrypt_protocol.header, reencrypt_protocol.target_digest.hexdigest())
 
-def chunker(stream, chunk_size=None):
-    """Lazy function (generator) to read a stream one chunk at a time."""
 
-    if not chunk_size:
-        chunk_size = CONF.getint('worker','random_access_chunk_size',fallback=1 << 26) # 67 MB or 2**26
-
-    assert(chunk_size >= 16)
-    #assert(chunk_size % 16 == 0)
-    LOG.debug(f'\tchunk size = {chunk_size}')
-    yield chunk_size
-    while True:
-        data = stream.read(chunk_size)
-        if not data:
-            return None # No more data
-        yield data
+###########################################################
+# Decryption
+###########################################################
 
 def decrypt_engine(encrypted_session_key, aes_mode, nonce, key_nr):
 

@@ -86,23 +86,6 @@ services:
        - ./entrypoints/vault.sh:/usr/local/bin/vault.sh:ro
     command: vault.sh
 
-  # Connectors between CEGA and LEGA
-  connectors:
-    build: images/common
-    depends_on:
-      - db
-      - mq
-#      - monitors
-    hostname: ega_connectors
-    container_name: ega_connectors
-    image: nbis/ega:common
-    volumes:
-       - ${CODE}:/root/ega
-       - ${CONF}:/etc/ega/conf.ini:ro
-       - ./entrypoints/connectors.sh:/usr/local/bin/connectors.sh:ro
-    command: ["connectors.sh"] 
-    # Exec form, not shell form
-
   # # Error Monitors
   # monitors:
   #   build: images/monitors

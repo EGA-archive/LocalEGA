@@ -44,21 +44,9 @@ def main(args=None):
 
     CONF.setup(args) # re-conf
 
-    connection = get_connection('local.broker')
-    channel = connection.channel()
-    channel.basic_qos(prefetch_count=1) # One job per worker
-
-    try:
-        consume(channel,
-                work,
-                from_queue  = CONF.get('local.broker','archived_queue'),
-                to_channel  = channel,
-                to_exchange = CONF.get('local.broker','exchange'),
-                to_routing  = CONF.get('local.broker','routing_verified'))
-    except KeyboardInterrupt:
-        channel.stop_consuming()
-    finally:
-        connection.close()
+    from_broker = (get_connection('local.broker'), 'archived')
+    to_broker = (get_connection('cega.broker'), CONF.get('cega.broker','exchange'), CONF.get('cega.broker','file_routing'))
+    consume(from_broker, work, to_broker)
 
 if __name__ == '__main__':
     main()
