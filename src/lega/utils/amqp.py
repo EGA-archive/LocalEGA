@@ -89,10 +89,14 @@ def consume(from_broker, work, to_broker):
 
         # Publish the answer
         if answer:
-        
+            LOG.debug(f'Replying to {to_routing} with {answer}')
+            to_channel.basic_publish(exchange    = to_exchange,
+                                     routing_key = to_routing,
+                                     properties  = pika.BasicProperties( correlation_id = props.correlation_id ),
+                                     body        = json.dumps(answer))
         # Acknowledgment: Cancel the message resend in case MQ crashes
         LOG.debug(f'Sending ACK for message {message_id} (Correlation ID: {correlation_id})')
-        channel.basic_ack(delivery_tag=method_frame.delivery_tag)
+        channel.basic_ack(delivery_tag=method_frame.delivery_tag)        
             
     # Let's do this
     try:
