@@ -19,10 +19,7 @@ import logging
 import os
 
 from .conf import CONF
-from .utils import checksum, db_log_error_on_files
-from .utils.db import get_details
-from .utils.exceptions import VaultDecryption
-from .utils.checksum import is_valid
+from .utils import checksum, db, exceptions
 from .utils.amqp import get_connection, consume
 
 LOG = logging.getLogger('verify')
@@ -32,10 +29,10 @@ def work(data):
     '''Verifying that the file in the vault does decrypt properly'''
 
     file_id = data['file_id']
-    filename, org_hash, org_hash_algo, vault_filename, vault_checksum = get_details(file_id)
+    filename, org_hash, org_hash_algo, vault_filename, vault_checksum = db.get_details(file_id)
 
-    if not is_valid(vault_filename, vault_checksum, hashAlgo='sha256'):
-        raise VaultDecryption(vault_filename)
+    if not checksum.is_valid(vault_filename, vault_checksum, hashAlgo='sha256'):
+        raise exceptions.VaultDecryption(vault_filename)
 
     return { 'vault_name': vault_filename, 'org_name': filename }
     

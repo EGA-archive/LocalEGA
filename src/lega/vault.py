@@ -24,14 +24,14 @@ from pathlib import Path
 import shutil
 
 from .conf import CONF
-from .utils import db_log_error_on_files
-from .utils.db import finalize_file
+from .utils import db
 from .utils.amqp import get_connection, consume
 
 
 LOG = logging.getLogger('vault')
 
-@db.catch_errordef work(data):
+@db.catch_error
+def work(data):
     '''Procedure to handle a message'''
 
     file_id       = data['file_id']
@@ -53,7 +53,7 @@ LOG = logging.getLogger('vault')
     shutil.move(str(filepath), starget)
     
     # Mark it as processed in DB
-    finalize_file(file_id, starget, target.stat().st_size)
+    db.finalize_file(file_id, starget, target.stat().st_size)
 
     # Send message to Archived queue
     return { 'file_id': file_id } # I could have the details in here. Fetching from DB instead.

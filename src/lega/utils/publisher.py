@@ -12,8 +12,8 @@ import json
 import pika
 import logging
 
-from .conf import CONF
-from .utils.amqp import get_connection
+from ..conf import CONF
+from .amqp import get_connection
 
 LOG = logging.getLogger('publisher')
 
@@ -43,8 +43,6 @@ def main():
     common_parser = argparse.ArgumentParser(add_help=False)                                 
     common_parser.add_argument('--conf', help='configuration file, in INI or YAML format')
     common_parser.add_argument('--log',  help='configuration file for the loggers')
-    common_parser.add_argument('--broker',  help='Broker section in the conf file [Default: cega.broker]', default='cega.broker')
-    common_parser.add_argument('--routing',  help='Where to publish the message', required=True)
     
     subparsers = parser.add_subparsers()
 
@@ -52,7 +50,8 @@ def main():
                                          epilog='The supported checksum algorithms are md5 and sha256',
                                          parents=[common_parser],
                                          help='(for a user inbox creation)')
-    files_parser.set_defaults(func=make_file)
+    files_parser.set_defaults(func = make_file,
+                              routing = CONF.get('cega.broker','file_routing'))
     files_parser.add_argument('user', help='Elixir ID')
     files_parser.add_argument('filename', help='Filename in the user inbox')
     unenc_group = files_parser.add_argument_group('unencrypted checksum')
@@ -65,7 +64,8 @@ def main():
     users_parser = subparsers.add_parser("inbox",
                                          parents=[common_parser],
                                          help='(for a file ingestion)')
-    users_parser.set_defaults(func=make_user)
+    users_parser.set_defaults(func = make_user,
+                              routing = CONF.get('cega.broker','user_routing'))
     users_parser.add_argument('name')
     users_parser.add_argument('pubkey')
     users_parser.add_argument('password')
@@ -79,9 +79,9 @@ def main():
 
     message = args.func(args)
 
-    connection = get_connection(args.broker)
+    connection = get_connection('cega.broker')
     channel = connection.channel()
-    channel.basic_publish(exchange=CONF.get(args.broker,'exchange'),
+    channel.basic_publish(exchange=CONF.get('cega.broker','exchange'),
                           routing_key=args.routing,
                           body=json.dumps(message),
                           properties=pika.BasicProperties(**params))

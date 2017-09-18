@@ -19,10 +19,9 @@ import logging
 import shutil
 
 from .conf import CONF
-from .utils import exceptions, sanitize_user_id
+from .utils import sanitize_user_id
 from .utils.db import insert_user
 from .utils.amqp import get_connection, consume
-from .utils.crypto import generate_key
 
 LOG = logging.getLogger('inbox')
 
