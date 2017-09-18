@@ -19,15 +19,10 @@ services:
     env_file: .env.d/db
     build: images/db
     hostname: ega_db
-    ports:
-      - "5050:5050"
-      - "5051:5051"
     container_name: ega_db
     image: nbis/ega:db
     volumes:
        - ./entrypoints/db.sh:/usr/local/bin/db.sh:ro
-    entrypoint: []
-    command: db.sh
 
   # SFTP inbox
   inbox:
@@ -36,8 +31,6 @@ services:
     hostname: ega_inbox
     depends_on:
       - db
-      - mq
-#      - monitors
     ports:
       - "2222:22"
     container_name: ega_inbox
@@ -54,7 +47,6 @@ services:
     build: images/common
     depends_on:
       - db
-#      - monitors
     hostname: ega_frontend
     ports:
       - "9000:80"
@@ -74,7 +66,6 @@ services:
     depends_on:
       - db
       - mq
-#      - monitors
     hostname: ega_vault
     container_name: ega_vault
     image: nbis/ega:common
@@ -86,28 +77,13 @@ services:
        - ./entrypoints/vault.sh:/usr/local/bin/vault.sh:ro
     command: vault.sh
 
-  # # Error Monitors
-  # monitors:
-  #   build: images/monitors
-  #   # depends_on:
-  #   #   - db
-  #   ports:
-  #     - "10514:10514"
-  #   expose:
-  #     - 10514
-  #   hostname: ega_monitors
-  #   container_name: ega_monitors
-  #   image: nbis/ega:monitors
-  #   command: ["rsyslogd", "-n"]
-
-  # Workers
-  worker:
+  # Ingestion Workers
+  ingest:
     build: images/common
     depends_on:
       - db
       - mq
       - keys
-#      - monitors
     image: nbis/ega:common
     tty: true
     stdin_open: true
@@ -146,6 +122,19 @@ services:
        - ./entrypoints/keys.sh:/usr/local/bin/keys.sh:ro
     command: ["keys.sh"]
 
+  # # Error Monitors
+  # monitors:
+  #   build: images/monitors
+  #   # depends_on:
+  #   #   - db
+  #   ports:
+  #     - "10514:10514"
+  #   expose:
+  #     - 10514
+  #   hostname: ega_monitors
+  #   container_name: ega_monitors
+  #   image: nbis/ega:monitors
+  #   command: ["rsyslogd", "-n"]
 
 # Use the default driver for volume creation
 volumes:
