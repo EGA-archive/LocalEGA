@@ -23,13 +23,16 @@
 
 #include <stdio.h>
 
-#define D(x...)  fprintf(stderr, ##x);
-#undef DBGLOG
-#undef SYSLOG
-#undef AUTHLOG
-#define DBGLOG(x...) do { fprintf(stderr, ##x); fprintf(stderr, "\n"); } while(0);
-#define SYSLOG(x...) do { fprintf(stderr, ##x); fprintf(stderr, "\n"); } while(0);
-#define AUTHLOG(x...) do { fprintf(stderr, ##x); fprintf(stderr, "\n"); } while(0);
+#define D(x...) do { fprintf(stderr, "EGA %-10s | %4d | %22s | ", __FILE__, __LINE__, __FUNCTION__); \
+	             fprintf(stderr, ##x);                                                           \
+                } while(0);
+
+/* #undef DBGLOG */
+/* #undef SYSLOG */
+/* #undef AUTHLOG */
+/* #define DBGLOG(y...) do { D( ##y ); fprintf(stderr, "\n"); } while(0); */
+/* #define SYSLOG(y...) do { D( ##y ); fprintf(stderr, "\n"); } while(0); */
+/* #define AUTHLOG(y...) do { D( ##y ); fprintf(stderr, "\n"); } while(0); */
 
 #else
 

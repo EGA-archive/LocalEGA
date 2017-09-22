@@ -21,8 +21,6 @@ services:
     hostname: ega_db
     container_name: ega_db
     image: nbis/ega:db
-    volumes:
-       - ./entrypoints/db.sh:/usr/local/bin/db.sh:ro
 
   # SFTP inbox
   inbox:

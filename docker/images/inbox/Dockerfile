@@ -1,21 +1,11 @@
 FROM nbis/ega:common
 LABEL maintainer "Frédéric Haziza, NBIS"
 
-RUN yum -y install postgresql-devel automake autoconf libtool libgcrypt libgcrypt-devel pam-devel btrfs-progs
-RUN git clone https://github.com/pam-pgsql/pam-pgsql.git ~/pam-pgsql
+RUN yum -y install postgresql-devel pam-devel libcurl-devel json-c-devel
 
 ##################################
 RUN mkdir -p /usr/local/lib/ega
 COPY ega.ld.conf /etc/ld.so.conf.d/ega.conf
-
-RUN pushd ~/pam-pgsql && \
-    ./autogen.sh && \
-    ./configure --libdir=/usr/local/lib/ega && \
-    make && \
-    make install && \
-    ldconfig -v && \
-    popd
-
 
 ##################################
 RUN mkdir -p /var/run/sshd
@@ -41,8 +31,7 @@ RUN mv /etc/pam.d/sshd /etc/pam.d/sshd.bak
 COPY pam.sshd /etc/pam.d/sshd
 
 RUN cp /etc/nsswitch.conf /etc/nsswitch.conf.bak && \
-    sed -i -e 's/^passwd:\(.*\)files/passwd:\1ega files/' /etc/nsswitch.conf && \
-    sed -i -e 's/^shadow:\(.*\)files/shadow:\1ega files/' /etc/nsswitch.conf
+    sed -i -e 's/^passwd:\(.*\)files/passwd:\1files ega/' /etc/nsswitch.conf
 
 COPY sshd_config /etc/ssh/sshd_config
 COPY ega_ssh_keys.sh /usr/local/bin/ega_ssh_keys.sh

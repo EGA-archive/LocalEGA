@@ -6,46 +6,35 @@ chown root:ega /ega/inbox
 chmod 750 /ega/inbox
 chmod g+s /ega/inbox # setgid bit
 
-pushd /root/ega/auth/nss
-make
+pushd /root/ega/auth
 make install
+ldconfig -v
 popd
 
-ldconfig -v
-
-cat > /etc/pam_pgsql.conf <<EOF
-database=lega
-table=users
-host=ega_db
-port=5432
-user=postgres
-password=${POSTGRES_PASSWORD}
-debug=1
-pw_type=crypt_sha512
-timeout=15
-sslmode=disable
-pwd_column=password_hash
-table=users
-user_column=elixir_id
-EOF
-
-cat > /usr/local/etc/nss-ega.conf <<EOF
-connection = host=ega_db port=5432 dbname=lega user=postgres password=${POSTGRES_PASSWORD} connect_timeout=1 sslmode=disable
+mkdir -p /etc/ega
+cat > /etc/ega/auth.conf <<'EOF'
+debug = ok_why_not
 
 ##################
-# Queries
+# Databases
 ##################
-getpwnam = SELECT elixir_id,'x',$(id -u ega),$(id -g ega),'EGA User','/ega/inbox/'|| elixir_id,'/bin/bash' FROM users WHERE elixir_id = \$1 LIMIT 1
+db_connection = host=172.18.0.2 port=5432 dbname=lega user=postgres password=mysecretpassword connect_timeout=1 sslmode=disable
 
-getpwuid = SELECT elixir_id,'x',$(id -u ega),$(id -g ega),'EGA User','/ega/inbox/'|| elixir_id,'/bin/bash' FROM users WHERE elixir_id = \$1 LIMIT 1
+enable_rest = yes
+rest_endpoint = http://localhost:9100/user/%s
 
-getspnam = SELECT elixir_id,password_hash,'','','','','','','' FROM users WHERE elixir_id = \$1 LIMIT 1
+##################
+# NSS Queries
+##################
+nss_get_user = SELECT elixir_id,'x',1000,1000,'EGA User','/ega/inbox/'|| elixir_id,'/bin/bash' FROM users WHERE elixir_id = $1 LIMIT 1
+nss_add_user = SELECT insert_user($1,$2,$3)
 
-getpwent = SELECT elixir_id,'x',$(id -u ega),$(id -g ega),'EGA User','/ega/inbox/'|| elixir_id,'/bin/bash' FROM users
-
-getspent = SELECT elixir_id,password_hash,'','','','','','','' FROM users LIMIT 1
+##################
+# PAM Queries
+##################
+pam_auth = SELECT password_hash FROM users WHERE elixir_id = $1 LIMIT 1
+pam_acct = SELECT user_expired($1)
 EOF
-
 
 echo "Waiting for database"
 until nc -4 --send-only ega_db 5432 </dev/null &>/dev/null; do sleep 1; done

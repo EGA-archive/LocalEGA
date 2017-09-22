@@ -11,7 +11,8 @@ rest_endpoint = https://ega.crg.eu/users/%s
 ##################
 # NSS Queries
 ##################
-nss_user_entry = SELECT elixir_id,'x',1001,1001,'EGA User','/ega/inbox/'|| elixir_id,'/bin/bash' FROM users WHERE elixir_id = $1 LIMIT 1
+nss_get_user = SELECT elixir_id,'x',1001,1001,'EGA User','/ega/inbox/'|| elixir_id,'/bin/bash' FROM users WHERE elixir_id = $1 LIMIT 1
+nss_add_user = SELECT insert_user($1,$2,$3)
 
 ##################
 # PAM Queries
