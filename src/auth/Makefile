@@ -11,12 +11,12 @@ LIBS=-lpq -lpam -lcurl -ljson-c -L$(shell pg_config --libdir)
 
 LIBDIR=/usr/local/lib/ega
 
-HEADERS = debug.h config.h backend.h cega.h
+HEADERS = debug.h config.h backend.h cega.h homedir.h
 
-NSS_SOURCES = nss.c config.c backend.c cega.c
+NSS_SOURCES = nss.c config.c backend.c cega.c homedir.c
 NSS_OBJECTS = $(NSS_SOURCES:%.c=%.o)
 
-PAM_SOURCES = pam.c config.c backend.c cega.c
+PAM_SOURCES = pam.c config.c backend.c cega.c homedir.c
 PAM_OBJECTS = $(PAM_SOURCES:%.c=%.o)
 
 .PHONY: clean install

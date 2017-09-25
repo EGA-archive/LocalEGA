@@ -5,18 +5,19 @@ debug = ok_why_not
 ##################
 db_connection = host=ega_db port=5432 dbname=lega user=postgres password=CHANGE-ME-PLEASE connect_timeout=1 sslmode=disable
 
-enable_rest = sdfsdfyes
-rest_endpoint = https://ega.crg.eu/users/%s
+enable_rest = yes
+#rest_endpoint = https://ega.crg.eu/user/%s
+rest_endpoint = http://ega_frontend:9100/user/%s
 
 ##################
 # NSS Queries
 ##################
-nss_get_user = SELECT elixir_id,'x',1001,1001,'EGA User','/ega/inbox/'|| elixir_id,'/bin/bash' FROM users WHERE elixir_id = $1 LIMIT 1
+nss_get_user = SELECT elixir_id,'x',1001,1001,'EGA User','/ega/inbox/'|| elixir_id,'/sbin/nologin' FROM users WHERE elixir_id = $1 LIMIT 1
 nss_add_user = SELECT insert_user($1,$2,$3)
 
 ##################
 # PAM Queries
 ##################
 pam_auth = SELECT password_hash FROM users WHERE elixir_id = $1 LIMIT 1
-pam_acct = SELECT user_expired($1)
-enable_rest = nope
+pam_acct = SELECT elixir_id FROM users WHERE elixir_id = $1 and current_timestamp < last_accessed + expiration
+#pam_promt = Knock Knock:

@@ -21,12 +21,13 @@ debug = ok_why_not
 db_connection = host=172.18.0.2 port=5432 dbname=lega user=postgres password=mysecretpassword connect_timeout=1 sslmode=disable
 
 enable_rest = yes
-rest_endpoint = http://localhost:9100/user/%s
+#rest_endpoint = http://localhost:9100/user/%s
+rest_endpoint = http://ega_frontend:9100/user/%s
 
 ##################
 # NSS Queries
 ##################
-nss_get_user = SELECT elixir_id,'x',1000,1000,'EGA User','/ega/inbox/'|| elixir_id,'/bin/bash' FROM users WHERE elixir_id = $1 LIMIT 1
+nss_get_user = SELECT elixir_id,'x',1000,1000,'EGA User','/ega/inbox/'|| elixir_id,'/sbin/nologin' FROM users WHERE elixir_id = $1 LIMIT 1
 nss_add_user = SELECT insert_user($1,$2,$3)
 
 ##################
@@ -34,6 +35,7 @@ nss_add_user = SELECT insert_user($1,$2,$3)
 ##################
 pam_auth = SELECT password_hash FROM users WHERE elixir_id = $1 LIMIT 1
 pam_acct = SELECT user_expired($1)
+pam_prompt = aaaannndd...cue music: 
 EOF
 
 echo "Waiting for database"

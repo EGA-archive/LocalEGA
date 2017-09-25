@@ -19,7 +19,6 @@ struct curl_res_s {
   char *body;
   size_t size;
 };
-typedef struct curl_res_s curl_res_t;
 
 /* callback for curl fetch */
 size_t
@@ -55,7 +54,7 @@ fetch_from_cega(const char *username, char **buffer, size_t *buflen, int *errnop
   struct curl_res_s *cres = NULL;
   json_object *json = NULL;
   enum json_tokener_error jerr = json_tokener_success;
-  json_object *pwdh = NULL, *pubkey = NULL;
+  json_object *pwdh = NULL, *pubkey = NULL, *expiration = NULL;
   
   D("contacting cega for user: %s\n", username);
 
@@ -71,12 +70,15 @@ fetch_from_cega(const char *username, char **buffer, size_t *buflen, int *errnop
 
   cres = (struct curl_res_s*)malloc(sizeof(struct curl_res_s));
 
-  curl_easy_setopt(curl, CURLOPT_SSLCERT      , options->ssl_cert);
-  curl_easy_setopt(curl, CURLOPT_SSLCERTTYPE  , "PEM"            );
-  curl_easy_setopt(curl, CURLOPT_NOPROGRESS   , 1L               ); /* shut off the progress meter */
-  curl_easy_setopt(curl, CURLOPT_URL          , endpoint         );
-  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curl_callback    );
-  curl_easy_setopt(curl, CURLOPT_WRITEDATA    , (void *)cres     );
+ 
+  curl_easy_setopt(curl, CURLOPT_NOPROGRESS    , 1L               ); /* shut off the progress meter */
+  curl_easy_setopt(curl, CURLOPT_URL           , endpoint         );
+  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION , curl_callback    );
+  curl_easy_setopt(curl, CURLOPT_WRITEDATA     , (void *)cres     );
+  curl_easy_setopt(curl, CURLOPT_FAILONERROR   , 1L               ); /* when not 200 */
+
+  /* curl_easy_setopt(curl, CURLOPT_SSLCERT      , options->ssl_cert); */
+  /* curl_easy_setopt(curl, CURLOPT_SSLCERTTYPE  , "PEM"            ); */
 
 #ifdef DEBUG
   curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
@@ -86,7 +88,6 @@ fetch_from_cega(const char *username, char **buffer, size_t *buflen, int *errnop
   /* Perform the request, res will get the return code */
   D("Connecting to %s\n", endpoint);
   res = curl_easy_perform(curl);
-  /* Check for errors */
   if(res != CURLE_OK){
     D("curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
     goto BAIL_OUT;
@@ -95,14 +96,18 @@ fetch_from_cega(const char *username, char **buffer, size_t *buflen, int *errnop
   json = json_tokener_parse_verbose(cres->body, &jerr);
 
   if (jerr != json_tokener_success) {
-    D("ERROR: Failed to parse json string");
+    D("Failed to parse json string\n");
     goto BAIL_OUT;
   }
 
   json_object_object_get_ex(json, "password_hash", &pwdh);
   json_object_object_get_ex(json, "pubkey", &pubkey);
+  json_object_object_get_ex(json, "expiration", &expiration);
 
-  success = add_to_db(username, json_object_get_string(pwdh), json_object_get_string(pubkey));
+  success = add_to_db(username,
+		      json_object_get_string(pwdh),
+		      json_object_get_string(pubkey),
+		      json_object_get_string(expiration));
 
 BAIL_OUT:
   if(!success) D("user %s not found\n", username);

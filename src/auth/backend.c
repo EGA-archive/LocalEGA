@@ -3,12 +3,13 @@
 #include <stdio.h>
 #include <errno.h>
 #include <libpq-fe.h>
-
+#include <crypt.h>
 
 #include "debug.h"
 #include "config.h"
 #include "backend.h"
 #include "cega.h"
+#include "homedir.h"
 
 /* define passwd column names */
 #define COL_NAME   0
@@ -27,7 +28,7 @@ backend_open(int stayopen)
 {
   D("called with args: stayopen: %d\n", stayopen);
   if(!readconfig(CFGFILE)){
-    D("%s", "Can't read config");
+    D("Can't read config\n");
     return false;
   }
   if(!conn){
@@ -50,7 +51,7 @@ backend_open(int stayopen)
 void
 backend_close(void)
 { 
-  D("%s", "called");
+  D("called\n");
   if (conn) PQfinish(conn);
   conn = NULL;
 }
@@ -73,6 +74,7 @@ _res2pwd(PGresult *res, int row, int col,
 
   if(*buflen < slen+1) {
     *errnop = ERANGE;
+    D("**************** try again\n");
     return NSS_STATUS_TRYAGAIN;
   }
   strncpy(*buf, s, slen);
@@ -96,13 +98,11 @@ get_from_db(const char* username, struct passwd *result, char **buffer, size_t *
   const char* params[1] = { username };
   PGresult *res;
 
-  D("Prepared Statement: %s\n", options->nss_get_user);
-  D("with '%s'\n", username);
+  D("Prepared Statement: %s with %s\n", options->nss_get_user, username);
   res = PQexecParams(conn, options->nss_get_user, 1, NULL, params, NULL, NULL, 0);
 
-  if(PQresultStatus(res) != PGRES_TUPLES_OK) goto BAIL_OUT;
-
-  if(!PQntuples(res)) goto BAIL_OUT; /* Answer is not a tuple: User not found */
+  /* Check answer */
+  if(PQresultStatus(res) != PGRES_TUPLES_OK || !PQntuples(res)) goto BAIL_OUT;
 
   /* no error, let's convert the result to a struct pwd */
   status = _res2pwd(res, 0, COL_NAME, &(result->pw_name), buffer, buflen, errnop);
@@ -124,22 +124,70 @@ get_from_db(const char* username, struct passwd *result, char **buffer, size_t *
   result->pw_gid = (gid_t) strtoul(PQgetvalue(res, 0, COL_GID), (char**)NULL, 10);
 
   status = NSS_STATUS_SUCCESS;
-
+  
 BAIL_OUT:
   PQclear(res);
   return status;
 }
 
-bool
-add_to_db(const char* username, const char* pwdh, const char* pubkey)
+/*
+ * refresh the user last accessed date
+ */
+int
+session_refresh_user(const char* username)
 {
-  const char* params[3] = { username, pwdh, pubkey};
+  int status = PAM_SESSION_ERR;
+  const char* params[1] = { username };
+  PGresult *res;
+
+  if(!backend_open(0)) return PAM_SESSION_ERR;
+
+  D("Refreshing user %s\n", username);
+  res = PQexecParams(conn, "SELECT refresh_user($1)", 1, NULL, params, NULL, NULL, 0);
+
+  status = (PQresultStatus(res) != PGRES_TUPLES_OK)?PAM_SUCCESS:PAM_SESSION_ERR;
+
+  PQclear(res);
+  backend_close();
+  return status;
+}
+
+/*
+ * Has the account expired
+ */
+int
+account_valid(const char* username)
+{
+  int status = PAM_PERM_DENIED;
+  const char* params[1] = { username };
+  PGresult *res;
+
+  if(!backend_open(0)) return PAM_PERM_DENIED;
+
+  D("Prepared Statement: %s with %s\n", options->pam_acct, username);
+  res = PQexecParams(conn, options->pam_acct, 1, NULL, params, NULL, NULL, 0);
+
+  /* Check answer */
+  status = (PQresultStatus(res) == PGRES_TUPLES_OK)?PAM_SUCCESS:PAM_ACCT_EXPIRED;
+
+  PQclear(res);
+  backend_close();
+  return status;
+}
+
+
+bool
+add_to_db(const char* username, const char* pwdh, const char* pubkey, const char* expiration)
+{
+  /* Expiration is ignored, for the moment */
+  const char* params[4] = { username, pwdh, pubkey, NULL };
+  int nbparams = 3;
   PGresult *res;
   bool success;
 
   D("Prepared Statement: %s\n", options->nss_add_user);
   D("with VALUES('%s','%s','%s')\n", username, pwdh, pubkey);
-  res = PQexecParams(conn, options->nss_add_user, 3, NULL, params, NULL, NULL, 0);
+  res = PQexecParams(conn, options->nss_add_user, nbparams, NULL, params, NULL, NULL, 0);
 
   success = (PQresultStatus(res) == PGRES_TUPLES_OK);
   if(!success) D("%s\n", PQerrorMessage(conn));
@@ -176,15 +224,40 @@ backend_get_userentry(const char *username,
     return NSS_STATUS_NOTFOUND;
 
   /* User retrieved from Central EGA, try again the DB */
-  if( get_from_db(username, result, buffer, buflen, errnop) )
+  if( get_from_db(username, result, buffer, buflen, errnop) ){
+    create_homedir(result); /* In that case, create the homedir */
     return NSS_STATUS_SUCCESS;
+  }
 
   /* No luck, user not found */
   return NSS_STATUS_NOTFOUND;
 }
 
 bool
-backend_authenticate(const char *user, const char *password)
+backend_authenticate(const char *username, const char *password)
 {
-  return false;
+  int status = false;
+  const char* params[1] = { username };
+  const char* pwdh = NULL;
+  PGresult *res;
+
+  if(!backend_open(0)) return false;
+
+  D("Prepared Statement: %s with %s\n", options->pam_auth, username);
+  res = PQexecParams(conn, options->pam_auth, 1, NULL, params, NULL, NULL, 0);
+
+  /* Check answer */
+  if(PQresultStatus(res) != PGRES_TUPLES_OK || !PQntuples(res)) goto BAIL_OUT;
+  
+  /* no error, so fetch the result */
+  pwdh = strdup(PQgetvalue(res, 0, 0)); /* row 0, col 0 */
+
+  if (!strcmp(pwdh, crypt(password, pwdh)))
+    status = true;
+
+BAIL_OUT:
+  PQclear(res);
+  if(pwdh) free((void*)pwdh);
+  backend_close();
+  return status;
 }

@@ -48,6 +48,7 @@ services:
     hostname: ega_frontend
     ports:
       - "9000:80"
+      - "9100:9100"
     expose:
       - 80
     container_name: ega_frontend

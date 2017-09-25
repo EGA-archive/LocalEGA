@@ -14,10 +14,14 @@ import logging
 import asyncio
 from pathlib import Path
 from functools import wraps
+import ssl
 
-from aiohttp import web
+from aiohttp import web, TCPConnector, ClientSession
 import jinja2
 import aiohttp_jinja2
+
+# For the match, we turn that off
+ssl.match_hostname = lambda cert, hostname: True
 
 LOG = logging.getLogger('cega-server')
 
@@ -56,10 +60,7 @@ async def user(request):
     res = _USERS.get(name, None)
     if not res:
         raise web.HTTPBadRequest(text=f'No info for that user {name}... yet\n')
-    json_data = { 'username': name,
-                  'password_hash': res.get("password_hash",None),
-                  'pubkey': res.get("pubkey",None),
-    }
+    json_data = { 'password_hash': res.get("password_hash",None), 'pubkey': res.get("pubkey",None), 'expiration': res.get("expiration",None) }
     return web.json_response(json_data)
 
 async def cleanup(app):
@@ -86,11 +87,16 @@ def main(args=None):
     LOG.info('Setting up callbacks')
     server.on_cleanup.append(cleanup)
 
+    # LOG.info('Preparing SSL context')
+    # ssl_ctx = ssl.create_default_context(cafile='certs/ca.cert.pem')
+    # ssl_ctx.load_cert_chain('certs/cega.cert.pem', 'private/cega.key.pem', password="hello")
+    ssl_ctx = None
+
     # And ...... cue music!
     host="0.0.0.0"
     port=9100
     LOG.info(f'Starting the real deal on <{host}:{port}>')
-    web.run_app(server, host=host, port=port, shutdown_timeout=0)
+    web.run_app(server, host=host, port=port, shutdown_timeout=0, ssl_context=ssl_ctx)
     # https://github.com/aio-libs/aiohttp/blob/master/aiohttp/web.py
     # run_app already catches the KeyboardInterrupt and calls loop.close() at the end
 
