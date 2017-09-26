@@ -22,24 +22,6 @@ services:
     container_name: ega_db
     image: nbis/ega:db
 
-  # SFTP inbox
-  inbox:
-    env_file: .env.d/db
-    build: images/inbox
-    hostname: ega_inbox
-    depends_on:
-      - db
-    ports:
-      - "2222:22"
-    container_name: ega_inbox
-    image: nbis/ega:inbox
-    volumes:
-       - ${CODE}:/root/ega
-       - ${CONF}:/etc/ega/conf.ini:ro
-       - inbox:/ega/inbox
-       - ./entrypoints/inbox.sh:/usr/local/bin/inbox.sh:ro
-    command: inbox.sh
-
   # ReST frontend
   frontend:
     build: images/common
@@ -58,6 +40,25 @@ services:
        - ${CONF}:/etc/ega/conf.ini:ro
        - ./entrypoints/frontend.sh:/usr/local/bin/frontend.sh:ro
     command: frontend.sh
+
+  # SFTP inbox
+  inbox:
+    build: images/inbox
+    hostname: ega_inbox
+    depends_on:
+      - db
+      - frontend
+    env_file: .env.d/db
+    ports:
+      - "2222:22"
+    container_name: ega_inbox
+    image: nbis/ega:inbox
+    volumes:
+       - ${CODE}:/root/ega
+       - ${CONF}:/etc/ega/conf.ini:ro
+       - inbox:/ega/inbox
+       - ./entrypoints/inbox.sh:/usr/local/bin/inbox.sh:ro
+    command: inbox.sh
 
   # Vault
   vault:
