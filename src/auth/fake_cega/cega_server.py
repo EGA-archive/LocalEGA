@@ -15,6 +15,7 @@ import asyncio
 from pathlib import Path
 from functools import wraps
 import ssl
+import yaml
 
 from aiohttp import web, TCPConnector, ClientSession
 import jinja2
@@ -24,12 +25,6 @@ import aiohttp_jinja2
 ssl.match_hostname = lambda cert, hostname: True
 
 LOG = logging.getLogger('cega-server')
-
-_USERS = {
-    "fred": { 'password_hash': "$1$xyz$sx8gPI05DJdJe4MJx5oXo0", "expiration": "1 month", "pubkey": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQCyKoPimxBFwUYx1SDYZMV8x/IVdisShv0kvcJ3SRXny5vR7wTGU1gz6jaoM1mG+i+5NszJKxsEj4/HXHYVcOWithVw81cLuaA4nlSlQEwLqgPSBkUvRV29BHaeIBsbNY9pJOOr/PczTo5gKMFER69VbNmwixVHyAtngZdMjdcp0PezbKQ3xmSmYuKH5+CKzx69r/saEyoLLr5enQ0KkJJyNyVQRZb0Qoxjz0Qtno0c0NJzm8ivLp9G6y0p+/aQ/K/BUhsIgwgY5aSEePTU2iQ4tibgVu/1+XR7Y+7F9PIEXcQ6tLRQTQPLNx1ikZy3lWqKNOU2Dp9nR0QU69LUjEVN8jKjiOIu83KMIUZgFFmTZB4VoppjLZey1pIQuUeiXrxQcMKnOMRabHgh3M0bzlEwUVOD2jspSlLooE4J4gh4EMmCCvDwawe2pkBJMfZYk2nyWQDDiFpazQvEKBg5QW/WLvMLOPfpeEdNJLj6HRARAJaDhIcXFxIaDLmVDaoOUlUN9padxFNQtIWnw/yE8livGSNPM3DSGJ+/fZCQQouvWlppg4kV8HDt/NwMwPUqnWXy++tNbpo2QxPeyCcA6lruRaq944aO+9rafnuWYC6coUmJNoCoNmuB3W1aeeAsuoJx0zt0LhVG/L3/Ea3fQDmECMXPArutX2j37q4E8xMiFw== daz.admin@lega.sftp" },
-    "juha": { 'password_hash': "$1$xyz$OcPwHHMV7Y2fEaYljaqOX/", "expiration": "INTERVAL '3' MONTH" },
-    "santa": { 'password_hash': "$1$xyz$BuJSZKSSNzxpx1.erEcp21", },
-}
 
 def only_central_ega(async_func):
     '''Decorator restrain endpoint access to only Central EGA'''
@@ -45,23 +40,30 @@ def only_central_ega(async_func):
         return (await res)
     return wrapper
 
-
 @aiohttp_jinja2.template('users.html')
 async def index(request):
     '''Main endpoint with documentation
 
     The template is `index.html` in the configured template folder.
     '''
-    return { "users": _USERS }
+    users_dir = Path(__file__).parent / 'users'
+    files = [f for f in users_dir.iterdir() if f.is_file()]
+    users = {}
+    for f in files:
+        with open(f, 'r') as stream:
+            users[f.stem] = yaml.load(stream)
+    return { "users": users }
 
 async def user(request):
     name = request.match_info['id']
     LOG.info(f'Getting info for user: {name}')
-    res = _USERS.get(name, None)
-    if not res:
+    try:
+        with open(f'users/{name}.yml', 'r') as stream:
+            d = yaml.load(stream)
+        json_data = { 'password_hash': d.get("password_hash",None), 'pubkey': d.get("pubkey",None), 'expiration': d.get("expiration",None) }
+        return web.json_response(json_data)
+    except OSError:
         raise web.HTTPBadRequest(text=f'No info for that user {name}... yet\n')
-    json_data = { 'password_hash': res.get("password_hash",None), 'pubkey': res.get("pubkey",None), 'expiration': res.get("expiration",None) }
-    return web.json_response(json_data)
 
 async def cleanup(app):
     '''Function run after a KeyboardInterrupt. Right after, the loop is closed'''
