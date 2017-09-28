@@ -1,0 +1,3 @@
+---
+password_hash: $1$xyz$OcPwHHMV7Y2fEaYljaqOX/
+expiration: INTERVAL '3' MONTH

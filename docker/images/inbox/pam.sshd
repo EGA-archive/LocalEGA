@@ -3,7 +3,6 @@ auth       include      ega
 auth       include      sshd.bak
 account    include      ega
 account    include      sshd.bak
-password   include      ega
 password   include      sshd.bak
 session    include      ega
 session    include      sshd.bak

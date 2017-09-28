@@ -270,9 +270,7 @@ ldconfig -v
 
 # Update the Name Service Switch, for users and passwords
 cp /etc/nsswitch.conf /etc/nsswitch.conf.bak
-sed -i -e 's/^passwd:\(.*\)files/passwd:\1ega files/' /etc/nsswitch.conf
-sed -i -e 's/^shadow:\(.*\)files/shadow:\1ega files/' /etc/nsswitch.conf
-
+sed -i -e 's/^passwd:\(.*\)files/passwd:\1files ega/' /etc/nsswitch.conf
 
 #########################################
 # Systemd files
