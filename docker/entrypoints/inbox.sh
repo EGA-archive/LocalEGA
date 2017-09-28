@@ -23,8 +23,7 @@ debug = ok_why_not
 db_connection = host=${EGA_DB_IP} port=5432 dbname=lega user=${POSTGRES_USER} password=${POSTGRES_PASSWORD} connect_timeout=1 sslmode=disable
 
 enable_rest = yes
-#rest_endpoint = http://localhost:9100/user/%s
-rest_endpoint = http://ega_frontend:9100/user/%s
+rest_endpoint = http://cega_users/user/%s
 
 ##################
 # NSS Queries

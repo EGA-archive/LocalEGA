@@ -2,9 +2,7 @@ version: '3.2'
 
 services:
 
-  # Message Broker
-  # The settings in the docker container define
-  # the vhosts, users, permissions, queues, exchanges and bindings
+  # Local Message broker
   mq:
     #env_file: .env.d/mq
     build: images/mq
@@ -30,7 +28,6 @@ services:
     hostname: ega_frontend
     ports:
       - "9000:80"
-      - "9100:9100"
     expose:
       - 80
     container_name: ega_frontend
@@ -47,7 +44,7 @@ services:
     hostname: ega_inbox
     depends_on:
       - db
-      - frontend
+      - cega_users
     env_file: .env.d/db
     ports:
       - "2222:22"
@@ -66,6 +63,7 @@ services:
     depends_on:
       - db
       - mq
+      - cega_mq
     hostname: ega_vault
     container_name: ega_vault
     image: nbis/ega:common
@@ -83,6 +81,7 @@ services:
     depends_on:
       - db
       - mq
+      - cega_mq
       - keys
     image: nbis/ega:common
     tty: true
@@ -131,6 +130,25 @@ services:
   #   container_name: ega_monitors
   #   image: nbis/ega:monitors
   #   command: ["rsyslogd", "-n"]
+
+  # Faking Central EGA
+  cega_users:
+    build: images/cega_users
+    image: nbis/ega:cega_users
+    container_name: cega_users
+    ports:
+      - "9100:80"
+    volumes:
+       - ${CEGA_USERS}:/cega/users:rw
+
+  cega_mq:
+    #env_file: .env.d/cega_mq
+    build: images/cega_mq
+    hostname: cega_mq
+    ports:
+      - "15673:15672"
+    image: nbis/ega:cega_mq
+    container_name: cega_mq
 
 # Use the default driver for volume creation
 volumes:
