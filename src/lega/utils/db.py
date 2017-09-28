@@ -175,10 +175,9 @@ def insert_user(user_id, password_hash, pubkey):
 def catch_error(func):
     '''Decorator to store the raised exception in the database'''
     @wraps(func)
-    def wrapper(data):
-        file_id = data['file_id'] # I should have it
+    def wrapper(*args):
         try:
-            res = func(data)
+            res = func(*args)
             return res
         except Exception as e:
             if isinstance(e,AssertionError):
@@ -196,6 +195,12 @@ def catch_error(func):
             fname = frame.f_code.co_filename
             LOG.debug(f'Exception: {exc_type} in {fname} on line: {lineno}')
 
-            set_error(file_id, e)
+            try:
+                data = args[-1]
+                file_id = data['file_id'] # I should have it
+                set_error(file_id, e)
+            except Exception as e2:
+                LOG.error(f'Exception: {e!r}')
+                print(repr(e), file=sys.stderr)
             return None
     return wrapper

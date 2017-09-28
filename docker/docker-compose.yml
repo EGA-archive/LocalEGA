@@ -77,32 +77,34 @@ services:
 
   # Ingestion Workers
   ingest:
-    build: images/common
+    build: images/worker
     depends_on:
       - db
       - mq
       - cega_mq
       - keys
-    image: nbis/ega:common
-    tty: true
-    stdin_open: true
+    image: nbis/ega:worker
     volumes:
        - ${CODE}:/root/ega
        - ${CONF}:/etc/ega/conf.ini:ro
        - inbox:/ega/inbox
        - staging:/ega/staging
        - ${SSL_CERT}:/etc/ega/ssl.cert:ro
+       - ${GPG_HOME}/pubring.kbx:/root/.gnupg/pubring.kbx:ro
+       - ${GPG_HOME}/trustdb.gpg:/root/.gnupg/trustdb.gpg
        - ./entrypoints/ingest.sh:/usr/local/bin/ingest.sh:ro
     command: ingest.sh
+#    command: ["sleep","10000000"]
 
   # Key server
   keys:
-    build: images/common
+    env_file: .env.d/gpg
+    build: images/worker
     # depends_on:
     #   - monitors
     hostname: ega_keys
     container_name: ega_keys
-    image: nbis/ega:common
+    image: nbis/ega:worker
     tty: true
     volumes:
        - ${CODE}:/root/ega
@@ -110,12 +112,16 @@ services:
        - ${KEYS}:/etc/ega/keys.ini:ro
        - ${SSL_CERT}:/etc/ega/ssl.cert:ro
        - ${SSL_KEY}:/etc/ega/ssl.key:ro
-       - ${PGP_SEC}:/etc/ega/pgp/sec.key:ro
-       - ${PGP_PUB}:/etc/ega/pgp/pub.key:ro
+       - ${CONF}:/etc/ega/conf.ini:ro
+       - ${GPG_HOME}/pubring.kbx:/root/.gnupg/pubring.kbx
+       - ${GPG_HOME}/trustdb.gpg:/root/.gnupg/trustdb.gpg
+       - ${GPG_HOME}/openpgp-revocs.d:/root/.gnupg/openpgp-revocs.d:ro
+       - ${GPG_HOME}/private-keys-v1.d:/root/.gnupg/private-keys-v1.d:ro
        - ${RSA_SEC}:/etc/ega/rsa/sec.pem:ro
        - ${RSA_PUB}:/etc/ega/rsa/pub.pem:ro
        - ./entrypoints/keys.sh:/usr/local/bin/keys.sh:ro
-    command: ["keys.sh"]
+    command: keys.sh
+#    command: ["sleep","10000000"]
 
   # # Error Monitors
   # monitors:

@@ -19,44 +19,10 @@ PGP_PASSPHRASE    = b'3'
 MASTER_SECKEY     = b'4'
 MASTER_PUBKEY     = b'5'
 MASTER_PASSPHRASE = b'6'
+ACTIVE_MASTER_KEY = b'7'
 
 # For the match, we turn that off
 ssl.match_hostname = lambda cert, hostname: True
-
-async def _req(req, host, port, ssl=None, loop=None):
-    reader, writer = await asyncio.open_connection(host, port, ssl=ssl, loop=loop)
-
-    try:
-        LOG.info(f"Sending request for {req}")
-        # What does the client want
-        writer.write(req)
-        await writer.drain()
-
-        LOG.info("Waiting for answer")
-        buf=bytearray()
-        while True:
-            data = await reader.read(1000)
-            if data:
-                buf.extend(data)
-            else:
-                writer.close()
-                LOG.info("Got it")
-                return buf
-    except Exception as e:
-        LOG.error(repr(e))
-        writer.write(repr(e))
-        await writer.drain()
-        writer.close()
-
-def get_ingestion_keys(host, port, ssl):
-    loop = asyncio.get_event_loop()
-    pgp_private_keyblob = loop.run_until_complete(_req(PGP_SECKEY, host, port, ssl=ssl, loop=loop))
-    pgp_passphrase = loop.run_until_complete(_req(PGP_PASSPHRASE, host, port, ssl=ssl, loop=loop))
-    master_public_keyblob = loop.run_until_complete(_req(MASTER_PUBKEY, host, port, ssl=ssl, loop=loop))
-    loop.close()
-    # Can be a bytearray
-    return pgp_private_keyblob, pgp_passphrase.decode(), master_public_keyblob
-
 
 class KeysProtocol(asyncio.Protocol):
 
@@ -105,11 +71,11 @@ def main(args=None):
     else:
         LOG.info('With SSL encryption')
 
-    # PGP Private Key
-    active_pgp_key = KEYS.getint('DEFAULT','active_pgp_key')
-    pgp_seckey = get_file_content(KEYS.get(f'pgp.key.{active_pgp_key}','seckey'))
-    pgp_pubkey = get_file_content(KEYS.get(f'pgp.key.{active_pgp_key}','pubkey'))
-    pgp_passphrase = (KEYS.get(f'pgp.key.{active_pgp_key}','passphrase')).encode()
+    # # PGP Private Key
+    # active_pgp_key = KEYS.getint('DEFAULT','active_pgp_key')
+    # pgp_seckey = get_file_content(KEYS.get(f'pgp.key.{active_pgp_key}','seckey'))
+    # pgp_pubkey = get_file_content(KEYS.get(f'pgp.key.{active_pgp_key}','pubkey'))
+    # pgp_passphrase = (KEYS.get(f'pgp.key.{active_pgp_key}','passphrase')).encode()
 
     # Active Public Master Key
     active_master_key = KEYS.getint('DEFAULT','active_master_key')
@@ -118,12 +84,13 @@ def main(args=None):
     master_passphrase = (KEYS.get(f'master.key.{active_master_key}','passphrase')).encode()
 
     secrets = {
-        PGP_SECKEY        : pgp_seckey,
-        PGP_PUBKEY        : pgp_pubkey,
-        PGP_PASSPHRASE    : pgp_passphrase,
+        # PGP_SECKEY        : pgp_seckey,
+        # PGP_PUBKEY        : pgp_pubkey,
+        # PGP_PASSPHRASE    : pgp_passphrase,
         MASTER_SECKEY     : master_seckey,
         MASTER_PUBKEY     : master_pubkey,
         MASTER_PASSPHRASE : master_passphrase,
+        ACTIVE_MASTER_KEY : str(active_master_key).encode(),
     }
 
     keys_protocol = KeysProtocol(secrets)
@@ -131,7 +98,7 @@ def main(args=None):
     host = CONF.get('keyserver','host')
     port = CONF.getint('keyserver','port')
     loop = asyncio.get_event_loop()
- 
+
     server = loop.run_until_complete(
         loop.create_server(lambda : keys_protocol, # each connection use that object
                            host=host,

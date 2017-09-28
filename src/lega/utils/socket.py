@@ -26,9 +26,6 @@ CHUNK_SIZE=4096
 # Monkey-patching ssl
 ssl.match_hostname = lambda cert, hostname: True
 
-LISTEN_FDS = int(os.environ.get("LISTEN_FDS", 0))
-#LISTEN_PID = os.environ.get("LISTEN_PID", None) or os.getpid()
-
 async def copy_chunk(reader,writer):
     while True:
         data = await reader.read(CHUNK_SIZE)
@@ -88,6 +85,9 @@ def forward():
         syslog(LOG_INFO, 'With SSL encryption')
 
     host,port = args.remote_machine.split(':')
+
+    LISTEN_FDS = int(os.environ.get("LISTEN_FDS", 0))
+    #LISTEN_PID = os.environ.get("LISTEN_PID", None) or os.getpid()
 
     if LISTEN_FDS == 0:
         _sock = None
@@ -158,6 +158,10 @@ def proxy():
         syslog(LOG_INFO, 'With SSL encryption')
 
     address,port = args.address.split(':')
+
+    LISTEN_FDS = int(os.environ.get("LISTEN_FDS", 0))
+    #LISTEN_PID = os.environ.get("LISTEN_PID", None) or os.getpid()
+
     if LISTEN_FDS == 0:
         socket_path = args.socket
         _sock = None

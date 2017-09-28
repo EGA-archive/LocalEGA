@@ -17,14 +17,6 @@ from .amqp import get_connection
 
 LOG = logging.getLogger('publisher')
 
-def make_user(args):
-    msg = { "elixir_id": args.name }
-    if args.password:
-        msg['password_hash'] = args.password
-    if args.pubkey:		
-        msg['pubkey'] = args.pubkey
-    return msg
-
 def make_file(args):
     msg = { 'elixir_id': args.user, 'filename': args.filename }
     if args.e:
@@ -38,37 +30,20 @@ def main():
 
     parser = argparse.ArgumentParser(description='''Publish message to a given broker.''',
                                      allow_abbrev=False,
-                                     add_help=True)
+                                     epilog='The supported checksum algorithms are md5 and sha256')
 
-    common_parser = argparse.ArgumentParser(add_help=False)                                 
-    common_parser.add_argument('--conf', help='configuration file, in INI or YAML format')
-    common_parser.add_argument('--log',  help='configuration file for the loggers')
+    parser.add_argument('--conf', help='configuration file, in INI or YAML format')
+    parser.add_argument('--log',  help='configuration file for the loggers')
     
-    subparsers = parser.add_subparsers()
+    parser.add_argument('user', help='Elixir ID')
+    parser.add_argument('filename', help='Filename in the user inbox')
 
-    files_parser = subparsers.add_parser("ingestion",
-                                         epilog='The supported checksum algorithms are md5 and sha256',
-                                         parents=[common_parser],
-                                         help='(for a user inbox creation)')
-    files_parser.set_defaults(func = make_file,
-                              routing = CONF.get('cega.broker','file_routing'))
-    files_parser.add_argument('user', help='Elixir ID')
-    files_parser.add_argument('filename', help='Filename in the user inbox')
-    unenc_group = files_parser.add_argument_group('unencrypted checksum')
+    unenc_group = parser.add_argument_group('unencrypted checksum')
     unenc_group.add_argument('--unenc', dest='u')
     unenc_group.add_argument('--unenc_algo', dest='ua', default='md5', help='[Default: md5]')
-    enc_group = files_parser.add_argument_group('encrypted checksum')
+    enc_group = parser.add_argument_group('encrypted checksum')
     enc_group.add_argument('--enc', dest='e')
     enc_group.add_argument('--enc_algo', dest='ea', default='md5', help='[Default: md5]')
-
-    users_parser = subparsers.add_parser("inbox",
-                                         parents=[common_parser],
-                                         help='(for a file ingestion)')
-    users_parser.set_defaults(func = make_user,
-                              routing = CONF.get('cega.broker','user_routing'))
-    users_parser.add_argument('name')
-    users_parser.add_argument('pubkey')
-    users_parser.add_argument('password')
 
     args = parser.parse_args()
 
@@ -77,12 +52,11 @@ def main():
              'delivery_mode': 2, # make message persistent
     }
 
-    message = args.func(args)
+    message = make_file(args)
 
     connection = get_connection('cega.broker')
     channel = connection.channel()
-    channel.basic_publish(exchange=CONF.get('cega.broker','exchange'),
-                          routing_key=args.routing,
+    channel.basic_publish(exchange='localega.v1', routing_key='sweden.file',
                           body=json.dumps(message),
                           properties=pika.BasicProperties(**params))
 
