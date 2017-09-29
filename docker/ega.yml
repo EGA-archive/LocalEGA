@@ -84,6 +84,8 @@ services:
       - cega_mq
       - keys
     image: nbis/ega:worker
+    environment:
+      - GPG_TTY=/dev/console
     volumes:
        - ${CODE}:/root/ega
        - ${CONF}:/etc/ega/conf.ini:ro
@@ -100,6 +102,8 @@ services:
   keys:
     env_file: .env.d/gpg
     build: images/worker
+    environment:
+      - GPG_TTY=/dev/console
     # depends_on:
     #   - monitors
     hostname: ega_keys

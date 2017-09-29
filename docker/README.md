@@ -2,37 +2,86 @@
 
 ## Preliminaries
 
-It is necessary to also create a `.env` file with the following variables:
-(mostly used to parameterize the docker-compose file itself)
-
-	COMPOSE_PROJECT_NAME=ega
-	CODE=<python/code/folder>    # path to folder where setup.py is
-	CONF=<path/to/your/ini/file> # will be mounted in the containers as /etc/ega/conf.ini
-
-	SSL_CERT=<path/to/ssl.cert>  # for the ingestion workers to communicate with the keys server
-
-Moreover, there are settings to include regarding the
-encryption/decryption for the keys server.  We locate those variables
-(in order to not make them available to all containers) in the
-subfolder (to be created in not already exisiting) `.env.d/keys`:
+It is necessary to create a `.env` file with the following variables:
+(mostly used to parameterize docker-compose)
 
 ```
+COMPOSE_PROJECT_NAME=ega
+COMPOSE_FILE=ega.yml
+
+CODE=<python/code/folder>    # path to folder where setup.py is
+CONF=<path/to/your/ini/file> # will be mounted in the containers as /etc/ega/conf.ini
+
+# settings regarding the encryption/decryption
 KEYS=<path/to/keys.conf>
+SSL_CERT=<path/to/ssl.cert>  # for the ingestion workers to communicate with the keys server
 SSL_KEY=<path/to/ssl.key>
 RSA_SEC=<path/to/rsa/sec.pem>
 RSA_PUB=<path/to/rsa/pub.pem>
-PGP_SEC=<path/to/pgp/sec.key>
-PGP_PUB=<path/to/pgp/pub.key>
-PGP_PASSPHRASE='something'
-PGP_PASSPHRASE=<something-complex>
+GPG_HOME=<path/to/gpg/homedir> # including pubring.kbx, trustdb.gpg, private-keys-v1.d and openpgp-revocs.d
 ```
 
 For the database, we create `.env.d/db` containing:
 
 ```
-POSTGRES_USER=postgres
+POSTGRES_USER=<some-user>
 POSTGRES_PASSWORD=<some-password>
 ```
+
+For the keyserver, we create `.env.d/gpg` containing:
+
+```
+GPG_PASSPHRASE=the-correct-passphrase
+```
+
+The file pointed by `KEYS` should contain the information about the
+keys and will be located _only_ on the keyserver. For example:
+
+```
+[DEFAULT]
+active_master_key = 1
+
+[master.key.1]
+seckey = /etc/ega/rsa/sec.pem
+pubkey = /etc/ega/rsa/pub.pem
+passphrase = <something-complex>
+
+[master.key.2]
+seckey = /etc/ega/rsa/sec2.pem
+pubkey = /etc/ega/rsa/pub2.pem
+passphrase = <something-complex-too>
+```
+
+Docker will map the path from `RSA_PUB` in the `.env` file to
+`/etc/ega/rsa/pub.pem` in the keyserver container, for example.
+
+The file pointed by `CONF` should contain the values that reset those
+from [defaults.ini](../src/lega/conf/defaults.ini). For example:
+
+```
+[DEFAULT]
+# We want more output
+log_conf = debug
+
+[ingestion]
+gpg_cmd = /usr/local/bin/gpg --homedir ~/.gnupg --decrypt %(file)s
+
+## Connecting to Central EGA
+[cega.broker]
+host = cega_mq
+username = <some-user>
+password = <some-password>
+vhost = <some-vhost>
+heartbeat = 0
+
+[db]
+host = ega_db
+username = <same-as-POSTGRES_USER-above>
+password = <same-as-POSTGRES_PASSWORD-above>
+```
+
+All the other values will remain unchanged.<br/>
+Use `docker-compose exec <some-container> ega-conf --list` in any container (but inbox).
 
 ## Running
 
