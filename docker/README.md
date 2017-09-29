@@ -25,7 +25,7 @@ CEGA_USERS=<path/to/users/folder> # containing one .yml file per user
 ```
 
 You may get started with some extra instructions to create
-the [private data](private.md).
+the [private data](stubbing/private.md).
 
 For the database, we create `.env.d/db` containing:
 

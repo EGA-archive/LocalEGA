@@ -7,7 +7,7 @@ get started on it.
 A proper GnuPG homedir includes `pubring.kbx`, `trustdb.gpg`,
 `private-keys-v1.d` and `openpgp-revocs.d`.
 
-Create a folder, say `my_gpg_home`, and in it, create the following `gen_key` file:
+Create the following `gen_key` file:
 
 ```
 %echo Generating a basic OpenPGP key
@@ -23,15 +23,15 @@ Passphrase: YourSECRETpassphrase
 %echo done
 ```
 
-In a terminal, go into `my_gpg_home` and issue the command:
+In a terminal, issue the command:
 
-	gpg --batch --generate-key gen_key
+	gpg --homedir <path/to/some/folder/to/be/the/gpg/home> --batch --generate-key <path/to/gen_key>
 
-Make sure you have GnuPG version 2.2.1
+Make sure you have GnuPG version 2.2.0 (or higher)
 
-Use now `<path/to/my_gpg_home>` in the `.env` file for the variable
-`GPG_HOME`. Use also `YourSECRETpassphrase` in the `.env.d/gpg` file
-for the variable `GPG_PASSPHRASE`.
+Use now `<path/to/some/folder/to/be/the/gpg/home>` in the `.env` file
+for the variable `GPG_HOME`. Use also `YourSECRETpassphrase` in the
+`.env.d/gpg` file for the variable `GPG_PASSPHRASE`.
 
 # Generating the RSA public and private keys
 
@@ -49,3 +49,9 @@ variables `RSA_PUB` and `RSA_SEC` respectively.
 	
 Use then the location of `ssl.cert` and `ssl.key` for the .env
 variables `SSL_CERT` and `SSL_KEY` respectively.
+
+# Generating some password hash for a user
+
+	openssl passwd -1 -salt <some-salt> <some-password>
+	
+The `-1` switch makes it use MD5.
