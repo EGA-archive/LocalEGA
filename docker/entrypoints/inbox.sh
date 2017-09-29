@@ -23,8 +23,7 @@ debug = ok_why_not
 db_connection = host=${EGA_DB_IP} port=5432 dbname=lega user=${POSTGRES_USER} password=${POSTGRES_PASSWORD} connect_timeout=1 sslmode=disable
 
 enable_rest = yes
-#rest_endpoint = http://localhost:9100/user/%s
-rest_endpoint = http://ega_frontend:9100/user/%s
+rest_endpoint = http://cega_users/user/%s
 
 ##################
 # NSS Queries
@@ -37,7 +36,7 @@ nss_add_user = SELECT insert_user(\$1,\$2,\$3)
 ##################
 pam_auth = SELECT password_hash FROM users WHERE elixir_id = \$1 LIMIT 1
 pam_acct = SELECT elixir_id FROM users WHERE elixir_id = \$1 and current_timestamp < last_accessed + expiration
-pam_prompt = aaaannndd...cue music: 
+pam_prompt = wazzaaaa: 
 EOF
 
 cat > /usr/local/bin/ega_ssh_keys.sh <<EOF

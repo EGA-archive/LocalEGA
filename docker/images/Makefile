@@ -1,5 +1,5 @@
 
-EGA_IMAGES=common db mq inbox monitors
+EGA_IMAGES=common db mq inbox worker cega_users cega_mq monitors
 
 all: $(EGA_IMAGES)
 

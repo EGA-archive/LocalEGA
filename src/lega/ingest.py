@@ -26,23 +26,52 @@ When a message is consumed, it must be of the form:
 import sys
 import os
 import logging
-import json
 from pathlib import Path
 import shutil
 import stat
 import uuid
 from multiprocessing import Process, cpu_count
+import ssl
+from functools import partial
+import asyncio
+
+from Cryptodome.PublicKey import RSA
 
 from .conf import CONF
-from .utils import db, exceptions, checksum
-from .utils import db_log_error_on_files
+from .utils import db, exceptions, checksum, sanitize_user_id
 from .utils.amqp import get_connection, consume
 from .utils.crypto import ingest as crypto_ingest
+from .keyserver import MASTER_PUBKEY, ACTIVE_MASTER_KEY
 
-LOG = logging.getLogger('worker')
+LOG = logging.getLogger('ingestion')
 
-@db_log_error_on_files
-def work(data):
+async def _req(req, host, port, ssl=None, loop=None):
+    reader, writer = await asyncio.open_connection(host, port, ssl=ssl, loop=loop)
+
+    try:
+        LOG.info(f"Sending request for {req}")
+        # What does the client want
+        writer.write(req)
+        await writer.drain()
+
+        LOG.info("Waiting for answer")
+        buf=bytearray()
+        while True:
+            data = await reader.read(1000)
+            if data:
+                buf.extend(data)
+            else:
+                writer.close()
+                LOG.info("Got it")
+                return buf
+    except Exception as e:
+        LOG.error(repr(e))
+        writer.write(repr(e))
+        await writer.drain()
+        writer.close()
+
+@db.catch_error
+def work(active_master_key, master_pubkey, data):
     '''Main ingestion function
 
     The data is of the form:
@@ -113,15 +142,17 @@ def work(data):
         LOG.info('Finding a companion file')
         unencrypted_hash, unencrypted_algo = checksum.get_from_companion(inbox_filepath.with_suffix(''))
 
-
     LOG.debug(f'Starting the re-encryption\n\tfrom {inbox_filepath}\n\tto {staging_filepath}')
     db.set_progress(file_id, str(staging_filepath), encrypted_hash, encrypted_algo, unencrypted_hash, unencrypted_algo)
-    details, staging_checksum = crypto_ingest( str(inbox_filepath),
+    
+    cmd = CONF.get('ingestion','gpg_cmd',raw=True) % { 'file': str(inbox_filepath) }
+    LOG.debug(f'GPG command: {cmd}\n')
+    details, staging_checksum = crypto_ingest( cmd,
+                                               str(inbox_filepath),
                                                unencrypted_hash,
                                                hash_algo = unencrypted_algo,
-                                               pgp_key=pgp_seckey,
-                                               pgp_passphrase=pgp_passphrase,
-                                               master_key=master_pubkey,
+                                               active_key = active_master_key,
+                                               master_key = master_pubkey,
                                                target = staging_filepath)
     db.set_encryption(file_id, details, staging_checksum)
     LOG.debug(f'Re-encryption completed')
@@ -140,9 +171,39 @@ def main(args=None):
 
     CONF.setup(args) # re-conf
 
-    from_broker = (get_connection('cega.broker'), CONF.get('cega.broker','file_queue'))
-    to_broker = (get_connection('local.broker'), 'lega', 'lega.complete')
-    consume(from_broker, work, to_broker)
+    # Prepare to contact the Keyserver for the PGP key
+    host = CONF.get('ingestion','keyserver_host')
+    port = CONF.getint('ingestion','keyserver_port')
+    ssl_certfile = Path(CONF.get('ingestion','keyserver_ssl_certfile')).expanduser()
+
+    ssl_ctx = ssl.create_default_context(ssl.Purpose.SERVER_AUTH, cafile=ssl_certfile) if (ssl_certfile and ssl_certfile.exists()) else None
+
+    if not ssl_ctx:
+        LOG.error('No SSL encryption. Exiting...')
+        sys.exit(2)
+    else:
+        LOG.info('With SSL encryption')
+        
+    loop = asyncio.get_event_loop()
+    try:
+        LOG.info('Retrieving the Master Public Key')
+
+        # Might raise exception
+        active_master_key = loop.run_until_complete(_req(ACTIVE_MASTER_KEY, host, port, ssl=ssl_ctx, loop=loop))
+        master_pubkey = loop.run_until_complete(_req(MASTER_PUBKEY, host, port, ssl=ssl_ctx, loop=loop))
+        do_work = partial(work, active_master_key, master_pubkey.decode())
+        
+    except Exception as e:
+        LOG.error(repr(e))
+        LOG.critical('Problem contacting the Keyserver. Ingestion Worker terminated')
+        loop.close()
+        sys.exit(1)
+    else:
+        from_broker = (get_connection('cega.broker'), CONF.get('cega.broker','file_queue'))
+        to_broker = (get_connection('local.broker'), 'lega', 'lega.complete')
+        consume(from_broker, do_work, to_broker)
+    finally:
+        loop.close()
 
 if __name__ == '__main__':
     main()

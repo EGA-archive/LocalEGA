@@ -20,20 +20,17 @@ When a message is consumed, it must at least contain:
 
 import sys
 import logging
-import json
 from pathlib import Path
 import shutil
-import os
-import select
 
 from .conf import CONF
 from .utils import db
-from .utils import db_log_error_on_files
 from .utils.amqp import get_connection, consume
+
 
 LOG = logging.getLogger('vault')
 
-@db_log_error_on_files
+@db.catch_error
 def work(data):
     '''Procedure to handle a message'''
 
@@ -71,6 +68,6 @@ def main(args=None):
     from_broker = (connection, 'completed')
     to_broker = (connection, 'lega', 'lega.archived')
     consume(from_broker, work, to_broker)
-    
+
 if __name__ == '__main__':
     main()

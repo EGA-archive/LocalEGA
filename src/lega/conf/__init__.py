@@ -120,7 +120,7 @@ class Configuration(configparser.ConfigParser):
             self._load_log_file(lconf)
         except ValueError:
             #print("--log <file> was not mentioned",file=sys.stderr)
-            self._load_log_file( self.get('DEFAULT','log_conf',fallback=None) )
+            self._load_log_file( self.get('DEFAULT','log',fallback=None) )
         except (TypeError, AttributeError): # if args = None
             pass # No log conf
         except IndexError:
@@ -143,3 +143,14 @@ class Configuration(configparser.ConfigParser):
         return res
 
 CONF = Configuration()
+
+
+class KeysConfiguration(configparser.ConfigParser):
+    log_conf = None
+
+    def __init__(self,args=None, encoding='utf-8'):
+        '''Loads a configuration file from `args`'''
+        super().__init__()
+        # Finding the --keys file. Raise Error otherwise
+        conf_file = Path(args[ args.index('--keys') + 1 ]).expanduser()
+        self.read(conf_file, encoding=encoding)

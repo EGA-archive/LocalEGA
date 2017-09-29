@@ -8,11 +8,16 @@
 ####################################
 '''
 
+import sys
+import traceback
+from functools import wraps
 import logging
 from enum import Enum
 import aiopg
 import psycopg2
-import socket
+import traceback
+from functools import wraps
+from socket import gethostname
 
 from ..conf import CONF
 from .exceptions import FromUser
@@ -99,7 +104,7 @@ def set_error(file_id, error):
     assert error, 'Eh? No error?'
     LOG.debug(f'Setting error for {file_id}: {error!s}')
     from_user = isinstance(error,FromUser)
-    hostname = socket.gethostname()
+    hostname = gethostname()
     with connect() as conn:
         with conn.cursor() as cur:
             cur.execute('SELECT insert_error(%(file_id)s,%(msg)s,%(from_user)s);',
@@ -163,4 +168,39 @@ def insert_user(user_id, password_hash, pubkey):
             else:
                 raise Exception('Database issue with insert_user')
 
+######################################
+##           Decorator              ##
+######################################
 
+def catch_error(func):
+    '''Decorator to store the raised exception in the database'''
+    @wraps(func)
+    def wrapper(*args):
+        try:
+            res = func(*args)
+            return res
+        except Exception as e:
+            if isinstance(e,AssertionError):
+                raise e
+
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            g = traceback.walk_tb(exc_tb)
+            frame, lineno = next(g) # that should be the decorator
+            try:
+                frame, lineno = next(g) # that should be where is happened
+            except StopIteration:
+                pass # In case the trace is too short
+
+            #fname = os.path.split(frame.f_code.co_filename)[1]
+            fname = frame.f_code.co_filename
+            LOG.debug(f'Exception: {exc_type} in {fname} on line: {lineno}')
+
+            try:
+                data = args[-1]
+                file_id = data['file_id'] # I should have it
+                set_error(file_id, e)
+            except Exception as e2:
+                LOG.error(f'Exception: {e!r}')
+                print(repr(e), file=sys.stderr)
+            return None
+    return wrapper

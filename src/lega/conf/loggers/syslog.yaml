@@ -10,7 +10,10 @@ loggers:
   frontend:
     level: DEBUG
     handlers: [syslog]
-  worker:
+  keyserver:
+    level: DEBUG
+    handlers: [syslog]
+  ingestion:
     level: DEBUG
     handlers: [syslog]
   vault:

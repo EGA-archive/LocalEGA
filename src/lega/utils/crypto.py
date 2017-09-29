@@ -16,30 +16,14 @@ import asyncio.subprocess
 from pathlib import Path
 from hashlib import sha256
 
+
 from Cryptodome.PublicKey import RSA
 from Cryptodome.Random import get_random_bytes
 from Cryptodome.Cipher import AES, PKCS1_OAEP
 
-from ..conf import CONF
-from . import exceptions, checksum
+from . import exceptions, checksum, get_file_content
 
 LOG = logging.getLogger('crypto')
-
-def chunker(stream, chunk_size=None):
-    """Lazy function (generator) to read a stream one chunk at a time."""
-
-    if not chunk_size:
-        chunk_size = CONF.getint('worker','random_access_chunk_size',fallback=1 << 26) # 67 MB or 2**26
-
-    assert(chunk_size >= 16)
-    #assert(chunk_size % 16 == 0)
-    LOG.debug(f'\tchunk size = {chunk_size}')
-    yield chunk_size
-    while True:
-        data = stream.read(chunk_size)
-        if not data:
-            return None # No more data
-        yield data
 
 ###########################################################
 # Ingestion
@@ -56,21 +40,7 @@ def make_header(key_nr, enc_key_size, nonce_size, aes_mode):
     '''
     return f'{key_nr}|{enc_key_size}|{nonce_size}|{aes_mode}'
 
-def from_header(h):
-    '''Convert the given line into differents values, doing the opposite job as `make_header`'''
-    header = bytearray()
-    while True:
-        b = h.read(1)
-        if b in (b'\n', b''):
-            break
-        header.extend(b)
-
-    LOG.debug(f'Found header: {header!r}')
-    key_nr, enc_key_size, nonce_size, aes_mode, *rest = header.split(b'|')
-    assert( not rest )
-    return (int(key_nr),int(enc_key_size),int(nonce_size), aes_mode.decode())
-
-def encrypt_engine():
+def encrypt_engine(key,passphrase=None):
     '''Generator that takes a block of data as input and encrypts it as output.
 
     The encryption algorithm is AES (in CTR mode), using a randomly-created session key.
@@ -85,7 +55,8 @@ def encrypt_engine():
     aes = AES.new(key=session_key, mode=AES.MODE_CTR)
 
     LOG.info('Creating RSA cypher')
-    rsa = PKCS1_OAEP.new(_master_key(public=True)) # active_key
+    rsa_key = RSA.import_key(key, passphrase = passphrase)
+    rsa = PKCS1_OAEP.new(rsa_key)
 
     encryption_key = rsa.encrypt(session_key)
     LOG.debug(f'\tencryption key = {encryption_key}')
@@ -94,12 +65,9 @@ def encrypt_engine():
     LOG.debug(f'AES nonce: {nonce}')
 
     clearchunk = yield (encryption_key, 'CTR', nonce)
-
     while True:
         clearchunk = yield aes.encrypt(clearchunk)
-        # if clearchunk is None:
-        #     LOG.info('Exiting the encryption engine')
-        #     break # exit the generator
+
 
 class ReEncryptor(asyncio.SubprocessProtocol):
     '''Re-encryption protocol.
@@ -110,10 +78,10 @@ class ReEncryptor(asyncio.SubprocessProtocol):
     We also calculate the checksum of the data received in the pipe.
     '''
 
-    def __init__(self, hashAlgo, target_h, done):
+    def __init__(self, active_key, master_pubkey, hashAlgo, target_h, done):
         self.done = done
         self.errbuf = bytearray()
-        self.engine = encrypt_engine()
+        self.engine = encrypt_engine(master_pubkey) # pubkey => no passphrase
         self.target_handler = target_h
 
         LOG.info(f'Setup {hashAlgo} digest')
@@ -122,11 +90,10 @@ class ReEncryptor(asyncio.SubprocessProtocol):
         LOG.info(f'Starting the encrypting engine')
         encryption_key, mode, nonce = next(self.engine)
 
-        self.header = make_header(CONF.getint('worker','active_key'), len(encryption_key), len(nonce), mode)
-
+        self.header = make_header(active_key, len(encryption_key), len(nonce), mode.encode())
     
         LOG.info(f'Writing header to file: {self.header} (and enc key + nonce)')
-        header_b = (self.header + '\n').encode('utf-8')
+        header_b = (self.header + '\n').encode()
 
         self.target_handler.write(header_b)
         self.target_handler.write(encryption_key)
@@ -169,16 +136,13 @@ class ReEncryptor(asyncio.SubprocessProtocol):
         self.target_digest.update(cipherchunk)
 
 
-def ingest(enc_file,
-           org_hash,
-           hash_algo,
+def ingest(gpg_cmd,
+           enc_file,
+           org_hash, hash_algo,
+           active_key, master_key,
            target):
     '''Decrypts a gpg-encoded file and verifies the integrity of its content.
        Finally, it re-encrypts it chunk-by-chunk'''
-
-    assert( isinstance(org_hash,str) )
-
-    cmd = (CONF.get('worker','gpg_cmd',raw=True) % { 'file': enc_file }).split(None) # whitespace split
 
     LOG.debug(f'Processing file\n'
               f'==============\n'
@@ -187,13 +151,16 @@ def ingest(enc_file,
               f'hash_algo = {hash_algo}\n'
               f'target    = {target}\n')
 
+    assert( isinstance(org_hash,str) )
+
     _err = None
+    cmd = gpg_cmd.split(None) # whitespace split
 
     with open(target, 'wb') as target_h:
 
         loop = asyncio.get_event_loop()
         done = asyncio.Future(loop=loop)
-        reencrypt_protocol = ReEncryptor(hash_algo, target_h, done)
+        reencrypt_protocol = ReEncryptor(active_key, master_key, hash_algo, target_h, done)
 
         LOG.debug(f'Spawning a separate process running: {cmd}')
 
@@ -230,73 +197,16 @@ def ingest(enc_file,
         assert Path(target).exists()
         return (reencrypt_protocol.header, reencrypt_protocol.target_digest.hexdigest())
 
+# def from_header(h):
+#     '''Convert the given line into differents values, doing the opposite job as `make_header`'''
+#     header = bytearray()
+#     while True:
+#         b = h.read(1)
+#         if b in (b'\n', b''):
+#             break
+#         header.extend(b)
 
-###########################################################
-# Decryption
-###########################################################
-
-def decrypt_engine(encrypted_session_key, aes_mode, nonce, key_nr):
-
-    LOG.info('Starting the decipher engine')
-
-    LOG.info('Creating RSA cypher')
-    rsa = PKCS1_OAEP.new(_master_key(key_nr, public=False))
-    session_key = rsa.decrypt(encrypted_session_key)
-
-    LOG.info(f'Creating AES cypher in mode {aes_mode}')
-    aes = AES.new(key=session_key, mode=getattr(AES, 'MODE_' + aes_mode), nonce=nonce)
-
-    LOG.info(f'Session key: {session_key}')
-    LOG.info(f'Nonce: {nonce}')
-
-    cipherchunk = yield
-
-    while True:
-        cipherchunk = yield aes.decrypt(cipherchunk)
-
-
-def decrypt_from_vault( vault_filename,
-                        org_hash,
-                        hash_algo):
-
-    digest = checksum.instanciate(hash_algo)
-    LOG.debug(f'Digest: {hash_algo}')
-
-    with open(vault_filename, 'rb') as vault_source:
-
-        LOG.debug('Decrypting file')
-        key_nr, enc_key_size, nonce_size, aes_mode = from_header( vault_source )
-
-        LOG.debug(f'encrypted_session_key (size): {enc_key_size}')
-        LOG.debug(f'aes mode: {aes_mode}')
-        
-        encrypted_session_key = vault_source.read(enc_key_size)
-        nonce = vault_source.read(nonce_size)
-        
-        engine = decrypt_engine( encrypted_session_key, aes_mode.upper(), nonce, key_nr )
-        next(engine) # start it
-        
-        chunks = chunker(vault_source)
-        next(chunks) # start it and ignore its return value
-        
-        for chunk in chunks:
-            clearchunk = engine.send(chunk)
-            digest.update(clearchunk)
-                
-        calculated_digest = digest.hexdigest()
-        if calculated_digest != org_hash:
-            LOG.debug('Invalid digest')
-            LOG.debug(f'Calculated digest: {calculated_digest}')
-            LOG.debug(f'Original digest: {org_hash}')
-            raise VaultDecryption(vault_filename)
-        else:
-            LOG.debug(f'Valid digest')
-
-
-# If that code is in a docker container, there is not much entropy
-# so I don't know how good the key generation is
-def generate_key(size):
-    key = RSA.generate(size)
-    seckey = key.exportKey('PEM').decode()
-    pubkey = key.publickey().exportKey('OpenSSH').decode()
-    return (pubkey,seckey)
+#     LOG.debug(f'Found header: {header!r}')
+#     key_nr, enc_key_size, nonce_size, aes_mode, *rest = header.split(b'|')
+#     assert( not rest )
+#     return (int(key_nr),int(enc_key_size),int(nonce_size), aes_mode.decode())

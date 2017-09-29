@@ -2,9 +2,7 @@ version: '3.2'
 
 services:
 
-  # Message Broker
-  # The settings in the docker container define
-  # the vhosts, users, permissions, queues, exchanges and bindings
+  # Local Message broker
   mq:
     #env_file: .env.d/mq
     build: images/mq
@@ -30,7 +28,6 @@ services:
     hostname: ega_frontend
     ports:
       - "9000:80"
-      - "9100:9100"
     expose:
       - 80
     container_name: ega_frontend
@@ -47,7 +44,7 @@ services:
     hostname: ega_inbox
     depends_on:
       - db
-      - frontend
+      - cega_users
     env_file: .env.d/db
     ports:
       - "2222:22"
@@ -66,6 +63,8 @@ services:
     depends_on:
       - db
       - mq
+      - cega_mq
+      - inbox
     hostname: ega_vault
     container_name: ega_vault
     image: nbis/ega:common
@@ -79,48 +78,54 @@ services:
 
   # Ingestion Workers
   ingest:
-    build: images/common
+    build: images/worker
     depends_on:
       - db
       - mq
+      - cega_mq
       - keys
-    image: nbis/ega:common
-    tty: true
-    stdin_open: true
+      - inbox
+    image: nbis/ega:worker
+    environment:
+      - GPG_TTY=/dev/console
     volumes:
        - ${CODE}:/root/ega
        - ${CONF}:/etc/ega/conf.ini:ro
        - inbox:/ega/inbox
        - staging:/ega/staging
-       - ${GPG_HOME}/pubring.kbx:/root/.gnupg/pubring.kbx
+       - ${SSL_CERT}:/etc/ega/ssl.cert:ro
+       - ${GPG_HOME}/pubring.kbx:/root/.gnupg/pubring.kbx:ro
        - ${GPG_HOME}/trustdb.gpg:/root/.gnupg/trustdb.gpg
-       - ${GPG_HOME}/certs/selfsigned.cert:/etc/ega/ega.cert:ro
-       - ${RSA_HOME}:/root/.rsa:ro
-       - ./entrypoints/worker.sh:/usr/local/bin/worker.sh:ro
-    command: worker.sh
+       - ./entrypoints/ingest.sh:/usr/local/bin/ingest.sh:ro
+    command: ingest.sh
 
-  # GPG Agent
+  # Key server
   keys:
-    build: images/common
+    env_file: .env.d/gpg
+    build: images/worker
+    environment:
+      - GPG_TTY=/dev/console
     # depends_on:
     #   - monitors
-    env_file: .env.d/gpg
     hostname: ega_keys
     container_name: ega_keys
-    image: nbis/ega:common
+    image: nbis/ega:worker
     tty: true
     volumes:
        - ${CODE}:/root/ega
+       - ${CONF}:/etc/ega/conf.ini:ro
+       - ${KEYS}:/etc/ega/keys.ini:ro
+       - ${SSL_CERT}:/etc/ega/ssl.cert:ro
+       - ${SSL_KEY}:/etc/ega/ssl.key:ro
        - ${CONF}:/etc/ega/conf.ini:ro
        - ${GPG_HOME}/pubring.kbx:/root/.gnupg/pubring.kbx
        - ${GPG_HOME}/trustdb.gpg:/root/.gnupg/trustdb.gpg
        - ${GPG_HOME}/openpgp-revocs.d:/root/.gnupg/openpgp-revocs.d:ro
        - ${GPG_HOME}/private-keys-v1.d:/root/.gnupg/private-keys-v1.d:ro
-       - ${GPG_HOME}/certs/selfsigned.cert:/etc/ega/ega.cert:ro
-       - ${GPG_HOME}/certs/selfsigned.key:/etc/ega/ega.key:ro
-       - ${RSA_HOME}:/root/.rsa:ro
+       - ${RSA_SEC}:/etc/ega/rsa/sec.pem:ro
+       - ${RSA_PUB}:/etc/ega/rsa/pub.pem:ro
        - ./entrypoints/keys.sh:/usr/local/bin/keys.sh:ro
-    command: ["keys.sh"]
+    command: keys.sh
 
   # # Error Monitors
   # monitors:
@@ -135,6 +140,25 @@ services:
   #   container_name: ega_monitors
   #   image: nbis/ega:monitors
   #   command: ["rsyslogd", "-n"]
+
+  # Faking Central EGA
+  cega_users:
+    build: images/cega_users
+    image: nbis/ega:cega_users
+    container_name: cega_users
+    ports:
+      - "9100:80"
+    volumes:
+       - ${CEGA_USERS}:/cega/users:rw
+
+  cega_mq:
+    #env_file: .env.d/cega_mq
+    build: images/cega_mq
+    hostname: cega_mq
+    ports:
+      - "15673:15672"
+    image: nbis/ega:cega_mq
+    container_name: cega_mq
 
 # Use the default driver for volume creation
 volumes:

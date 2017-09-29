@@ -78,3 +78,32 @@ There are 4 components:
   database.
 
 
+# Configuration file sample
+
+Place the following content in the file `/etc/ega/auth.conf` (or update the `#defile
+CFGFILE` in [config.h](config.h))
+
+```
+debug = yes
+
+##################
+# Databases
+##################
+db_connection = host=<EGA_DB_IP> port=5432 dbname=lega user=<POSTGRES_USER> password=<POSTGRES_PASSWORD> connect_timeout=1 sslmode=disable
+
+enable_rest = yes
+rest_endpoint = http://cega_users/user/%s
+
+##################
+# NSS Queries
+##################
+nss_get_user = SELECT elixir_id,'x',<uid>,<gid>,'EGA User','/ega/inbox/'|| elixir_id,'/sbin/nologin' FROM users WHERE elixir_id = $1 LIMIT 1
+nss_add_user = SELECT insert_user($1,$2,$3)
+
+##################
+# PAM Queries
+##################
+pam_auth = SELECT password_hash FROM users WHERE elixir_id = $1 LIMIT 1
+pam_acct = SELECT elixir_id FROM users WHERE elixir_id = $1 and current_timestamp < last_accessed + expiration
+pam_prompt = wazzzaaa: 
+```
