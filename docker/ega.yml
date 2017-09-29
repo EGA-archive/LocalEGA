@@ -64,6 +64,7 @@ services:
       - db
       - mq
       - cega_mq
+      - inbox
     hostname: ega_vault
     container_name: ega_vault
     image: nbis/ega:common
@@ -83,6 +84,7 @@ services:
       - mq
       - cega_mq
       - keys
+      - inbox
     image: nbis/ega:worker
     environment:
       - GPG_TTY=/dev/console
