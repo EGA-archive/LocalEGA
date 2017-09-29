@@ -96,7 +96,6 @@ services:
        - ${GPG_HOME}/trustdb.gpg:/root/.gnupg/trustdb.gpg
        - ./entrypoints/ingest.sh:/usr/local/bin/ingest.sh:ro
     command: ingest.sh
-#    command: ["sleep","10000000"]
 
   # Key server
   keys:
@@ -125,7 +124,6 @@ services:
        - ${RSA_PUB}:/etc/ega/rsa/pub.pem:ro
        - ./entrypoints/keys.sh:/usr/local/bin/keys.sh:ro
     command: keys.sh
-#    command: ["sleep","10000000"]
 
   # # Error Monitors
   # monitors:
