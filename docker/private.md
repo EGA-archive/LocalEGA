@@ -29,7 +29,7 @@ In a terminal, go into `my_gpg_home` and issue the command:
 
 Make sure you have GnuPG version 2.2.1
 
-Use now `<path/to/my_gpg_home` in the `.env` file for the variable
+Use now `<path/to/my_gpg_home>` in the `.env` file for the variable
 `GPG_HOME`. Use also `YourSECRETpassphrase` in the `.env.d/gpg` file
 for the variable `GPG_PASSPHRASE`.
 

@@ -120,7 +120,7 @@ class Configuration(configparser.ConfigParser):
             self._load_log_file(lconf)
         except ValueError:
             #print("--log <file> was not mentioned",file=sys.stderr)
-            self._load_log_file( self.get('DEFAULT','log_conf',fallback=None) )
+            self._load_log_file( self.get('DEFAULT','log',fallback=None) )
         except (TypeError, AttributeError): # if args = None
             pass # No log conf
         except IndexError:

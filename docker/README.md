@@ -47,7 +47,7 @@ from [defaults.ini](../src/lega/conf/defaults.ini). For example:
 ```
 [DEFAULT]
 # We want more output
-log_conf = debug
+log = debug
 
 [ingestion]
 gpg_cmd = /usr/local/bin/gpg --homedir ~/.gnupg --decrypt %(file)s
