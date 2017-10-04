@@ -117,7 +117,6 @@ services:
        - ${KEYS}:/etc/ega/keys.ini:ro
        - ${SSL_CERT}:/etc/ega/ssl.cert:ro
        - ${SSL_KEY}:/etc/ega/ssl.key:ro
-       - ${CONF}:/etc/ega/conf.ini:ro
        - ${GPG_HOME}/pubring.kbx:/root/.gnupg/pubring.kbx
        - ${GPG_HOME}/trustdb.gpg:/root/.gnupg/trustdb.gpg
        - ${GPG_HOME}/openpgp-revocs.d:/root/.gnupg/openpgp-revocs.d:ro
