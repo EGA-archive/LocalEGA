@@ -82,8 +82,8 @@ done
 exec 2>${HERE}/.err
 [[ $VERBOSE == 'no' ]] && exec 1>${HERE}/.log && FORCE='yes'
 
-[[ -x $(readling ${GPG}) ]] && echo "${GPG} is not executable" && exit 2
-[[ -x $(readling ${OPENSSL}) ]] && echo "${OPENSSL} is not executable" && exit 3
+[[ -x $(readlink ${GPG}) ]] && echo "${GPG} is not executable" && exit 2
+[[ -x $(readlink ${OPENSSL}) ]] && echo "${OPENSSL} is not executable" && exit 3
 
 #########################################################################
 # Creating the necessary folders
@@ -281,20 +281,6 @@ POSTGRES_PASSWORD=${DB_PASSWORD}
 EOF
 cat > $ABS_PRIVATE/.env.d/gpg <<EOF
 GPG_PASSPHRASE=${GPG_PASSPHRASE}
-EOF
-
-cat > $ABS_PRIVATE/.env <<EOF
-COMPOSE_PROJECT_NAME=ega
-COMPOSE_FILE=ega.yml
-CONF=$ABS_PRIVATE/ega.conf
-KEYS=$ABS_PRIVATE/keys.conf
-SSL_CERT=$ABS_PRIVATE/certs/ssl.cert
-SSL_KEY=$ABS_PRIVATE/certs/ssl.key
-RSA_SEC=$ABS_PRIVATE/rsa/ega.sec
-RSA_PUB=$ABS_PRIVATE/rsa/ega.pub
-GPG_HOME=$ABS_PRIVATE/gpg
-CEGA_USERS=$ABS_PRIVATE/cega/users
-CEGA_MQ_DEFS=$ABS_PRIVATE/cega/mq/defs.json
 EOF
 
 echo -e "\nGeneration completed"

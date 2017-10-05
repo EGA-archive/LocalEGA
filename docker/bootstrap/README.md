@@ -23,7 +23,7 @@ destination location if there was already a version)
 If you don't have the required tools installed on your machine (namely GnuPG 2.2.1 and OpenSSL), you can use the `nbis/ega:worker` image that is already setup:
 
 	# In that current folder
-	docker run --rm -it -v ${PWD}:/ega nbis/ega:worker /ega/run.sh -f
+	docker run --rm -it -v ${PWD}:/ega nbis/ega:worker /ega/generate.sh -f
 	# That creates a folder, named 'private', with all the settings
 	# Call populate.sh afterwards
 	

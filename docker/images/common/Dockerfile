@@ -2,7 +2,7 @@ FROM centos:latest
 LABEL maintainer "Frédéric Haziza, NBIS"
 
 RUN yum -y update && \
-    yum -y install gcc curl make bzip2 unzip \
+    yum -y install gcc git curl make bzip2 unzip \
     	   	   openssl \
 		   nss-tools nc nmap tcpdump lsof strace \
 	       	   bash-completion bash-completion-extras
