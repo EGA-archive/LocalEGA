@@ -15,7 +15,7 @@ Then you can copy the settings into place with `bootstrap/populate.sh`
 
 The passwords are in `bootstrap/private/.trace`
 
-Alternatively, you can [do it yourself](do_it_youself.md)
+Alternatively, you can [do it yourself](do_it_yourself.md)
 
 # Running
 
