@@ -80,8 +80,8 @@ done
 exec 2>${HERE}/.err
 [[ $VERBOSE == 'no' ]] && exec 1>${HERE}/.log && FORCE='yes'
 
-[[ -x ${GPG} ]] && echo "${GPG} is not executable" && exit 2
-[[ -x ${OPENSSL} ]] && echo "${OPENSSL} is not executable" && exit 3
+[[ -x $(readling ${GPG}) ]] && echo "${GPG} is not executable" && exit 2
+[[ -x $(readling ${OPENSSL}) ]] && echo "${OPENSSL} is not executable" && exit 3
 
 #########################################################################
 # Creating the necessary folders
@@ -99,8 +99,9 @@ if [[ -d $ABS_PRIVATE ]]; then
 	rm -rf $ABS_PRIVATE
     else
 	# Asking
-	echo -n "[Warning] The folder \"$ABS_PRIVATE\" already exists. "
+	echo "[Warning] The folder \"$ABS_PRIVATE\" already exists. "
 	while : ; do # while = In a subshell
+	    echo -n "[Warning] "
 	    echo -n -e "Proceed to re-create it? [y/N] "
 	    read -t 10 yn
 	    case $yn in
@@ -220,7 +221,7 @@ gpg_cmd = /usr/local/bin/gpg --homedir ~/.gnupg --decrypt %(file)s
 host = cega_mq
 username = ${CEGA_MQ_USER}
 password = ${CEGA_MQ_PASSWORD}
-vhost = /se
+vhost = ${CEGA_MQ_VHOST}
 heartbeat = 0
 
 [db]
@@ -233,20 +234,36 @@ EOF
 # RABBITMQ_DEFAULT_USER=...
 # RABBITMQ_DEFAULT_PASSWORD=...
 # RABBITMQ_DEFAULT_VHOST=...
-# But then I'm not sure the queues and bindings are properly set up
+# But then the queues and bindings are not properly set up
 # Doing this instead:
+
+echo "Hashing CEGA MQ passwords"
+function rabbitmq_hash {
+    # 1) Generate a random 32 bit salt
+    local SALT=${2:-$(${OPENSSL} rand -hex 4)}
+    #echo "1)        SALT = $SALT"
+    # 2) Concatenate that with the UTF-8 representation of the password
+    local TMP=${SALT}$(echo -n $1 | hexdump -e '1/1 "%.2x"')
+    #echo "2)         TMP = $TMP"
+    # 3) Take the SHA-256 hash
+    local TMP_SHA256=$(echo -n ${TMP^^} | ${OPENSSL} dgst -sha256 | cut -d' ' -f2)
+    #echo "3)  TMP_SHA256 = ${TMP_SHA256^^}"
+    # 4) Concatenate the salt again
+    #echo "4) SALT+SHA256 = ${SALT^^}${TMP_SHA256}"
+    # 5) Convert to base64 encoding
+    echo -n ${SALT^^}${TMP_SHA256} | base64
+}
+
 cat > $ABS_PRIVATE/cega/mq/defs.json <<EOF
 {"rabbit_version":"3.6.11",
- "users":[{"name":"${CEGA_MQ_USER}", "password_hash":"$(echo -n ${CEGA_MQ_PASSWORD} | openssl dgst -sha256)", "hashing_algorithm":"rabbit_password_hashing_sha256", "tags":"administrator"}],
+ "users":[{"name":"${CEGA_MQ_USER}", "password_hash":"$(rabbitmq_hash ${CEGA_MQ_PASSWORD})", "hashing_algorithm":"rabbit_password_hashing_sha256", "tags":"administrator"}],
  "vhosts":[{"name":"${CEGA_MQ_VHOST}"}],
  "permissions":[{"user":"${CEGA_MQ_USER}" , "vhost":"${CEGA_MQ_VHOST}", "configure":".*", "write":".*", "read":".*"}],
  "parameters":[],
  "global_parameters":[{"name":"cluster_name", "value":"rabbit@localhost"}],
  "policies":[],
  "queues":[{"name":"sweden.v1.commands.file"     , "vhost":"${CEGA_MQ_VHOST}", "durable":true, "auto_delete":false, "arguments":{}},
-	   {"name":"sweden.v1.commands.account"  , "vhost":"${CEGA_MQ_VHOST}", "durable":true, "auto_delete":false, "arguments":{}},
-	   {"name":"sweden.v1.commands.completed", "vhost":"${CEGA_MQ_VHOST}", "durable":true, "auto_delete":false, "arguments":{}},
-	   {"name":"sweden.v1.commands.user"     , "vhost":"${CEGA_MQ_VHOST}", "durable":true, "auto_delete":false, "arguments":{}}],
+	   {"name":"sweden.v1.commands.completed", "vhost":"${CEGA_MQ_VHOST}", "durable":true, "auto_delete":false, "arguments":{}}],
  "exchanges":[{"name":"localega.v1", "vhost":"${CEGA_MQ_VHOST}", "type":"topic", "durable":true, "auto_delete":false, "internal":false, "arguments":{}}],
  "bindings":[{"source":"localega.v1", "vhost":"${CEGA_MQ_VHOST}", "destination_type":"queue", "arguments":{},
 	      "destination":"sweden.v1.commands.file", "routing_key":"sweden.file"},
@@ -287,14 +304,14 @@ DEST=$HERE/..
 function backup {
     local target=$1
     if [[ -e $target ]]; then
-	mv -f  $target $target.$(date +"%Y-%m-%d_%H:%M:%S")
+	mv -f $target $target.$(date +"%Y-%m-%d_%H:%M:%S")
     fi
 }
 
-backup $HERE/../.env
-backup $HERE/../.env.d
+[[ $FORCE == 'yes' ]] || backup $HERE/../.env
+[[ $FORCE == 'yes' ]] || backup $HERE/../.env.d
 
-mv $ABS_PRIVATE/.env $DEST/.env
-mv $ABS_PRIVATE/.env.d $DEST/.env.d
+mv -f $ABS_PRIVATE/.env $DEST/.env
+mv -f $ABS_PRIVATE/.env.d $DEST/.env.d
 
 echo -e "\nBootstrap completed"

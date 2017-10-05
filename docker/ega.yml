@@ -151,7 +151,6 @@ services:
        - ${CEGA_USERS}:/cega/users:rw
 
   cega_mq:
-    #env_file: .env.d/cega_mq
     build: images/cega_mq
     hostname: cega_mq
     ports:
@@ -159,7 +158,7 @@ services:
     image: nbis/ega:cega_mq
     container_name: cega_mq
     volumes:
-       - ${CEGA_MQ_DEFS}:/etc/rabbitmq/defs.json.ro
+       - ${CEGA_MQ_DEFS}:/etc/rabbitmq/defs.json:ro
 
 # Use the default driver for volume creation
 volumes:
