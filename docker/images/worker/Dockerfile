@@ -84,3 +84,6 @@ RUN rm -rf /var/src/gnupg && \
     mkdir -p /var/run/ega
 
 WORKDIR /
+
+# For the xxd utility
+RUN yum -y install vim-common

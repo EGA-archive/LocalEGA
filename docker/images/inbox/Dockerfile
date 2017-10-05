@@ -2,7 +2,7 @@ FROM centos:latest
 LABEL maintainer "Frédéric Haziza, NBIS"
 
 RUN yum -y update && \
-    yum -y install gcc make rsyslog \
+    yum -y install gcc git make rsyslog \
 		   openssh-server \
 		   nss-tools nc nmap tcpdump lsof strace \
 	       	   bash-completion bash-completion-extras \

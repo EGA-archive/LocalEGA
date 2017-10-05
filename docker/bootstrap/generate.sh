@@ -130,7 +130,8 @@ function generate_password {
 [[ -z $GPG_PASSPHRASE ]] && GPG_PASSPHRASE=$(generate_password 16)
 [[ -z $RSA_PASSPHRASE ]] && RSA_PASSPHRASE=$(generate_password 16)
 [[ -z $DB_PASSWORD ]] && DB_PASSWORD=$(generate_password 16)
-[[ -z $CEGA_MQ_PASSWORD ]] && CEGA_MQ_PASSWORD=$(generate_password 16)
+#[[ -z $CEGA_MQ_PASSWORD ]] && CEGA_MQ_PASSWORD=$(generate_password 16)
+[[ -z $CEGA_MQ_PASSWORD ]] && CEGA_MQ_PASSWORD=test12
 
 EGA_USER_PASSWORD_JOHN=$(generate_password 16)
 EGA_USER_PASSWORD_JANE=$(generate_password 16)
@@ -250,14 +251,13 @@ function rabbitmq_hash {
     local SALT=${2:-$(${OPENSSL} rand -hex 4)}
     (
 	printf $SALT | xxd -p -r
-	( printf $SALT | xxd -p -r; printf $1 ) | openssl dgst -binary -sha256
+	( printf $SALT | xxd -p -r; printf $1 ) | ${OPENSSL} dgst -binary -sha256
     ) | base64
 }
 
-
 cat > $ABS_PRIVATE/cega/mq/defs.json <<EOF
 {"rabbit_version":"3.6.11",
- "users":[{"name":"${CEGA_MQ_USER}", "password_hash":"$(rabbitmq_hash ${CEGA_MQ_PASSWORD})", "hashing_algorithm":"rabbit_password_hashing_sha256", "tags":"administrator"}],
+ "users":[{"name":"${CEGA_MQ_USER}", "password_hash":"$(rabbitmq_hash ${CEGA_MQ_PASSWORD} '908DC60A')", "hashing_algorithm":"rabbit_password_hashing_sha256", "tags":"administrator"}],
  "vhosts":[{"name":"${CEGA_MQ_VHOST}"}],
  "permissions":[{"user":"${CEGA_MQ_USER}" , "vhost":"${CEGA_MQ_VHOST}", "configure":".*", "write":".*", "read":".*"}],
  "parameters":[],
