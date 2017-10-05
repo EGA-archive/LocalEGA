@@ -10,6 +10,7 @@ SSL_SUBJ="/C=SE/ST=Sweden/L=Uppsala/O=NBIS/OU=SysDevs/CN=LocalEGA/emailAddress=e
 PRIVATE=private
 DB_USER=postgres
 CEGA_MQ_USER=cega_sweden
+CEGA_MQ_VHOST=se
 
 GPG=gpg
 GPG_NAME="EGA Sweden"
@@ -20,23 +21,33 @@ OPENSSL=openssl
 
 function usage {
     echo "Usage: $0 [options]"
-    echo -e "\noptions are"
-    echo -e "\t--force,-f                   \tForce the re-creation of the subfolders"
+    echo -e "\nOptions are:"
     echo -e "\t--private_dir <name>         \tName of the main folder for private data"
+    echo -e "\t--force, -f                  \tForce the re-creation of the subfolders"
+    echo ""
+    echo -e "\t--gpg_exec <value>           \tgpg executable"
+    echo -e "\t--openssl <value>            \topenssl executable"
+    echo ""
     echo -e "\t--gpg_passphrase <value>     \tPassphrase at the GPG key creation"
     echo -e "\t--gpg_name <value>,"
     echo -e "\t--gpg_comment <value>,"
-    echo -e "\t--gpg_email <value>,         \tDetails for the GPG key"
-    echo -e "\t--gpg_exec <value>,          \tgpg command"
+    echo -e "\t--gpg_email <value>          \tDetails for the GPG key"
+    echo ""
     echo -e "\t--rsa_passphrase <value>     \tPassphrase at the RSA key creation"
+    echo ""
     echo -e "\t--ssl_subj <value>           \tSubject for the SSL certificates"
-    echo -e "\t--ssl_subj <value>           \t[Default: ${SSL_SUBJ}]"
-    echo -e "\t--db_user <value>            \tDatabase username [Default: ${DB_USER}]"
-    echo -e "\t--db_password <value>        \tDatabase password"
-    echo -e "\t--cega_mq_user <value>       \tUsername for the Central EGA message broker"
-    echo -e "\t--cega_mq_password <value>   \tPassword for the Central EGA message broker"
-    echo -e "\t--quiet,-q                   \tRemoves the verbose output (and uses -f)"
-    echo -e "\t--help,-h                    \tOutputs this message and exits"
+    echo -e "\t                             \t[Default: ${SSL_SUBJ}]"
+    echo ""
+    echo -e "\t--db_user <value>,"
+    echo -e "\t--db_password <value>        \tDatabase username and password"
+    echo -e "\t                             \t[User default: ${DB_USER}]"
+    echo -e "\t--cega_mq_user <value>,"
+    echo -e "\t--cega_mq_password <value>,"
+    echo -e "\t--cega_mq_vhost <value>,     \tUsername, password, vhost for the Central EGA message broker"
+    echo -e "\t                             \t[User default: ${CEGA_MQ_USER}, VHost default: ${CEGA_MQ_VHOST}]"
+    echo ""
+    echo -e "\t--quiet, -q                  \tRemoves the verbose output (and uses -f)"
+    echo -e "\t--help, -h                   \tOutputs this message and exits"
     echo -e "\t-- ...                       \tAny other options appearing after the -- will be ignored"
 }
 
@@ -52,12 +63,14 @@ while [[ $# -gt 0 ]]; do
         --gpg_comment) GPG_COMMENT=$2; shift;;
         --gpg_email) GPG_EMAIL=$2; shift;;
         --gpg_exec) GPG=$2; shift;;
+        --openssl) OPENSSL=$2; shift;;
         --rsa_passphrase) RSA_PASSPHRASE=$2; shift;;
         --ssl_subj) SSL_SUBJ=$2; shift;;
         --db_user) DB_USER=$2; shift;;
         --db_password) DB_PASSWORD=$2; shift;;
 	--cega_mq_user) CEGA_MQ_USER=$2; shift;;
 	--cega_mq_password) CEGA_MQ_PASSWORD=$2; shift;;
+	--cega_mq_vhost) CEGA_MQ_VHOST=$2; shift;;
         --) shift; break;;
         *) echo "$0: error - unrecognized option $1" 1>&2; usage; exit 1;;
     esac
@@ -66,6 +79,9 @@ done
 
 exec 2>${HERE}/.err
 [[ $VERBOSE == 'no' ]] && exec 1>${HERE}/.log && FORCE='yes'
+
+[[ -x ${GPG} ]] && echo "${GPG} is not executable" && exit 2
+[[ -x ${OPENSSL} ]] && echo "${OPENSSL} is not executable" && exit 3
 
 #########################################################################
 # Creating the necessary folders
@@ -125,13 +141,15 @@ GPG_PASSPHRASE         = ${GPG_PASSPHRASE}
 GPG_NAME               = ${GPG_NAME}
 GPG_COMMENT            = ${GPG_COMMENT}
 GPG_EMAIL              = ${GPG_EMAIL}
-GPG_EXEC               = ${GPG}
+GPG exec               = ${GPG}
 RSA_PASSPHRASE         = ${RSA_PASSPHRASE}
 SSL_SUBJ               = ${SSL_SUBJ}
+OPENSSL exec           = ${OPENSSL}
 DB_USER                = ${DB_USER}
 DB_PASSWORD            = ${DB_PASSWORD}
 CEGA_MQ_USER           = ${CEGA_MQ_USER}
 CEGA_MQ_PASSWORD       = ${CEGA_MQ_PASSWORD}
+CEGA_MQ_VHOST          = ${CEGA_MQ_VHOST}
 EGA_USER_PASSWORD_JOHN = ${EGA_USER_PASSWORD_JOHN}
 EGA_USER_PASSWORD_JANE = ${EGA_USER_PASSWORD_JANE}
 EOF
@@ -165,7 +183,7 @@ ${OPENSSL} genrsa -out $ABS_PRIVATE/rsa/ega.sec -passout pass:${RSA_PASSPHRASE} 
 ${OPENSSL} rsa -in $ABS_PRIVATE/rsa/ega.sec -passin pass:${RSA_PASSPHRASE} -pubout -out $ABS_PRIVATE/rsa/ega.pub
 
 echo "Generating the SSL certificates"
-openssl req -x509 -newkey rsa:2048 -keyout $ABS_PRIVATE/certs/ssl.key -nodes -out $ABS_PRIVATE/certs/ssl.cert -sha256 -days 1000 -subj ${SSL_SUBJ}
+${OPENSSL} req -x509 -newkey rsa:2048 -keyout $ABS_PRIVATE/certs/ssl.key -nodes -out $ABS_PRIVATE/certs/ssl.cert -sha256 -days 1000 -subj ${SSL_SUBJ}
 
 echo "Generating some fake EGA users"
 cat > $ABS_PRIVATE/cega/users/john.yml <<EOF
@@ -211,27 +229,29 @@ username = ${DB_USER}
 password = ${DB_PASSWORD}
 EOF
 
+# Note: We could use a .env.d/cega_mq file with 
+# RABBITMQ_DEFAULT_USER=...
+# RABBITMQ_DEFAULT_PASSWORD=...
+# RABBITMQ_DEFAULT_VHOST=...
+# But then I'm not sure the queues and bindings are properly set up
+# Doing this instead:
 cat > $ABS_PRIVATE/cega/mq/defs.json <<EOF
 {"rabbit_version":"3.6.11",
  "users":[{"name":"${CEGA_MQ_USER}", "password_hash":"$(echo -n ${CEGA_MQ_PASSWORD} | openssl dgst -sha256)", "hashing_algorithm":"rabbit_password_hashing_sha256", "tags":"administrator"}],
- "vhosts":[{"name":"/se"}],
- "permissions":[{"user":"${CEGA_MQ_USER}" , "vhost":"/se", "configure":".*", "write":".*", "read":".*"}],
+ "vhosts":[{"name":"${CEGA_MQ_VHOST}"}],
+ "permissions":[{"user":"${CEGA_MQ_USER}" , "vhost":"${CEGA_MQ_VHOST}", "configure":".*", "write":".*", "read":".*"}],
  "parameters":[],
  "global_parameters":[{"name":"cluster_name", "value":"rabbit@localhost"}],
  "policies":[],
- "queues":[{"name":"sweden.v1.commands.file"     , "vhost":"test", "durable":true, "auto_delete":false, "arguments":{}},
-	   {"name":"sweden.v1.commands.account"  , "vhost":"test", "durable":true, "auto_delete":false, "arguments":{}},
-	   {"name":"sweden.v1.commands.completed", "vhost":"test", "durable":true, "auto_delete":false, "arguments":{}},
-	   {"name":"sweden.v1.commands.user"     , "vhost":"test", "durable":true, "auto_delete":false, "arguments":{}}],
- "exchanges":[{"name":"localega.v1", "vhost":"test", "type":"topic", "durable":true, "auto_delete":false, "internal":false, "arguments":{}}],
- "bindings":[{"source":"localega.v1", "vhost":"test", "destination_type":"queue", "arguments":{},
+ "queues":[{"name":"sweden.v1.commands.file"     , "vhost":"${CEGA_MQ_VHOST}", "durable":true, "auto_delete":false, "arguments":{}},
+	   {"name":"sweden.v1.commands.account"  , "vhost":"${CEGA_MQ_VHOST}", "durable":true, "auto_delete":false, "arguments":{}},
+	   {"name":"sweden.v1.commands.completed", "vhost":"${CEGA_MQ_VHOST}", "durable":true, "auto_delete":false, "arguments":{}},
+	   {"name":"sweden.v1.commands.user"     , "vhost":"${CEGA_MQ_VHOST}", "durable":true, "auto_delete":false, "arguments":{}}],
+ "exchanges":[{"name":"localega.v1", "vhost":"${CEGA_MQ_VHOST}", "type":"topic", "durable":true, "auto_delete":false, "internal":false, "arguments":{}}],
+ "bindings":[{"source":"localega.v1", "vhost":"${CEGA_MQ_VHOST}", "destination_type":"queue", "arguments":{},
 	      "destination":"sweden.v1.commands.file", "routing_key":"sweden.file"},
-	     {"source":"localega.v1", "vhost":"test", "destination_type":"queue", "arguments":{},
-	      "destination":"sweden.v1.commands.completed", "routing_key":"sweden.file.completed"},
-	     {"source":"localega.v1", "vhost":"test", "destination_type":"queue", "arguments":{},
-	      "destination":"sweden.v1.commands.user", "routing_key":"sweden.user"},
-	     {"source":"localega.v1", "vhost":"test", "destination_type":"queue", "arguments":{},
-	      "destination":"sweden.v1.commands.account", "routing_key":"sweden.user.account"}]
+	     {"source":"localega.v1", "vhost":"${CEGA_MQ_VHOST}", "destination_type":"queue", "arguments":{},
+	      "destination":"sweden.v1.commands.completed", "routing_key":"sweden.file.completed"}]
 }
 EOF
 
