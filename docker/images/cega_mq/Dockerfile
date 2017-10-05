@@ -2,4 +2,6 @@ FROM rabbitmq:management
 LABEL maintainer "Frédéric Haziza, NBIS"
 
 COPY rabbitmq.config /etc/rabbitmq/rabbitmq.config
-COPY rabbitmq.json /etc/rabbitmq/defs.json
+
+# Add your defs.json from the template file
+COPY rabbitmq.conf.tpl /etc/rabbitmq/defs.json

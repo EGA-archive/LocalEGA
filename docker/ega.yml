@@ -158,6 +158,8 @@ services:
       - "15673:15672"
     image: nbis/ega:cega_mq
     container_name: cega_mq
+    volumes:
+       - ${CEGA_MQ_DEFS}:/etc/rabbitmq/defs.json.ro
 
 # Use the default driver for volume creation
 volumes:
