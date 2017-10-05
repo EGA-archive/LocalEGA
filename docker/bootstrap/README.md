@@ -1,70 +1,33 @@
 The following is not technically part of LocalEGA but it can useful to
 get started on it.
 
+We have created 2 bash scripts, one for the generation of the GnuPG
+key, RSA master key pair, SSL certificates for internal communication,
+passwords, default users, etc...
 
-# Recommended way: bootstrap/run.sh
+Use `-h` to see the possible options of each script.
 
-	bootstrap/run.sh --cega_mq_password <some-given-password>
+
+# Bootstrapping
+
+We create a separate folder and generate all the necessary files in it.
+
+	bootstrap/generate.sh
 	
-Use `bootstrap/run.sh -h` to see the possible options.
+We then move the .env and .env.d into place (backing them up in the
+destination location if there was already a version)
 
-If you don't have the required tools installed (namely GnuPG 2.2.1 and OpenSSL), you can run the command within a properly setup docker container as follows
-
-	docker run -rm -it -v ${PWD}/run.sh:/ega/bootstrap.sh -v ${PWD}/private:/ega/private \
-		nbis/ega:worker /ega/bootstrap.sh --cega_mq_password <some-given-password> -f
-
-# Generating private yourself
-
-### Generating the GPG_HOME
-
-A proper GnuPG homedir includes `pubring.kbx`, `trustdb.gpg`,
-`private-keys-v1.d` and `openpgp-revocs.d`.
-
-Create the following `gen_key` file:
-
-```
-%echo Generating a basic OpenPGP key
-Key-Type: RSA
-Key-Length: 4096
-Name-Real: EGA Sweden
-Name-Comment: @NBIS
-Name-Email: ega@nbis.se
-Expire-Date: 0
-Passphrase: YourSECRETpassphrase
-# Do a commit here, so that we can later print "done" :-)
-%commit
-%echo done
-```
-
-In a terminal, issue the command:
-
-	gpg --homedir <path/to/some/folder/to/be/the/gpg/home> --batch --generate-key <path/to/gen_key>
-
-Make sure you have GnuPG version 2.2.0 (or higher)
-
-Use now `<path/to/some/folder/to/be/the/gpg/home>` in the `.env` file
-for the variable `GPG_HOME`. Use also `YourSECRETpassphrase` in the
-`.env.d/gpg` file for the variable `GPG_PASSPHRASE`.
-
-### Generating the RSA public and private keys
-
-
-	openssl genpkey -algorithm RSA -out rsa.sec -pkeyopt rsa_keygen_bits:2048
-	openssl rsa -pubout -in rsa.sec -out rsa.pubb
+	bootstrap/populate.sh
 	
-Use then the location of `rsa.pub` and `rsa.sec` for the .env
-variables `RSA_PUB` and `RSA_SEC` respectively.
 
+If you don't have the required tools installed on your machine (namely GnuPG 2.2.1 and OpenSSL), you can use the `nbis/ega:worker` image that is already setup:
 
-### Generating the SSL certificates
-
-	openssl req -x509 -newkey rsa:2048 -keyout ssl.key -nodes -out ssl.cert -sha256 -days 1000
+	# In that current folder
+	docker run --rm -it -v ${PWD}/generate.sh:/ega/run.sh -v ${PWD}/private:/ega/private nbis/ega:worker /ega/run.sh -f
+	# That creates a folder, named 'private', with all the settings
+	# Call populate.sh afterwards
 	
-Use then the location of `ssl.cert` and `ssl.key` for the .env
-variables `SSL_CERT` and `SSL_KEY` respectively.
 
-### Generating some password hash for a user
-
-	openssl passwd -1 -salt <some-salt> <some-password>
-	
-The `-1` switch makes it use MD5.
+Alternatively, albeit not recommended, you
+can [generate the private data yourself](info.md), and adapt the
+different PATHs in the `.env` and `.env.d` settings.

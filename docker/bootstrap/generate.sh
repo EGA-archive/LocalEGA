@@ -49,6 +49,7 @@ function usage {
     echo -e "\t--quiet, -q                  \tRemoves the verbose output (and uses -f)"
     echo -e "\t--help, -h                   \tOutputs this message and exits"
     echo -e "\t-- ...                       \tAny other options appearing after the -- will be ignored"
+    echo ""
 }
 
 # While there are arguments or '--' is reached
@@ -178,6 +179,7 @@ EOF
 
 ${GPG} --homedir $ABS_PRIVATE/gpg --batch --generate-key $ABS_PRIVATE/gen_key
 chmod 700 $ABS_PRIVATE/gpg
+rm -f $ABS_PRIVATE/gen_key
 
 echo "Generating the RSA public and private key"
 ${OPENSSL} genrsa -out $ABS_PRIVATE/rsa/ega.sec -passout pass:${RSA_PASSPHRASE} 2048
@@ -240,19 +242,17 @@ EOF
 echo "Hashing CEGA MQ passwords"
 function rabbitmq_hash {
     # 1) Generate a random 32 bit salt
-    local SALT=${2:-$(${OPENSSL} rand -hex 4)}
-    #echo "1)        SALT = $SALT"
     # 2) Concatenate that with the UTF-8 representation of the password
-    local TMP=${SALT}$(echo -n $1 | hexdump -e '1/1 "%.2x"')
-    #echo "2)         TMP = $TMP"
     # 3) Take the SHA-256 hash
-    local TMP_SHA256=$(echo -n ${TMP^^} | ${OPENSSL} dgst -sha256 | cut -d' ' -f2)
-    #echo "3)  TMP_SHA256 = ${TMP_SHA256^^}"
     # 4) Concatenate the salt again
-    #echo "4) SALT+SHA256 = ${SALT^^}${TMP_SHA256}"
     # 5) Convert to base64 encoding
-    echo -n ${SALT^^}${TMP_SHA256} | base64
+    local SALT=${2:-$(${OPENSSL} rand -hex 4)}
+    (
+	printf $SALT | xxd -p -r
+	( printf $SALT | xxd -p -r; printf $1 ) | openssl dgst -binary -sha256
+    ) | base64
 }
+
 
 cat > $ABS_PRIVATE/cega/mq/defs.json <<EOF
 {"rabbit_version":"3.6.11",
@@ -285,7 +285,6 @@ EOF
 cat > $ABS_PRIVATE/.env <<EOF
 COMPOSE_PROJECT_NAME=ega
 COMPOSE_FILE=ega.yml
-CODE=$HERE/../../src
 CONF=$ABS_PRIVATE/ega.conf
 KEYS=$ABS_PRIVATE/keys.conf
 SSL_CERT=$ABS_PRIVATE/certs/ssl.cert
@@ -297,21 +296,4 @@ CEGA_USERS=$ABS_PRIVATE/cega/users
 CEGA_MQ_DEFS=$ABS_PRIVATE/cega/mq/defs.json
 EOF
 
-
-echo "Copying the docker-compose environment"
-DEST=$HERE/..
-
-function backup {
-    local target=$1
-    if [[ -e $target ]]; then
-	mv -f $target $target.$(date +"%Y-%m-%d_%H:%M:%S")
-    fi
-}
-
-[[ $FORCE == 'yes' ]] || backup $HERE/../.env
-[[ $FORCE == 'yes' ]] || backup $HERE/../.env.d
-
-mv -f $ABS_PRIVATE/.env $DEST/.env
-mv -f $ABS_PRIVATE/.env.d $DEST/.env.d
-
-echo -e "\nBootstrap completed"
+echo -e "\nGeneration completed"

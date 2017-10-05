@@ -33,7 +33,6 @@ services:
     container_name: ega_frontend
     image: nbis/ega:common
     volumes:
-       - ${CODE}:/root/ega
        - ${CONF}:/etc/ega/conf.ini:ro
        - ./entrypoints/frontend.sh:/usr/local/bin/frontend.sh:ro
     command: frontend.sh
@@ -51,7 +50,6 @@ services:
     container_name: ega_inbox
     image: nbis/ega:inbox
     volumes:
-       - ${CODE}:/root/ega
        - ${CONF}:/etc/ega/conf.ini:ro
        - inbox:/ega/inbox
        - ./entrypoints/inbox.sh:/usr/local/bin/inbox.sh:ro
@@ -69,7 +67,6 @@ services:
     container_name: ega_vault
     image: nbis/ega:common
     volumes:
-       - ${CODE}:/root/ega
        - ${CONF}:/etc/ega/conf.ini:ro
        - staging:/ega/staging
        - vault:/ega/vault
@@ -89,7 +86,6 @@ services:
     environment:
       - GPG_TTY=/dev/console
     volumes:
-       - ${CODE}:/root/ega
        - ${CONF}:/etc/ega/conf.ini:ro
        - inbox:/ega/inbox
        - staging:/ega/staging
@@ -112,7 +108,6 @@ services:
     image: nbis/ega:worker
     tty: true
     volumes:
-       - ${CODE}:/root/ega
        - ${CONF}:/etc/ega/conf.ini:ro
        - ${KEYS}:/etc/ega/keys.ini:ro
        - ${SSL_CERT}:/etc/ega/ssl.cert:ro
