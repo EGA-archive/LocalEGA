@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -e
 
 SCRIPT=$(dirname ${BASH_SOURCE[0]})
 HERE=$PWD/${SCRIPT#./}
@@ -122,7 +123,7 @@ mkdir -p $ABS_PRIVATE/{gpg,rsa,certs,cega/users,cega/mq,.env.d}
 
 function generate_password {
     local size=${1:-16} # defaults to 16 characters
-    p=$(python -c "import secrets,string;print(''.join(secrets.choice(string.ascii_letters + string.digits) for i in range(${size})))")
+    p=$(python3.6 -c "import secrets,string;print(''.join(secrets.choice(string.ascii_letters + string.digits) for i in range(${size})))")
     echo $p
 }
 
