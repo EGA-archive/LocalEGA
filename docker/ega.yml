@@ -33,9 +33,9 @@ services:
     container_name: ega_frontend
     image: nbis/ega:common
     volumes:
-       - ${CODE}:/root/ega
        - ${CONF}:/etc/ega/conf.ini:ro
-       - ./entrypoints/frontend.sh:/usr/local/bin/frontend.sh:ro
+       - ${CODE}:/root/ega
+       - ${ENTRYPOINTS}/frontend.sh:/usr/local/bin/frontend.sh:ro
     command: frontend.sh
 
   # SFTP inbox
@@ -51,10 +51,10 @@ services:
     container_name: ega_inbox
     image: nbis/ega:inbox
     volumes:
-       - ${CODE}:/root/ega
        - ${CONF}:/etc/ega/conf.ini:ro
+       - ${CODE}:/root/ega
        - inbox:/ega/inbox
-       - ./entrypoints/inbox.sh:/usr/local/bin/inbox.sh:ro
+       - ${ENTRYPOINTS}/inbox.sh:/usr/local/bin/inbox.sh:ro
     command: inbox.sh
 
   # Vault
@@ -69,11 +69,11 @@ services:
     container_name: ega_vault
     image: nbis/ega:common
     volumes:
-       - ${CODE}:/root/ega
        - ${CONF}:/etc/ega/conf.ini:ro
+       - ${CODE}:/root/ega
        - staging:/ega/staging
        - vault:/ega/vault
-       - ./entrypoints/vault.sh:/usr/local/bin/vault.sh:ro
+       - ${ENTRYPOINTS}/vault.sh:/usr/local/bin/vault.sh:ro
     command: vault.sh
 
   # Ingestion Workers
@@ -89,14 +89,14 @@ services:
     environment:
       - GPG_TTY=/dev/console
     volumes:
-       - ${CODE}:/root/ega
        - ${CONF}:/etc/ega/conf.ini:ro
+       - ${CODE}:/root/ega
        - inbox:/ega/inbox
        - staging:/ega/staging
        - ${SSL_CERT}:/etc/ega/ssl.cert:ro
        - ${GPG_HOME}/pubring.kbx:/root/.gnupg/pubring.kbx:ro
        - ${GPG_HOME}/trustdb.gpg:/root/.gnupg/trustdb.gpg
-       - ./entrypoints/ingest.sh:/usr/local/bin/ingest.sh:ro
+       - ${ENTRYPOINTS}/ingest.sh:/usr/local/bin/ingest.sh:ro
     command: ingest.sh
 
   # Key server
@@ -112,9 +112,9 @@ services:
     image: nbis/ega:worker
     tty: true
     volumes:
-       - ${CODE}:/root/ega
        - ${CONF}:/etc/ega/conf.ini:ro
        - ${KEYS}:/etc/ega/keys.ini:ro
+       - ${CODE}:/root/ega
        - ${SSL_CERT}:/etc/ega/ssl.cert:ro
        - ${SSL_KEY}:/etc/ega/ssl.key:ro
        - ${GPG_HOME}/pubring.kbx:/root/.gnupg/pubring.kbx
@@ -123,7 +123,7 @@ services:
        - ${GPG_HOME}/private-keys-v1.d:/root/.gnupg/private-keys-v1.d:ro
        - ${RSA_SEC}:/etc/ega/rsa/sec.pem:ro
        - ${RSA_PUB}:/etc/ega/rsa/pub.pem:ro
-       - ./entrypoints/keys.sh:/usr/local/bin/keys.sh:ro
+       - ${ENTRYPOINTS}/keys.sh:/usr/local/bin/keys.sh:ro
     command: keys.sh
 
   # # Error Monitors
@@ -151,13 +151,14 @@ services:
        - ${CEGA_USERS}:/cega/users:rw
 
   cega_mq:
-    #env_file: .env.d/cega_mq
     build: images/cega_mq
     hostname: cega_mq
     ports:
       - "15673:15672"
     image: nbis/ega:cega_mq
     container_name: cega_mq
+    volumes:
+       - ${CEGA_MQ_DEFS}:/etc/rabbitmq/defs.json:ro
 
 # Use the default driver for volume creation
 volumes:

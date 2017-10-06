@@ -1,7 +1,3 @@
-The following is not technically part of LocalEGA but it can useful to
-get started on it.
-
-
 # Generating the GPG_HOME
 
 A proper GnuPG homedir includes `pubring.kbx`, `trustdb.gpg`,
@@ -37,7 +33,7 @@ for the variable `GPG_HOME`. Use also `YourSECRETpassphrase` in the
 
 
 	openssl genpkey -algorithm RSA -out rsa.sec -pkeyopt rsa_keygen_bits:2048
-	openssl rsa -pubout -in rsa.sec -out rsa.pub
+	openssl rsa -pubout -in rsa.sec -out rsa.pubb
 	
 Use then the location of `rsa.pub` and `rsa.sec` for the .env
 variables `RSA_PUB` and `RSA_SEC` respectively.
@@ -55,3 +51,7 @@ variables `SSL_CERT` and `SSL_KEY` respectively.
 	openssl passwd -1 -salt <some-salt> <some-password>
 	
 The `-1` switch makes it use MD5.
+
+# Generating some password hash for a rabbitMQ user
+
+Follow the instructions from: https://www.rabbitmq.com/passwords.html
