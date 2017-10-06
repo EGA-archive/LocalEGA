@@ -34,7 +34,7 @@ services:
     image: nbis/ega:common
     volumes:
        - ${CONF}:/etc/ega/conf.ini:ro
-       - ./entrypoints/frontend.sh:/usr/local/bin/frontend.sh:ro
+       - ${ENTRYPOINTS}/frontend.sh:/usr/local/bin/frontend.sh:ro
     command: frontend.sh
 
   # SFTP inbox
@@ -52,7 +52,7 @@ services:
     volumes:
        - ${CONF}:/etc/ega/conf.ini:ro
        - inbox:/ega/inbox
-       - ./entrypoints/inbox.sh:/usr/local/bin/inbox.sh:ro
+       - ${ENTRYPOINTS}/inbox.sh:/usr/local/bin/inbox.sh:ro
     command: inbox.sh
 
   # Vault
@@ -70,7 +70,7 @@ services:
        - ${CONF}:/etc/ega/conf.ini:ro
        - staging:/ega/staging
        - vault:/ega/vault
-       - ./entrypoints/vault.sh:/usr/local/bin/vault.sh:ro
+       - ${ENTRYPOINTS}/vault.sh:/usr/local/bin/vault.sh:ro
     command: vault.sh
 
   # Ingestion Workers
@@ -92,7 +92,7 @@ services:
        - ${SSL_CERT}:/etc/ega/ssl.cert:ro
        - ${GPG_HOME}/pubring.kbx:/root/.gnupg/pubring.kbx:ro
        - ${GPG_HOME}/trustdb.gpg:/root/.gnupg/trustdb.gpg
-       - ./entrypoints/ingest.sh:/usr/local/bin/ingest.sh:ro
+       - ${ENTRYPOINTS}/ingest.sh:/usr/local/bin/ingest.sh:ro
     command: ingest.sh
 
   # Key server
@@ -118,7 +118,7 @@ services:
        - ${GPG_HOME}/private-keys-v1.d:/root/.gnupg/private-keys-v1.d:ro
        - ${RSA_SEC}:/etc/ega/rsa/sec.pem:ro
        - ${RSA_PUB}:/etc/ega/rsa/pub.pem:ro
-       - ./entrypoints/keys.sh:/usr/local/bin/keys.sh:ro
+       - ${ENTRYPOINTS}/keys.sh:/usr/local/bin/keys.sh:ro
     command: keys.sh
 
   # # Error Monitors
