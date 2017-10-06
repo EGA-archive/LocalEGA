@@ -6,16 +6,20 @@ First [create the EGA docker images](images) beforehand, with `make -C images`.
 
 You can then [generate the private data](bootstrap), with either:
 
-	a) bootstrap/generate.sh
-	b) docker run --rm -it -v ${PWD}/bootstrap:/ega nbis/ega:worker /ega/generate.sh -f
+	docker run --rm -it -v ${PWD}/bootstrap:/ega nbis/ega:worker /ega/generate.sh -f
 	
-Choose `b` if you don't have the required tools installed on your machine.
+> Note: you can run `bootstrap/generate.sh` on your host machine but
+> you need the required tools installed, including Python 3.6, GnuPG
+> 2.2.1, OpenSSL, `readlink`, `xxd`, ...
 	
-Then you can copy the settings into place with `bootstrap/populate.sh`
+You can afterwards copy the settings into place with
 
-The passwords are in `bootstrap/private/.trace`
+	bootstrap/populate.sh
 
-Alternatively, you can [do it yourself](do_it_yourself.md)
+The passwords are in `bootstrap/private/.trace` and the errors (if
+any) are in `bootstrap/.err`.
+
+Alternatively, you can setup all [configuration files by hand](bootstrap/yourself.md).
 
 # Running
 
