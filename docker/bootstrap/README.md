@@ -7,11 +7,13 @@ passwords, default users, etc...
 
 Use `-h` to see the possible options of each script.
 
-We create a separate folder and generate all the necessary files in it.
+We create a separate folder and generate all the necessary files in it (require
+GnuPG 2.2.1, OpenSSL 1.0.2 and Python 3.6.1). Note that potential error
+messages can be found at the file `.err` in the same folder.
 
 	./generate.sh
 	
-We then move the .env and .env.d into place (backing them up in the
+We then move the `.env` and `.env.d/` into place (backing them up in the
 destination location if there was already a version)
 
 	./populate.sh
@@ -20,16 +22,34 @@ The passwords are in `private/.trace` (if you did not use
 `--private_dir`)
 
 If you don't have the required tools installed on your machine (namely
-GnuPG 2.2.1 and OpenSSL 1.0.2), you can use the `nbis/ega:worker`
-image that is already setup:
+GnuPG 2.2.1, OpenSSL 1.0.2 and Python 3.6.1), you can use the `nbis/ega:worker`
+image that you have built up with the `make` command in the [images](../images) folder:
 
-	# In that current folder
+In the same folder as `generate.sh`, run
+
 	docker run --rm -it -v ${PWD}:/ega nbis/ega:worker /ega/generate.sh -f
-	# That creates a folder, named 'private', with all the settings
-	# Call populate.sh afterwards
+
+That will create a folder, named 'private', with all the settings
+After that, you can run `./populate.sh` to move the `.env` and `.env.d/` into
+their destination
 	
 
 Alternatively, albeit not recommended, you
 can [generate the private data yourself](info.md), and adapt the
 different PATHs in the `.env` and `.env.d` settings.
+
+
+## Troubleshooting
+
+* If the command `./generate.sh` takes more than a few seconds to run, it is
+  usually because your computer does not have enough entropy. You can use the
+  program `rng-tools` to solve this problem. E.g. on Debian/Ubuntu system,
+  install the software by 
+
+	   sudo apt-get install rng-tools
+
+  and then run
+
+ 	  sudo rngd -r /dev/urandom
+
 
