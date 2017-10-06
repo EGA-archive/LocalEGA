@@ -34,6 +34,7 @@ services:
     image: nbis/ega:common
     volumes:
        - ${CONF}:/etc/ega/conf.ini:ro
+       - ${CODE}:/root/ega
        - ${ENTRYPOINTS}/frontend.sh:/usr/local/bin/frontend.sh:ro
     command: frontend.sh
 
@@ -51,6 +52,7 @@ services:
     image: nbis/ega:inbox
     volumes:
        - ${CONF}:/etc/ega/conf.ini:ro
+       - ${CODE}:/root/ega
        - inbox:/ega/inbox
        - ${ENTRYPOINTS}/inbox.sh:/usr/local/bin/inbox.sh:ro
     command: inbox.sh
@@ -68,6 +70,7 @@ services:
     image: nbis/ega:common
     volumes:
        - ${CONF}:/etc/ega/conf.ini:ro
+       - ${CODE}:/root/ega
        - staging:/ega/staging
        - vault:/ega/vault
        - ${ENTRYPOINTS}/vault.sh:/usr/local/bin/vault.sh:ro
@@ -87,6 +90,7 @@ services:
       - GPG_TTY=/dev/console
     volumes:
        - ${CONF}:/etc/ega/conf.ini:ro
+       - ${CODE}:/root/ega
        - inbox:/ega/inbox
        - staging:/ega/staging
        - ${SSL_CERT}:/etc/ega/ssl.cert:ro
@@ -110,6 +114,7 @@ services:
     volumes:
        - ${CONF}:/etc/ega/conf.ini:ro
        - ${KEYS}:/etc/ega/keys.ini:ro
+       - ${CODE}:/root/ega
        - ${SSL_CERT}:/etc/ega/ssl.cert:ro
        - ${SSL_KEY}:/etc/ega/ssl.key:ro
        - ${GPG_HOME}/pubring.kbx:/root/.gnupg/pubring.kbx

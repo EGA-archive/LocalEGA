@@ -2,8 +2,7 @@
 
 set -e
 
-git clone -b docker https://github.com/NBISweden/LocalEGA.git ~/repo
-pip3.6 install ~/repo/src
+pip3.6 install /root/ega
 
 # echo "Waiting for Keyserver"
 # until nc -4 --send-only ega_keys 9010 </dev/null &>/dev/null; do sleep 1; done

@@ -2,8 +2,7 @@
 
 set -e
 
-git clone -b docker https://github.com/NBISweden/LocalEGA.git ~/repo
-pip3.6 install ~/repo/src
+pip3.6 install /root/ega
 
 echo "Starting the key management server"
 ega-keyserver --keys /etc/ega/keys.ini &

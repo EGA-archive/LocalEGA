@@ -2,8 +2,7 @@
 
 set -e
 
-git clone -b docker https://github.com/NBISweden/LocalEGA.git ~/repo
-pip3.6 install ~/repo/src
+pip3.6 install /root/ega
 
 echo "Waiting for Central Message Broker"
 until nc -4 --send-only cega_mq 5672 </dev/null &>/dev/null; do sleep 1; done

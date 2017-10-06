@@ -73,6 +73,7 @@ cat > $HERE/../.env <<EOF
 COMPOSE_PROJECT_NAME=ega
 COMPOSE_FILE=ega.yml
 ENTRYPOINTS=${ABS_ENTRYPOINTS}
+CODE=${HERE}/../../src
 CONF=$ABS_PRIVATE/ega.conf
 KEYS=$ABS_PRIVATE/keys.conf
 SSL_CERT=$ABS_PRIVATE/certs/ssl.cert

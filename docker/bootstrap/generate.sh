@@ -130,8 +130,7 @@ function generate_password {
 [[ -z $GPG_PASSPHRASE ]] && GPG_PASSPHRASE=$(generate_password 16)
 [[ -z $RSA_PASSPHRASE ]] && RSA_PASSPHRASE=$(generate_password 16)
 [[ -z $DB_PASSWORD ]] && DB_PASSWORD=$(generate_password 16)
-#[[ -z $CEGA_MQ_PASSWORD ]] && CEGA_MQ_PASSWORD=$(generate_password 16)
-[[ -z $CEGA_MQ_PASSWORD ]] && CEGA_MQ_PASSWORD=test12
+[[ -z $CEGA_MQ_PASSWORD ]] && CEGA_MQ_PASSWORD=$(generate_password 16)
 
 EGA_USER_PASSWORD_JOHN=$(generate_password 16)
 EGA_USER_PASSWORD_JANE=$(generate_password 16)

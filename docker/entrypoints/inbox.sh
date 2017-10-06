@@ -6,8 +6,7 @@ chown root:ega /ega/inbox
 chmod 750 /ega/inbox
 chmod g+s /ega/inbox # setgid bit
 
-git clone -b docker https://github.com/NBISweden/LocalEGA.git ~/repo
-pushd ~/repo/src/auth
+pushd /root/ega/auth
 make install clean
 ldconfig -v
 popd
