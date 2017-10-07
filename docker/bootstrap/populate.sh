@@ -58,12 +58,12 @@ esac
 function backup {
     local target=$1
     if [[ -e $target ]]; then
+	echomsg "Backing up $target"
 	mv -f $target $target.$(date +"%Y-%m-%d_%H:%M:%S")
     fi
 }
 
 [[ $FORCE == 'yes' ]] || {
-    echomsg "Backing up"
     backup $HERE/../.env
     backup $HERE/../.env.d
 }
