@@ -7,12 +7,14 @@ HERE=$PWD/${SCRIPT#./}
 VERBOSE=yes
 FORCE=no
 PRIVATE=private
+SOURCES=$HERE/../../src
 ENTRYPOINTS=$HERE/../entrypoints
 
 function usage {
     echo "Usage: $0 [options]"
     echo -e "\nOptions are:"
     echo -e "\t--private_dir <path>         \tPath location of private data folder"
+    echo -e "\t--sources <path>             \tPath Location of the src folder"
     echo -e "\t--entrypoints <path>         \tPath Location of the entrypoints folder"
     echo -e "\t--force, -f                  \tDon't backup .env and .env.d if they exist"
     echo -e "\t--quiet, -q                  \tRemoves the verbose output (and uses -f)"
@@ -27,6 +29,7 @@ while [[ $# -gt 0 ]]; do
         --quiet|-q) VERBOSE=no;;
         --help|-h) usage; exit 0;;
         --force|-f) FORCE=yes;;
+        --sources) SOURCES=$2; shift;;
         --entrypoints) ENTRYPOINTS=$2; shift;;
         --private_dir) PRIVATE=$2; shift;;
         --) shift; break;;
@@ -46,6 +49,14 @@ case $PRIVATE in
 esac
 
 [[ -d $ABS_PRIVATE ]] || { echomsg "Private data folder $ABS_PRIVATE not found. Exiting" 1>&2; exit 1; }
+
+case $SOURCES in
+    /*)  ABS_SOURCES=$SOURCES;;
+    ./*|../*) ABS_SOURCES=$PWD/$SOURCES;;
+    *) ABS_SOURCES=$HERE/$SOURCES;;
+esac
+
+[[ -d $SOURCES ]] || { echomsg "Sources folder $ABS_SOURCES not found. Exiting" 1>&2; exit 1; }
 
 case $ENTRYPOINTS in
     /*)  ABS_ENTRYPOINTS=$ENTRYPOINTS;;
@@ -72,8 +83,8 @@ function backup {
 cat > $HERE/../.env <<EOF
 COMPOSE_PROJECT_NAME=ega
 COMPOSE_FILE=ega.yml
+CODE=${ABS_SOURCES}
 ENTRYPOINTS=${ABS_ENTRYPOINTS}
-CODE=${HERE}/../../src
 CONF=$ABS_PRIVATE/ega.conf
 KEYS=$ABS_PRIVATE/keys.conf
 SSL_CERT=$ABS_PRIVATE/certs/ssl.cert
