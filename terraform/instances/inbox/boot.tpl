@@ -125,7 +125,8 @@ MATCH GROUP ega USER *,!ega
   ChrootDirectory %h
   AuthorizedKeysCommand /usr/local/bin/ega-ssh-keys.sh
   AuthorizedKeysCommandUser ega
-  AuthenticationMethods "publickey" "keyboard-interactive:pam"
+  PasswordAuthentication yes
+  AuthenticationMethods "publickey" "keyboard-interactive:pam" "password"
   # -d (remote start directory relative user root)
   ForceCommand internal-sftp -d /inbox
 EOF
