@@ -50,8 +50,5 @@ PGPASSWORD=${POSTGRES_PASSWORD} psql -tqA -U ${POSTGRES_USER} -h ega_db -d lega 
 EOF
 chmod 755 /usr/local/bin/ega_ssh_keys.sh
 
-echo "Waiting for database"
-until nc -4 --send-only ega_db 5432 </dev/null &>/dev/null; do sleep 1; done
-
 echo "Starting the SFTP server"
 exec /usr/sbin/sshd -D -e
