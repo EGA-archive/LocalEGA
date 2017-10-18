@@ -16,7 +16,6 @@ from enum import Enum
 import aiopg
 import psycopg2
 import traceback
-from functools import wraps
 from socket import gethostname
 from time import sleep
 
@@ -80,7 +79,9 @@ async def get_user_info(pool, user_id):
 ######################################
 def cache_connection(v):
     '''Decorator to cache into a global variable'''
+    @wraps(v)
     def decorator(func):
+        @wraps(func)
         def wrapper(*args, **kwargs):
             g = globals()
             if v not in g or g[v].closed:
