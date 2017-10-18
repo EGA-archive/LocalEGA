@@ -32,17 +32,6 @@ class Status(Enum):
     Archived = 'Archived'
     Error = 'Error'
 
-def cache_var(v):
-    '''Decorator to cache into a global variable'''
-    def decorator(func):
-        def wrapper(*args, **kwargs):
-            g = globals()
-            if v not in g:
-                g[v] = func(*args, **kwargs)
-            return g[v]
-        return wrapper
-    return decorator
-
 ######################################
 ##           Async code             ##
 ######################################
@@ -64,7 +53,7 @@ async def create_pool(loop):
         try:
             return await aiopg.create_pool(user=user, password=password, database=database, host=host, port=port, loop=loop, echo=True)
         except psycopg2.OperationalError as e:
-            LOG.error(f"Database connection error: {e!r}")
+            LOG.debug(f"Database connection error: {e!r}")
             LOG.debug(f"Retrying in {backoff} seconds")
             sleep( backoff )
             left += 1
@@ -89,8 +78,18 @@ async def get_user_info(pool, user_id):
 ######################################
 ##         "Classic" code           ##
 ######################################
+def cache_connection(v):
+    '''Decorator to cache into a global variable'''
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            g = globals()
+            if v not in g or g[v].closed:
+                g[v] = func(*args, **kwargs)
+            return g[v]
+        return wrapper
+    return decorator
 
-@cache_var('DB_CONNECTION')
+@cache_connection('DB_CONNECTION')
 def connect():
     '''Get the database connection (which encapsulates a database session)
 
