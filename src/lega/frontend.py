@@ -93,13 +93,7 @@ async def status_user(request):
 
 async def _connect_db(app):
     try:
-        app['db'] = await db.create_pool(loop=app.loop,
-                                         user=CONF.get('db','username'),
-                                         password=CONF.get('db','password'),
-                                         database=CONF.get('db','dbname'),
-                                         host=CONF.get('db','host'),
-                                         port=CONF.getint('db','port'))
-
+        app['db'] = await db.create_pool(loop=app.loop)
         LOG.info('DB Engine created')
 
     except Exception as e:
