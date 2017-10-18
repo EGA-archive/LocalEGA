@@ -10,6 +10,7 @@ FORCE=no
 SSL_SUBJ="/C=SE/ST=Sweden/L=Uppsala/O=NBIS/OU=SysDevs/CN=LocalEGA/emailAddress=ega@nbis.se"
 PRIVATE=private
 DB_USER=postgres
+DB_TRY=30
 CEGA_MQ_USER=cega_sweden
 CEGA_MQ_VHOST=se
 
@@ -41,7 +42,8 @@ function usage {
     echo ""
     echo -e "\t--db_user <value>,"
     echo -e "\t--db_password <value>        \tDatabase username and password"
-    echo -e "\t                             \t[User default: ${DB_USER}]"
+    echo -e "\t--db_try <value>             \tDatabase connection attempts"
+    echo -e "\t                             \t[User default: ${DB_USER} | Connection attempts default: ${DB_TRY}]"
     echo -e "\t--cega_mq_user <value>,"
     echo -e "\t--cega_mq_password <value>,"
     echo -e "\t--cega_mq_vhost <value>,     \tUsername, password, vhost for the Central EGA message broker"
@@ -70,6 +72,7 @@ while [[ $# -gt 0 ]]; do
         --ssl_subj) SSL_SUBJ=$2; shift;;
         --db_user) DB_USER=$2; shift;;
         --db_password) DB_PASSWORD=$2; shift;;
+        --db_try) DB_TRY=$2; shift;;
 	--cega_mq_user) CEGA_MQ_USER=$2; shift;;
 	--cega_mq_password) CEGA_MQ_PASSWORD=$2; shift;;
 	--cega_mq_vhost) CEGA_MQ_VHOST=$2; shift;;
@@ -150,6 +153,7 @@ SSL_SUBJ               = ${SSL_SUBJ}
 OPENSSL exec           = ${OPENSSL}
 DB_USER                = ${DB_USER}
 DB_PASSWORD            = ${DB_PASSWORD}
+DB_TRY                 = ${DB_TRY}
 CEGA_MQ_USER           = ${CEGA_MQ_USER}
 CEGA_MQ_PASSWORD       = ${CEGA_MQ_PASSWORD}
 CEGA_MQ_VHOST          = ${CEGA_MQ_VHOST}
@@ -231,6 +235,7 @@ heartbeat = 0
 host = ega_db
 username = ${DB_USER}
 password = ${DB_PASSWORD}
+try = ${DB_TRY}
 EOF
 
 # Note: We could use a .env.d/cega_mq file with 

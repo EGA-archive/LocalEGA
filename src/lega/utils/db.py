@@ -18,6 +18,7 @@ import psycopg2
 import traceback
 from functools import wraps
 from socket import gethostname
+from time import sleep
 
 from ..conf import CONF
 from .exceptions import FromUser
@@ -45,8 +46,31 @@ def cache_var(v):
 ######################################
 ##           Async code             ##
 ######################################
-async def create_pool(loop, **kwargs):
-    return await aiopg.create_pool(**kwargs,loop=loop, echo=True)
+async def create_pool(loop):
+    user     = CONF.get('db','username')
+    password = CONF.get('db','password')
+    database = CONF.get('db','dbname')
+    host     = CONF.get('db','host')
+    port     = CONF.getint('db','port')
+    nb_try   = CONF.getint('db','try', fallback=1)
+    try_interval = CONF.getint('db','try_interval', fallback=1)
+    LOG.info(f"Initializing a connection to: {host}:{port}/{database}")
+    left = 0
+    while left < nb_try:
+        backoff = (2 ** (left // 10)) * try_interval
+        # from  0 to  9, sleep 1 * try_interval secs
+        # from 10 to 19, sleep 2 * try_interval secs
+        # from 20 to 29, sleep 4 * try_interval secs ... etc
+        try:
+            return await aiopg.create_pool(user=user, password=password, database=database, host=host, port=port, loop=loop, echo=True)
+        except psycopg2.OperationalError as e:
+            LOG.error(f"Database connection error: {e!r}")
+            LOG.debug(f"Retrying in {backoff} seconds")
+            sleep( backoff )
+            left += 1
+    # fail to connect
+    LOG.error(f"Database connection fail after {nb_try} attempts")
+    sys.exit(1)
 
 async def get_file_info(pool, file_id):
     assert file_id, 'Eh? No file_id?'
@@ -68,14 +92,37 @@ async def get_user_info(pool, user_id):
 
 @cache_var('DB_CONNECTION')
 def connect():
-    '''Get the database connection (which encapsulates a database session)'''
+    '''Get the database connection (which encapsulates a database session)
+
+    Upon success, the connection is cached.
+
+    Before success, we try to connect `nb_try` times every `try_interval` seconds (defined in CONF)
+    '''
     user     = CONF.get('db','username')
     password = CONF.get('db','password')
     database = CONF.get('db','dbname')
     host     = CONF.get('db','host')
     port     = CONF.getint('db','port')
+    nb_try   = CONF.getint('db','try', fallback=1)
+    try_interval = CONF.getint('db','try_interval', fallback=1)
     LOG.info(f"Initializing a connection to: {host}:{port}/{database}")
-    return psycopg2.connect(user=user, password=password, database=database, host=host, port=port)
+    left = 0
+    while left < nb_try:
+        backoff = (2 ** (left // 10)) * try_interval
+        # from  0 to  9, sleep 1 * try_interval secs
+        # from 10 to 19, sleep 2 * try_interval secs
+        # from 20 to 29, sleep 4 * try_interval secs ... etc
+        try:
+            return psycopg2.connect(user=user, password=password, database=database, host=host, port=port)
+        except psycopg2.OperationalError as e:
+            LOG.debug(f"Database connection error: {e!r}")
+            LOG.debug(f"Retrying in {backoff} seconds")
+            sleep( backoff )
+            left += 1
+    # fail to connect
+    LOG.error(f"Database connection fail after {nb_try} attempts")
+    sys.exit(1)
+
 
 def insert_file(filename, user_id):
     with connect() as conn:
