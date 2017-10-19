@@ -122,7 +122,7 @@ def connect(**kwargs):
 
     Upon success, the connection is cached.
 
-    Before success, we try to connect `nb_try` times every `try_interval` seconds (defined in CONF)
+    Before success, we try to connect `try` times every `try_interval` seconds (defined in CONF)
     '''
     return psycopg2.connect(**kwargs) # host,port, ... are filled in by the connection_factory decorator
 
