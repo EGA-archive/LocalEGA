@@ -3,7 +3,10 @@ LABEL maintainer "Frédéric Haziza, NBIS"
 
 # Setup
 RUN gpg --list-keys && \
-    gpg --keyserver pgp.mit.edu --recv-keys 0x4F25E3B6 0xE0856959 0x33BD3F06 0x7EFD60D9 0xF7E48EDB
+    gpg --keyserver eu.pool.sks-keyservers.net \
+        --recv-keys 0x4F25E3B6 0xE0856959 0x33BD3F06 0x7EFD60D9 \
+	            0xF7E48EDB
+
 
 ##############################################################
 

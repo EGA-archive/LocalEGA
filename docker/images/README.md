@@ -22,5 +22,14 @@ The following images are created locally:
 |------------|:--------:|------|
 | nbis/ega   | db       | Sets up a postgres database with appropriate tables |
 | nbis/ega   | mq       | Sets up a RabbitMQ message broker with appropriate accounts, exchanges, queues and bindings |
-| nbis/ega   | common   | Image including python 3.6.1, GnuPG 2.2.0 and OpenSSH 7.5 |
+| nbis/ega   | common   | Image including python 3.6.1 |
 | nbis/ega   | inbox    | SFTP server on top of `nbis/ega:common` |
+| nbis/ega   | worker   | Adding GnuPG 2.2.0 to `nbis/ega:common` |
+| nbis/ega   | monitors | Including rsyslog |
+
+We also use 2 stubbing images in order to fake the necessary Central EGA components
+
+| Repository | Tag      | Role |
+|------------|:--------:|------|
+| nbis/ega   | cega\_users | Sets up a postgres database with appropriate tables |
+| nbis/ega   | cega\_mq    | Sets up a RabbitMQ message broker with appropriate accounts, exchanges, queues and bindings |
