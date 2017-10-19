@@ -24,6 +24,8 @@ services:
   frontend:
     build: images/common
     hostname: ega_frontend
+    depends_on:
+      - db
     ports:
       - "9000:80"
     expose:
