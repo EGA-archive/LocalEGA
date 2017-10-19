@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 # __init__ is here so that we don't collapse in sys.path with another lega module
 
-from . import conf
 f"""Local EGA library
 ~~~~~~~~~~~~~~~~~~~~~
 

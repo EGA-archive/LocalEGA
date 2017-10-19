@@ -1,2 +1,0 @@
-include README.md
-recursive-include lega *.py *.html *.jinja2 *.ini *.yaml
