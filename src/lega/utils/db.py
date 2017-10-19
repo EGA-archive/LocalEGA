@@ -57,7 +57,7 @@ def connection_factory(func):
             # from 10 to 19, sleep 2 * try_interval secs
             # from 20 to 29, sleep 4 * try_interval secs ... etc
             try:
-                return func(*args, **kwargs, **db_args,)
+                return func(*args, **kwargs, **db_args)
             except psycopg2.OperationalError as e:
                 LOG.debug(f"Database connection error: {e!r}")
                 LOG.debug(f"Retrying in {backoff} seconds")
