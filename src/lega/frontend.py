@@ -61,7 +61,7 @@ async def index(request):
     '''
     return { 'country': 'Sweden', 'text' : '<p>There should be some info here.</p>' }
 
-@only_central_ega
+#@only_central_ega
 async def status_file(request):
     '''Status endpoint for a given file'''
     file_id = request.match_info['id']
@@ -76,7 +76,7 @@ async def status_file(request):
                         f'\n\t* Submitted file name: {filename}'
                         f'\n\t* Stable file name: {stable_id}\n')
 
-@only_central_ega
+#@only_central_ega
 async def status_user(request):
     '''Status endpoint for a given file'''
     user_id = request.match_info['id']
@@ -91,20 +91,11 @@ async def status_user(request):
                     'final_name': info[4] } for info in res]
     return web.json_response(json_data)
 
-async def _connect_db(app):
-    try:
-        app['db'] = await db.create_pool(loop=app.loop)
-        LOG.info('DB Engine created')
-
-    except Exception as e:
-        print('Connection error to the Postgres database\n',str(e))
-        app.loop.call_soon(app.loop.stop)
-        app.loop.call_soon(app.loop.close)
-        sys.exit(2)
-
 async def init(app):
     '''Initialization running before the loop.run_forever'''
-    await _connect_db(app)
+    app['db'] = await db.create_pool(loop=app.loop)
+    LOG.info('DB Connection pool created')
+    # Note: will exit on failure
 
 async def shutdown(app):
     '''Function run after a KeyboardInterrupt. After that: cleanup'''
