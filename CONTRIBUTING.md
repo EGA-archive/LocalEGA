@@ -4,28 +4,56 @@ This document describes how to contribute to the Local EGA project
 
 We thank you in advance :+1::tada: for taking the time to contribute whether with _code_ or with _ideas_.
 
-We use [Zenhub](https://www.zenhub.com/), the [Agile project management within Github](https://www.zenhub.com/blog/how-to-use-github-agile-project-management/).
+## AGILE project management
+
+We use [Zenhub](https://www.zenhub.com/), the Agile project management within Github.
 
 You should first [install it](https://www.zenhub.com/extension) if you want to contribute.
 
-This GitHub repository follows the [coding guidelines from NBIS](/NBISweden/development-guidelines).
+In short, the [AGILE method](https://www.zenhub.com/blog/how-to-use-github-agile-project-management/) helps developers organize themselves:
 
-# Procedure
+* They decide about the tasks (not the managers)
+* Main Tasks should be divided into smaller manageable ones. The big
+  tasks are called `Epics`.
+* We have a given period (called Sprint) to work on a chosen
+  task. Here, a Sprint spans across 2 weeks.
+* We review the work done at the end of the Sprint, closing issues or
+  pushing them into the next Sprint. Ideally they are sub-divided in
+  case they encounter obstacles.
+* We have a short meeting every weekday at 9:30am. We call it a
+  _standup_ and we use it to keep everyone on point, and identify
+  quickly blockers. It's not a lengthy discussion. We ask:
+    - What did you get done yesterday (or last week, last month, etc.)?
+    - What are you working on now?
+    - What isn’t going well, and on what could you use help?
+
+## Procedure
 
 1) Create an issue on Github, and talk to the team members on the NBIS
-   local-ega Slack channel
+   local-ega Slack channel. You can alternatively pick one already
+   created.
 
-   Request access to [Jonas Hagberg](https://nbis.se/about/staff/jonas-hagberg/) if you are not part of that channel
+>   Contact
+>   [Jonas Hagberg](https://nbis.se/about/staff/jonas-hagberg/) to
+>   request access if you are not part of that channel already.
 
-2) Assign yourself to that issue or pick one already created.
+2) Assign yourself to that issue.
 
 3) Discussions on how to proceed about that issue take place in the
-   comments on that issue, beforehand.  The keyword here is
-   _beforehand_. It is usually a good idea to talk about it
-   first. Somebody might have already some pieces in place, we avoid
-   unnecessary work duplication and a waste of time and effort.
+   comment section on that issue, beforehand.  
+   
+   The keyword here is _beforehand_. It is usually a good idea to talk
+   about it first. Somebody might have already some pieces in place,
+   we avoid unnecessary work duplication and a waste of time and
+   effort.
 
-4) Work on it (on a fork, or on a separate branch) as you wish. That's what `git` is good for.
+4) Work on it (on a fork, or on a separate branch) as you wish. That's
+what `git` is good for. This GitHub repository follows
+the [coding guidelines from NBIS](/NBISweden/development-guidelines).
+   
+   Name your branch as you wish and prefix the name with:
+   * `feature/` if it is a code feature
+   * `hotfix/` if you are fixing an urgent bug
 
    Use comments in your code, choose variable and function names that
    clearly show what you intent to implement.
@@ -37,26 +65,22 @@ This GitHub repository follows the [coding guidelines from NBIS](/NBISweden/deve
 
    Limit the first line of your git commits to 72 characters or less.
 
-   Name your branch as you wish and prefix the name with:
-   * `feature/` if it is a code feature
-   * `hotfix/` if you are fixing an urgent bug
 
-
-6) Create a Pull Request (PR), so that your code is reviewed by the
-   admins on this repository.  That PR should be connected to the
-   issue you are working on.  Moreover, the PR should use `Estimate=1`,
-   should be connected to an `Epic`, a `Milestone` and a `User story` (or
-   several).
+5) Create a Pull Request (PR), so that your code is reviewed by the
+   admins on this repository.  
+   
+   That PR should be connected to the issue you are working on.
+   Moreover, the PR should use `Estimate=1`, should be connected to an
+   `Epic`, a `Milestone` and a `User story` (or several).
 
    You can select the reviewers you want, but for the moment, it is
    good taste to not ignore anyone (even if they don't review much of
    the PR).  At least, other developers will see that there was
    progress made on some issue.
 
-   Talk to us so we prepare a dedicated branch that will pull your code.
-   Do **_not_** ask us to merge it into `master`.
+   Do **_not_** ask us to merge it into `master`. We will use the `dev` branch.
 
-7) It is possible that your PR requires changes (because it creates
+6) It is possible that your PR requires changes (because it creates
    conflicts, or because some parts should be rewritten in a cleaner
    manner, or because it does not follow the standards, or you're
    requesting the wrong branch to pull your code, etc...) In that
@@ -92,9 +116,9 @@ This GitHub repository follows the [coding guidelines from NBIS](/NBISweden/deve
   one](NBISweden/LocalEGA/issues/new?title=%5BBUG%5D).  Be sure to
   prefix the issue title with **[BUG]** and to include:
 
-  ** a _clear_ description,
-  ** as much relevant information as possible, and 
-  ** a _code sample_ or an (executable) _test case_ demonstrating the expected behavior that is not occurring.
+  - a _clear_ description,
+  - as much relevant information as possible, and 
+  - a _code sample_ or an (executable) _test case_ demonstrating the expected behavior that is not occurring.
 
 * If possible, use the following [template to report a bug](todo) /* TODO */
 
@@ -102,6 +126,5 @@ This GitHub repository follows the [coding guidelines from NBIS](/NBISweden/deve
 
 ----
 
-| Authors      | NBIS System Developers |
-|-------------:|:-----------------------|
-| Last updated | October 19th, 2017     |
+Thanks again,  
+/NBIS System Developers
