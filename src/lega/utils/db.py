@@ -14,7 +14,6 @@ from functools import wraps
 import logging
 from enum import Enum
 import aiopg
-#import asyncpg
 import psycopg2
 import traceback
 from socket import gethostname
@@ -105,7 +104,7 @@ def _do_exit():
 ######################################
 ##           Async code             ##
 ######################################
-@retry_loop(on_failure=_do_exit)#, exception=ConnectionError)
+@retry_loop(on_failure=_do_exit)
 async def create_pool(loop):
     '''\
     Async function to create a pool of connection to the database.
@@ -113,7 +112,6 @@ async def create_pool(loop):
     '''
     db_args = fetch_args(CONF)
     return await aiopg.create_pool(**db_args, loop=loop, echo=True)
-#    return await asyncpg.connect(**kwargs, loop=loop)
 
 async def get_file_info(conn, file_id):
     assert file_id, 'Eh? No file_id?'
