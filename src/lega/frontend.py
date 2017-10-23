@@ -61,7 +61,7 @@ async def index(request):
     '''
     return { 'country': 'Sweden', 'text' : '<p>There should be some info here.</p>' }
 
-#@only_central_ega
+@only_central_ega
 async def status_file(request):
     '''Status endpoint for a given file'''
     file_id = request.match_info['id']
@@ -76,7 +76,7 @@ async def status_file(request):
                         f'\n\t* Submitted file name: {filename}'
                         f'\n\t* Stable file name: {stable_id}\n')
 
-#@only_central_ega
+@only_central_ega
 async def status_user(request):
     '''Status endpoint for a given file'''
     user_id = request.match_info['id']
