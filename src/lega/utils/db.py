@@ -16,8 +16,9 @@ from enum import Enum
 import aiopg
 import psycopg2
 import traceback
-from functools import wraps
 from socket import gethostname
+from time import sleep
+import asyncio
 
 from ..conf import CONF
 from .exceptions import FromUser
@@ -31,51 +32,138 @@ class Status(Enum):
     Archived = 'Archived'
     Error = 'Error'
 
-def cache_var(v):
-    '''Decorator to cache into a global variable'''
+######################################
+##         DB connection            ##
+######################################
+def fetch_args(d):
+    db_args = { 'user'     : d.get('db','username'),
+                'password' : d.get('db','password'),
+                'database' : d.get('db','dbname'),
+                'host'     : d.get('db','host'),
+                'port'     : d.getint('db','port')
+    }
+    LOG.info(f"Initializing a connection to: {db_args['host']}:{db_args['port']}/{db_args['database']}")
+    return db_args
+
+async def _retry(run, on_failure=None, exception=psycopg2.OperationalError):
+    '''Main retry loop'''
+    nb_try   = CONF.getint('db','try', fallback=1)
+    try_interval = CONF.getint('db','try_interval', fallback=1)
+    LOG.debug(f"{nb_try} attempts (every {try_interval} seconds)")
+    count = 0
+    backoff = try_interval
+    while count < nb_try:
+        try:
+            return await run()
+        except exception as e:
+            LOG.debug(f"Database connection error: {e!r}")
+            LOG.debug(f"Retrying in {backoff} seconds")
+            sleep( backoff )
+            count += 1
+            backoff = (2 ** (count // 10)) * try_interval
+            # from  0 to  9, sleep 1 * try_interval secs
+            # from 10 to 19, sleep 2 * try_interval secs
+            # from 20 to 29, sleep 4 * try_interval secs ... etc
+
+    # fail to connect
+    if nb_try:
+        LOG.error(f"Database connection fail after {nb_try} attempts ...")
+    else:
+        LOG.error("Database connection attempts was set to 0 ...")
+        
+    if on_failure:
+        on_failure()
+
+
+def retry_loop(on_failure=None, exception=psycopg2.OperationalError):
+    '''\
+    Decorator retry something `try` times every `try_interval` seconds.
+    Run the `on_failure` if after `try` attempts (configured in CONF).
+    '''
     def decorator(func):
-        def wrapper(*args, **kwargs):
-            g = globals()
-            if v not in g:
-                g[v] = func(*args, **kwargs)
-            return g[v]
+        if asyncio.iscoroutinefunction(func):
+            @wraps(func)
+            async def wrapper(*args, **kwargs):
+                async def _process():
+                    return await func(*args,**kwargs)
+                return await _retry(_process, on_failure=on_failure, exception=exception)
+        else:
+            @wraps(func)
+            def wrapper(*args, **kwargs):
+                async def _process():
+                    return func(*args,**kwargs)
+                loop = asyncio.get_event_loop()
+                return loop.run_until_complete(_retry(_process, on_failure=on_failure, exception=exception))
         return wrapper
     return decorator
+
+def _do_exit():
+    LOG.error("Could not connect to the database: Exiting")
+    sys.exit(1)
 
 ######################################
 ##           Async code             ##
 ######################################
-async def create_pool(loop, **kwargs):
-    return await aiopg.create_pool(**kwargs,loop=loop, echo=True)
+@retry_loop(on_failure=_do_exit)
+async def create_pool(loop):
+    '''\
+    Async function to create a pool of connection to the database.
+    Used by the frontend.
+    '''
+    db_args = fetch_args(CONF)
+    return await aiopg.create_pool(**db_args, loop=loop, echo=True)
 
-async def get_file_info(pool, file_id):
+async def get_file_info(conn, file_id):
     assert file_id, 'Eh? No file_id?'
-    with (await pool.cursor()) as cur:
+    with (await conn.cursor()) as cur:
         query = 'SELECT filename, status, created_at, last_modified, stable_id FROM files WHERE id = %(file_id)s'
         await cur.execute(query, {'file_id': file_id})
         return await cur.fetchone()
 
-async def get_user_info(pool, user_id):
+async def get_user_info(conn, user_id):
     assert user_id, 'Eh? No user_id?'
-    with (await pool.cursor()) as cur:
-        query = 'SELECT filename, status, created_at, last_modified, stable_id FROM files WHERE user_id = %(user_id)s'
+    with (await conn.cursor()) as cur:
+        query = 'SELECT filename, status, created_at, last_modified, stable_id FROM files WHERE elixir_id = %(user_id)s'
         await cur.execute(query, {'user_id': user_id})
         return await cur.fetchall()
+
+async def insert_user(conn, user_id, password_hash, pubkey):
+    with (await conn.cursor()) as cur:
+        await cur.execute('SELECT insert_user(%(uid)s,%(ph)s,%(pk)s);',
+                          { 'uid': user_id,
+                            'ph': password_hash,
+                            'pk': pubkey })
+        internal_id = (await cur.fetchone())[0]
+        if internal_id:
+            LOG.debug(f'User {user_id} added to the database (as entry {internal_id}).')
+        else:
+            raise Exception('Database issue with insert_user')
 
 ######################################
 ##         "Classic" code           ##
 ######################################
+def cache_connection(func):
+    '''Decorator to cache the database connection'''
+    cache = {} # must be a dict or an array
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if 'conn' not in cache or cache['conn'].closed:
+            cache['conn'] = func(*args, **kwargs)
+        return cache['conn']
+    return wrapper
 
-@cache_var('DB_CONNECTION')
+@cache_connection
+@retry_loop(on_failure=_do_exit)
 def connect():
-    '''Get the database connection (which encapsulates a database session)'''
-    user     = CONF.get('db','username')
-    password = CONF.get('db','password')
-    database = CONF.get('db','dbname')
-    host     = CONF.get('db','host')
-    port     = CONF.getint('db','port')
-    LOG.info(f"Initializing a connection to: {host}:{port}/{database}")
-    return psycopg2.connect(user=user, password=password, database=database, host=host, port=port)
+    '''Get the database connection (which encapsulates a database session)
+
+    Upon success, the connection is cached.
+
+    Before success, we try to connect `try` times every `try_interval` seconds (defined in CONF)
+    '''
+    db_args = fetch_args(CONF)
+    return psycopg2.connect(**db_args)
+
 
 def insert_file(filename, user_id):
     with connect() as conn:
@@ -155,19 +243,6 @@ def finalize_file(file_id, stable_id, filesize):
                         {'stable_id': stable_id, 'file_id': file_id, 'status': Status.Archived.value, 'filesize': filesize})
 
 
-def insert_user(user_id, password_hash, pubkey):
-    with connect() as conn:
-        with conn.cursor() as cur:
-            cur.execute('SELECT insert_user(%(uid)s,%(ph)s,%(pk)s);',
-                        { 'uid': user_id,
-                          'ph': password_hash,
-                          'pk': pubkey })
-            internal_id = (cur.fetchone())[0]
-            if internal_id:
-                LOG.debug(f'User {user_id} added to the database (as entry {internal_id}).')
-            else:
-                raise Exception('Database issue with insert_user')
-
 ######################################
 ##           Decorator              ##
 ######################################
@@ -204,3 +279,9 @@ def catch_error(func):
                 print(repr(e), file=sys.stderr)
             return None
     return wrapper
+
+# Testing connection with `python -m lega.utils.db`
+if __name__ == '__main__':
+    CONF.setup(sys.argv)
+    conn = connect()
+    print(conn)

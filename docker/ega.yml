@@ -22,11 +22,10 @@ services:
 
   # ReST frontend
   frontend:
-    env_file: .env.d/db
     build: images/common
+    hostname: ega_frontend
     depends_on:
       - db
-    hostname: ega_frontend
     ports:
       - "9000:80"
     expose:
@@ -37,8 +36,7 @@ services:
        - ${CONF}:/etc/ega/conf.ini:ro
        - ${CODE}:/root/ega
        - ${ENTRYPOINTS}/frontend.sh:/usr/local/bin/frontend.sh:ro
-       - ${ENTRYPOINTS}/wait-for-postgres.sh:/usr/local/bin/wait-for-postgres.sh:ro
-    command: ["wait-for-postgres.sh", "frontend.sh"]
+    command: frontend.sh
 
   # SFTP inbox
   inbox:
@@ -57,8 +55,7 @@ services:
        - ${CODE}:/root/ega
        - inbox:/ega/inbox
        - ${ENTRYPOINTS}/inbox.sh:/usr/local/bin/inbox.sh:ro
-       - ${ENTRYPOINTS}/wait-for-postgres.sh:/usr/local/bin/wait-for-postgres.sh:ro
-    command: ["wait-for-postgres.sh", "inbox.sh"]
+    command: inbox.sh
 
   # Vault
   vault:
@@ -68,7 +65,6 @@ services:
       - mq
       - cega_mq
       - inbox
-    env_file: .env.d/db
     hostname: ega_vault
     container_name: ega_vault
     image: nbis/ega:common
@@ -78,8 +74,7 @@ services:
        - staging:/ega/staging
        - vault:/ega/vault
        - ${ENTRYPOINTS}/vault.sh:/usr/local/bin/vault.sh:ro
-       - ${ENTRYPOINTS}/wait-for-postgres.sh:/usr/local/bin/wait-for-postgres.sh:ro
-    command: ["wait-for-postgres.sh", "vault.sh"]
+    command: vault.sh
 
   # Ingestion Workers
   ingest:
@@ -90,7 +85,6 @@ services:
       - cega_mq
       - keys
       - inbox
-    env_file: .env.d/db
     image: nbis/ega:worker
     environment:
       - GPG_TTY=/dev/console
@@ -103,8 +97,7 @@ services:
        - ${GPG_HOME}/pubring.kbx:/root/.gnupg/pubring.kbx:ro
        - ${GPG_HOME}/trustdb.gpg:/root/.gnupg/trustdb.gpg
        - ${ENTRYPOINTS}/ingest.sh:/usr/local/bin/ingest.sh:ro
-       - ${ENTRYPOINTS}/wait-for-postgres.sh:/usr/local/bin/wait-for-postgres.sh:ro
-    command: ["wait-for-postgres.sh", "ingest.sh"]
+    command: ingest.sh
 
   # Key server
   keys:
