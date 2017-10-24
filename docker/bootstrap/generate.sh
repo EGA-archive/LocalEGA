@@ -209,7 +209,7 @@ ${OPENSSL} req -x509 -newkey rsa:2048 -keyout $ABS_PRIVATE/certs/ssl.key -nodes 
 echo "Generating some fake EGA users"
 cat > $ABS_PRIVATE/cega/users/john.yml <<EOF
 ---
-password_hash: $(openssl passwd -1 ${EGA_USER_PASSWORD_JOHN})
+password_hash: $(${OPENSSL} passwd -1 ${EGA_USER_PASSWORD_JOHN})
 pubkey: ${EGA_USER_PUBKEY_JOHN}
 EOF
 cat > $ABS_PRIVATE/cega/users/jane.yml <<EOF
@@ -218,7 +218,7 @@ pubkey: ${EGA_USER_PUBKEY_JANE}
 EOF
 cat > $ABS_PRIVATE/cega/users/taylor.yml <<EOF
 ---
-password_hash: $(openssl passwd -1 ${EGA_USER_PASSWORD_TAYLOR})
+password_hash: $(${OPENSSL} passwd -1 ${EGA_USER_PASSWORD_TAYLOR})
 EOF
 
 # Populate configs
