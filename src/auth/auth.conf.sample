@@ -7,7 +7,9 @@ db_connection = host=ega_db port=5432 dbname=lega user=postgres password=CHANGE-
 
 enable_rest = yes
 #rest_endpoint = https://ega.crg.eu/user/%s
-rest_endpoint = http://ega_frontend:9100/user/%s
+rest_endpoint = http://central_ega/user/%s
+rest_user = lega
+rest_password = change_me
 
 ##################
 # NSS Queries

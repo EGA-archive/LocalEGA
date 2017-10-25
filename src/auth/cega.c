@@ -52,10 +52,11 @@ fetch_from_cega(const char *username, char **buffer, size_t *buflen, int *errnop
   bool success = false;
   char endpoint[URL_SIZE];
   struct curl_res_s *cres = NULL;
-  json_object *json = NULL;
   enum json_tokener_error jerr = json_tokener_success;
   json_object *pwdh = NULL, *pubkey = NULL, *expiration = NULL;
-  
+  json_object *json = NULL, *json_response = NULL, *json_result = NULL, *jobj = NULL;
+  char* endpoint_creds = NULL;
+
   D("contacting cega for user: %s\n", username);
 
   curl_global_init(CURL_GLOBAL_DEFAULT);
@@ -69,7 +70,7 @@ fetch_from_cega(const char *username, char **buffer, size_t *buflen, int *errnop
   }
 
   cres = (struct curl_res_s*)malloc(sizeof(struct curl_res_s));
-
+  
  
   curl_easy_setopt(curl, CURLOPT_NOPROGRESS    , 1L               ); /* shut off the progress meter */
   curl_easy_setopt(curl, CURLOPT_URL           , endpoint         );
@@ -77,6 +78,11 @@ fetch_from_cega(const char *username, char **buffer, size_t *buflen, int *errnop
   curl_easy_setopt(curl, CURLOPT_WRITEDATA     , (void *)cres     );
   curl_easy_setopt(curl, CURLOPT_FAILONERROR   , 1L               ); /* when not 200 */
 
+  curl_easy_setopt(curl, CURLOPT_HTTPAUTH      , CURLAUTH_BASIC);
+  endpoint_creds = (char*)malloc(1 + strlen(options->rest_user) + strlen(options->rest_password));
+  sprintf(endpoint_creds, "%s:%s", options->rest_user, options->rest_password);
+  curl_easy_setopt(curl, CURLOPT_USERPWD       , endpoint_creds);
+ 
   /* curl_easy_setopt(curl, CURLOPT_SSLCERT      , options->ssl_cert); */
   /* curl_easy_setopt(curl, CURLOPT_SSLCERTTYPE  , "PEM"            ); */
 
@@ -100,9 +106,13 @@ fetch_from_cega(const char *username, char **buffer, size_t *buflen, int *errnop
     goto BAIL_OUT;
   }
 
-  json_object_object_get_ex(json, "password_hash", &pwdh);
-  json_object_object_get_ex(json, "pubkey", &pubkey);
-  json_object_object_get_ex(json, "expiration", &expiration);
+  json_object_object_get_ex(json, "response", &json_response);
+  json_object_object_get_ex(json_response, "result", &json_result);
+
+  jobj = json_object_array_get_idx(json_result,0);
+  json_object_object_get_ex(jobj, "password", &pwdh);
+  json_object_object_get_ex(jobj, "public_key", &pubkey);
+  json_object_object_get_ex(jobj, "expiration", &expiration);
 
   success = add_to_db(username,
 		      json_object_get_string(pwdh),
@@ -112,6 +122,10 @@ fetch_from_cega(const char *username, char **buffer, size_t *buflen, int *errnop
 BAIL_OUT:
   if(!success) D("user %s not found\n", username);
   if(cres) free(cres);
+  if(endpoint_creds) free(endpoint_creds);
+  json_object_put(jobj);
+  json_object_put(json_result);
+  json_object_put(json_response);
   json_object_put(json);
   curl_easy_cleanup(curl);
   curl_global_cleanup();

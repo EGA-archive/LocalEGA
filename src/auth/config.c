@@ -23,6 +23,8 @@ cleanconfig(void)
   if(!options->pam_acct          ) { free((char*)options->pam_acct);       }
   if(!options->pam_prompt        ) { free((char*)options->pam_prompt);     }
   if(!options->rest_endpoint     ) { free((char*)options->rest_endpoint);  }
+  if(!options->rest_user         ) { free((char*)options->rest_user);      }
+  if(!options->rest_password     ) { free((char*)options->rest_password);  }
   if(!options->ssl_cert          ) { free((char*)options->ssl_cert);       }
   if(!options->skel              ) { free((char*)options->skel);           }
   free(options);
@@ -98,6 +100,8 @@ readconfig(const char* configfile)
     if(!strcmp(key, "pam_prompt"        )) { options->pam_prompt = strdup(val);     }
     if(!strcmp(key, "skel"              )) { options->skel = strdup(val);           }
     if(!strcmp(key, "rest_endpoint"     )) { options->rest_endpoint = strdup(val);  }
+    if(!strcmp(key, "rest_user"         )) { options->rest_user     = strdup(val);  }
+    if(!strcmp(key, "rest_password"     )) { options->rest_password = strdup(val);  }
     if(!strcmp(key, "rest_buffer_size"  )) { options->rest_buffer_size = atoi(val); }
     if(!strcmp(key, "ssl_cert"          )) { options->ssl_cert = strdup(val);       }
     if(!strcmp(key, "enable_rest")) {
