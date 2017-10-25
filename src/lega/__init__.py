@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 # __init__ is here so that we don't collapse in sys.path with another lega module
 
-f"""Local EGA library
-~~~~~~~~~~~~~~~~~~~~~
+"""\
+Local EGA library
+~~~~~~~~~~~~~~~~~
 
 The lega package contains code to start a _Local EGA_.
 
 See `https://github.com/NBISweden/LocalEGA` for a full documentation.
+
 :copyright: (c) 2017, NBIS System Developers.
 """
 

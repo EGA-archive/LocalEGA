@@ -12,12 +12,13 @@ _config_files =  [
  ]
 
 _loggers =  {
-    'default': _here / 'loggers/default.yaml', 
-    'debug':  _here / 'loggers/debug.yaml', 
-    'syslog': _here / 'loggers/syslog.yaml', 
+    'default': _here / 'loggers/default.yaml',
+    'debug':  _here / 'loggers/debug.yaml',
+    'syslog': _here / 'loggers/syslog.yaml',
 }
 
-f"""This module provides a dictionary-like with configuration settings.
+f"""\
+This module provides a dictionary-like with configuration settings.
 It also loads the logging settings when `setup` is called.
 
 The `--log <file>` argument is used to configuration where the logs go.
@@ -37,8 +38,8 @@ The files must be either in `INI` format or in `YAML` format, in
 which case, it must end in `.yaml` or `.yml`.
 
 See `https://github.com/NBISweden/LocalEGA` for a full documentation.
-:copyright: (c) 2017, NBIS System Developers.
 
+:copyright: (c) 2017, NBIS System Developers.
 """
 
 class Configuration(configparser.ConfigParser):
@@ -110,7 +111,6 @@ class Configuration(configparser.ConfigParser):
 
         print(f"Unsupported log format for {filename}", file=sys.stderr)
         self.log_conf = None
-            
 
     def _load_log_conf(self,args=None):
         # Finding the --log file

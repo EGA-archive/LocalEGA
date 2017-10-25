@@ -9,7 +9,6 @@
 '''
 
 import logging
-import io
 import os
 import asyncio
 import asyncio.subprocess
@@ -91,20 +90,20 @@ class ReEncryptor(asyncio.SubprocessProtocol):
         encryption_key, mode, nonce = next(self.engine)
 
         self.header = make_header(active_key, len(encryption_key), len(nonce), mode.encode())
-    
+        
         LOG.info(f'Writing header to file: {self.header} (and enc key + nonce)')
         header_b = (self.header + '\n').encode()
-
+        
         self.target_handler.write(header_b)
         self.target_handler.write(encryption_key)
         self.target_handler.write(nonce)
-
+        
         LOG.info('Setup target digest')
         self.target_digest = sha256()
         self.target_digest.update(header_b)
         self.target_digest.update(encryption_key)
         self.target_digest.update(nonce)
-
+        
         # And now, daddy...
         super().__init__()
 
@@ -113,7 +112,7 @@ class ReEncryptor(asyncio.SubprocessProtocol):
         self.transport = transport
 
     def pipe_data_received(self, fd, data):
-        # Data is of size: 32768 or 65536 bytes 
+        # Data is of size: 32768 or 65536 bytes
         if not data:
             return
         if fd == 1:
@@ -188,7 +187,7 @@ def ingest(gpg_cmd,
             _err = exceptions.Checksum(hash_algo,f'for decrypted content of {enc_file}')
             LOG.error(str(_err))
 
-    if _err:
+    if _err is not None:
         LOG.warning(f'Removing {target}')
         os.remove(target)
         raise _err

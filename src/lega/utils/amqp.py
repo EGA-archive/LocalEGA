@@ -41,8 +41,8 @@ def get_connection(domain, blocking=True):
             'ca_certs' : CONF.get(domain,'cacert'),
             'certfile' : CONF.get(domain,'cert'),
             'keyfile'  : CONF.get(domain,'keyfile'),
-            'cert_reqs': 2 #ssl.CERT_REQUIRED is actually <VerifyMode.CERT_REQUIRED: 2>
-        } 
+            'cert_reqs': 2, #ssl.CERT_REQUIRED is actually <VerifyMode.CERT_REQUIRED: 2>
+        }
 
     LOG.info(f'Getting a connection to {domain}')
     LOG.debug(params)

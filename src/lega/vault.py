@@ -51,7 +51,7 @@ def work(data):
     starget = str(target)
     LOG.debug(f'Moving {filepath} to {target}')
     shutil.move(str(filepath), starget)
-    
+
     # Mark it as processed in DB
     db.finalize_file(file_id, starget, target.stat().st_size)
 

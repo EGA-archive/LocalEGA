@@ -5,7 +5,6 @@
 creation of a user or the ingestion of a file.
 '''
 
-import sys
 import argparse
 import uuid
 import json
@@ -28,7 +27,6 @@ enc_group.add_argument('--enc')
 enc_group.add_argument('--enc_algo', default='md5', help='[Default: md5]')
 
 args = parser.parse_args()
-
 
 message = { 'elixir_id': args.user, 'filename': args.filename }
 if args.enc:
