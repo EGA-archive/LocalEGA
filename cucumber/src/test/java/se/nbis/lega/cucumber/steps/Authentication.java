@@ -34,15 +34,15 @@ public class Authentication implements En {
                 ssh.authPublickey(USERNAME, privateKey.getPath());
                 sftp = ssh.newSFTPClient();
             } catch (Exception e) {
-                e.printStackTrace();
+                throw new RuntimeException(e);
             }
         });
 
         Then("the operation is successful", () -> {
             try {
                 Assert.assertEquals("inbox", sftp.ls("/").iterator().next().getName());
-            } catch (IOException e) {
-                e.printStackTrace();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
             }
         });
     }
