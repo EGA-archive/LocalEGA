@@ -1,5 +1,8 @@
 # NBIS repository for the Local EGA project
 
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/3dd83b28ec2041889bfb13641da76c5b)](https://www.codacy.com/app/NBIS/LocalEGA?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=NBISweden/LocalEGA&amp;utm_campaign=Badge_Grade)
+
+
 The [code](./src) is written in Python (3.6+).
 
 You can provision and deploy the different components:
