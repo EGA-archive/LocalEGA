@@ -8,7 +8,8 @@ We thank you in advance :+1::tada: for taking the time to contribute whether wit
 
 We use [Zenhub](https://www.zenhub.com/), the Agile project management within Github.
 
-You should first [install it](https://www.zenhub.com/extension) if you want to contribute.
+You should first [install it](https://www.zenhub.com/extension) if you want to contribute.  
+You can also use the [Zenhub app](https://app.zenhub.com) if you wish.
 
 In short, the [AGILE method](https://www.zenhub.com/blog/how-to-use-github-agile-project-management/) helps developers organize themselves:
 
@@ -70,17 +71,30 @@ the [coding guidelines from NBIS](/NBISweden/development-guidelines).
    admins on this repository.  
    
    That PR should be connected to the issue you are working on.
-   Moreover, the PR should use `Estimate=1`, should be connected to an
-   `Epic`, a `Milestone` and a `User story` (or several).
+   Moreover, the PR:
+   
+   - should use `Estimate=1`,
+   - should be connected to:
+     + an `Epic`,
+     + a `Milestone` and
+     + a `User story`
+     + ... or several.
 
-   You can select the reviewers you want, but for the moment, it is
-   good taste to not ignore anyone (even if they don't review much of
-   the PR).  At least, other developers will see that there was
-   progress made on some issue.
+Do **_not_** ask us to merge it into `master`. We will use the `dev` branch.
 
-   Do **_not_** ask us to merge it into `master`. We will use the `dev` branch.
+6) Selecting a review goes as follows: Pick one _main_ reviewer.  It
+   is usually one that you had discussions with, and is somehow
+   connected to that issue. If this is not the case, pick several reviewers.
+   
+   Note that, in turn, the main reviewer might ask another reviewer
+   for help. The approval of all reviewers is compulsory in order to
+   merge the PR. Moreover, the main reviewer is the one merging the
+   PR, not you.
+   
+   Find more information on the [NBIS reviewing guidelines](/NBISweden/development-guidelines#how-we-do-code-reviews).
 
-6) It is possible that your PR requires changes (because it creates
+
+7) It is possible that your PR requires changes (because it creates
    conflicts, or because some parts should be rewritten in a cleaner
    manner, or because it does not follow the standards, or you're
    requesting the wrong branch to pull your code, etc...) In that
@@ -98,10 +112,11 @@ the [coding guidelines from NBIS](/NBISweden/development-guidelines).
    duplicated or wasted efforts, but they take place in the comment
    section of the related issue (see point 4), not in the PR.
 
-   In other words, we don't discuss when the work is done, and there
-   is no recourse, such that it's either accept or reject. We think we
-   can do better than that, and introduce a finer grained acceptance,
-   by involving _beforehand_ discussions so that everyone is on point.
+   Essentially, we don't want to open discussions when the work is
+   done, and there is no recourse, such that it's either accept or
+   reject. We think we can do better than that, and introduce a finer
+   grained acceptance, by involving _beforehand_ discussions so that
+   everyone is on point.
 
 
 
