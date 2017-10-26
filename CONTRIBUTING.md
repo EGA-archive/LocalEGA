@@ -21,7 +21,7 @@ In short, the [AGILE method](https://www.zenhub.com/blog/how-to-use-github-agile
 * We review the work done at the end of the Sprint, closing issues or
   pushing them into the next Sprint. Ideally, they are sub-divided in
   case they encounter obstacles.
-* We have a short meeting every weekday at 09:30 am. We call it a
+* We have a short meeting every weekday at 9:30 AM. We call it a
   _standup_ and we use it to keep everyone on point, and identify
   quickly blockers. It's not a lengthy discussion. We ask:
     - What did you get done yesterday (or last week, last month, etc.)?
