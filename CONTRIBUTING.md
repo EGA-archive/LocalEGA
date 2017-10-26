@@ -8,7 +8,7 @@ We thank you in advance :+1::tada: for taking the time to contribute whether wit
 
 We use [Zenhub](https://www.zenhub.com/), the Agile project management within Github.
 
-You should first [install it](https://www.zenhub.com/extension) if you want to contribute.  
+You should first [install it](https://www.zenhub.com/extension) if you want to contribute or just follow the project progress.  
 You can also use the [Zenhub app](https://app.zenhub.com) if you wish.
 
 In short, the [AGILE method](https://www.zenhub.com/blog/how-to-use-github-agile-project-management/) helps developers organize themselves:
@@ -19,9 +19,9 @@ In short, the [AGILE method](https://www.zenhub.com/blog/how-to-use-github-agile
 * We have a given period (called Sprint) to work on a chosen
   task. Here, a Sprint spans across 2 weeks.
 * We review the work done at the end of the Sprint, closing issues or
-  pushing them into the next Sprint. Ideally they are sub-divided in
+  pushing them into the next Sprint. Ideally, they are sub-divided in
   case they encounter obstacles.
-* We have a short meeting every weekday at 9:30am. We call it a
+* We have a short meeting every weekday at 09:30 am. We call it a
   _standup_ and we use it to keep everyone on point, and identify
   quickly blockers. It's not a lengthy discussion. We ask:
     - What did you get done yesterday (or last week, last month, etc.)?
@@ -57,7 +57,7 @@ the [coding guidelines from NBIS](/NBISweden/development-guidelines).
    * `hotfix/` if you are fixing an urgent bug
 
    Use comments in your code, choose variable and function names that
-   clearly show what you intent to implement.
+   clearly show what you intend to implement.
 
    Use [`git rebase -i`](https://git-scm.com/book/en/v2/Git-Tools-Rewriting-History) in
    order to rewrite your history, and have meaningful commits.  That
@@ -83,7 +83,7 @@ the [coding guidelines from NBIS](/NBISweden/development-guidelines).
 Do **_not_** ask us to merge it into `master`. We will use the `dev` branch.
 
 6) Selecting a review goes as follows: Pick one _main_ reviewer.  It
-   is usually one that you had discussions with, and is somehow
+   is usually one that you had discussions with, and is somehow 
    connected to that issue. If this is not the case, pick several reviewers.
    
    Note that, in turn, the main reviewer might ask another reviewer
@@ -101,7 +101,7 @@ Do **_not_** ask us to merge it into `master`. We will use the `dev` branch.
    case, a reviewer will request changes and describe them in the
    comment section of the PR.
 
-   You then update your branch with new commits, and ping the reviewer
+   You then update your branch with new commits and ping the reviewer
    on the slack channel. (Yes, we respond better there).
 
    Note that the comments _in the PR_ are not used to discuss the
@@ -133,7 +133,7 @@ Do **_not_** ask us to merge it into `master`. We will use the `dev` branch.
 
   - a _clear_ description,
   - as much relevant information as possible, and 
-  - a _code sample_ or an (executable) _test case_ demonstrating the expected behavior that is not occurring.
+  - a _code sample_ or an (executable) _test case_ demonstrating the expected behaviour that is not occurring.
 
 * If possible, use the following [template to report a bug](todo) /* TODO */
 
