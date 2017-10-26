@@ -95,11 +95,11 @@ Do **_not_** ask us to merge it into `master`. We will use the `dev` branch.
 
 
 7) It is possible that your PR requires changes (because it creates
-   conflicts, or because some parts should be rewritten in a cleaner
-   manner, or because it does not follow the standards, or you're
-   requesting the wrong branch to pull your code, etc...) In that
-   case, a reviewer will request changes and describe them in the
-   comment section of the PR.
+   conflicts, doesn't pass the integrated tests or because some parts
+   should be rewritten in a cleaner manner, or because it does not
+   follow the standards, or you're requesting the wrong branch to pull
+   your code, etc...) In that case, a reviewer will request changes
+   and describe them in the comment section of the PR.
 
    You then update your branch with new commits and ping the reviewer
    on the slack channel. (Yes, we respond better there).
