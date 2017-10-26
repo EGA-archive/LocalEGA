@@ -29,13 +29,13 @@ def work(data):
     '''Verifying that the file in the vault does decrypt properly'''
 
     file_id = data['file_id']
-    filename, org_hash, org_hash_algo, vault_filename, vault_checksum = db.get_details(file_id)
+    filename, _, org_hash_algo, vault_filename, vault_checksum = db.get_details(file_id)
 
     if not checksum.is_valid(vault_filename, vault_checksum, hashAlgo='sha256'):
         raise exceptions.VaultDecryption(vault_filename)
 
     return { 'vault_name': vault_filename, 'org_name': filename }
-    
+
 def main(args=None):
 
     if not args:

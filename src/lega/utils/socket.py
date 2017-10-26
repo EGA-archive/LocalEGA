@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-'''
-Unix Domain Socket forwarding to remote machine and 
-proxying remote requests to a given Unix Domain Socket.
+'''\
+Unix Domain Socket forwarding to remote machine and proxying remote requests to a given Unix Domain Socket.
 
 Usefull to forward gpg requests to a remote GPG-agent.
 
 :author: Frédéric Haziza
 :copyright: (c) 2017, NBIS System Developers.
+
 '''
 
 import sys
@@ -147,7 +147,7 @@ def proxy():
     keyfile = Path(args.keyfile).expanduser() if args.keyfile else None
     syslog(LOG_DEBUG, f'Certfile: {certfile}')
     syslog(LOG_DEBUG, f'Keyfile: {keyfile}')
-    if (certfile and certfile.exists() and 
+    if (certfile and certfile.exists() and
         keyfile and keyfile.exists()):
         ssl_ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
         ssl_ctx.load_cert_chain(certfile, keyfile)

@@ -17,7 +17,7 @@ import sys
 import logging
 import argparse
 from time import sleep
-    
+
 from .conf import CONF
 from .utils import db
 

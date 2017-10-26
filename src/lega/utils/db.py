@@ -258,7 +258,7 @@ def catch_error(func):
             if isinstance(e,AssertionError):
                 raise e
 
-            exc_type, exc_obj, exc_tb = sys.exc_info()
+            exc_type, _, exc_tb = sys.exc_info()
             g = traceback.walk_tb(exc_tb)
             frame, lineno = next(g) # that should be the decorator
             try:
