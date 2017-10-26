@@ -1,0 +1,16 @@
+sudo: required
+
+language: generic
+
+services:
+  - docker
+
+script:
+  - cd docker
+  - make -C images
+  - docker run --rm -i -v ${PWD}/bootstrap:/ega nbis/ega:worker /ega/generate.sh -f
+  - bootstrap/populate.sh
+  - sudo chown -R $USER .
+  - docker-compose up -d
+  - cd ../cucumber
+  - mvn test -B
