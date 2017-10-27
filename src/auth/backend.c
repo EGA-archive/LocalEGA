@@ -10,6 +10,7 @@
 #include "backend.h"
 #include "cega.h"
 #include "homedir.h"
+#include "blowfish/ow-crypt.h"
 
 /* define passwd column names */
 #define COL_NAME   0
@@ -19,6 +20,8 @@
 #define COL_GECOS  4
 #define COL_DIR    5
 #define COL_SHELL  6
+
+#define BCRYPT_HASHSIZE	(64)
 
 static PGconn* conn;
 
@@ -252,8 +255,20 @@ backend_authenticate(const char *username, const char *password)
   /* no error, so fetch the result */
   pwdh = strdup(PQgetvalue(res, 0, 0)); /* row 0, col 0 */
 
-  if (!strcmp(pwdh, crypt(password, pwdh)))
-    status = true;
+  if(!strncmp(pwdh, "$2", 2)){
+    D("Using Blowfish\n");
+    char pwdh_computed[64];
+    if( crypt_rn(password, pwdh, pwdh_computed, 64) == NULL){
+      D("bcrypt failed\n");
+      goto BAIL_OUT;
+    }
+    if(!strcmp(pwdh, (char*)&pwdh_computed[0]))
+      status = true;
+  } else {
+    D("Using libc: supporting MD5, SHA256, SHA512\n")
+    if (!strcmp(pwdh, crypt(password, pwdh)))
+      status = true;
+  }
 
 BAIL_OUT:
   PQclear(res);
