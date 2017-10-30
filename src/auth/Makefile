@@ -42,7 +42,7 @@ $(PAM_LIBRARY): $(HEADERS) $(PAM_OBJECTS)
 
 blowfish/x86.o: blowfish/x86.S $(HEADERS)
 	@echo "Compiling $<"
-	@$(CC) -c -o $@ $<
+	@$(AS) -o $@ $<
 
 %.o: %.c $(HEADERS)
 	@echo "Compiling $<"
