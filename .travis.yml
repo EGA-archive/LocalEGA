@@ -12,5 +12,5 @@ script:
   - bootstrap/populate.sh
   - sudo chown -R $USER .
   - docker-compose up -d
-  - cd ../cucumber
+  - cd ../tests
   - mvn test -B
