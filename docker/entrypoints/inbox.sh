@@ -23,9 +23,11 @@ debug = ok_why_not
 db_connection = host=${EGA_DB_IP} port=5432 dbname=lega user=${POSTGRES_USER} password=${POSTGRES_PASSWORD} connect_timeout=1 sslmode=disable
 
 enable_rest = yes
-rest_endpoint = https://egatest.crg.eu/lega/v1/user/%s
+rest_endpoint = https://egatest.crg.eu/lega/v1/lega/user/%s
 rest_user = ${CEGA_ENDPOINT_USER}
 rest_password = ${CEGA_ENDPOINT_PASSWORD}
+rest_resp_passwd = .response.result[0].password
+rest_resp_pubkey = .response.result[0].public_key
 
 ##################
 # NSS Queries
@@ -50,7 +52,7 @@ query="SELECT pubkey from users where elixir_id = '\${eid}' LIMIT 1"
 
 PGPASSWORD=${POSTGRES_PASSWORD} psql -tqA -U ${POSTGRES_USER} -h ega_db -d lega -c "\${query}"
 EOF
-chmod 755 /usr/local/bin/ega_ssh_keys.sh
+chmod 750 /usr/local/bin/ega_ssh_keys.sh
 
 echo "Starting the SFTP server"
 exec /usr/sbin/sshd -D -e
