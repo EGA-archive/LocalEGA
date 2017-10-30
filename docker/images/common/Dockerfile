@@ -14,6 +14,8 @@ RUN yum -y update && \
 RUN yum -y install https://centos7.iuscommunity.org/ius-release.rpm
 RUN yum -y install gcc python36u python36u-pip
 
+RUN [[ -e /lib64/libpython3.6m.so ]] || ln -s /lib64/libpython3.6m.so.1.0 /lib64/libpython3.6m.so
+
 # And some extra ones, to speed up booting the VMs
 RUN pip3.6 install --upgrade pip && \
     pip3.6 install PyYaml Markdown pika==0.11.0 aiohttp==2.2.5 pycryptodomex==3.4.5 aiopg==0.13.0 colorama==0.3.7 aiohttp-jinja2==0.13.0
