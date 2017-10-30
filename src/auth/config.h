@@ -30,6 +30,10 @@ struct options_s {
   /* ReST location */
   bool with_rest;             /* enable the lookup in case the entry is not found in the database cache */
   const char* rest_endpoint;  /* https://ega/user/<some-id> | returns a triplet in JSON format */
+  const char* rest_user;      
+  const char* rest_password;  /* for authentication: user:password */
+  const char* rest_resp_passwd;  /* Searching with jq for the password field */
+  const char* rest_resp_pubkey;  /* Searching with jq for the public key field */
   int rest_buffer_size;       /* 1024 */
   const char* ssl_cert;       /* path the SSL certificate to contact Central EGA */
 

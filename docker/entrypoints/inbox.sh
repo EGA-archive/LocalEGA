@@ -23,7 +23,11 @@ debug = ok_why_not
 db_connection = host=${EGA_DB_IP} port=5432 dbname=lega user=${POSTGRES_USER} password=${POSTGRES_PASSWORD} connect_timeout=1 sslmode=disable
 
 enable_rest = yes
-rest_endpoint = http://cega_users/user/%s
+rest_endpoint = ${CEGA_ENDPOINT}
+rest_user = ${CEGA_ENDPOINT_USER}
+rest_password = ${CEGA_ENDPOINT_PASSWORD}
+rest_resp_passwd = ${CEGA_ENDPOINT_RESP_PASSWD}
+rest_resp_pubkey = ${CEGA_ENDPOINT_RESP_PUBKEY}
 
 ##################
 # NSS Queries
@@ -36,7 +40,6 @@ nss_add_user = SELECT insert_user(\$1,\$2,\$3)
 ##################
 pam_auth = SELECT password_hash FROM users WHERE elixir_id = \$1 LIMIT 1
 pam_acct = SELECT elixir_id FROM users WHERE elixir_id = \$1 and current_timestamp < last_accessed + expiration
-pam_prompt = wazzaaaa: 
 EOF
 
 cat > /usr/local/bin/ega_ssh_keys.sh <<EOF
@@ -48,7 +51,7 @@ query="SELECT pubkey from users where elixir_id = '\${eid}' LIMIT 1"
 
 PGPASSWORD=${POSTGRES_PASSWORD} psql -tqA -U ${POSTGRES_USER} -h ega_db -d lega -c "\${query}"
 EOF
-chmod 755 /usr/local/bin/ega_ssh_keys.sh
+chmod 750 /usr/local/bin/ega_ssh_keys.sh
 
 echo "Starting the SFTP server"
 exec /usr/sbin/sshd -D -e

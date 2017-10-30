@@ -1,12 +1,13 @@
 FROM centos:latest
 LABEL maintainer "Frédéric Haziza, NBIS"
 
-RUN yum -y update && \
+RUN yum install -y epel-release && \
+    yum -y update && \
     yum -y install gcc git make rsyslog \
 		   openssh-server \
 		   nss-tools nc nmap tcpdump lsof strace \
 	       	   bash-completion bash-completion-extras \
-		   postgresql-devel pam-devel libcurl-devel json-c-devel
+		   postgresql-devel pam-devel libcurl-devel jq-devel
 
 ##################################
 RUN mkdir -p /usr/local/lib/ega
