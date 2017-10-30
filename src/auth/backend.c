@@ -21,8 +21,6 @@
 #define COL_DIR    5
 #define COL_SHELL  6
 
-#define BCRYPT_HASHSIZE	(64)
-
 static PGconn* conn;
 
 /* connect to database */
