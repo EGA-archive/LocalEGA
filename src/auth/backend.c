@@ -180,17 +180,15 @@ account_valid(const char* username)
 
 
 bool
-add_to_db(const char* username, const char* pwdh, const char* pubkey, const char* expiration)
+add_to_db(const char* username, const char* pwdh, const char* pubkey)
 {
-  /* Expiration is ignored, for the moment */
-  const char* params[4] = { username, pwdh, pubkey, NULL };
-  int nbparams = 3;
+  const char* params[3] = { username, pwdh, pubkey };
   PGresult *res;
   bool success;
 
   D("Prepared Statement: %s\n", options->nss_add_user);
   D("with VALUES('%s','%s','%s')\n", username, pwdh, pubkey);
-  res = PQexecParams(conn, options->nss_add_user, nbparams, NULL, params, NULL, NULL, 0);
+  res = PQexecParams(conn, options->nss_add_user, 3, NULL, params, NULL, NULL, 0);
 
   success = (PQresultStatus(res) == PGRES_TUPLES_OK);
   if(!success) D("%s\n", PQerrorMessage(conn));
