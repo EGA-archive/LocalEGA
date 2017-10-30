@@ -23,11 +23,11 @@ debug = ok_why_not
 db_connection = host=${EGA_DB_IP} port=5432 dbname=lega user=${POSTGRES_USER} password=${POSTGRES_PASSWORD} connect_timeout=1 sslmode=disable
 
 enable_rest = yes
-rest_endpoint = https://egatest.crg.eu/lega/v1/lega/user/%s
+rest_endpoint = ${CEGA_ENDPOINT}
 rest_user = ${CEGA_ENDPOINT_USER}
 rest_password = ${CEGA_ENDPOINT_PASSWORD}
-rest_resp_passwd = .response.result[0].password
-rest_resp_pubkey = .response.result[0].public_key
+rest_resp_passwd = ${CEGA_ENDPOINT_RESP_PASSWD}
+rest_resp_pubkey = ${CEGA_ENDPOINT_RESP_PUBKEY}
 
 ##################
 # NSS Queries
