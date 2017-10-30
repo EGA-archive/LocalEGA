@@ -40,7 +40,6 @@ nss_add_user = SELECT insert_user(\$1,\$2,\$3)
 ##################
 pam_auth = SELECT password_hash FROM users WHERE elixir_id = \$1 LIMIT 1
 pam_acct = SELECT elixir_id FROM users WHERE elixir_id = \$1 and current_timestamp < last_accessed + expiration
-#pam_prompt = wazzaaaa: 
 EOF
 
 cat > /usr/local/bin/ega_ssh_keys.sh <<EOF

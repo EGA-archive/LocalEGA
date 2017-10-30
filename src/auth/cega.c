@@ -116,10 +116,10 @@ fetch_from_cega(const char *username, char **buffer, size_t *buflen, int *errnop
   /* curl_easy_setopt(curl, CURLOPT_SSLCERT      , options->ssl_cert); */
   /* curl_easy_setopt(curl, CURLOPT_SSLCERTTYPE  , "PEM"            ); */
 
-/* #ifdef DEBUG */
-/*   curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L); */
-/*   curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L); */
-/* #endif */
+#ifdef DEBUG
+  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
+#endif
 
   /* Perform the request, res will get the return code */
   D("Connecting to %s\n", endpoint);
