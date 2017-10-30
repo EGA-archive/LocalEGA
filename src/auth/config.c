@@ -25,6 +25,8 @@ cleanconfig(void)
   if(!options->rest_endpoint     ) { free((char*)options->rest_endpoint);  }
   if(!options->rest_user         ) { free((char*)options->rest_user);      }
   if(!options->rest_password     ) { free((char*)options->rest_password);  }
+  if(!options->rest_resp_passwd  ) { free((char*)options->rest_resp_passwd); }
+  if(!options->rest_resp_pubkey  ) { free((char*)options->rest_resp_pubkey); }
   if(!options->ssl_cert          ) { free((char*)options->ssl_cert);       }
   if(!options->skel              ) { free((char*)options->skel);           }
   free(options);
@@ -64,6 +66,9 @@ readconfig(const char* configfile)
   options->ssl_cert = CEGA_CERT;
   options->with_homedir = false;
   options->skel = "/ega/skel";
+
+  options->rest_resp_passwd = ".password";
+  options->rest_resp_pubkey = ".pubkey";
       
   /* Parse line by line */
   while (getline(&line, &len, fp) > 0) {
@@ -102,6 +107,8 @@ readconfig(const char* configfile)
     if(!strcmp(key, "rest_endpoint"     )) { options->rest_endpoint = strdup(val);  }
     if(!strcmp(key, "rest_user"         )) { options->rest_user     = strdup(val);  }
     if(!strcmp(key, "rest_password"     )) { options->rest_password = strdup(val);  }
+    if(!strcmp(key, "rest_resp_passwd"  )) { options->rest_resp_passwd=strdup(val); }
+    if(!strcmp(key, "rest_resp_pubkey"  )) { options->rest_resp_pubkey=strdup(val); }
     if(!strcmp(key, "rest_buffer_size"  )) { options->rest_buffer_size = atoi(val); }
     if(!strcmp(key, "ssl_cert"          )) { options->ssl_cert = strdup(val);       }
     if(!strcmp(key, "enable_rest")) {

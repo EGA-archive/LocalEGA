@@ -6,10 +6,11 @@ debug = ok_why_not
 db_connection = host=ega_db port=5432 dbname=lega user=postgres password=CHANGE-ME-PLEASE connect_timeout=1 sslmode=disable
 
 enable_rest = yes
-#rest_endpoint = https://ega.crg.eu/user/%s
 rest_endpoint = http://central_ega/user/%s
 rest_user = lega
 rest_password = change_me
+rest_resp_passwd = .response.result[0].password
+rest_resp_pubkey = .response.result[0].public_key
 
 ##################
 # NSS Queries

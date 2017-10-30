@@ -12,7 +12,7 @@ CC=gcc
 LD=ld
 AS=gcc -c
 CFLAGS=-Wall -Wstrict-prototypes -Werror -fPIC -O2 -I. -I$(shell pg_config --includedir)
-LIBS=-lpq -lpam -lcurl -ljson-c -L$(shell pg_config --libdir)
+LIBS=-lpq -lpam -lcurl -ljq -L$(shell pg_config --libdir)
 
 LIBDIR=/usr/local/lib/ega
 
