@@ -5,12 +5,25 @@ language: generic
 services:
   - docker
 
-script:
-  - cd docker
-  - make -C images
-  - docker run --rm -i -v ${PWD}/bootstrap:/ega nbis/ega:worker /ega/generate.sh -f
-  - bootstrap/populate.sh
-  - sudo chown -R $USER .
+before_install:
+  - |
+        cd docker
+        docker pull -a nbis/ega
+        make -C images
+        docker run --rm -i -v ${PWD}/bootstrap:/ega nbis/ega:worker /ega/generate.sh -f
+        bootstrap/populate.sh
+        sudo chown -R $USER .
+
+install:
   - docker-compose up -d
+
+script:
   - cd ../tests
   - mvn test -B
+
+after_success:
+  - |
+        if [ "$TRAVIS_BRANCH" == "master" ] && [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
+            docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
+            docker push nbis/ega
+        fi
