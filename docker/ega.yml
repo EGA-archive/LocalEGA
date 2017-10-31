@@ -64,7 +64,6 @@ services:
     depends_on:
       - db
       - mq
-      - cega_mq
       - inbox
     hostname: ega_vault
     container_name: ega_vault
@@ -83,7 +82,6 @@ services:
     depends_on:
       - db
       - mq
-      - cega_mq
       - keys
       - inbox
     image: nbis/ega:worker
@@ -141,6 +139,8 @@ services:
   #   image: nbis/ega:monitors
   #   command: ["rsyslogd", "-n"]
 
+  # Faking Central EGA
+
   cega_mq:
     build: images/cega_mq
     hostname: cega_mq
@@ -150,6 +150,15 @@ services:
     container_name: cega_mq
     volumes:
        - ${CEGA_MQ_DEFS}:/etc/rabbitmq/defs.json:ro
+
+  cega_users:
+    build: images/cega_users
+    image: nbis/ega:cega_users
+    container_name: cega_users
+    ports:
+      - "9100:80"
+    volumes:
+       - ${CEGA_USERS}:/cega/users:rw
 
 # Use the default driver for volume creation
 volumes:

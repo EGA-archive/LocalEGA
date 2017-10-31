@@ -98,4 +98,9 @@ EOF
 
 cp -rf $ABS_PRIVATE/.env.d $HERE/../.env.d
 
+# Updating .trace with the right path
+if [[ -f $ABS_PRIVATE/.trace ]]; then
+    sed -i -e "s;<bootstrap>;$HERE;" $ABS_PRIVATE/.trace
+fi
+
 echomsg "docker-compose configuration files populated"

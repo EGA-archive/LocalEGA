@@ -52,6 +52,7 @@ query="SELECT pubkey from users where elixir_id = '\${eid}' LIMIT 1"
 PGPASSWORD=${POSTGRES_PASSWORD} psql -tqA -U ${POSTGRES_USER} -h ega_db -d lega -c "\${query}"
 EOF
 chmod 750 /usr/local/bin/ega_ssh_keys.sh
+chgrp ega /usr/local/bin/ega_ssh_keys.sh
 
 echo "Starting the SFTP server"
 exec /usr/sbin/sshd -D -e
