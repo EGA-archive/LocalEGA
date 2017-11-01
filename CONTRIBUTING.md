@@ -50,7 +50,7 @@ In short, the [AGILE method](https://www.zenhub.com/blog/how-to-use-github-agile
 
 4) Work on it (on a fork, or on a separate branch) as you wish. That's
 what `git` is good for. This GitHub repository follows
-the [coding guidelines from NBIS](/NBISweden/development-guidelines).
+the [coding guidelines from NBIS](https://github.com/NBISweden/development-guidelines).
    
    Name your branch as you wish and prefix the name with:
    * `feature/` if it is a code feature
@@ -80,7 +80,7 @@ the [coding guidelines from NBIS](/NBISweden/development-guidelines).
      + a `User story`
      + ... or several.
 
-Do **_not_** ask us to merge it into `master`. We will use the `dev` branch.
+   Do **_not_** ask us to merge it into `master`. We will use the `dev` branch.
 
 6) Selecting a review goes as follows: Pick one _main_ reviewer.  It
    is usually one that you had discussions with, and is somehow 
@@ -91,7 +91,7 @@ Do **_not_** ask us to merge it into `master`. We will use the `dev` branch.
    merge the PR. Moreover, the main reviewer is the one merging the
    PR, not you.
    
-   Find more information on the [NBIS reviewing guidelines](/NBISweden/development-guidelines#how-we-do-code-reviews).
+   Find more information on the [NBIS reviewing guidelines](https://github.com/NBISweden/development-guidelines#how-we-do-code-reviews).
 
 
 7) It is possible that your PR requires changes (because it creates
@@ -123,12 +123,12 @@ Do **_not_** ask us to merge it into `master`. We will use the `dev` branch.
 ## Did you find a bug?
 
 * Ensure that the bug was not already reported by [searching under
-  Issues](/NBISweden/LocalEGA/issues?utf8=%E2%9C%93&q=is%3Aissue%20label%3Abug%20%5BBUG%5D%20in%3Atitle).
+  Issues](https://github.com/NBISweden/LocalEGA/issues?utf8=%E2%9C%93&q=is%3Aissue%20label%3Abug%20%5BBUG%5D%20in%3Atitle).
 
 * Do **_not_** file it as a plain GitHub issue (we use the issue
   system for our internal tasks (see Zenhub)).  If you're unable to
   find an (open) issue addressing the problem, [open a new
-  one](NBISweden/LocalEGA/issues/new?title=%5BBUG%5D).  Be sure to
+  one](https://github.com/NBISweden/LocalEGA/issues/new?title=%5BBUG%5D).  Be sure to
   prefix the issue title with **[BUG]** and to include:
 
   - a _clear_ description,
