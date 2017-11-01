@@ -19,14 +19,14 @@ import java.nio.file.Paths;
 /**
  * Utility methods for the test-suite.
  */
-public class TestUtils {
+public class Utils {
 
     private DockerClient dockerClient;
 
     /**
      * Public constructor with Docker client initialization.
      */
-    public TestUtils() {
+    public Utils() {
         this.dockerClient = DockerClientBuilder.getInstance(DefaultDockerClientConfig.createDefaultConfigBuilder().build()).build();
     }
 
