@@ -2,7 +2,8 @@
 
 set -e
 
-pip3.6 install /root/ega
+cp -r /root/ega /root/run
+pip3.6 install /root/run
 
 # echo "Waiting for Keyserver"
 # until nc -4 --send-only ega_keys 9010 </dev/null &>/dev/null; do sleep 1; done

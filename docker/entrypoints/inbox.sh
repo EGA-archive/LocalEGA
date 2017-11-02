@@ -6,7 +6,8 @@ chown root:ega /ega/inbox
 chmod 750 /ega/inbox
 chmod g+s /ega/inbox # setgid bit
 
-pushd /root/ega/auth
+cp -r /root/ega /root/run
+pushd /root/run/auth
 make install clean
 ldconfig -v
 popd
