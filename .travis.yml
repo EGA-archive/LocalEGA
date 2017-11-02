@@ -27,3 +27,7 @@ after_success:
             docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
             docker push nbis/ega
         fi
+
+notifications:
+  slack:
+    secure: HYV1cipL+SFw4YFILZ+/BIn5TIZmQ5Opfwb3cUN+W6OPGm2yAiv4yvvsF4Kk6dIwoFxDNu/mdRLIX5kYCpFcfoFUZdRGk65kMpeXOcs6CzhgY6xILSEbD66rseayBHbvQ4Gd0xNoe+fdI28q0tphMkan4AVDyQwmDZNpk/1QqBpIugiBWQXY3UBXnXU5Yu5jIVPycPH70qQiU1R5BOn/Uw/pyDk9c/pH57sfGmzAMVyzp7UgN/sIbZ9MhTJZ1Dd6IRUO/DZJY8Z4ZkeUp7Mh8LHoQJyfwGqKH2rBGbpulXau43dtif1MvfQrI0xy2SUadlGSbUMmTKDay2mJquwS/uj1S2SrNi42VAZ6+in+f2qFLw34ZiyZKnVUiUKGAwo5ueSjN6aoEM1WT0YutflUhVGzm4dUhXLInpo0r7VNbkR2iOQ3qbdN4OqPaxZL34vHjbVMZkIuundbd1QTrGSJVGZVMmAwRUPrZhKqyvyDelZM1fV9e8ez+CNnq3XDWcVAuHiNp/NEiLZ42vc7/bXyOk3UBotEiBPseEDQddlZmd/mr56uD2qFFdfkyvNsywAKDPnw2qiXlVjUONOIfS9CdwPlbF2xQ5fNCoLEg40KWMopAICC6vGSHbPs3tkRq3LT2OgosMyrfBNeES12lLHi5KNoWtzEPs8WotHwHY4R75U=
