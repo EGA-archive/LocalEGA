@@ -2,7 +2,8 @@
 
 set -e
 
-pip3.6 install /root/ega
+cp -r /root/ega /root/run
+pip3.6 install /root/run
 
 echo "Starting the key management server"
 ega-keyserver --keys /etc/ega/keys.ini &
