@@ -15,12 +15,4 @@ import java.io.IOException;
         features = "src/test/resources/cucumber/features"
 )
 public class Tests {
-
-    public static final String DATA_FOLDER_PATH = "data";
-
-    @AfterClass
-    public static void teardown() throws IOException {
-        FileUtils.deleteDirectory(new File(DATA_FOLDER_PATH));
-    }
-
 }
