@@ -9,7 +9,6 @@ import cucumber.api.java8.En;
 import lombok.extern.slf4j.Slf4j;
 import net.schmizz.sshj.SSHClient;
 import net.schmizz.sshj.transport.verification.PromiscuousVerifier;
-import net.schmizz.sshj.userauth.UserAuthException;
 import org.apache.commons.io.FileUtils;
 import org.junit.Assert;
 import se.nbis.lega.cucumber.Context;
@@ -27,7 +26,7 @@ public class Authentication implements En {
     public Authentication(Context context) {
         Utils utils = context.getUtils();
 
-        Given("^I am a user$", () -> context.setUser(UUID.randomUUID().toString()));
+        Given("^I am a user$", () -> context.setUser("test"));
 
         Given("^I have an account at Central EGA$", () -> {
             DockerClient dockerClient = utils.getDockerClient();
@@ -107,12 +106,6 @@ public class Authentication implements En {
     }
 
     private void authenticate(Context context) {
-        // need to retry twice due to bug in SSHJ library
-        retryAuthenticationAttempt(context);
-        retryAuthenticationAttempt(context);
-    }
-
-    private void retryAuthenticationAttempt(Context context) {
         try {
             SSHClient ssh = new SSHClient();
             ssh.addHostKeyVerifier(new PromiscuousVerifier());
