@@ -32,11 +32,12 @@ public class BeforeAfterHooks implements En {
     }
 
     @After
-    public void tearDown() throws IOException {
+    public void tearDown() throws IOException, InterruptedException {
         FileUtils.deleteDirectory(context.getDataFolder());
         String cegaUsersFolderPath = Paths.get("").toAbsolutePath().getParent().toString() + "/docker/bootstrap/private/cega/users";
         File cegaUsersFolder = new File(cegaUsersFolderPath);
         Arrays.stream(cegaUsersFolder.listFiles((dir, name) -> name.startsWith(context.getUser()))).forEach(File::delete);
+        context.getUtils().executeDBQuery(String.format("delete from users where elixir_id = '%s'", context.getUser()));
     }
 
 }
