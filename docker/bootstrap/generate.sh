@@ -193,7 +193,7 @@ chmod 400 ${EGA_USER_SECKEY_JOHN}
 
 ${OPENSSL} genrsa -out ${EGA_USER_SECKEY_JANE} -passout pass:${EGA_USER_PASSWORD_JANE} 2048
 ${OPENSSL} rsa -in ${EGA_USER_SECKEY_JANE} -passin pass:${EGA_USER_PASSWORD_JANE} -pubout -out ${EGA_USER_PUBKEY_JANE}
-chmod 400 $ABS_PRIVATE/cega/users/jane.sec
+chmod 400 ${EGA_USER_SECKEY_JANE}
 
 
 cat > $ABS_PRIVATE/cega/users/john.yml <<EOF

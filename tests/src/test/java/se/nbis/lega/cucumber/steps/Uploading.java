@@ -26,24 +26,32 @@ public class Uploading implements En {
         Given("^I have an encrypted file$", () -> {
             DockerClient dockerClient = utils.getDockerClient();
             File rawFile = context.getRawFile();
+            String dataFolderName = context.getDataFolder().getName();
+            Volume dataVolume = new Volume("/" + dataFolderName);
+            Volume gpgVolume = new Volume("/root/.gnupg");
+            CreateContainerResponse createContainerResponse = null;
             try {
-                Volume dataVolume = new Volume("/data");
-                Volume gpgVolume = new Volume("/root/.gnupg");
-                CreateContainerResponse createContainerResponse = dockerClient.
+                createContainerResponse = dockerClient.
                         createContainerCmd("nbis/ega:worker").
                         withVolumes(dataVolume, gpgVolume).
-                        withBinds(new Bind(context.getDataFolder().getAbsolutePath(), dataVolume),
+                        withBinds(new Bind(Paths.get(dataFolderName).toAbsolutePath().toString(), dataVolume),
                                 new Bind(Paths.get("").toAbsolutePath().getParent().toString() + "/docker/bootstrap/private/gpg", gpgVolume, AccessMode.ro)).
-                        withCmd(utils.readTraceProperty("GPG exec"), "-r", utils.readTraceProperty("GPG_EMAIL"), "-e", "-o", "/data/" + rawFile.getName() + ".enc", "/data/" + rawFile.getName()).
+                        withCmd(utils.readTraceProperty("GPG exec"), "-r", utils.readTraceProperty("GPG_EMAIL"), "-e", "-o", String.format("/%s/%s.enc", dataFolderName, rawFile.getName()), String.format("/%s/%s", dataFolderName, rawFile.getName())).
                         exec();
+            } catch (IOException e) {
+                log.error(e.getMessage(), e);
+                Assert.fail(e.getMessage());
+            }
+            try {
                 dockerClient.startContainerCmd(createContainerResponse.getId()).exec();
                 WaitContainerResultCallback resultCallback = new WaitContainerResultCallback();
                 dockerClient.waitContainerCmd(createContainerResponse.getId()).exec(resultCallback);
                 resultCallback.awaitCompletion();
-                dockerClient.removeContainerCmd(createContainerResponse.getId()).exec();
-            } catch (IOException | InterruptedException e) {
+            } catch (InterruptedException e) {
                 log.error(e.getMessage(), e);
                 Assert.fail(e.getMessage());
+            } finally {
+                dockerClient.removeContainerCmd(createContainerResponse.getId()).withForce(true).exec();
             }
             context.setEncryptedFile(new File(rawFile.getAbsolutePath() + ".enc"));
         });
@@ -54,7 +62,6 @@ public class Uploading implements En {
                 context.getSftp().put(encryptedFile.getAbsolutePath(), encryptedFile.getName());
             } catch (IOException e) {
                 log.error(e.getMessage(), e);
-                Assert.fail(e.getMessage());
             }
         });
 
