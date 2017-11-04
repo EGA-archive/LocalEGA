@@ -16,8 +16,11 @@ import se.nbis.lega.cucumber.Utils;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.nio.file.attribute.PosixFilePermission;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.UUID;
 
 @Slf4j
@@ -46,7 +49,6 @@ public class Authentication implements En {
                 String user = context.getUser();
                 utils.executeWithinContainer(tempWorker, String.format("openssl genrsa -out /%s/%s.sec -passout pass:%f 2048", dataFolderName, user, password).split(" "));
                 utils.executeWithinContainer(tempWorker, String.format("openssl rsa -in /%s/%s.sec -passin pass:%f -pubout -out /%s/%s.pub", dataFolderName, user, password, dataFolderName, user).split(" "));
-                utils.executeWithinContainer(tempWorker, String.format("chmod 400 /%s/%s.sec", dataFolderName, user).split(" "));
                 String publicKey = utils.executeWithinContainer(tempWorker, String.format("ssh-keygen -i -mPKCS8 -f /%s/%s.pub", dataFolderName, user).split(" "));
                 File userYML = new File(String.format(cegaUsersFolderPath + "/%s.yml", user));
                 FileUtils.writeLines(userYML, Arrays.asList("---", "pubkey: " + publicKey));
@@ -110,7 +112,9 @@ public class Authentication implements En {
             SSHClient ssh = new SSHClient();
             ssh.addHostKeyVerifier(new PromiscuousVerifier());
             ssh.connect("localhost", 2222);
-            ssh.authPublickey(context.getUser(), context.getPrivateKey().getPath());
+            File privateKey = context.getPrivateKey();
+            Files.setPosixFilePermissions(privateKey.toPath(), Collections.singleton(PosixFilePermission.OWNER_READ));
+            ssh.authPublickey(context.getUser(), privateKey.getPath());
             context.setSftp(ssh.newSFTPClient());
             context.setAuthenticationFailed(false);
         } catch (Exception e) {
