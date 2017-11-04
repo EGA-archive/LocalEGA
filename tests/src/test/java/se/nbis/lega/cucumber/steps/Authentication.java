@@ -5,11 +5,11 @@ import com.github.dockerjava.api.command.CreateContainerResponse;
 import com.github.dockerjava.api.model.Bind;
 import com.github.dockerjava.api.model.Container;
 import com.github.dockerjava.api.model.Volume;
-import cucumber.api.PendingException;
 import cucumber.api.java8.En;
 import lombok.extern.slf4j.Slf4j;
 import net.schmizz.sshj.SSHClient;
 import net.schmizz.sshj.transport.verification.PromiscuousVerifier;
+import net.schmizz.sshj.userauth.UserAuthException;
 import org.apache.commons.io.FileUtils;
 import org.junit.Assert;
 import se.nbis.lega.cucumber.Context;
@@ -17,11 +17,8 @@ import se.nbis.lega.cucumber.Utils;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.nio.file.attribute.PosixFilePermission;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.UUID;
 
 @Slf4j
@@ -30,7 +27,7 @@ public class Authentication implements En {
     public Authentication(Context context) {
         Utils utils = context.getUtils();
 
-        Given("^I am a user$", () -> context.setUser("test"));
+        Given("^I am a user$", () -> context.setUser(UUID.randomUUID().toString()));
 
         Given("^I have an account at Central EGA$", () -> {
             DockerClient dockerClient = utils.getDockerClient();
@@ -67,8 +64,7 @@ public class Authentication implements En {
                 () -> context.setPrivateKey(new File(Paths.get("").toAbsolutePath().getParent().toString() + String.format("/docker/bootstrap/private/cega/users/%s.sec", "john"))));
 
         When("^my account expires$", () -> {
-            connect(context);
-            disconnect(context);
+            authenticate(context);
             try {
                 Thread.sleep(1000);
                 utils.executeDBQuery(String.format("update users set expiration = '1 second' where elixir_id = '%s'", context.getUser()));
@@ -77,23 +73,13 @@ public class Authentication implements En {
             }
         });
 
-        When("^I connect to the LocalEGA inbox via SFTP using private key$", () -> {
-            connect(context);
-        });
-
-        When("^inbox is not created for me$", () -> {
-            try {
-                disconnect(context);
-                utils.removeUserFromInbox(context.getUser());
-                connect(context);
-            } catch (IOException | InterruptedException e) {
-                log.error(e.getMessage(), e);
-            }
-        });
+        When("^I connect to the LocalEGA inbox via SFTP using private key$", () -> authenticate(context));
 
         Then("^I am in the local database$", () -> {
             try {
-                Assert.assertTrue(utils.isUserExistInDB(context.getUser()));
+                String output = utils.executeDBQuery(String.format("select count(*) from users where elixir_id = '%s'", context.getUser()));
+                String count = output.split(System.getProperty("line.separator"))[2];
+                Assert.assertEquals(1, Integer.parseInt(count.trim()));
             } catch (IOException | InterruptedException e) {
                 log.error(e.getMessage(), e);
                 Assert.fail(e.getMessage());
@@ -102,7 +88,9 @@ public class Authentication implements En {
 
         Then("^I am not in the local database$", () -> {
             try {
-                Assert.assertFalse(utils.isUserExistInDB(context.getUser()));
+                String output = utils.executeDBQuery(String.format("select count(*) from users where elixir_id = '%s'", context.getUser()));
+                String count = output.split(System.getProperty("line.separator"))[2];
+                Assert.assertEquals(0, Integer.parseInt(count.trim()));
             } catch (IOException | InterruptedException e) {
                 log.error(e.getMessage(), e);
                 Assert.fail(e.getMessage());
@@ -115,29 +103,17 @@ public class Authentication implements En {
 
     }
 
-    private void connect(Context context) {
+    private void authenticate(Context context) {
         try {
             SSHClient ssh = new SSHClient();
             ssh.addHostKeyVerifier(new PromiscuousVerifier());
             ssh.connect("localhost", 2222);
-            File privateKey = context.getPrivateKey();
-            Files.setPosixFilePermissions(privateKey.toPath(), Collections.singleton(PosixFilePermission.OWNER_READ));
-            ssh.authPublickey(context.getUser(), privateKey.getPath());
-
-            context.setSsh(ssh);
+            ssh.authPublickey(context.getUser(), context.getPrivateKey().getPath());
             context.setSftp(ssh.newSFTPClient());
-            context.setAuthenticationFailed(false);
-        } catch (Exception e) {
+        } catch (UserAuthException e) {
             log.error(e.getMessage(), e);
             context.setAuthenticationFailed(true);
-        }
-    }
-
-    private void disconnect(Context context) {
-        try {
-            context.getSftp().close();
-            context.getSsh().disconnect();
-        } catch (Exception e) {
+        } catch (IOException e) {
             log.error(e.getMessage(), e);
         }
     }

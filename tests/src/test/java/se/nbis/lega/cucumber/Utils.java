@@ -72,45 +72,10 @@ public class Utils {
     }
 
     /**
-     * Checks if the user exists in the local database.
-     *
-     * @param user Username.
-     * @return <code>true</code> if user exists, <code>false</code> otherwise.
-     * @throws IOException          In case of output error.
-     * @throws InterruptedException In case the query execution is interrupted.
-     */
-    public boolean isUserExistInDB(String user) throws IOException, InterruptedException {
-        String output = executeDBQuery(String.format("select count(*) from users where elixir_id = '%s'", user));
-        return "1".equals(output.split(System.getProperty("line.separator"))[2].trim());
-    }
-
-    /**
-     * Removes the user from the local database.
-     *
-     * @param user Username.
-     * @throws IOException          In case of output error.
-     * @throws InterruptedException In case the query execution is interrupted.
-     */
-    public void removeUserFromDB(String user) throws IOException, InterruptedException {
-        executeDBQuery(String.format("delete from users where elixir_id = '%s'", user));
-    }
-
-    /**
-     * Removes the user from the inbox.
-     *
-     * @param user Username.
-     * @throws IOException          In case of output error.
-     * @throws InterruptedException In case the query execution is interrupted.
-     */
-    public void removeUserFromInbox(String user) throws IOException, InterruptedException {
-        executeWithinContainer(findContainer("nbis/ega:inbox", "ega_inbox"), String.format("rm -rf /ega/inbox/%s", user).split(" "));
-    }
-
-    /**
      * Spawns "nbis/ega:worker" container, mounts data folder there and executes a command.
      *
-     * @param from    Folder to mount from.
-     * @param to      Folder to mount to.
+     * @param from  Folder to mount from.
+     * @param to  Folder to mount to.
      * @param command Command to execute.
      * @throws InterruptedException In case the command execution is interrupted.
      */
@@ -139,7 +104,7 @@ public class Utils {
      * @throws IOException In case it's not possible to read trace file.
      */
     public String readTraceProperty(String fileName, String property) throws IOException {
-        File trace = new File(Paths.get("").toAbsolutePath().getParent().toString() + "/docker/private/" + fileName);
+        File trace = new File(Paths.get("").toAbsolutePath().getParent().toString() + "/docker/bootstrap/private/" + fileName);
         return FileUtils.readLines(trace, Charset.defaultCharset()).
                 stream().
                 filter(l -> l.startsWith(property)).
