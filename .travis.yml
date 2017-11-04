@@ -17,7 +17,7 @@ install:
 
 script:
   - cd ../tests
-  - mvn test -B
+  - sudo mvn test -B
 
 after_success:
   - |
