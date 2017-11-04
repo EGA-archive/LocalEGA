@@ -5,9 +5,9 @@ import cucumber.api.java.Before;
 import cucumber.api.java8.En;
 import org.apache.commons.io.FileUtils;
 import se.nbis.lega.cucumber.Context;
-import se.nbis.lega.cucumber.Utils;
 
 import java.io.File;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Paths;
@@ -32,15 +32,11 @@ public class BeforeAfterHooks implements En {
     }
 
     @After
-    public void tearDown() throws IOException, InterruptedException {
+    public void tearDown() throws IOException {
         FileUtils.deleteDirectory(context.getDataFolder());
         String cegaUsersFolderPath = Paths.get("").toAbsolutePath().getParent().toString() + "/docker/bootstrap/private/cega/users";
         File cegaUsersFolder = new File(cegaUsersFolderPath);
-        Utils utils = context.getUtils();
-        String user = context.getUser();
-        Arrays.stream(cegaUsersFolder.listFiles((dir, name) -> name.startsWith(user))).forEach(File::delete);
-        utils.removeUserFromDB(user);
-        utils.removeUserFromInbox(user);
+        Arrays.stream(cegaUsersFolder.listFiles((dir, name) -> name.startsWith(context.getUser()))).forEach(File::delete);
     }
 
 }
