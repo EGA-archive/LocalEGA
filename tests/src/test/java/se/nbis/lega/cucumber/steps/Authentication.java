@@ -66,7 +66,8 @@ public class Authentication implements En {
                 () -> context.setPrivateKey(new File(Paths.get("").toAbsolutePath().getParent().toString() + String.format("/docker/bootstrap/private/cega/users/%s.sec", "john"))));
 
         When("^my account expires$", () -> {
-            authenticate(context);
+            connect(context);
+            disconnect(context);
             try {
                 Thread.sleep(1000);
                 utils.executeDBQuery(String.format("update users set expiration = '1 second' where elixir_id = '%s'", context.getUser()));
@@ -76,14 +77,12 @@ public class Authentication implements En {
         });
 
         When("^I connect to the LocalEGA inbox via SFTP using private key$", () -> {
-            authenticate(context);
+            connect(context);
         });
 
         Then("^I am in the local database$", () -> {
             try {
-                String output = utils.executeDBQuery(String.format("select count(*) from users where elixir_id = '%s'", context.getUser()));
-                String count = output.split(System.getProperty("line.separator"))[2];
-                Assert.assertEquals(1, Integer.parseInt(count.trim()));
+                Assert.assertTrue(utils.isUserExistInDB(context.getUser()));
             } catch (IOException | InterruptedException e) {
                 log.error(e.getMessage(), e);
                 Assert.fail(e.getMessage());
@@ -92,9 +91,7 @@ public class Authentication implements En {
 
         Then("^I am not in the local database$", () -> {
             try {
-                String output = utils.executeDBQuery(String.format("select count(*) from users where elixir_id = '%s'", context.getUser()));
-                String count = output.split(System.getProperty("line.separator"))[2];
-                Assert.assertEquals(0, Integer.parseInt(count.trim()));
+                Assert.assertFalse(utils.isUserExistInDB(context.getUser()));
             } catch (IOException | InterruptedException e) {
                 log.error(e.getMessage(), e);
                 Assert.fail(e.getMessage());
@@ -107,7 +104,7 @@ public class Authentication implements En {
 
     }
 
-    private void authenticate(Context context) {
+    private void connect(Context context) {
         try {
             SSHClient ssh = new SSHClient();
             ssh.addHostKeyVerifier(new PromiscuousVerifier());
@@ -115,11 +112,22 @@ public class Authentication implements En {
             File privateKey = context.getPrivateKey();
             Files.setPosixFilePermissions(privateKey.toPath(), Collections.singleton(PosixFilePermission.OWNER_READ));
             ssh.authPublickey(context.getUser(), privateKey.getPath());
+
+            context.setSsh(ssh);
             context.setSftp(ssh.newSFTPClient());
             context.setAuthenticationFailed(false);
         } catch (Exception e) {
             log.error(e.getMessage(), e);
             context.setAuthenticationFailed(true);
+        }
+    }
+
+    private void disconnect(Context context) {
+        try {
+            context.getSftp().close();
+            context.getSsh().disconnect();
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
         }
     }
 
