@@ -5,9 +5,9 @@ import cucumber.api.java.Before;
 import cucumber.api.java8.En;
 import org.apache.commons.io.FileUtils;
 import se.nbis.lega.cucumber.Context;
+import se.nbis.lega.cucumber.Utils;
 
 import java.io.File;
-import java.io.FilenameFilter;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Paths;
@@ -36,8 +36,11 @@ public class BeforeAfterHooks implements En {
         FileUtils.deleteDirectory(context.getDataFolder());
         String cegaUsersFolderPath = Paths.get("").toAbsolutePath().getParent().toString() + "/docker/bootstrap/private/cega/users";
         File cegaUsersFolder = new File(cegaUsersFolderPath);
-        Arrays.stream(cegaUsersFolder.listFiles((dir, name) -> name.startsWith(context.getUser()))).forEach(File::delete);
-        context.getUtils().executeDBQuery(String.format("delete from users where elixir_id = '%s'", context.getUser()));
+        Utils utils = context.getUtils();
+        String user = context.getUser();
+        Arrays.stream(cegaUsersFolder.listFiles((dir, name) -> name.startsWith(user))).forEach(File::delete);
+        utils.executeDBQuery(String.format("delete from users where elixir_id = '%s'", user));
+        utils.executeWithinContainer(utils.findContainer("nbis/ega:inbox", "ega_inbox"), String.format("rm -rf /ega/inbox/%s", user).split(" "));
     }
 
 }
