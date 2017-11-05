@@ -72,10 +72,23 @@ public class Utils {
     }
 
     /**
+     * Checks if user exists in the local database.
+     *
+     * @param user Username.
+     * @return <code>true</code> if user exists, <code>false</code> otherwise.
+     * @throws IOException          In case of output error.
+     * @throws InterruptedException In case the query execution is interrupted.
+     */
+    public boolean isUserExistInDB(String user) throws IOException, InterruptedException {
+        String output = executeDBQuery(String.format("select count(*) from users where elixir_id = '%s'", user));
+        return "1".equals(output.split(System.getProperty("line.separator"))[2].trim());
+    }
+
+    /**
      * Spawns "nbis/ega:worker" container, mounts data folder there and executes a command.
      *
-     * @param from  Folder to mount from.
-     * @param to  Folder to mount to.
+     * @param from    Folder to mount from.
+     * @param to      Folder to mount to.
      * @param command Command to execute.
      * @throws InterruptedException In case the command execution is interrupted.
      */
