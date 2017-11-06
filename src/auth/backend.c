@@ -215,7 +215,7 @@ backend_get_userentry(const char *username,
 
   /* if REST disabled */
   if(!options->with_rest){
-    D("contacting cega for user: %s is disabled\n", username);
+    D("Contacting cega for user %s is disabled\n", username);
     return NSS_STATUS_NOTFOUND;
   }
     

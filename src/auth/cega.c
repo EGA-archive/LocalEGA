@@ -83,11 +83,12 @@ fetch_from_cega(const char *username, char **buffer, size_t *buflen, int *errnop
   const char *pwd = NULL;
   const char *pbk = NULL;
 
-  /* enum json_tokener_error jerr = json_tokener_success; */
-  /* json_object *pwdh = NULL, *pubkey = NULL; */
-  /* json_object *json = NULL, *json_response = NULL, *json_result = NULL, *jobj = NULL; */
+  D("Contacting cega for user: %s\n", username);
 
-  D("contacting cega for user: %s\n", username);
+  if(!options->rest_user || !options->rest_password){
+    D("Empty CEGA credentials\n");
+    return false; /* early quit */
+  }
 
   curl_global_init(CURL_GLOBAL_DEFAULT);
   curl = curl_easy_init();

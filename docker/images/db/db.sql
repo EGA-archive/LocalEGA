@@ -1,5 +1,5 @@
-DROP DATABASE IF EXISTS lega;
-CREATE DATABASE lega;
+-- DROP DATABASE IF EXISTS lega;
+-- CREATE DATABASE lega;
 
 \connect lega
 

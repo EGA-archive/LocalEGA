@@ -39,17 +39,37 @@ services:
     command: frontend.sh
 
   # SFTP inbox
-  inbox:
+  inbox_swe1:
     build: images/inbox
     hostname: ega_inbox
     depends_on:
       - db
     env_file:
       - .env.d/db
-      - .env.d/cega
+      - .env.d/cega.swe1
     ports:
       - "2222:22"
-    container_name: ega_inbox
+    container_name: ega_inbox_swe1
+    image: nbis/ega:inbox
+    volumes:
+       - ${CONF}:/etc/ega/conf.ini:ro
+       - ${CODE}:/root/ega
+       - inbox:/ega/inbox
+       - ${ENTRYPOINTS}/inbox.sh:/usr/local/bin/inbox.sh:ro
+    command: inbox.sh
+
+  # SFTP inbox
+  inbox_fin1:
+    build: images/inbox
+    hostname: ega_inbox
+    depends_on:
+      - db
+    env_file:
+      - .env.d/db
+      - .env.d/cega.fin1
+    ports:
+      - "2223:22"
+    container_name: ega_inbox_fin1
     image: nbis/ega:inbox
     volumes:
        - ${CONF}:/etc/ega/conf.ini:ro
@@ -64,7 +84,7 @@ services:
     depends_on:
       - db
       - mq
-      - inbox
+      - inbox_swe1
     hostname: ega_vault
     container_name: ega_vault
     image: nbis/ega:common
@@ -83,7 +103,7 @@ services:
       - db
       - mq
       - keys
-      - inbox
+      - inbox_swe1
     image: nbis/ega:worker
     environment:
       - GPG_TTY=/dev/console
@@ -152,6 +172,7 @@ services:
        - ${CEGA_MQ_DEFS}:/etc/rabbitmq/defs.json:ro
 
   cega_users:
+    env_file: .env.d/cega_instances
     build: images/cega_users
     image: nbis/ega:cega_users
     container_name: cega_users

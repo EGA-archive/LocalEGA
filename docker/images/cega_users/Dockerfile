@@ -1,7 +1,6 @@
 FROM nbis/ega:common
 LABEL maintainer "Frédéric Haziza, NBIS"
 
-
 ##################################
 RUN mkdir /cega
 VOLUME /cega/users
