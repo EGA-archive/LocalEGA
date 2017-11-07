@@ -10,7 +10,7 @@ before_install:
         cd docker
         docker pull -a nbis/ega
         make -C images
-        docker run --rm -i -v ${PWD}/bootstrap:/ega nbis/ega:worker /ega/generate.sh -f
+        docker run --rm -i -v ${PWD}/bootstrap:/ega nbis/ega:worker /ega/boot.sh
         bootstrap/populate.sh -f
         sudo chown -R $USER .
 
