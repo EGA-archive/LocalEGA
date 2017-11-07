@@ -3,145 +3,151 @@ version: '3.2'
 services:
 
   # Local Message broker
-  mq:
-    #env_file: .env.d/mq
+  mq_swe1:
+    #env_file: .env.d/swe1/mq
     build: images/mq
     hostname: ega_mq
     ports:
       - "15672:15672"
     image: nbis/ega:mq
-    container_name: ega_mq
+    container_name: ega_mq_swe1
 
-  # Postgres Database
-  db:
-    env_file: .env.d/db
+  # Postgres Database for Sweden
+  db_swe1:
+    env_file: .env.d/swe1/db
     build: images/db
-    hostname: ega_db
-    container_name: ega_db
+    hostname: ega_db_swe1
+    container_name: ega_db_swe1
+    image: nbis/ega:db
+
+  # Postgres Database for Finland
+  db_fin1:
+    env_file: .env.d/fin1/db
+    build: images/db
+    hostname: ega_db_fin1
+    container_name: ega_db_fin1
     image: nbis/ega:db
 
   # ReST frontend
-  frontend:
+  frontend_swe1:
     build: images/common
     hostname: ega_frontend
     depends_on:
-      - db
+      - db_swe1
     ports:
       - "9000:80"
     expose:
       - 80
-    container_name: ega_frontend
+    container_name: ega_frontend_swe1
     image: nbis/ega:common
     volumes:
-       - ${CONF}:/etc/ega/conf.ini:ro
+       - ${CONF_swe1}:/etc/ega/conf.ini:ro
        - ${CODE}:/root/ega
        - ${ENTRYPOINTS}/frontend.sh:/usr/local/bin/frontend.sh:ro
     command: frontend.sh
 
-  # SFTP inbox
+  # SFTP inbox for Sweden
   inbox_swe1:
     build: images/inbox
     hostname: ega_inbox
     depends_on:
-      - db
+      - db_swe1
     env_file:
-      - .env.d/db
-      - .env.d/cega.swe1
+      - .env.d/swe1/db
+      - .env.d/swe1/cega
     ports:
       - "2222:22"
     container_name: ega_inbox_swe1
     image: nbis/ega:inbox
     volumes:
-       - ${CONF}:/etc/ega/conf.ini:ro
        - ${CODE}:/root/ega
-       - inbox:/ega/inbox
+       - inbox_swe1:/ega/inbox
+       - ${CONF_swe1}:/etc/ega/conf.ini:ro
        - ${ENTRYPOINTS}/inbox.sh:/usr/local/bin/inbox.sh:ro
-    command: inbox.sh
+    command: ["inbox.sh","swe1"]
 
-  # SFTP inbox
+  # SFTP inbox for Finland
   inbox_fin1:
     build: images/inbox
     hostname: ega_inbox
     depends_on:
-      - db
+      - db_fin1
     env_file:
-      - .env.d/db
-      - .env.d/cega.fin1
+      - .env.d/fin1/db
+      - .env.d/fin1/cega
     ports:
       - "2223:22"
     container_name: ega_inbox_fin1
     image: nbis/ega:inbox
     volumes:
-       - ${CONF}:/etc/ega/conf.ini:ro
        - ${CODE}:/root/ega
-       - inbox:/ega/inbox
+       - inbox_fin1:/ega/inbox
+       - ${CONF_fin1}:/etc/ega/conf.ini:ro
        - ${ENTRYPOINTS}/inbox.sh:/usr/local/bin/inbox.sh:ro
-    command: inbox.sh
+    command: ["inbox.sh","fin1"]
 
   # Vault
-  vault:
+  vault_swe1:
     build: images/common
     depends_on:
-      - db
-      - mq
+      - db_swe1
+      - mq_swe1
       - inbox_swe1
     hostname: ega_vault
-    container_name: ega_vault
+    container_name: ega_vault_swe1
     image: nbis/ega:common
     volumes:
-       - ${CONF}:/etc/ega/conf.ini:ro
        - ${CODE}:/root/ega
-       - staging:/ega/staging
-       - vault:/ega/vault
+       - staging_swe1:/ega/staging
+       - vault_swe1:/ega/vault
+       - ${CONF_swe1}:/etc/ega/conf.ini:ro
        - ${ENTRYPOINTS}/vault.sh:/usr/local/bin/vault.sh:ro
     command: vault.sh
 
   # Ingestion Workers
-  ingest:
+  ingest_swe1:
     build: images/worker
     depends_on:
-      - db
-      - mq
-      - keys
+      - db_swe1
+      - mq_swe1
+      - keys_swe1
       - inbox_swe1
     image: nbis/ega:worker
     environment:
       - GPG_TTY=/dev/console
     volumes:
-       - ${CONF}:/etc/ega/conf.ini:ro
        - ${CODE}:/root/ega
-       - inbox:/ega/inbox
-       - staging:/ega/staging
-       - ${SSL_CERT}:/etc/ega/ssl.cert:ro
-       - ${GPG_HOME}/pubring.kbx:/root/.gnupg/pubring.kbx:ro
-       - ${GPG_HOME}/trustdb.gpg:/root/.gnupg/trustdb.gpg
+       - inbox_swe1:/ega/inbox
+       - staging_swe1:/ega/staging
+       - ${CONF_swe1}:/etc/ega/conf.ini:ro
+       - ${SSL_CERT_swe1}:/etc/ega/ssl.cert:ro
+       - ${GPG_HOME_swe1}/pubring.kbx:/root/.gnupg/pubring.kbx:ro
+       - ${GPG_HOME_swe1}/trustdb.gpg:/root/.gnupg/trustdb.gpg
        - ${ENTRYPOINTS}/ingest.sh:/usr/local/bin/ingest.sh:ro
     command: ingest.sh
 
   # Key server
-  keys:
-    env_file: .env.d/gpg
+  keys_swe1:
+    env_file: .env.d/swe1/gpg
     build: images/worker
     environment:
       - GPG_TTY=/dev/console
-    # depends_on:
-    #   - monitors
-    hostname: ega_keys
-    container_name: ega_keys
+    hostname: ega_keys_swe1
+    container_name: ega_keys_swe1
     image: nbis/ega:worker
     tty: true
     volumes:
-       - ${CONF}:/etc/ega/conf.ini:ro
-       - ${KEYS}:/etc/ega/keys.ini:ro
+       - ${CONF_swe1}:/etc/ega/conf.ini:ro
+       - ${KEYS_swe1}:/etc/ega/keys.ini:ro
        - ${CODE}:/root/ega
-       - ${SSL_CERT}:/etc/ega/ssl.cert:ro
-       - ${SSL_KEY}:/etc/ega/ssl.key:ro
-       - ${GPG_HOME}/pubring.kbx:/root/.gnupg/pubring.kbx
-       - ${GPG_HOME}/trustdb.gpg:/root/.gnupg/trustdb.gpg
-       - ${GPG_HOME}/openpgp-revocs.d:/root/.gnupg/openpgp-revocs.d:ro
-       - ${GPG_HOME}/private-keys-v1.d:/root/.gnupg/private-keys-v1.d:ro
-       - ${RSA_SEC}:/etc/ega/rsa/sec.pem:ro
-       - ${RSA_PUB}:/etc/ega/rsa/pub.pem:ro
+       - ${SSL_CERT_swe1}:/etc/ega/ssl.cert:ro
+       - ${SSL_KEY_swe1}:/etc/ega/ssl.key:ro
+       - ${GPG_HOME_swe1}/pubring.kbx:/root/.gnupg/pubring.kbx
+       - ${GPG_HOME_swe1}/trustdb.gpg:/root/.gnupg/trustdb.gpg
+       - ${GPG_HOME_swe1}/openpgp-revocs.d:/root/.gnupg/openpgp-revocs.d:ro
+       - ${GPG_HOME_swe1}/private-keys-v1.d:/root/.gnupg/private-keys-v1.d:ro
+       - ${RSA_SEC_swe1}:/etc/ega/rsa/sec.pem:ro
+       - ${RSA_PUB_swe1}:/etc/ega/rsa/pub.pem:ro
        - ${ENTRYPOINTS}/keys.sh:/usr/local/bin/keys.sh:ro
     command: keys.sh
 
@@ -183,6 +189,9 @@ services:
 
 # Use the default driver for volume creation
 volumes:
-  inbox:
-  staging:
-  vault:
+  inbox_swe1:
+  staging_swe1:
+  vault_swe1:
+  inbox_fin1:
+  # staging_fin1:
+  # vault_fin1:

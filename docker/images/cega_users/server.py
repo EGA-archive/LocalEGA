@@ -26,7 +26,7 @@ ssl.match_hostname = lambda cert, hostname: True
 
 instances = {}
 for instance in os.environ.get('LEGA_INSTANCES','').strip().split(','):
-    instances[instance] = (Path(f'/cega/users/{instance.lower()}'), os.environ[f'LEGA_{instance}_PASSWORD'])
+    instances[instance] = (Path(f'/cega/users/{instance}'), os.environ[f'CEGA_REST_{instance}_PASSWORD'])
 
 def protected(func):
     @wraps(func)

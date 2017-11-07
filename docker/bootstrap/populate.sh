@@ -85,22 +85,34 @@ COMPOSE_PROJECT_NAME=ega
 COMPOSE_FILE=ega.yml
 CODE=${ABS_SOURCES}
 ENTRYPOINTS=${ABS_ENTRYPOINTS}
-CONF=$ABS_PRIVATE/ega.conf
-KEYS=$ABS_PRIVATE/keys.conf
-SSL_CERT=$ABS_PRIVATE/certs/ssl.cert
-SSL_KEY=$ABS_PRIVATE/certs/ssl.key
-RSA_SEC=$ABS_PRIVATE/rsa/ega.sec
-RSA_PUB=$ABS_PRIVATE/rsa/ega.pub
-GPG_HOME=$ABS_PRIVATE/gpg
+#
 CEGA_USERS=$ABS_PRIVATE/cega/users
 CEGA_MQ_DEFS=$ABS_PRIVATE/cega/mq/defs.json
 EOF
 
+eval $(grep LEGA_INSTANCES $HERE/defaults/cega)
+
+INSTANCES=(${LEGA_INSTANCES/,/ }) # make it an array
+
+for INSTANCE in "${INSTANCES[@]}"; do
+    cat >> $HERE/../.env <<EOF
+#
+CONF_${INSTANCE}=$ABS_PRIVATE/${INSTANCE}/ega.conf
+KEYS_${INSTANCE}=$ABS_PRIVATE/${INSTANCE}/keys.conf
+#
+SSL_CERT_${INSTANCE}=$ABS_PRIVATE/${INSTANCE}/certs/ssl.cert
+SSL_KEY_${INSTANCE}=$ABS_PRIVATE/${INSTANCE}/certs/ssl.key
+RSA_SEC_${INSTANCE}=$ABS_PRIVATE/${INSTANCE}/rsa/ega.sec
+RSA_PUB_${INSTANCE}=$ABS_PRIVATE/${INSTANCE}/rsa/ega.pub
+GPG_HOME_${INSTANCE}=$ABS_PRIVATE/${INSTANCE}/gpg
+EOF
+done
+
 cp -rf $ABS_PRIVATE/.env.d $HERE/../.env.d
 
 # Updating .trace with the right path
-if [[ -f $ABS_PRIVATE/.trace ]]; then
-    sed -i -e "s;<bootstrap>;$HERE;" $ABS_PRIVATE/.trace
+if [[ -f $ABS_PRIVATE/.trace.cega ]]; then
+    sed -i -e "s;<bootstrap>;$HERE;" $ABS_PRIVATE/.trace.cega
 fi
 
 echomsg "docker-compose configuration files populated"
