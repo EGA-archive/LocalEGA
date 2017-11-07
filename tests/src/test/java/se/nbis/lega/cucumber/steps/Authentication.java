@@ -5,6 +5,7 @@ import com.github.dockerjava.api.command.CreateContainerResponse;
 import com.github.dockerjava.api.model.Bind;
 import com.github.dockerjava.api.model.Container;
 import com.github.dockerjava.api.model.Volume;
+import cucumber.api.PendingException;
 import cucumber.api.java8.En;
 import lombok.extern.slf4j.Slf4j;
 import net.schmizz.sshj.SSHClient;
@@ -78,6 +79,16 @@ public class Authentication implements En {
 
         When("^I connect to the LocalEGA inbox via SFTP using private key$", () -> {
             connect(context);
+        });
+
+        When("^inbox is not created for me$", () -> {
+            try {
+                disconnect(context);
+                utils.removeUserFromInbox(context.getUser());
+                connect(context);
+            } catch (IOException | InterruptedException e) {
+                log.error(e.getMessage(), e);
+            }
         });
 
         Then("^I am in the local database$", () -> {
