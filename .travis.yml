@@ -23,7 +23,7 @@ script:
 after_success:
   - |
         if [ "$TRAVIS_BRANCH" == "master" ] && [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
-            make -C images push -j 4
+            make -C images -j 4 push
         fi
 
 notifications:
