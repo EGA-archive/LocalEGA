@@ -72,7 +72,7 @@ public class Utils {
     }
 
     /**
-     * Checks if user exists in the local database.
+     * Checks if the user exists in the local database.
      *
      * @param user Username.
      * @return <code>true</code> if user exists, <code>false</code> otherwise.
@@ -82,6 +82,28 @@ public class Utils {
     public boolean isUserExistInDB(String user) throws IOException, InterruptedException {
         String output = executeDBQuery(String.format("select count(*) from users where elixir_id = '%s'", user));
         return "1".equals(output.split(System.getProperty("line.separator"))[2].trim());
+    }
+
+    /**
+     * Removes the user from the local database.
+     *
+     * @param user Username.
+     * @throws IOException          In case of output error.
+     * @throws InterruptedException In case the query execution is interrupted.
+     */
+    public void removeUserFromDB(String user) throws IOException, InterruptedException {
+        executeDBQuery(String.format("delete from users where elixir_id = '%s'", user));
+    }
+
+    /**
+     * Removes the user from the inbox.
+     *
+     * @param user Username.
+     * @throws IOException          In case of output error.
+     * @throws InterruptedException In case the query execution is interrupted.
+     */
+    public void removeUserFromInbox(String user) throws IOException, InterruptedException {
+        executeWithinContainer(findContainer("nbis/ega:inbox", "ega_inbox"), String.format("rm -rf /ega/inbox/%s", user).split(" "));
     }
 
     /**
