@@ -112,7 +112,9 @@ cp -rf $ABS_PRIVATE/.env.d $HERE/../.env.d
 
 # Updating .trace with the right path
 if [[ -f $ABS_PRIVATE/.trace.cega ]]; then
-    sed -i -e "s;<bootstrap>;$HERE;" $ABS_PRIVATE/.trace.cega
+    sed "s#<bootstrap>#$HERE#g" $ABS_PRIVATE/.trace.cega > $ABS_PRIVATE/.trace.cega.tmp
+    mv -f $ABS_PRIVATE/.trace.cega.tmp $ABS_PRIVATE/.trace.cega
+    # Note: The -i did not work. Dunno why.
 fi
 
 echomsg "docker-compose configuration files populated"
