@@ -9,7 +9,6 @@ before_install:
   - |
         cd docker
         docker pull -a nbisweden/ega
-        make -C images
         docker run --rm -i -v ${PWD}/bootstrap:/ega nbisweden/ega:worker /ega/boot.sh
         bootstrap/populate.sh -f
         sudo chown -R $USER .
