@@ -9,6 +9,7 @@ before_install:
   - |
         cd docker
         docker pull -a nbisweden/ega
+        make -C images
         docker run --rm -i -v ${PWD}/bootstrap:/ega nbisweden/ega:worker /ega/boot.sh
         bootstrap/populate.sh -f
         sudo chown -R $USER .
@@ -20,12 +21,11 @@ script:
   - cd ../tests
   - mvn test -B
 
-# after_success:
-#   - |
-#         if [ "$TRAVIS_BRANCH" == "master" ] && [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
-#             docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
-#             docker push nbisweden/ega
-#         fi
+after_success:
+  - |
+        if [ "$TRAVIS_BRANCH" == "master" ] && [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
+            make -C images push
+        fi
 
 notifications:
   email: false

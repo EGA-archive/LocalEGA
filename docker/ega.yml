@@ -5,32 +5,28 @@ services:
   # Local Message broker
   mq_swe1:
     #env_file: .env.d/swe1/mq
-    #build: images/mq
     hostname: ega_mq
     ports:
       - "15672:15672"
-    image: nbisweden/ega:mq
+    image: nbisweden/ega-mq
     container_name: ega_mq_swe1
 
   # Postgres Database for Sweden
   db_swe1:
     env_file: .env.d/swe1/db
-    #build: images/db
     hostname: ega_db_swe1
     container_name: ega_db_swe1
-    image: nbisweden/ega:db
+    image: nbisweden/ega-db
 
   # Postgres Database for Finland
   db_fin1:
     env_file: .env.d/fin1/db
-    #build: images/db
     hostname: ega_db_fin1
     container_name: ega_db_fin1
-    image: nbisweden/ega:db
+    image: nbisweden/ega-db
 
   # ReST frontend
   frontend_swe1:
-    #build: images/common
     hostname: ega_frontend
     depends_on:
       - db_swe1
@@ -39,7 +35,7 @@ services:
     expose:
       - 80
     container_name: ega_frontend_swe1
-    image: nbisweden/ega:common
+    image: nbisweden/ega-common
     volumes:
        - ${CONF_swe1}:/etc/ega/conf.ini:ro
        - ${CODE}:/root/ega
@@ -48,7 +44,6 @@ services:
 
   # SFTP inbox for Sweden
   inbox_swe1:
-    #build: images/inbox
     hostname: ega_inbox
     depends_on:
       - db_swe1
@@ -58,7 +53,7 @@ services:
     ports:
       - "2222:22"
     container_name: ega_inbox_swe1
-    image: nbisweden/ega:inbox
+    image: nbisweden/ega-inbox
     volumes:
        - ${CODE}:/root/ega
        - inbox_swe1:/ega/inbox
@@ -68,7 +63,6 @@ services:
 
   # SFTP inbox for Finland
   inbox_fin1:
-    #build: images/inbox
     hostname: ega_inbox
     depends_on:
       - db_fin1
@@ -78,7 +72,7 @@ services:
     ports:
       - "2223:22"
     container_name: ega_inbox_fin1
-    image: nbisweden/ega:inbox
+    image: nbisweden/ega-inbox
     volumes:
        - ${CODE}:/root/ega
        - inbox_fin1:/ega/inbox
@@ -88,14 +82,13 @@ services:
 
   # Vault
   vault_swe1:
-    #build: images/common
     depends_on:
       - db_swe1
       - mq_swe1
       - inbox_swe1
     hostname: ega_vault
     container_name: ega_vault_swe1
-    image: nbisweden/ega:common
+    image: nbisweden/ega-common
     volumes:
        - ${CODE}:/root/ega
        - staging_swe1:/ega/staging
@@ -106,13 +99,12 @@ services:
 
   # Ingestion Workers
   ingest_swe1:
-    #build: images/worker
     depends_on:
       - db_swe1
       - mq_swe1
       - keys_swe1
       - inbox_swe1
-    image: nbisweden/ega:worker
+    image: nbisweden/ega-worker
     environment:
       - GPG_TTY=/dev/console
     volumes:
@@ -129,12 +121,11 @@ services:
   # Key server
   keys_swe1:
     env_file: .env.d/swe1/gpg
-    #build: images/worker
     environment:
       - GPG_TTY=/dev/console
     hostname: ega_keys_swe1
     container_name: ega_keys_swe1
-    image: nbisweden/ega:worker
+    image: nbisweden/ega-worker
     tty: true
     volumes:
        - ${CONF_swe1}:/etc/ega/conf.ini:ro
@@ -152,36 +143,33 @@ services:
     command: keys.sh
 
   # # Error Monitors
-  # monitors:
-  #   #build: images/monitors
+  # monitors_swe1:
   #   # depends_on:
-  #   #   - db
+  #   #   - db_swe1
   #   ports:
   #     - "10514:10514"
   #   expose:
   #     - 10514
-  #   hostname: ega_monitors
-  #   container_name: ega_monitors
-  #   image: nbisweden/ega:monitors
+  #   hostname: ega_monitors_swe1
+  #   container_name: ega_monitors_swe1
+  #   image: nbisweden/ega-monitors
   #   command: ["rsyslogd", "-n"]
 
   ############################################
   # Faking Central EGA
   ############################################
   cega_mq:
-    #build: images/cega_mq
     hostname: cega_mq
     ports:
       - "15673:15672"
-    image: nbisweden/ega:cega_mq
+    image: nbisweden/ega-cega_mq
     container_name: cega_mq
     volumes:
        - ${CEGA_MQ_DEFS}:/etc/rabbitmq/defs.json:ro
 
   cega_users:
     env_file: .env.d/cega_instances
-    #build: images/cega_users
-    image: nbisweden/ega:cega_users
+    image: nbisweden/ega-cega_users
     container_name: cega_users
     ports:
       - "9100:80"

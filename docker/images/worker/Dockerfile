@@ -1,4 +1,4 @@
-FROM nbis/ega:common
+FROM nbisweden/ega-common:latest
 LABEL maintainer "Frédéric Haziza, NBIS"
 
 # Setup
@@ -17,7 +17,7 @@ ARG LIBKSBA_VERSION=1.3.5
 ARG LIBNPTH_VERSION=1.5
 ARG NCURSES_VERSION=6.0
 ARG PINENTRY_VERSION=1.0.0
-ARG GNUPG_VERSION=2.2.1
+ARG GNUPG_VERSION=2.2.2
 
 ##############################################################
 RUN mkdir -p /var/src/gnupg
