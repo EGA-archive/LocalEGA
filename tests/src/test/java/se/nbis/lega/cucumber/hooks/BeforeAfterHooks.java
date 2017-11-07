@@ -39,8 +39,8 @@ public class BeforeAfterHooks implements En {
         Utils utils = context.getUtils();
         String user = context.getUser();
         Arrays.stream(cegaUsersFolder.listFiles((dir, name) -> name.startsWith(user))).forEach(File::delete);
-        utils.executeDBQuery(String.format("delete from users where elixir_id = '%s'", user));
-        utils.executeWithinContainer(utils.findContainer("nbis/ega:inbox", "ega_inbox"), String.format("rm -rf /ega/inbox/%s", user).split(" "));
+        utils.removeUserFromDB(user);
+        utils.removeUserFromInbox(user);
     }
 
 }
