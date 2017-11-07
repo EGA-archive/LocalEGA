@@ -1,4 +1,4 @@
-FROM nbiswden/ega-common:latest
+FROM nbisweden/ega-common:latest
 LABEL maintainer "Frédéric Haziza, NBIS"
 
 ##################################

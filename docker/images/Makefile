@@ -4,7 +4,9 @@ EGA_IMAGES=common db mq inbox worker cega_users cega_mq monitors
 TARGET=nbisweden/ega
 
 ifndef CI_BUILD_REF
-CI_BUILD_REF=$(shell git rev-parse --short HEAD)
+TAG=$(shell git rev-parse --short HEAD)
+else
+TAG=$(TRAVIS_COMMIT)
 endif
 
 all: $(EGA_IMAGES)
@@ -17,7 +19,7 @@ worker: common
 cega_users: common
 
 $(EGA_IMAGES):
-	docker build --cache-from $(TARGET)-$@:latest --tag $(TARGET)-$@:$(CI_BUILD_REF) --tag $(TARGET)-$@:latest $@
+	docker build --cache-from $(TARGET)-$@:latest --tag $(TARGET)-$@:$(TAG) --tag $(TARGET)-$@:latest $@
 
 push:
 	docker login

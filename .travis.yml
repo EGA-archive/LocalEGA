@@ -8,7 +8,7 @@ services:
 before_install:
   - |
         cd docker
-        make -C images
+        make -C images -j 4
         docker run --rm -i -v ${PWD}/bootstrap:/ega nbisweden/ega:worker /ega/boot.sh
         bootstrap/populate.sh -f
         sudo chown -R $USER .
@@ -23,7 +23,7 @@ script:
 after_success:
   - |
         if [ "$TRAVIS_BRANCH" == "master" ] && [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
-            make -C images push
+            make -C images push -j 4
         fi
 
 notifications:
