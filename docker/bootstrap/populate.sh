@@ -104,7 +104,8 @@ GPG_HOME_${INSTANCE}=$ABS_PRIVATE/${INSTANCE}/gpg
 EOF
 done
 
-cp -rf $ABS_PRIVATE/.env.d $HERE/../.env.d
+rm_politely $HERE/../.env.d
+cp -r $ABS_PRIVATE/.env.d $HERE/../.env.d
 
 # Updating .trace with the right path
 if [[ -f $ABS_PRIVATE/.trace.cega ]]; then

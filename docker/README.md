@@ -10,7 +10,7 @@ You can then [generate the private data](bootstrap), with either:
 	
 > Note: you can run `bootstrap/boot.sh` on your host machine but
 > you need the required tools installed, including Python 3.6, GnuPG
-> 2.2.1, OpenSSL, `readlink`, `xxd`, ...
+> 2.2.2, OpenSSL, `readlink`, `xxd`, ...
 	
 You can afterwards copy the settings into place with
 

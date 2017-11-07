@@ -22,7 +22,7 @@ destination location if there was already a version)
 The passwords are in `private/.trace.*` (if you did not use `--private_dir`)
 
 If you don't have the required tools installed on your machine (namely
-GnuPG 2.2.1, OpenSSL 1.0.2 and Python 3.6.1), you can use the `nbis/ega:worker`
+GnuPG 2.2.2, OpenSSL 1.0.2 and Python 3.6.1), you can use the `nbisweden/ega-worker:latest`
 image that you have built up with the `make` command in the [images](../images) folder:
 
 In the same folder as `generate.sh`, run
