@@ -47,7 +47,7 @@ else
     exit 1
 fi
 
-[[ $VERBOSE == 'no' ]] && exec 1>${HERE}/.log && FORCE='yes'
+#[[ $VERBOSE == 'no' ]] && exec 1>${HERE}/.log && FORCE='yes'
 exec 2>${HERE}/.err
 
 case $PRIVATE in
@@ -65,9 +65,9 @@ esac
 rm_politely $ABS_PRIVATE/cega
 mkdir -p $ABS_PRIVATE/cega/{users,mq}
 
-echo "Generating data for a fake Central EGA"
+echo -n "Generating data for a fake Central EGA"
 
-echo -e "\t* fake EGA users"
+echomsg "\t* fake EGA users"
 
 EGA_USER_PASSWORD_JOHN=$(generate_password 16)
 EGA_USER_PASSWORD_JANE=$(generate_password 16)
@@ -126,7 +126,7 @@ popd > /dev/null
 # But then the queues and bindings are not properly set up
 # Doing this instead:
 
-echo -e "\t* a CEGA password for the MQ"
+echomsg "\t* a CEGA password for the MQ"
 
 function output_password_hashes {
     declare -a tmp
@@ -200,7 +200,7 @@ EOF
 rm_politely $ABS_PRIVATE/.env.d
 mkdir -p $ABS_PRIVATE/.env.d
 
-echo "Generating the docker-compose configuration files"
+echomsg "Generating the docker-compose configuration files"
 
 echo "LEGA_INSTANCES=${LEGA_INSTANCES}" > $ABS_PRIVATE/.env.d/cega_instances
 for i in "${!CEGA_REST[@]}"; do
@@ -222,7 +222,7 @@ done
 
 #########################################################################
 
-echo -e "\n=> Generation completed for CentralEGA \xF0\x9F\x91\x8D\n"
+task_complete "Generation completed for CentralEGA"
 
 {
     cat <<EOF
@@ -257,4 +257,4 @@ EOF
 	cat $ABS_PRIVATE/.env.d/$i/cega
     done
 } > $ABS_PRIVATE/.trace.cega
-[[ $VERBOSE == 'yes' ]] && cat $ABS_PRIVATE/.trace.cega
+#[[ $VERBOSE == 'yes' ]] && cat $ABS_PRIVATE/.trace.cega

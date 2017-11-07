@@ -9,7 +9,7 @@ before_install:
   - |
         cd docker
         make -C images -j 4
-        docker run --rm -i -v ${PWD}/bootstrap:/ega nbisweden/ega-worker /ega/boot.sh
+        docker run --rm -i -v ${PWD}/bootstrap:/ega nbisweden/ega-worker /ega/boot.sh -q -f
         bootstrap/populate.sh -f
         sudo chown -R $USER .
 

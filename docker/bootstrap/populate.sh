@@ -3,6 +3,8 @@
 SCRIPT=$(dirname ${BASH_SOURCE[0]})
 HERE=$PWD/${SCRIPT#./}
 
+source $HERE/lib.sh
+
 # Defaults:
 VERBOSE=yes
 FORCE=no
@@ -38,9 +40,7 @@ while [[ $# -gt 0 ]]; do
     shift
 done
 
-function echomsg {
-    [[ $VERBOSE == 'yes' ]] && echo $@
-}
+echo -n "Populating files"
 
 case $PRIVATE in
     /*)  ABS_PRIVATE=$PRIVATE;;
@@ -66,13 +66,6 @@ esac
 
 [[ -d $ABS_ENTRYPOINTS ]] || { echomsg "Entrypoints folder $ABS_ENTRYPOINTS not found. Exiting" 1>&2; exit 1; }
 
-function backup {
-    local target=$1
-    if [[ -e $target ]]; then
-	echomsg "Backing up $target"
-	mv -f $target $target.$(date +"%Y-%m-%d_%H:%M:%S")
-    fi
-}
 
 [[ $FORCE == 'yes' ]] || {
     backup $HERE/../.env
@@ -117,4 +110,4 @@ if [[ -f $ABS_PRIVATE/.trace.cega ]]; then
     # Note: The -i did not work. Dunno why.
 fi
 
-echomsg "docker-compose configuration files populated"
+task_complete "docker-compose configuration files populated"

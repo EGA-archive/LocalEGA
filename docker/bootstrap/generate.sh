@@ -47,7 +47,7 @@ else
     exit 1
 fi
 
-[[ $VERBOSE == 'no' ]] && exec 1>${HERE}/.log && FORCE='yes'
+#[[ $VERBOSE == 'no' ]] && exec 1>${HERE}/.log && FORCE='yes'
 exec 2>${HERE}/.err
 
 [[ -x $(readlink ${GPG}) ]] && echo "${GPG} is not executable" && exit 2
@@ -73,9 +73,9 @@ esac
 rm_politely $ABS_PRIVATE/$INSTANCE
 mkdir -p $ABS_PRIVATE/$INSTANCE/{gpg,rsa,certs}
 
-echo "Generating private data for ${INSTANCE^^}"
+echo -n "Generating private data for ${INSTANCE^^}"
 
-echo -e "\t* the GnuPG key"
+echomsg "\t* the GnuPG key"
 
 cat > $ABS_PRIVATE/$INSTANCE/gen_key <<EOF
 %echo Generating a basic OpenPGP key
@@ -97,18 +97,18 @@ rm -f $ABS_PRIVATE/$INSTANCE/gen_key
 
 #########################################################################
 
-echo -e "\t* the RSA public and private key"
+echomsg "\t* the RSA public and private key"
 ${OPENSSL} genrsa -out $ABS_PRIVATE/$INSTANCE/rsa/ega.sec -passout pass:${RSA_PASSPHRASE} 2048
 ${OPENSSL} rsa -in $ABS_PRIVATE/$INSTANCE/rsa/ega.sec -passin pass:${RSA_PASSPHRASE} -pubout -out $ABS_PRIVATE/$INSTANCE/rsa/ega.pub
 
 #########################################################################
 
-echo -e "\t* the SSL certificates"
+echomsg "\t* the SSL certificates"
 ${OPENSSL} req -x509 -newkey rsa:2048 -keyout $ABS_PRIVATE/$INSTANCE/certs/ssl.key -nodes -out $ABS_PRIVATE/$INSTANCE/certs/ssl.cert -sha256 -days 1000 -subj ${SSL_SUBJ}
 
 #########################################################################
 
-echo -e "\t* the EGA configuration files"
+echomsg "\t* the EGA configuration files"
 cat > $ABS_PRIVATE/$INSTANCE/keys.conf <<EOF
 [DEFAULT]
 active_master_key = 1
@@ -148,8 +148,8 @@ EOF
 # Populate env-settings for docker compose
 #########################################################################
 
+echomsg "Generating the docker-compose configuration files"
 
-echo "Generating the docker-compose configuration files"
 cat > $ABS_PRIVATE/.env.d/$INSTANCE/db <<EOF
 POSTGRES_USER=${DB_USER}
 POSTGRES_PASSWORD=${DB_PASSWORD}
@@ -163,7 +163,7 @@ EOF
 
 #########################################################################
 
-echo -e "\n=> Generation completed for ${INSTANCE^^} \xF0\x9F\x91\x8D\n"
+task_complete "Generation completed for ${INSTANCE^^}"
 
 
 cat > $ABS_PRIVATE/.trace.$INSTANCE <<EOF
@@ -189,4 +189,4 @@ DB_PASSWORD               = ${DB_PASSWORD}
 DB_TRY                    = ${DB_TRY}
 #
 EOF
-[[ $VERBOSE == 'yes' ]] && cat $ABS_PRIVATE/.trace.$INSTANCE
+#[[ $VERBOSE == 'yes' ]] && cat $ABS_PRIVATE/.trace.$INSTANCE
