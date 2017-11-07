@@ -136,6 +136,9 @@ password = ${CEGA_MQ_PASSWORD}
 vhost = ${INSTANCE}
 heartbeat = 0
 
+file_queue = ${INSTANCE}.v1.commands.file
+file_routing = ${INSTANCE}.file.completed
+
 [db]
 host = ega_db_${INSTANCE}
 username = ${DB_USER}
