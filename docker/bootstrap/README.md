@@ -27,7 +27,7 @@ image that you have built up with the `make` command in the [images](../images) 
 
 In the same folder as `generate.sh`, run
 
-	docker run --rm -it -v ${PWD}:/ega nbis/ega:worker /ega/generate.sh -f -- swe1
+	docker run --rm -it -v ${PWD}:/ega nbisweden/ega-worker /ega/generate.sh -- swe1
 
 That will create a folder, named 'private', with all the settings
 After that, you can run `./populate.sh` to move the `.env` and `.env.d/` into
