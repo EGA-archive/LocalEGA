@@ -8,7 +8,7 @@ services:
 before_install:
   - |
         cd docker
-        docker pull -a nbis/ega
+        docker pull -a nbisweden/ega
         make -C images
         docker run --rm -i -v ${PWD}/bootstrap:/ega nbis/ega:worker /ega/boot.sh
         bootstrap/populate.sh -f
@@ -25,7 +25,7 @@ after_success:
   - |
         if [ "$TRAVIS_BRANCH" == "master" ] && [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
             docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
-            docker push nbis/ega
+            docker push nbisweden/ega
         fi
 
 notifications:
