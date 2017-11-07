@@ -127,18 +127,6 @@ popd > /dev/null
 # Doing this instead:
 
 echo -e "\t* a CEGA password for the MQ"
-function rabbitmq_hash {
-    # 1) Generate a random 32 bit salt
-    # 2) Concatenate that with the UTF-8 representation of the password
-    # 3) Take the SHA-256 hash
-    # 4) Concatenate the salt again
-    # 5) Convert to base64 encoding
-    local SALT=${2:-$(${OPENSSL} rand -hex 4)}
-    (
-	printf $SALT | xxd -p -r
-	( printf $SALT | xxd -p -r; printf $1 ) | ${OPENSSL} dgst -binary -sha256
-    ) | base64
-}
 
 function output_password_hashes {
     declare -a tmp
