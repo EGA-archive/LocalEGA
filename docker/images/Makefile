@@ -3,7 +3,9 @@ EGA_IMAGES=common db mq inbox worker cega_users cega_mq monitors
 
 TARGET=nbisweden/ega
 
-TAG=$(shell git rev-parse --short HEAD)
+ifndef CI_BUILD_REF
+CI_BUILD_REF=$(shell git rev-parse --short HEAD)
+endif
 
 all: $(EGA_IMAGES)
 
@@ -15,8 +17,7 @@ worker: common
 cega_users: common
 
 $(EGA_IMAGES):
-	docker build --tag $(TARGET)-$@:$(TAG) $@
-	docker tag $(TARGET)-$@:$(TAG) $(TARGET)-$@:latest
+	docker build --cache-from $(TARGET)-$@:latest --tag $(TARGET)-$@:$(CI_BUILD_REF) --tag $(TARGET)-$@:latest $@
 
 push:
 	docker login
