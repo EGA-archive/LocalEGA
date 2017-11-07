@@ -6,8 +6,8 @@ HERE=$PWD/${SCRIPT#./}
 source $HERE/lib.sh
 
 # Defaults:
-VERBOSE=yes
-FORCE=no
+VERBOSE=no
+FORCE=yes
 PRIVATE=private
 SOURCES=$HERE/../../src
 ENTRYPOINTS=$HERE/../entrypoints
@@ -18,8 +18,9 @@ function usage {
     echo -e "\t--private_dir <path>         \tPath location of private data folder"
     echo -e "\t--sources <path>             \tPath Location of the src folder"
     echo -e "\t--entrypoints <path>         \tPath Location of the entrypoints folder"
-    echo -e "\t--force, -f                  \tDon't backup .env and .env.d if they exist"
-    echo -e "\t--quiet, -q                  \tRemoves the verbose output (and uses -f)"
+    echo ""
+    echo -e "\t--verbose, -v                \tShow verbose output"
+    echo -e "\t--polite, -p                 \tDo not force the re-creation of the subfolders. Ask instead"
     echo -e "\t--help, -h                   \tOutputs this message and exits"
     echo -e "\t-- ...                       \tAny other options appearing after the -- will be ignored"
     echo ""
@@ -28,9 +29,9 @@ function usage {
 # While there are arguments or '--' is reached
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --quiet|-q) VERBOSE=no;;
         --help|-h) usage; exit 0;;
-        --force|-f) FORCE=yes;;
+        --verbose|-v) VERBOSE=yes;;
+        --polite|-p) FORCE=no;;
         --sources) SOURCES=$2; shift;;
         --entrypoints) ENTRYPOINTS=$2; shift;;
         --private_dir) PRIVATE=$2; shift;;
@@ -39,6 +40,8 @@ while [[ $# -gt 0 ]]; do
     esac
     shift
 done
+
+[[ $VERBOSE == 'yes' ]] && FORCE='no'
 
 echo -n "Populating files"
 

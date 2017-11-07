@@ -23,7 +23,10 @@ $(EGA_IMAGES):
 
 push:
 	docker login
-	for image in $(EGA_IMAGES); do docker push $(TARGET)-$image:latest; done
+	for image in $(EGA_IMAGES); do docker push $(TARGET)-$$image:latest; done
 
 clean:
-	docker images | awk '/none/{print $$3}' | while read n; do docker rmi $$n; done
+	@docker images -f "dangling=true" -q | uniq | while read n; do docker rmi $$n; done
+
+delete:
+	@docker images $(TARGET)-* --format "{{.ID}} {{.Tag}}" | awk '{ if ($$2 != "$(TAG)" && $$2 != "latest") print $$1; }' | uniq | while read n; do docker rmi $$n; done

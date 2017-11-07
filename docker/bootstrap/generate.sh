@@ -7,17 +7,17 @@ HERE=$PWD/${SCRIPT#./}
 source $HERE/lib.sh
 
 # Defaults
-VERBOSE=yes
-FORCE=no
+VERBOSE=no
+FORCE=yes
 PRIVATE=private
 
 function usage {
     echo "Usage: $0 [options] -- <instance>"
     echo -e "\nOptions are:"
     echo -e "\t--private_dir <name>         \tName of the main folder for private data"
-    echo -e "\t--force, -f                  \tForce the re-creation of the subfolders"
     echo ""
-    echo -e "\t--quiet, -q                  \tRemoves the verbose output (and uses -f)"
+    echo -e "\t--verbose, -v                \tShow verbose output"
+    echo -e "\t--polite, -p                 \tDo not force the re-creation of the subfolders. Ask instead"
     echo -e "\t--help, -h                   \tOutputs this message and exits"
     echo -e "\t-- ...                       \tAny other options appearing after the -- will be ignored"
     echo ""
@@ -26,15 +26,17 @@ function usage {
 # While there are arguments or '--' is reached
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --quiet|-q) VERBOSE=no;;
         --help|-h) usage; exit 0;;
-        --force|-f) FORCE=yes;;
+        --verbose|-v) VERBOSE=yes;;
+        --polite|-p) FORCE=no;;
         --private_dir) PRIVATE=$2; shift;;
         --) shift; break;;
         *) echo "$0: error - unrecognized option $1" 1>&2; usage; exit 1;;
     esac
     shift
 done
+
+[[ $VERBOSE == 'yes' ]] && FORCE='no'
 
 # Loading the instance's settings
 INSTANCE=$1
