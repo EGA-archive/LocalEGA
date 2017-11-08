@@ -130,6 +130,13 @@ log = debug
 [ingestion]
 gpg_cmd = /usr/local/bin/gpg --homedir ~/.gnupg --decrypt %(file)s
 
+# Keyserver communication
+keyserver_host = ega_keys_${INSTANCE}
+
+## Connecting to Local EGA
+[local.broker]
+host = ega_mq_${INSTANCE}
+
 ## Connecting to Central EGA
 [cega.broker]
 host = cega_mq
@@ -146,6 +153,13 @@ host = ega_db_${INSTANCE}
 username = ${DB_USER}
 password = ${DB_PASSWORD}
 try = ${DB_TRY}
+
+[frontend]
+host = ega_frontend_${INSTANCE}
+
+[outgestion]
+# Keyserver communication
+keyserver_host = ega_keys_${INSTANCE}
 EOF
 
 

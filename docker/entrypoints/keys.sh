@@ -37,5 +37,4 @@ KEYGRIP=$(/usr/local/bin/gpg -k --with-keygrip ega@nbis.se | awk '/Keygrip/{prin
 unset GPG_PASSPHRASE
 
 echo "Starting the gpg-agent proxy"
-#exec ega-socket-proxy '0.0.0.0:9010' /run/ega/S.gpg-agent.extra --certfile /etc/ega/ssl.cert --keyfile /etc/ega/ssl.key
 exec ega-socket-proxy '0.0.0.0:9010' /root/.gnupg/S.gpg-agent.extra --certfile /etc/ega/ssl.cert --keyfile /etc/ega/ssl.key

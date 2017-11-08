@@ -95,7 +95,7 @@ services:
        - vault_swe1:/ega/vault
        - ${CONF_swe1}:/etc/ega/conf.ini:ro
        - ${ENTRYPOINTS}/vault.sh:/usr/local/bin/vault.sh:ro
-    command: vault.sh
+    command: ["vault.sh","swe1"]
 
   # Ingestion Workers
   ingest_swe1:
@@ -116,7 +116,7 @@ services:
        - ${GPG_HOME_swe1}/pubring.kbx:/root/.gnupg/pubring.kbx:ro
        - ${GPG_HOME_swe1}/trustdb.gpg:/root/.gnupg/trustdb.gpg
        - ${ENTRYPOINTS}/ingest.sh:/usr/local/bin/ingest.sh:ro
-    command: ingest.sh
+    command: ["ingest.sh","swe1"]
 
   # Key server
   keys_swe1:
@@ -127,6 +127,9 @@ services:
     container_name: ega_keys_swe1
     image: nbisweden/ega-worker
     tty: true
+    ports:
+      - "9010"
+      - "9011"
     volumes:
        - ${CONF_swe1}:/etc/ega/conf.ini:ro
        - ${KEYS_swe1}:/etc/ega/keys.ini:ro
