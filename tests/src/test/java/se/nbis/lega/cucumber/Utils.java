@@ -61,8 +61,8 @@ public class Utils {
      * @return Property value.
      * @throws IOException In case it's not possible to read trace file.
      */
-    public String readTraceProperty(String property) throws IOException {
-        File trace = new File(Paths.get("").toAbsolutePath().getParent().toString() + "/docker/bootstrap/private/.trace");
+    public String readTraceProperty(String fileName, String property) throws IOException {
+        File trace = new File(Paths.get("").toAbsolutePath().getParent().toString() + "/docker/bootstrap/private/" + fileName);
         return FileUtils.readLines(trace, Charset.defaultCharset()).
                 stream().
                 filter(l -> l.startsWith(property)).
