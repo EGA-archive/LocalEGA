@@ -127,7 +127,7 @@ services:
     container_name: ega_keys_swe1
     image: nbisweden/ega-worker
     tty: true
-    ports:
+    expose:
       - "9010"
       - "9011"
     volumes:
