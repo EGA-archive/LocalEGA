@@ -19,14 +19,14 @@ worker: common
 cega_users: common
 
 $(EGA_IMAGES):
+	-docker pull $(TARGET)-$@:latest
 	docker build --cache-from $(TARGET)-$@:latest --tag $(TARGET)-$@:$(TAG) --tag $(TARGET)-$@:latest $@
 
 push:
-	docker login
 	for image in $(EGA_IMAGES); do docker push $(TARGET)-$$image:latest; done
 
 clean:
 	@docker images -f "dangling=true" -q | uniq | while read n; do docker rmi $$n; done
 
 delete:
-	@docker images $(TARGET)-* --format "{{.ID}} {{.Tag}}" | awk '{ if ($$2 != "$(TAG)" && $$2 != "latest") print $$1; }' | uniq | while read n; do docker rmi $$n; done
+	@docker images $(TARGET)-* --format "{{.Repository}} {{.Tag}}" | awk '{ if ($$2 != "$(TAG)" && $$2 != "latest") print $$1":"$$2; }' | uniq | while read n; do docker rmi $$n; done

@@ -22,7 +22,8 @@ script:
 
 after_success:
   - |
-        if [ "$TRAVIS_BRANCH" == "master" ] && [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
+        if [ "$TRAVIS_BRANCH" == "dev" ] && [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
+            docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
             make -C images -j 4 push
         fi
 
