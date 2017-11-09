@@ -31,12 +31,14 @@ public class Uploading implements En {
             Volume gpgVolume = new Volume("/root/.gnupg");
             CreateContainerResponse createContainerResponse = null;
             try {
+                String targetInstance = context.getTargetInstance();
+                String gpgCommand = utils.readTraceProperty(targetInstance, "GPG exec");
                 createContainerResponse = dockerClient.
-                        createContainerCmd("nbis/ega:worker").
+                        createContainerCmd("nbisweden/ega-worker").
                         withVolumes(dataVolume, gpgVolume).
                         withBinds(new Bind(Paths.get(dataFolderName).toAbsolutePath().toString(), dataVolume),
-                                new Bind(Paths.get("").toAbsolutePath().getParent().toString() + "/docker/bootstrap/private/gpg", gpgVolume, AccessMode.ro)).
-                        withCmd(utils.readTraceProperty("GPG exec"), "-r", utils.readTraceProperty("GPG_EMAIL"), "-e", "-o", String.format("/%s/%s.enc", dataFolderName, rawFile.getName()), String.format("/%s/%s", dataFolderName, rawFile.getName())).
+                                new Bind(String.format("%s/%s/gpg", utils.getPrivateFolderPath(), targetInstance), gpgVolume, AccessMode.ro)).
+                        withCmd(gpgCommand, "-r", utils.readTraceProperty(targetInstance, "GPG_EMAIL"), "-e", "-o", "/data/" + rawFile.getName() + ".enc", "/data/" + rawFile.getName()).
                         exec();
             } catch (IOException e) {
                 log.error(e.getMessage(), e);

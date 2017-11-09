@@ -36,6 +36,15 @@ public class Utils {
     }
 
     /**
+     * Gets absolute path or a private folder.
+     *
+     * @return Absolute path or a private folder.
+     */
+    public String getPrivateFolderPath() {
+        return Paths.get("").toAbsolutePath().getParent().toString() + "/docker/bootstrap/private";
+    }
+
+    /**
      * Executes shell command within specified container.
      *
      * @param container Container to execute command in.
@@ -62,66 +71,71 @@ public class Utils {
     /**
      * Executes PSQL query.
      *
-     * @param query Query to execute.
+     * @param instance LocalEGA site.
+     * @param query    Query to execute.
      * @return Query output.
      * @throws IOException          In case of output error.
      * @throws InterruptedException In case the query execution is interrupted.
      */
-    public String executeDBQuery(String query) throws IOException, InterruptedException {
-        return executeWithinContainer(findContainer("nbis/ega:db", "ega_db"), "psql", "-U", readTraceProperty("DB_USER"), "-d", "lega", "-c", query);
+    public String executeDBQuery(String instance, String query) throws IOException, InterruptedException {
+        return executeWithinContainer(findContainer("nbisweden/ega-db", "ega_db_" + instance), "psql", "-U", readTraceProperty(instance, "DB_USER"), "-d", "lega", "-c", query);
     }
 
     /**
      * Checks if the user exists in the local database.
      *
-     * @param user Username.
+     * @param instance LocalEGA site.
+     * @param user     Username.
      * @return <code>true</code> if user exists, <code>false</code> otherwise.
      * @throws IOException          In case of output error.
      * @throws InterruptedException In case the query execution is interrupted.
      */
-    public boolean isUserExistInDB(String user) throws IOException, InterruptedException {
-        String output = executeDBQuery(String.format("select count(*) from users where elixir_id = '%s'", user));
+    public boolean isUserExistInDB(String instance, String user) throws IOException, InterruptedException {
+        String output = executeDBQuery(instance, String.format("select count(*) from users where elixir_id = '%s'", user));
         return "1".equals(output.split(System.getProperty("line.separator"))[2].trim());
     }
 
     /**
      * Removes the user from the local database.
      *
-     * @param user Username.
+     * @param instance LocalEGA site.
+     * @param user     Username.
      * @throws IOException          In case of output error.
      * @throws InterruptedException In case the query execution is interrupted.
      */
-    public void removeUserFromDB(String user) throws IOException, InterruptedException {
-        executeDBQuery(String.format("delete from users where elixir_id = '%s'", user));
+    public void removeUserFromDB(String instance, String user) throws IOException, InterruptedException {
+        executeDBQuery(instance, String.format("delete from users where elixir_id = '%s'", user));
     }
 
     /**
      * Removes the user from the inbox.
      *
-     * @param user Username.
+     * @param instance LocalEGA site.
+     * @param user     Username.
      * @throws IOException          In case of output error.
      * @throws InterruptedException In case the query execution is interrupted.
      */
-    public void removeUserFromInbox(String user) throws IOException, InterruptedException {
-        executeWithinContainer(findContainer("nbis/ega:inbox", "ega_inbox"), String.format("rm -rf /ega/inbox/%s", user).split(" "));
+    public void removeUserFromInbox(String instance, String user) throws IOException, InterruptedException {
+        executeWithinContainer(findContainer("nbisweden/ega-inbox", "ega_inbox_" + instance), String.format("rm -rf /ega/inbox/%s", user).split(" "));
     }
 
     /**
-     * Spawns "nbis/ega:worker" container, mounts data folder there and executes a command.
+     * Spawns "nbisweden/ega-worker" container, mounts data folder there and executes a command.
      *
-     * @param from    Folder to mount from.
-     * @param to      Folder to mount to.
-     * @param command Command to execute.
+     * @param instance LocalEGA site.
+     * @param from     Folder to mount from.
+     * @param to       Folder to mount to.
+     * @param command  Command to execute.
      * @throws InterruptedException In case the command execution is interrupted.
      */
-    public void spawnWorkerAndExecute(String from, String to, String... command) throws InterruptedException {
+    public void spawnWorkerAndExecute(String instance, String from, String to, String... command) throws InterruptedException {
         Volume dataVolume = new Volume(to);
         Volume gpgVolume = new Volume("/root/.gnupg");
         CreateContainerResponse createContainerResponse = dockerClient.
-                createContainerCmd("nbis/ega:worker").
+                createContainerCmd("nbisweden/ega-worker").
                 withVolumes(dataVolume, gpgVolume).
                 withBinds(new Bind(from, dataVolume),
-                        new Bind(Paths.get("").toAbsolutePath().getParent().toString() + "/docker/bootstrap/private/gpg", gpgVolume, AccessMode.ro)).
+                        new Bind(String.format("%s/%s/gpg", getPrivateFolderPath(), instance), gpgVolume, AccessMode.ro)).
                 withCmd(command).
                 exec();
         dockerClient.startContainerCmd(createContainerResponse.getId()).exec();
@@ -134,12 +148,13 @@ public class Utils {
     /**
      * Reads property from the trace file.
      *
+     * @param instance LocalEGA site.
      * @param property Property name.
      * @return Property value.
      * @throws IOException In case it's not possible to read trace file.
      */
-    public String readTraceProperty(String fileName, String property) throws IOException {
-        File trace = new File(Paths.get("").toAbsolutePath().getParent().toString() + "/docker/bootstrap/private/" + fileName);
+    public String readTraceProperty(String instance, String property) throws IOException {
+        File trace = new File(getPrivateFolderPath() + "/.trace." + instance);
         return FileUtils.readLines(trace, Charset.defaultCharset()).
                 stream().
                 filter(l -> l.startsWith(property)).
