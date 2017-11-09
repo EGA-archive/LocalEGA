@@ -24,7 +24,7 @@ Alternatively, you can setup all [configuration files by hand](bootstrap/yoursel
 
 	docker-compose up -d
 	
-Use `docker-compose up -d --scale ingest=3` instead, if you want to
+Use `docker-compose up -d --scale ingest_swe1=3` instead, if you want to
 start 3 ingestion workers.
 
 Note that, in this architecture, we use 3 separate volumes: one for
