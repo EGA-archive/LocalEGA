@@ -107,15 +107,17 @@ EOF
 
 mkdir -p $ABS_PRIVATE/cega/users/{swe1,fin1}
 # They all have access to SWE1
-pushd $ABS_PRIVATE/cega/users/swe1 > /dev/null
-ln -s ../john.yml .
-ln -s ../jane.yml .
-ln -s ../taylor.yml .
-popd > /dev/null
+( # In a subshell
+    cd $ABS_PRIVATE/cega/users/swe1
+    ln -s ../john.yml .
+    ln -s ../jane.yml .
+    ln -s ../taylor.yml .
+)
 # John has also access to FIN1
-pushd $ABS_PRIVATE/cega/users/fin1 > /dev/null
-ln -s ../john.yml .
-popd > /dev/null
+(
+    cd $ABS_PRIVATE/cega/users/fin1
+    ln -s ../john.yml .
+)
 
 #########################################################################
 
