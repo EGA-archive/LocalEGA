@@ -5,9 +5,6 @@ set -e
 cp -r /root/ega /root/run
 pip3.6 install /root/run
 
-echo "Starting the key management server"
-ega-keyserver --keys /etc/ega/keys.ini &
-
 chmod 700 /root/.gnupg
 pkill gpg-agent || true
 #/usr/local/bin/gpgconf --kill gpg-agent || true
@@ -37,5 +34,7 @@ KEYGRIP=$(/usr/local/bin/gpg -k --with-keygrip ega@nbis.se | awk '/Keygrip/{prin
 unset GPG_PASSPHRASE
 
 echo "Starting the gpg-agent proxy"
-#exec ega-socket-proxy '0.0.0.0:9010' /run/ega/S.gpg-agent.extra --certfile /etc/ega/ssl.cert --keyfile /etc/ega/ssl.key
-exec ega-socket-proxy '0.0.0.0:9010' /root/.gnupg/S.gpg-agent.extra --certfile /etc/ega/ssl.cert --keyfile /etc/ega/ssl.key
+ega-socket-proxy '0.0.0.0:9010' /root/.gnupg/S.gpg-agent --certfile /etc/ega/ssl.cert --keyfile /etc/ega/ssl.key &
+
+echo "Starting the key management server"
+exec ega-keyserver --keys /etc/ega/keys.ini

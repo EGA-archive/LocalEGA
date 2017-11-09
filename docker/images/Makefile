@@ -1,12 +1,32 @@
 
 EGA_IMAGES=common db mq inbox worker cega_users cega_mq monitors
 
+TARGET=nbisweden/ega
+
+ifndef CI_BUILD_REF
+TAG=$(shell git rev-parse --short HEAD)
+else
+TAG=$(TRAVIS_COMMIT)
+endif
+
 all: $(EGA_IMAGES)
 
-.PHONY: all $(EGA_IMAGES)
+.PHONY: all push $(EGA_IMAGES)
+
+all: $(EGA_IMAGES)
+
+worker: common
+cega_users: common
 
 $(EGA_IMAGES):
-	docker build --cache-from nbis/ega:$@ --tag nbis/ega:$@ $@
+	-docker pull $(TARGET)-$@:latest
+	docker build --cache-from $(TARGET)-$@:latest --tag $(TARGET)-$@:$(TAG) --tag $(TARGET)-$@:latest $@
+
+push:
+	for image in $(EGA_IMAGES); do docker push $(TARGET)-$$image:latest; done
 
 clean:
-	docker images | awk '/none/{print $$3}' | while read n; do docker rmi $$n; done
+	@docker images -f "dangling=true" -q | uniq | while read n; do docker rmi $$n; done
+
+delete:
+	@docker images $(TARGET)-* --format "{{.Repository}} {{.Tag}}" | awk '{ if ($$2 != "$(TAG)" && $$2 != "latest") print $$1":"$$2; }' | uniq | while read n; do docker rmi $$n; done

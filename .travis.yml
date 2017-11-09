@@ -8,10 +8,9 @@ services:
 before_install:
   - |
         cd docker
-        docker pull -a nbis/ega
-        make -C images
-        docker run --rm -i -v ${PWD}/bootstrap:/ega nbis/ega:worker /ega/generate.sh -f
-        bootstrap/populate.sh -f
+        make -C images -j 4
+        docker run --rm -i -v ${PWD}/bootstrap:/ega nbisweden/ega-worker /ega/boot.sh
+        bootstrap/populate.sh
         sudo chown -R $USER .
 
 install:
@@ -23,9 +22,9 @@ script:
 
 after_success:
   - |
-        if [ "$TRAVIS_BRANCH" == "master" ] && [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
+        if [ "$TRAVIS_BRANCH" == "dev" ] && [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
             docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
-            docker push nbis/ega
+            make -C images -j 4 push
         fi
 
 notifications:

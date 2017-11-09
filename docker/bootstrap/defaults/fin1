@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+set -e
+
+GPG=gpg
+OPENSSL=openssl
+
+SSL_SUBJ="/C=FI/ST=Finland/L=Helsinki/O=CSC/OU=SysDevs/CN=LocalEGA/emailAddress=ega@csc.fi"
+
+DB_USER=lega
+DB_PASSWORD=$(generate_password 16)
+DB_TRY=30
+
+GPG_NAME="EGA Finland"
+GPG_COMMENT="@CSC"
+GPG_EMAIL="ega@csc.fi"
+
+GPG_PASSPHRASE=$(generate_password 16)
+RSA_PASSPHRASE=$(generate_password 16)
+
+

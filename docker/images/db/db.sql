@@ -1,6 +1,3 @@
-DROP DATABASE IF EXISTS lega;
-CREATE DATABASE lega;
-
 \connect lega
 
 SET TIME ZONE 'Europe/Stockholm';

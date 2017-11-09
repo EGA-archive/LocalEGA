@@ -2,17 +2,19 @@
 
 set -e
 
+db_instance=ega_db_$1
+
 chown root:ega /ega/inbox
 chmod 750 /ega/inbox
 chmod g+s /ega/inbox # setgid bit
 
 cp -r /root/ega /root/run
 pushd /root/run/auth
-make install clean
+make install #clean
 ldconfig -v
 popd
 
-EGA_DB_IP=$(getent hosts ega_db | awk '{ print $1 }')
+EGA_DB_IP=$(getent hosts ${db_instance} | awk '{ print $1 }')
 
 mkdir -p /etc/ega
 cat > /etc/ega/auth.conf <<EOF
@@ -50,10 +52,13 @@ eid=\${1%%@*} # strip what's after the @ symbol
 
 query="SELECT pubkey from users where elixir_id = '\${eid}' LIMIT 1"
 
-PGPASSWORD=${POSTGRES_PASSWORD} psql -tqA -U ${POSTGRES_USER} -h ega_db -d lega -c "\${query}"
+PGPASSWORD=${POSTGRES_PASSWORD} psql -tqA -U ${POSTGRES_USER} -h ${db_instance} -d lega -c "\${query}"
 EOF
 chmod 750 /usr/local/bin/ega_ssh_keys.sh
 chgrp ega /usr/local/bin/ega_ssh_keys.sh
+
+# Greetings per site
+[[ -z "${LEGA_INSTANCE_GREETING}" ]] || echo ${LEGA_INSTANCE_GREETING} > /ega/banner
 
 echo "Starting the SFTP server"
 exec /usr/sbin/sshd -D -e

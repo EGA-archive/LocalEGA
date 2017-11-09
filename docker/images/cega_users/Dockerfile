@@ -1,6 +1,5 @@
-FROM nbis/ega:common
+FROM nbisweden/ega-common:latest
 LABEL maintainer "Frédéric Haziza, NBIS"
-
 
 ##################################
 RUN mkdir /cega

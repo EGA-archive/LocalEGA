@@ -3,9 +3,11 @@
 SCRIPT=$(dirname ${BASH_SOURCE[0]})
 HERE=$PWD/${SCRIPT#./}
 
+source $HERE/lib.sh
+
 # Defaults:
-VERBOSE=yes
-FORCE=no
+VERBOSE=no
+FORCE=yes
 PRIVATE=private
 SOURCES=$HERE/../../src
 ENTRYPOINTS=$HERE/../entrypoints
@@ -16,8 +18,9 @@ function usage {
     echo -e "\t--private_dir <path>         \tPath location of private data folder"
     echo -e "\t--sources <path>             \tPath Location of the src folder"
     echo -e "\t--entrypoints <path>         \tPath Location of the entrypoints folder"
-    echo -e "\t--force, -f                  \tDon't backup .env and .env.d if they exist"
-    echo -e "\t--quiet, -q                  \tRemoves the verbose output (and uses -f)"
+    echo ""
+    echo -e "\t--verbose, -v                \tShow verbose output"
+    echo -e "\t--polite, -p                 \tDo not force the re-creation of the subfolders. Ask instead"
     echo -e "\t--help, -h                   \tOutputs this message and exits"
     echo -e "\t-- ...                       \tAny other options appearing after the -- will be ignored"
     echo ""
@@ -26,9 +29,9 @@ function usage {
 # While there are arguments or '--' is reached
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --quiet|-q) VERBOSE=no;;
         --help|-h) usage; exit 0;;
-        --force|-f) FORCE=yes;;
+        --verbose|-v) VERBOSE=yes;;
+        --polite|-p) FORCE=no;;
         --sources) SOURCES=$2; shift;;
         --entrypoints) ENTRYPOINTS=$2; shift;;
         --private_dir) PRIVATE=$2; shift;;
@@ -38,9 +41,9 @@ while [[ $# -gt 0 ]]; do
     shift
 done
 
-function echomsg {
-    [[ $VERBOSE == 'yes' ]] && echo $@
-}
+[[ $VERBOSE == 'yes' ]] && FORCE='no'
+
+echo -n "Populating files"
 
 case $PRIVATE in
     /*)  ABS_PRIVATE=$PRIVATE;;
@@ -66,13 +69,6 @@ esac
 
 [[ -d $ABS_ENTRYPOINTS ]] || { echomsg "Entrypoints folder $ABS_ENTRYPOINTS not found. Exiting" 1>&2; exit 1; }
 
-function backup {
-    local target=$1
-    if [[ -e $target ]]; then
-	echomsg "Backing up $target"
-	mv -f $target $target.$(date +"%Y-%m-%d_%H:%M:%S")
-    fi
-}
 
 [[ $FORCE == 'yes' ]] || {
     backup $HERE/../.env
@@ -85,22 +81,37 @@ COMPOSE_PROJECT_NAME=ega
 COMPOSE_FILE=ega.yml
 CODE=${ABS_SOURCES}
 ENTRYPOINTS=${ABS_ENTRYPOINTS}
-CONF=$ABS_PRIVATE/ega.conf
-KEYS=$ABS_PRIVATE/keys.conf
-SSL_CERT=$ABS_PRIVATE/certs/ssl.cert
-SSL_KEY=$ABS_PRIVATE/certs/ssl.key
-RSA_SEC=$ABS_PRIVATE/rsa/ega.sec
-RSA_PUB=$ABS_PRIVATE/rsa/ega.pub
-GPG_HOME=$ABS_PRIVATE/gpg
+#
 CEGA_USERS=$ABS_PRIVATE/cega/users
 CEGA_MQ_DEFS=$ABS_PRIVATE/cega/mq/defs.json
 EOF
 
-cp -rf $ABS_PRIVATE/.env.d $HERE/../.env.d
+eval $(grep LEGA_INSTANCES $HERE/defaults/cega)
+
+INSTANCES=(${LEGA_INSTANCES/,/ }) # make it an array
+
+for INSTANCE in "${INSTANCES[@]}"; do
+    cat >> $HERE/../.env <<EOF
+#
+CONF_${INSTANCE}=$ABS_PRIVATE/${INSTANCE}/ega.conf
+KEYS_${INSTANCE}=$ABS_PRIVATE/${INSTANCE}/keys.conf
+#
+SSL_CERT_${INSTANCE}=$ABS_PRIVATE/${INSTANCE}/certs/ssl.cert
+SSL_KEY_${INSTANCE}=$ABS_PRIVATE/${INSTANCE}/certs/ssl.key
+RSA_SEC_${INSTANCE}=$ABS_PRIVATE/${INSTANCE}/rsa/ega.sec
+RSA_PUB_${INSTANCE}=$ABS_PRIVATE/${INSTANCE}/rsa/ega.pub
+GPG_HOME_${INSTANCE}=$ABS_PRIVATE/${INSTANCE}/gpg
+EOF
+done
+
+rm_politely $HERE/../.env.d
+cp -r $ABS_PRIVATE/.env.d $HERE/../.env.d
 
 # Updating .trace with the right path
-if [[ -f $ABS_PRIVATE/.trace ]]; then
-    sed -i -e "s;<bootstrap>;$HERE;" $ABS_PRIVATE/.trace
+if [[ -f $ABS_PRIVATE/.trace.cega ]]; then
+    sed "s#<bootstrap>#$HERE#g" $ABS_PRIVATE/.trace.cega > $ABS_PRIVATE/.trace.cega.tmp
+    mv -f $ABS_PRIVATE/.trace.cega.tmp $ABS_PRIVATE/.trace.cega
+    # Note: The -i did not work. Dunno why.
 fi
 
-echomsg "docker-compose configuration files populated"
+task_complete "docker-compose configuration files populated"
