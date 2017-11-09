@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 function echomsg {
     [[ -z "$VERBOSE" ]] && echo $@ && return 0
     if [[ "$VERBOSE" == 'yes' ]]; then
