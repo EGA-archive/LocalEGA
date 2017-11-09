@@ -10,7 +10,6 @@ import se.nbis.lega.cucumber.Utils;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
-import java.nio.file.Paths;
 import java.util.Arrays;
 
 public class BeforeAfterHooks implements En {
@@ -33,14 +32,14 @@ public class BeforeAfterHooks implements En {
 
     @After
     public void tearDown() throws IOException, InterruptedException {
-        FileUtils.deleteDirectory(context.getDataFolder());
-        String cegaUsersFolderPath = Paths.get("").toAbsolutePath().getParent().toString() + "/docker/bootstrap/private/cega/users";
-        File cegaUsersFolder = new File(cegaUsersFolderPath);
         Utils utils = context.getUtils();
+        FileUtils.deleteDirectory(context.getDataFolder());
+        String targetInstance = context.getTargetInstance();
+        File cegaUsersFolder = new File(utils.getPrivateFolderPath() + "/cega/users/" + targetInstance);
         String user = context.getUser();
         Arrays.stream(cegaUsersFolder.listFiles((dir, name) -> name.startsWith(user))).forEach(File::delete);
-        utils.removeUserFromDB(user);
-        utils.removeUserFromInbox(user);
+        utils.removeUserFromDB(targetInstance, user);
+        utils.removeUserFromInbox(targetInstance, user);
     }
 
 }
