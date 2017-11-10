@@ -1,5 +1,7 @@
 package se.nbis.lega.cucumber.hooks;
 
+import com.github.dockerjava.api.exception.NotModifiedException;
+import com.github.dockerjava.api.model.Container;
 import cucumber.api.java.After;
 import cucumber.api.java.Before;
 import cucumber.api.java8.En;
@@ -33,6 +35,13 @@ public class BeforeAfterHooks implements En {
     @After
     public void tearDown() throws IOException, InterruptedException {
         Utils utils = context.getUtils();
+
+        try { // bring DB back in case it's gone down
+            Container dbContainer = utils.findContainer("nbisweden/ega-db", "ega_db_" + context.getTargetInstance());
+            utils.getDockerClient().startContainerCmd(dbContainer.getId()).exec();
+        } catch (NotModifiedException e) {
+        }
+
         FileUtils.deleteDirectory(context.getDataFolder());
         String targetInstance = context.getTargetInstance();
         File cegaUsersFolder = new File(utils.getPrivateFolderPath() + "/cega/users/" + targetInstance);
