@@ -170,7 +170,7 @@ public class Utils {
      * @return Docker container.
      */
     public Container findContainer(String imageName, String containerName) {
-        return dockerClient.listContainersCmd().exec().
+        return dockerClient.listContainersCmd().withShowAll(true).exec().
                 stream().
                 filter(c -> c.getImage().equals(imageName)).
                 filter(c -> ArrayUtils.contains(c.getNames(), "/" + containerName)).

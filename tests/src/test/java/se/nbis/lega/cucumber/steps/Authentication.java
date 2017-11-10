@@ -89,6 +89,11 @@ public class Authentication implements En {
             }
         });
 
+        Given("^database is down$", () -> {
+            Container dbContainer = utils.findContainer("nbisweden/ega-db", "ega_db_" + context.getTargetInstance());
+            utils.getDockerClient().stopContainerCmd(dbContainer.getId()).exec();
+        });
+
         When("^my account expires$", () -> {
             connect(context);
             disconnect(context);
