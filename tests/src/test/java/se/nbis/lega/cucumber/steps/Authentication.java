@@ -81,6 +81,14 @@ public class Authentication implements En {
         Given("^I have incorrect private key$",
                 () -> context.setPrivateKey(new File(String.format("%s/cega/users/%s.sec", utils.getPrivateFolderPath(), "john"))));
 
+        Given("^Inbox is deleted for my user$", () -> {
+            try {
+                utils.removeUserFromInbox(context.getTargetInstance(), context.getUser());
+            } catch (IOException | InterruptedException e) {
+                log.error(e.getMessage(), e);
+            }
+        });
+
         When("^my account expires$", () -> {
             connect(context);
             disconnect(context);
@@ -93,9 +101,9 @@ public class Authentication implements En {
             }
         });
 
-        When("^I connect to the LocalEGA inbox via SFTP using private key$", () -> {
-            connect(context);
-        });
+        When("^I connect to the LocalEGA inbox via SFTP using private key$", () -> connect(context));
+
+        When("^I disconnect from the LocalEGA inbox$", () -> disconnect(context));
 
         When("^inbox is not created for me$", () -> {
             try {
