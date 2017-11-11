@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 set -e
 
-GPG=gpg
-OPENSSL=openssl
+DOCKER_INBOX_PORT=2222
+
+GREETINGS="Welcome to Local EGA Sweden @ NBIS"
+CEGA_MQ_PASSWORD=$(generate_password 16)
+CEGA_REST_PASSWORD=$(generate_password 16)
 
 SSL_SUBJ="/C=SE/ST=Sweden/L=Uppsala/O=NBIS/OU=SysDevs/CN=LocalEGA/emailAddress=ega@nbis.se"
 
