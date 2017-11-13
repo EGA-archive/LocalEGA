@@ -16,10 +16,10 @@ public class Ingestion implements En {
     public Ingestion(Context context) {
         Utils utils = context.getUtils();
 
-        Given("^I have CEGA username and password$", () -> {
+        Given("^I have CEGA MQ username and password$", () -> {
             try {
                 context.setCegaMQUser("cega_swe1");
-                context.setCegaMQPassword(utils.readTraceProperty(".trace.cega", "CEGA_MQ_swe1_PASSWORD"));
+                context.setCegaMQPassword(utils.readTraceProperty("swe1/.trace", "CEGA_MQ_PASSWORD"));
             } catch (IOException e) {
                 log.error(e.getMessage(), e);
                 Assert.fail(e.getMessage());
