@@ -49,13 +49,13 @@ Feature: Authentication
     When I connect to the LocalEGA inbox via SFTP using private key
     Then authentication fails
 
-  Scenario: User exists in Central EGA and uses correct private key for authentication for the correct instance, but database is down
-    Given I have an account at Central EGA
-    And I want to work with instance "swe1"
-    And I have correct private key
-    And database is down
-    When I connect to the LocalEGA inbox via SFTP using private key
-    Then authentication fails
+#  Scenario: User exists in Central EGA and uses correct private key for authentication for the correct instance, but database is down
+#    Given I have an account at Central EGA
+#    And I want to work with instance "swe1"
+#    And I have correct private key
+#    And database is down
+#    When I connect to the LocalEGA inbox via SFTP using private key
+#    Then authentication fails
 
   Scenario: User exists in Central EGA and uses correct private key for authentication for the correct instance
     Given I have an account at Central EGA

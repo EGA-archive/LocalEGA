@@ -41,7 +41,7 @@ public class Utils {
      * @return Absolute path or a private folder.
      */
     public String getPrivateFolderPath() {
-        return Paths.get("").toAbsolutePath().getParent().toString() + "/docker/bootstrap/private";
+        return Paths.get("").toAbsolutePath().getParent().toString() + "/docker/private";
     }
 
     /**
@@ -154,7 +154,7 @@ public class Utils {
      * @throws IOException In case it's not possible to read trace file.
      */
     public String readTraceProperty(String instance, String property) throws IOException {
-        File trace = new File(getPrivateFolderPath() + "/.trace." + instance);
+        File trace = new File(String.format("%s/%s/.trace", getPrivateFolderPath(), instance));
         return FileUtils.readLines(trace, Charset.defaultCharset()).
                 stream().
                 filter(l -> l.startsWith(property)).
