@@ -7,6 +7,6 @@ Feature: Ingestion
     And I connect to the LocalEGA inbox via SFTP using private key
     And I have an encrypted file
     And I upload encrypted file to the LocalEGA inbox via SFTP
-    And I have CEGA username and password
+    And I have CEGA MQ username and password
     When I ingest file from the LocalEGA inbox
     Then the file is ingested successfully
