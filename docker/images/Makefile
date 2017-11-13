@@ -19,7 +19,8 @@ worker: common
 cega_users: common
 
 $(EGA_IMAGES):
-	-docker pull $(TARGET)-$@:latest
+	docker rmi $(TARGET)-$@:latest
+	docker pull $(TARGET)-$@:latest
 	docker build --cache-from $(TARGET)-$@:latest --tag $(TARGET)-$@:$(TAG) $@
 	docker tag $(TARGET)-$@:$(TAG) $(TARGET)-$@:latest
 
