@@ -1,9 +1,6 @@
-.PHONY: libgpg-error
-
+BUILD_OPTS=--define '%debug_package %{nil}' --define '%_prefix /usr/local' --noclean --nocheck
 
 all: prepare libgpg-error libgcrypt libassuan libksba npth ncurses pinentry gnupg2
-
-BUILD_OPTS=--define '%debug_package %{nil}' --define '%_prefix /usr/local' --noclean --nocheck
 
 prepare:
 	yum -y install gcc curl bzip2 rpm-build zlib-devel bzip2-devel autoconf automake libtool gettext gettext-devel
