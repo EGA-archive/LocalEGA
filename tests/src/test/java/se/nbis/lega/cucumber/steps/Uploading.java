@@ -34,7 +34,7 @@ public class Uploading implements En {
                         withVolumes(dataVolume, gpgVolume).
                         withBinds(new Bind(context.getDataFolder().getAbsolutePath(), dataVolume),
                                 new Bind(Paths.get("").toAbsolutePath().getParent().toString() + "/docker/private/swe1/gpg", gpgVolume, AccessMode.ro)).
-                        withCmd("gpg2" //utils.readTraceProperty("swe1/.trace", "GPG exec"),
+                        withCmd("gpg2", //utils.readTraceProperty("swe1/.trace", "GPG exec"),
 				"-r", 
 				utils.readTraceProperty("swe1/.trace", "GPG_EMAIL"),
 				"-e", 
