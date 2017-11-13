@@ -3,7 +3,7 @@ set -e
 
 DOCKER_INBOX_PORT=2223
 
-GREETINGS="Welcome to Local EGA Finland @ CSC"
+LEGA_GREETINGS="Welcome to Local EGA Finland @ CSC"
 CEGA_MQ_PASSWORD=$(generate_password 16)
 CEGA_REST_PASSWORD=$(generate_password 16)
 

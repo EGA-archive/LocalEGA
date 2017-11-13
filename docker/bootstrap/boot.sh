@@ -11,7 +11,7 @@ SETTINGS=${HERE}/settings
 VERBOSE=no
 FORCE=yes
 OPENSSL=openssl
-GPG=gpg
+GPG=gpg2
 GPG_CONF=gpgconf
 
 function usage {

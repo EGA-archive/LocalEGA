@@ -58,7 +58,7 @@ chmod 750 /usr/local/bin/ega_ssh_keys.sh
 chgrp ega /usr/local/bin/ega_ssh_keys.sh
 
 # Greetings per site
-[[ -z "${LEGA_INSTANCE_GREETING}" ]] || echo ${LEGA_INSTANCE_GREETING} > /ega/banner
+[[ -z "${LEGA_GREETINGS}" ]] || echo ${LEGA_GREETING} > /ega/banner
 
 echo "Starting the SFTP server"
 exec /usr/sbin/sshd -D -e
