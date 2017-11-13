@@ -51,9 +51,8 @@ public class Authentication implements En {
                     Container tempWorker = utils.findContainer("nbisweden/ega-worker", name);
                     double password = Math.random();
                     String user = context.getUser();
-                    String opensslCommand = utils.readTraceProperty(instance, "OPENSSL exec");
-                    utils.executeWithinContainer(tempWorker, String.format("%s genrsa -out /%s/%s.sec -passout pass:%f 2048", opensslCommand, dataFolderName, user, password).split(" "));
-                    utils.executeWithinContainer(tempWorker, String.format("%s rsa -in /%s/%s.sec -passin pass:%f -pubout -out /%s/%s.pub", opensslCommand, dataFolderName, user, password, dataFolderName, user).split(" "));
+                    utils.executeWithinContainer(tempWorker, String.format("openssl genrsa -out /%s/%s.sec -passout pass:%f 2048", dataFolderName, user, password).split(" "));
+                    utils.executeWithinContainer(tempWorker, String.format("openssl rsa -in /%s/%s.sec -passin pass:%f -pubout -out /%s/%s.pub", dataFolderName, user, password, dataFolderName, user).split(" "));
                     String publicKey = utils.executeWithinContainer(tempWorker, String.format("ssh-keygen -i -mPKCS8 -f /%s/%s.pub", dataFolderName, user).split(" "));
                     File userYML = new File(String.format(cegaUsersFolderPath + "/%s.yml", user));
                     FileUtils.writeLines(userYML, Arrays.asList("---", "pubkey: " + publicKey));
@@ -148,7 +147,8 @@ public class Authentication implements En {
         try {
             SSHClient ssh = new SSHClient();
             ssh.addHostKeyVerifier(new PromiscuousVerifier());
-            ssh.connect("localhost", 2222);
+            ssh.connect("localhost",
+                    Integer.parseInt(context.getUtils().readTraceProperty(context.getTargetInstance(), "DOCKER_INBOX_PORT")));
             File privateKey = context.getPrivateKey();
             ssh.authPublickey(context.getUser(), privateKey.getPath());
 

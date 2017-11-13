@@ -16,7 +16,7 @@ public class Ingestion implements En {
     public Ingestion(Context context) {
         Utils utils = context.getUtils();
 
-        Given("^I have CEGA username and password$", () -> {
+        Given("^I have CEGA MQ username and password$", () -> {
             try {
                 context.setCegaMQUser(utils.readTraceProperty(context.getTargetInstance(), "CEGA_MQ_USER"));
                 context.setCegaMQPassword(utils.readTraceProperty(context.getTargetInstance(), "CEGA_MQ_PASSWORD"));
@@ -53,7 +53,7 @@ public class Ingestion implements En {
                 String output = utils.executeDBQuery(context.getTargetInstance(),
                         String.format("select stable_id from files where filename = '%s'", context.getEncryptedFile().getName()));
                 String vaultFileName = output.split(System.getProperty("line.separator"))[2];
-                String cat = utils.executeWithinContainer(utils.findContainer("nbisweden/ega-common", "ega_vault"), "cat", vaultFileName.trim());
+                String cat = utils.executeWithinContainer(utils.findContainer("nbisweden/ega-common", "ega_vault_" + context.getTargetInstance()), "cat", vaultFileName.trim());
                 Assertions.assertThat(cat).startsWith("bytearray(b'1')|256|8|b'CTR'");
             } catch (IOException | InterruptedException e) {
                 log.error(e.getMessage(), e);
