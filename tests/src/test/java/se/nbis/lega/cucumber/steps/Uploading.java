@@ -33,8 +33,12 @@ public class Uploading implements En {
                         createContainerCmd("nbisweden/ega-worker").
                         withVolumes(dataVolume, gpgVolume).
                         withBinds(new Bind(context.getDataFolder().getAbsolutePath(), dataVolume),
-                                new Bind(Paths.get("").toAbsolutePath().getParent().toString() + "/docker/bootstrap/private/swe1/gpg", gpgVolume, AccessMode.ro)).
-                        withCmd(utils.readTraceProperty(".trace.swe1", "GPG exec"), "-r", utils.readTraceProperty(".trace.swe1", "GPG_EMAIL"), "-e", "-o", "/data/" + rawFile.getName() + ".enc", "/data/" + rawFile.getName()).
+                                new Bind(Paths.get("").toAbsolutePath().getParent().toString() + "/docker/private/swe1/gpg", gpgVolume, AccessMode.ro)).
+                        withCmd("gpg2", //utils.readTraceProperty("swe1/.trace", "GPG exec"),
+				"-r", 
+				utils.readTraceProperty("swe1/.trace", "GPG_EMAIL"),
+				"-e", 
+				"-o", "/data/" + rawFile.getName() + ".enc", "/data/" + rawFile.getName()).
                         exec();
                 dockerClient.startContainerCmd(createContainerResponse.getId()).exec();
                 WaitContainerResultCallback resultCallback = new WaitContainerResultCallback();

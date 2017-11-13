@@ -18,7 +18,7 @@ public class Authentication implements En {
         Given("^I am a user \"([^\"]*)\"$", context::setUser);
 
         Given("^I have a private key$",
-                () -> context.setPrivateKey(new File(Paths.get("").toAbsolutePath().getParent().toString() + String.format("/docker/bootstrap/private/cega/users/%s.sec", context.getUser()))));
+                () -> context.setPrivateKey(new File(Paths.get("").toAbsolutePath().getParent().toString() + String.format("/docker/private/cega/users/%s.sec", context.getUser()))));
 
         When("^I connect to the LocalEGA inbox via SFTP using private key$", () -> {
             try {

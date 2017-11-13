@@ -3,7 +3,7 @@
 function echomsg {
     [[ -z "$VERBOSE" ]] && echo $@ && return 0
     if [[ "$VERBOSE" == 'yes' ]]; then
-	echo -en "\n$@"
+	echo -e "$@"
     else
 	echo -n '.'
     fi
@@ -12,7 +12,7 @@ function echomsg {
 function task_complete {
     [[ -z "$VERBOSE" ]] && echo -e $@ && return 0
     if [[ $VERBOSE == 'yes' ]]; then
-	echo -e "\n=> $1 \xF0\x9F\x91\x8D"
+	echo -e "=> $1 \xF0\x9F\x91\x8D"
     else
 	echo -e " \xF0\x9F\x91\x8D"
     fi
@@ -21,7 +21,7 @@ function task_complete {
 
 function backup {
     local target=$1
-    if [[ -e $target ]]; then
+    if [[ -e $target ]] && [[ $FORCE != 'yes' ]]; then
 	echomsg "Backing up $target"
 	mv -f $target $target.$(date +"%Y-%m-%d_%H:%M:%S")
     fi
@@ -56,18 +56,3 @@ function generate_password {
     echo $p
 }
 
-function rabbitmq_hash {
-    # 1) Generate a random 32 bit salt
-    # 2) Concatenate that with the UTF-8 representation of the password
-    # 3) Take the SHA-256 hash
-    # 4) Concatenate the salt again
-    # 5) Convert to base64 encoding
-    local SALT=${2:-$(${OPENSSL:-openssl} rand -hex 4)}
-    (
-	printf $SALT | xxd -p -r
-	( printf $SALT | xxd -p -r; printf $1 ) | ${OPENSSL:-openssl} dgst -binary -sha256
-    ) | base64
-}
-
-
-function join_by { local IFS="$1"; shift; echo -n "$*"; }

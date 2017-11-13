@@ -4,7 +4,6 @@ services:
 
   # Local Message broker
   mq_swe1:
-    #env_file: .env.d/swe1/mq
     hostname: ega_mq
     ports:
       - "15672:15672"
@@ -13,14 +12,14 @@ services:
 
   # Postgres Database for Sweden
   db_swe1:
-    env_file: .env.d/swe1/db
+    env_file: private/swe1/db.env
     hostname: ega_db_swe1
     container_name: ega_db_swe1
     image: nbisweden/ega-db
 
   # Postgres Database for Finland
   db_fin1:
-    env_file: .env.d/fin1/db
+    env_file: private/fin1/db.env
     hostname: ega_db_fin1
     container_name: ega_db_fin1
     image: nbisweden/ega-db
@@ -39,7 +38,7 @@ services:
     volumes:
        - ${CONF_swe1}:/etc/ega/conf.ini:ro
        - ${CODE}:/root/ega
-       - ${ENTRYPOINTS}/frontend.sh:/usr/local/bin/frontend.sh:ro
+       - ./entrypoints/frontend.sh:/usr/local/bin/frontend.sh:ro
     command: frontend.sh
 
   # SFTP inbox for Sweden
@@ -48,17 +47,17 @@ services:
     depends_on:
       - db_swe1
     env_file:
-      - .env.d/swe1/db
-      - .env.d/swe1/cega
+      - private/swe1/db.env
+      - private/swe1/cega.env
     ports:
-      - "2222:22"
+      - "${DOCKER_INBOX_swe1_PORT}:22"
     container_name: ega_inbox_swe1
     image: nbisweden/ega-inbox
     volumes:
        - ${CODE}:/root/ega
        - inbox_swe1:/ega/inbox
        - ${CONF_swe1}:/etc/ega/conf.ini:ro
-       - ${ENTRYPOINTS}/inbox.sh:/usr/local/bin/inbox.sh:ro
+       - ./entrypoints/inbox.sh:/usr/local/bin/inbox.sh:ro
     command: ["inbox.sh","swe1"]
 
   # SFTP inbox for Finland
@@ -67,17 +66,17 @@ services:
     depends_on:
       - db_fin1
     env_file:
-      - .env.d/fin1/db
-      - .env.d/fin1/cega
+      - private/fin1/db.env
+      - private/fin1/cega.env
     ports:
-      - "2223:22"
+      - "${DOCKER_INBOX_fin1_PORT}:22"
     container_name: ega_inbox_fin1
     image: nbisweden/ega-inbox
     volumes:
        - ${CODE}:/root/ega
        - inbox_fin1:/ega/inbox
        - ${CONF_fin1}:/etc/ega/conf.ini:ro
-       - ${ENTRYPOINTS}/inbox.sh:/usr/local/bin/inbox.sh:ro
+       - ./entrypoints/inbox.sh:/usr/local/bin/inbox.sh:ro
     command: ["inbox.sh","fin1"]
 
   # Vault
@@ -94,7 +93,7 @@ services:
        - staging_swe1:/ega/staging
        - vault_swe1:/ega/vault
        - ${CONF_swe1}:/etc/ega/conf.ini:ro
-       - ${ENTRYPOINTS}/vault.sh:/usr/local/bin/vault.sh:ro
+       - ./entrypoints/vault.sh:/usr/local/bin/vault.sh:ro
     command: ["vault.sh","swe1"]
 
   # Ingestion Workers
@@ -115,12 +114,12 @@ services:
        - ${SSL_CERT_swe1}:/etc/ega/ssl.cert:ro
        - ${GPG_HOME_swe1}/pubring.kbx:/root/.gnupg/pubring.kbx:ro
        - ${GPG_HOME_swe1}/trustdb.gpg:/root/.gnupg/trustdb.gpg
-       - ${ENTRYPOINTS}/ingest.sh:/usr/local/bin/ingest.sh:ro
+       - ./entrypoints/ingest.sh:/usr/local/bin/ingest.sh:ro
     command: ["ingest.sh","swe1"]
 
   # Key server
   keys_swe1:
-    env_file: .env.d/swe1/gpg
+    env_file: private/swe1/gpg.env
     environment:
       - GPG_TTY=/dev/console
     hostname: ega_keys_swe1
@@ -142,7 +141,7 @@ services:
        - ${GPG_HOME_swe1}/private-keys-v1.d:/root/.gnupg/private-keys-v1.d:ro
        - ${RSA_SEC_swe1}:/etc/ega/rsa/sec.pem:ro
        - ${RSA_PUB_swe1}:/etc/ega/rsa/pub.pem:ro
-       - ${ENTRYPOINTS}/keys.sh:/usr/local/bin/keys.sh:ro
+       - ./entrypoints/keys.sh:/usr/local/bin/keys.sh:ro
     command: keys.sh
 
   # # Error Monitors
@@ -171,13 +170,14 @@ services:
        - ${CEGA_MQ_DEFS}:/etc/rabbitmq/defs.json:ro
 
   cega_users:
-    env_file: .env.d/cega_instances
+    env_file: private/cega/env
     image: nbisweden/ega-cega_users
     container_name: cega_users
     ports:
       - "9100:80"
     volumes:
-       - ${CEGA_USERS}:/cega/users:rw
+      - ${CEGA_USERS}:/cega/users:rw
+
 
 # Use the default driver for volume creation
 volumes:
