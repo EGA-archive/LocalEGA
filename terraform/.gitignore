@@ -5,3 +5,4 @@ main.tf
 tests/
 instances/workers/*.zip
 private
+*.rc

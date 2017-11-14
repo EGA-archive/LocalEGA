@@ -2,10 +2,9 @@
 set -e
 
 HERE=$(dirname ${BASH_SOURCE[0]})
-PRIVATE=${HERE}/../private
-MAIN_TF=${HERE}/../main.tf
-LIB=${HERE}/lib
 SETTINGS=${HERE}/settings
+CREDS=${HERE}/../snic.rc
+PRIVATE=private
 
 # Defaults
 VERBOSE=no
@@ -23,6 +22,8 @@ function usage {
     echo -e "\t--gpgconf <value>   \tPath to the GnuPG conf executable [Default: ${GPG_CONF}]"
     echo -e "\t--gpg-agent <value> \tPath to the GnuPG agent executable [Default: ${GPG_AGENT}]"
     echo ""
+    echo -e "\t--creds <value>     \tcredentials to load [Default: ${CREDS}]"
+    echo ""
     echo -e "\t--verbose, -v       \tShow verbose output"
     echo -e "\t--polite, -p        \tDo not force the re-creation of the subfolders. Ask instead"
     echo -e "\t--help, -h          \tOutputs this message and exits"
@@ -39,6 +40,7 @@ while [[ $# -gt 0 ]]; do
 	--gpg) GPG=$2; shift;;
 	--gpgconf) GPG_CONF=$2; shift;;
         --openssl) OPENSSL=$2; shift;;
+        --creds) CREDS=$2; shift;;
 	--) shift; break;;
         *) echo "$0: error - unrecognized option $1" 1>&2; usage; exit 1;;    esac
     shift
@@ -46,9 +48,10 @@ done
 
 [[ $VERBOSE == 'no' ]] && echo -en "Bootstrapping "
 
-source ${LIB}/defs.sh
+source bootstrap/defs.sh
 
-INSTANCES=$(ls ${SETTINGS}/instances | xargs) # make it one line. ls -lx didn't work
+INSTANCES=$(cd ${SETTINGS}; ls *.instance | xargs) # make it one line. ls -lx didn't work
+INSTANCES=(${INSTANCES//.instance/ })
 
 rm_politely ${PRIVATE}
 mkdir -p ${PRIVATE}/cega
@@ -56,22 +59,18 @@ mkdir -p ${PRIVATE}/cega
 exec 2>${PRIVATE}/.err
 
 # Load the cega settings
+if [[ -f ${CREDS} ]]; then
+    source ${CREDS}
+else
+    echo "No credentials found"
+    exit 1
+fi
 source ${SETTINGS}/cega
 
-cat > ${MAIN_TF} <<EOF
+cat > main.tf <<EOF
 /* ===================================
    Main file for the Local EGA project
    =================================== */
-
-variable os_username {}
-variable os_password {}
-variable tenant_id {}
-variable tenant_name {}
-variable auth_url {}
-variable region {}
-variable domain_name {}
-variable router_id {}
-variable dns_servers { type = list }
 
 terraform {
   backend "local" {
@@ -81,40 +80,47 @@ terraform {
 
 # Configure the OpenStack Provider
 provider "openstack" {
-  user_name   = "\${var.os_username}"
-  password    = "\${var.os_password}"
-  tenant_id   = "\${var.tenant_id}"
-  tenant_name = "\${var.tenant_name}"
-  auth_url    = "\${var.auth_url}"
-  region      = "\${var.region}"
-  domain_name = "\${var.domain_name}"
+  user_name   = "${OS_USERNAME}"
+  password    = "${OS_PASSWORD}"
+  tenant_id   = "${TENANT_ID}"
+  tenant_name = "${TENANT_NAME}"
+  auth_url    = "${AUTH_URL}"
+  region      = "${REGION}"
+  domain_name = "${DOMAIN_NAME}"
 }
 
 module "cega" {
-  source = "./cega"
+  source = "./instances/cega"
   private_ip  = "${CEGA_PRIVATE_IP}"
   cega_data = "${PRIVATE}/cega"
   pubkey = "${CEGA_PUBKEY}"
   cidr = "${CEGA_CIDR}"
-  dns_servers = \${var.dns_servers}
-  router_id = "\${var.router_id}"
+  dns_servers = ${DNS_SERVERS}
+  router_id = "${ROUTER_ID}"
 }
-
 EOF
 
 # Recreating the hosts file
-echo -e "${CEGA_PRIVATE_IP}\tcega" > ${PRIVATE}/hosts
+cat > ${PRIVATE}/hosts <<EOF
+127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
+::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
+
+${CEGA_PRIVATE_IP}    cega central_ega
+EOF
 
 # And the CEGA files
-echo "LEGA_INSTANCES=${INSTANCES// /,}" > ${PRIVATE}/cega/env
+{
+    echo -n "LEGA_INSTANCES="
+    join_by ',' ${INSTANCES[@]}
+} > ${PRIVATE}/cega/env
 
 # Central EGA Users
-source ${LIB}/cega_users.sh
+source bootstrap/cega_users.sh
 
 # Generate the configuration for each instance
-for INSTANCE in ${INSTANCES}; do source ${LIB}/instance.sh; done
+for INSTANCE in ${INSTANCES[@]}; do source bootstrap/instance.sh; done
 
 # Central EGA Message Broker
-source ${LIB}/cega_mq.sh
+source bootstrap/cega_mq.sh
 
 task_complete "Bootstrap complete"
