@@ -4,15 +4,13 @@
 
 variable os_username {}
 variable os_password {}
-variable db_password {}
-variable pubkey {}
-
-variable rsa_home {}
-variable gpg_home {}
-variable gpg_certs {}
-variable gpg_passphrase {}
-variable lega_conf {}
-variable cidr { default = "192.168.10.0/24" }
+variable tenant_id {}
+variable tenant_name {}
+variable auth_url {}
+variable region {}
+variable domain_name {}
+variable router_id {}
+variable dns_servers { type = list }
 
 terraform {
   backend "local" {
@@ -24,85 +22,80 @@ terraform {
 provider "openstack" {
   user_name   = "${var.os_username}"
   password    = "${var.os_password}"
-  tenant_id   = "e62c28337a094ea99571adfb0b97939f"
-  tenant_name = "SNIC 2017/13-34"
-  auth_url    = "https://hpc2n.cloud.snic.se:5000/v3"
-  region      = "HPC2N"
-  domain_name = "snic"
+  tenant_id   = "${var.tenant_id}"
+  tenant_name = "${var.tenant_name}"
+  auth_url    = "${var.auth_url}"
+  region      = "${var.region}"
+  domain_name = "${var.domain_name}"
 }
 
-# ========= Network =========
-module "network" {
-  source = "./network"
-  cidr = "${var.cidr}"
+module "cega" {
+  source = "./cega"
+  private_ip  = "192.168.100.100"
+  cega_data = "bootstrap/../private/cega"
+  pubkey = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCcLiS1a/+ul3LOGsBvprYLk1a8XYx6isqkVXQ05PlPLOOs83Qv9aN+uh8YOaebPYK3qlXEH4Tbmk/WJTgJJVkhefNZK+Stk3Pkk6oUqwHfZ7+lDWCqP7/Cvm4+HvVsAO+HBhv/8AhKxk6AI7X0ongrWhJLLJDuraFEYmswKAJOWiuxyKM9EbmmAhocKEx9cUHxnj8Rr3EGJ9urCwQxAIclZUfB5SqHQaGv6ApmVs5S2x6F3RG6upx6eXop4h357psaH7HTi90u6aLEjNf3uYdoCyh8AphqZ6NDVamUCXciO+1jKV03gDBC7xuLCk4ZCF0uRMXoFTmmr77AL33LuysL fred@snic-cloud"
+  cidr = "192.168.100.0/24"
+  dns_servers = ${var.dns_servers}
+  router_id = "${var.router_id}"
 }
 
-# ========= Key Pair =========
-resource "openstack_compute_keypair_v2" "ega_key" {
-  name       = "ega_key"
-  public_key = "${var.pubkey}"
-}
+module "instance_fin1" {
+       source = "./instance"
+       instance = "fin1"
+       instance_data = "bootstrap/../private/fin1"
+       pubkey = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCcLiS1a/+ul3LOGsBvprYLk1a8XYx6isqkVXQ05PlPLOOs83Qv9aN+uh8YOaebPYK3qlXEH4Tbmk/WJTgJJVkhefNZK+Stk3Pkk6oUqwHfZ7+lDWCqP7/Cvm4+HvVsAO+HBhv/8AhKxk6AI7X0ongrWhJLLJDuraFEYmswKAJOWiuxyKM9EbmmAhocKEx9cUHxnj8Rr3EGJ9urCwQxAIclZUfB5SqHQaGv6ApmVs5S2x6F3RG6upx6eXop4h357psaH7HTi90u6aLEjNf3uYdoCyh8AphqZ6NDVamUCXciO+1jKV03gDBC7xuLCk4ZCF0uRMXoFTmmr77AL33LuysL fred@snic-cloud"
+       cidr = "192.168.40.0/24"
+       dns_servers = ${var.dns_servers}
+       router_id = "${var.router_id}"
 
-# ========= Instances as Modules =========
-module "db" {
-  source = "./instances/db"
-  db_password = "${var.db_password}"
-  private_ip  = "192.168.10.10"
-  cidr        = "${var.cidr}"
-  ega_key = "${openstack_compute_keypair_v2.ega_key.name}"
-  ega_net = "${module.network.net_id}"
+       db_user = "lega"
+       db_password = "V1INWEo7c5B5vHYX"
+       db_name = "lega"
+
+       ip_db = "192.168.40.10"
+       ip_mq = "192.168.40.11"
+       ip_inbox = "192.168.40.12"
+       ip_frontend = "192.168.40.13"
+       ip_monitors = "192.168.40.15"
+       ip_vault = "192.168.40.14"
+       ip_keys = "192.168.40.16"
+       ip_workers = ["192.168.40.101","192.168.40.102"]
+
+       greetings = "Welcome to Local EGA Finland @ CSC"
+
+       inbox_size = "200"
+       inbox_path = "/ega/inbox/"
+       vault_size = "100"
+
+       gpg_passphrase = "VltxALNWkbXFoygG"
 }
-module "mq" {
-  source = "./instances/mq"
-  private_ip = "192.168.10.11"
-  cidr       = "${var.cidr}"
-  ega_key = "${openstack_compute_keypair_v2.ega_key.name}"
-  ega_net = "${module.network.net_id}"
-}
-module "inbox" {
-  source = "./instances/inbox"
-  volume_size = 600
-  db_password = "${var.db_password}"
-  private_ip = "192.168.10.14"
-  ega_key = "${openstack_compute_keypair_v2.ega_key.name}"
-  ega_net = "${module.network.net_id}"
-  lega_conf = "${base64encode("${file("${var.lega_conf}")}")}"
-  cidr = "${var.cidr}"
-}
-module "frontend" {
-  source = "./instances/frontend"
-  private_ip = "192.168.10.15"
-  ega_key = "${openstack_compute_keypair_v2.ega_key.name}"
-  ega_net = "${module.network.net_id}"
-  lega_conf = "${base64encode("${file("${var.lega_conf}")}")}"
-}
-module "monitors" {
-  source = "./instances/monitors"
-  private_ip = "192.168.10.16"
-  cidr        = "${var.cidr}"
-  ega_key = "${openstack_compute_keypair_v2.ega_key.name}"
-  ega_net = "${module.network.net_id}"
-  lega_conf = "${base64encode("${file("${var.lega_conf}")}")}"
-}
-module "vault" {
-  source = "./instances/vault"
-  volume_size = 300
-  private_ip = "192.168.10.17"
-  ega_key = "${openstack_compute_keypair_v2.ega_key.name}"
-  ega_net = "${module.network.net_id}"
-  lega_conf = "${base64encode("${file("${var.lega_conf}")}")}"
-}
-module "workers" {
-  source = "./instances/workers"
-  count = 4
-  private_ip_keys = "192.168.10.12"
-  private_ips = ["192.168.10.100","192.168.10.101","192.168.10.102","192.168.10.103"]
-  cidr        = "${var.cidr}"
-  ega_key = "${openstack_compute_keypair_v2.ega_key.name}"
-  ega_net = "${module.network.net_id}"
-  lega_conf = "${base64encode("${file("${var.lega_conf}")}")}"
-  rsa_home = "${var.rsa_home}"
-  gpg_home = "${var.gpg_home}"
-  gpg_passphrase = "${var.gpg_passphrase}"
-  gpg_certs = "${var.gpg_certs}"
+module "instance_swe1" {
+       source = "./instance"
+       instance = "swe1"
+       instance_data = "bootstrap/../private/swe1"
+       pubkey = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCcLiS1a/+ul3LOGsBvprYLk1a8XYx6isqkVXQ05PlPLOOs83Qv9aN+uh8YOaebPYK3qlXEH4Tbmk/WJTgJJVkhefNZK+Stk3Pkk6oUqwHfZ7+lDWCqP7/Cvm4+HvVsAO+HBhv/8AhKxk6AI7X0ongrWhJLLJDuraFEYmswKAJOWiuxyKM9EbmmAhocKEx9cUHxnj8Rr3EGJ9urCwQxAIclZUfB5SqHQaGv6ApmVs5S2x6F3RG6upx6eXop4h357psaH7HTi90u6aLEjNf3uYdoCyh8AphqZ6NDVamUCXciO+1jKV03gDBC7xuLCk4ZCF0uRMXoFTmmr77AL33LuysL fred@snic-cloud"
+       cidr = "192.168.10.0/24"
+       dns_servers = ${var.dns_servers}
+       router_id = "${var.router_id}"
+
+       db_user = "lega"
+       db_password = "HtXfJKUoilFJWnip"
+       db_name = "lega"
+
+       ip_db = "192.168.10.10"
+       ip_mq = "192.168.10.11"
+       ip_inbox = "192.168.10.12"
+       ip_frontend = "192.168.10.13"
+       ip_monitors = "192.168.10.15"
+       ip_vault = "192.168.10.14"
+       ip_keys = "192.168.10.16"
+       ip_workers = ["192.168.10.101","192.168.10.102","192.168.10.103","192.168.10.104"]
+
+       greetings = "Welcome to Local EGA Sweden @ NBIS"
+
+       inbox_size = "300"
+       inbox_path = "/ega/inbox/"
+       vault_size = "150"
+
+       gpg_passphrase = "xRZWFQTZLTRhkzeL"
 }
