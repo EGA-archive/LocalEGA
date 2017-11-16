@@ -88,9 +88,13 @@ public class Authentication implements En {
             }
         });
 
-        Given("^database is down$", () -> {
-            Container dbContainer = utils.findContainer("nbisweden/ega-db", "ega_db_" + context.getTargetInstance());
-            utils.getDockerClient().stopContainerCmd(dbContainer.getId()).exec();
+        Given("^the database connectivity is broken$", () -> {
+            try {
+                utils.executeWithinContainer(utils.findContainer("nbisweden/ega-inbox", "ega_inbox_" + context.getTargetInstance()),
+                        "sed -i s/dbname=lega/dbname=wrong/g /etc/ega/auth.conf".split(" "));
+            } catch (IOException | InterruptedException e) {
+                log.error(e.getMessage(), e);
+            }
         });
 
         When("^my account expires$", () -> {
