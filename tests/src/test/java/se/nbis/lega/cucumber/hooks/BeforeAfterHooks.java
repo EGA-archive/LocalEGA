@@ -1,13 +1,10 @@
 package se.nbis.lega.cucumber.hooks;
 
-import com.github.dockerjava.api.exception.NotModifiedException;
-import com.github.dockerjava.api.model.Container;
 import cucumber.api.java.After;
 import cucumber.api.java.Before;
 import cucumber.api.java8.En;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang.StringUtils;
 import se.nbis.lega.cucumber.Context;
 import se.nbis.lega.cucumber.Utils;
 
@@ -25,6 +22,7 @@ public class BeforeAfterHooks implements En {
         this.context = context;
     }
 
+    @SuppressWarnings("ResultOfMethodCallIgnored")
     @Before
     public void setUp() throws IOException {
         File dataFolder = new File("data");
@@ -35,25 +33,15 @@ public class BeforeAfterHooks implements En {
         context.setRawFile(rawFile);
     }
 
+    @SuppressWarnings({"ConstantConditions", "ResultOfMethodCallIgnored"})
     @After
     public void tearDown() throws IOException, InterruptedException {
         Utils utils = context.getUtils();
-
-        // bring DB back in case it's down
         String targetInstance = context.getTargetInstance();
-        try {
-            Container dbContainer = utils.findContainer("nbisweden/ega-db", "ega_db_" + targetInstance);
-            utils.getDockerClient().startContainerCmd(dbContainer.getId()).exec();
-            for (int i = 0; i < Integer.parseInt(utils.readTraceProperty(targetInstance, "DB_TRY")); i++) {
-                String testQueryResult = utils.executeDBQuery(targetInstance, "select * from users;");
-                if (StringUtils.isNotEmpty(testQueryResult)) {
-                    break;
-                }
-                log.info("DB is down, trying to bring it up. Attempt: " + i);
-                Thread.sleep(1000);
-            }
-        } catch (NotModifiedException e) {
-        }
+
+        // fix database connectivity
+        utils.executeWithinContainer(utils.findContainer("nbisweden/ega-inbox", "ega_inbox_" + context.getTargetInstance()),
+                "sed -i s/dbname=wrong/dbname=lega/g /etc/ega/auth.conf".split(" "));
 
         FileUtils.deleteDirectory(context.getDataFolder());
         File cegaUsersFolder = new File(utils.getPrivateFolderPath() + "/cega/users/" + targetInstance);
