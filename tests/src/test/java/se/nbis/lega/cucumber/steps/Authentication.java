@@ -88,7 +88,7 @@ public class Authentication implements En {
             }
         });
 
-        Given("^I break the database connectivity$", () -> {
+        Given("^the database connectivity is broken$", () -> {
             try {
                 utils.executeWithinContainer(utils.findContainer("nbisweden/ega-inbox", "ega_inbox_" + context.getTargetInstance()),
                         "sed -i s/dbname=lega/dbname=wrong/g /etc/ega/auth.conf".split(" "));
