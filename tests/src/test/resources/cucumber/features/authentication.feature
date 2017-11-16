@@ -53,7 +53,7 @@ Feature: Authentication
     Given I have an account at Central EGA
     And I want to work with instance "swe1"
     And I have correct private key
-    And I break the database connectivity
+    And the database connectivity is broken
     When I connect to the LocalEGA inbox via SFTP using private key
     Then authentication fails
 
