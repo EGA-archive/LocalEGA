@@ -159,7 +159,9 @@ public class Utils {
                 stream().
                 filter(l -> l.startsWith(property)).
                 map(p -> p.split(" = ")[1]).
-                findAny().orElse(null);
+                findAny().
+                orElseThrow(() -> new RuntimeException(String.format("Property %s not found for instance %s", property, instance))).
+                trim();
     }
 
     /**
