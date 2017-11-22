@@ -7,7 +7,7 @@ services:
 
 before_install:
   - |
-        cd docker/images
+        cd extras/docker/images
         make pull
         make common
         make -j 4 images
