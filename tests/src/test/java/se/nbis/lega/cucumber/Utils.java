@@ -9,7 +9,7 @@ import com.github.dockerjava.api.model.Volume;
 import com.github.dockerjava.core.DefaultDockerClientConfig;
 import com.github.dockerjava.core.DockerClientBuilder;
 import com.github.dockerjava.core.command.ExecStartResultCallback;
-import com.github.dockerjava.core.command.WaitContainerResultCallback;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.ArrayUtils;
@@ -20,10 +20,14 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 
 /**
  * Utility methods for the test-suite.
  */
+@Slf4j
 public class Utils {
 
     private DockerClient dockerClient;
@@ -125,10 +129,13 @@ public class Utils {
      * @param instance LocalEGA site.
      * @param from     Folder to mount from.
      * @param to       Folder to mount to.
-     * @param command  Command to execute.
+     * @param commands Command to execute.
+     * @return Execution result per command.
      * @throws InterruptedException In case the command execution is interrupted.
      */
-    public void spawnWorkerAndExecute(String instance, String from, String to, String... command) throws InterruptedException {
+    public List<String> spawnTempWorkerAndExecute(String instance, String from, String to, String... commands) throws InterruptedException {
+        List<String> results = new ArrayList<>();
+        String name = UUID.randomUUID().toString();
         Volume dataVolume = new Volume(to);
         Volume gpgVolume = new Volume("/root/.gnupg");
         CreateContainerResponse createContainerResponse = dockerClient.
@@ -136,13 +143,21 @@ public class Utils {
                 withVolumes(dataVolume, gpgVolume).
                 withBinds(new Bind(from, dataVolume),
                         new Bind(String.format("%s/%s/gpg", getPrivateFolderPath(), instance), gpgVolume, AccessMode.ro)).
-                withCmd(command).
+                withEnv("MQ_INSTANCE=ega_mq_" + instance, "KEYSERVER_HOST=ega_keys_" + instance, "KEYSERVER_PORT=9010").
+                withName(name).
                 exec();
         dockerClient.startContainerCmd(createContainerResponse.getId()).exec();
-        WaitContainerResultCallback resultCallback = new WaitContainerResultCallback();
-        dockerClient.waitContainerCmd(createContainerResponse.getId()).exec(resultCallback);
-        resultCallback.awaitCompletion();
-        dockerClient.removeContainerCmd(createContainerResponse.getId()).exec();
+        try {
+            Container tempWorker = findContainer("nbisweden/ega-worker", name);
+            for (String command : commands) {
+                results.add(executeWithinContainer(tempWorker, command.split(" ")));
+            }
+        } catch (IOException | InterruptedException e) {
+            log.error(e.getMessage(), e);
+        } finally {
+            dockerClient.removeContainerCmd(createContainerResponse.getId()).withForce(true).exec();
+        }
+        return results;
     }
 
     /**
