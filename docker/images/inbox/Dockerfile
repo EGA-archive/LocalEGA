@@ -33,7 +33,6 @@ RUN cp /etc/nsswitch.conf /etc/nsswitch.conf.bak && \
 
 COPY banner /ega/banner
 COPY sshd_config /etc/ssh/sshd_config
-COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 
 ARG checkout=dev
 
@@ -46,5 +45,8 @@ RUN git clone https://github.com/NBISweden/LocalEGA /root/ega && \
 
 RUN useradd ega
 VOLUME /ega/inbox
+
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod 755 /usr/local/bin/entrypoint.sh
+ENV DB_INSTANCE=
 ENTRYPOINT ["entrypoint.sh"]
-# CMD "swe1"

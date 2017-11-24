@@ -13,5 +13,6 @@ RUN git clone https://github.com/NBISweden/LocalEGA /root/ega && \
 #    cd src && \
 #    python3.6 setup.py install
 
+ENV MQ_INSTANCE=
 ENTRYPOINT ["entrypoint.sh"]
 # CMD swe1

@@ -28,10 +28,10 @@ bootstrap:
                      worker
 
 pull:
-	for image in common $(EGA_IMAGES); do docker pull $(TARGET)-$$image:latest; done
+	for image in common bootstrap $(EGA_IMAGES); do docker pull $(TARGET)-$$image:latest; done
 
 push:
-	for image in common $(EGA_IMAGES); do docker push $(TARGET)-$$image:latest; done
+	for image in common bootstrap $(EGA_IMAGES); do docker push $(TARGET)-$$image:latest; done
 
 clean:
 	@docker images $(TARGET)-* -f "dangling=true" -q | uniq | while read n; do docker rmi $$n; done

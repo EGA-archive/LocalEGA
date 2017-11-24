@@ -119,6 +119,7 @@ EOF
 echomsg "\t* Generating the docker-compose configuration files"
 
 cat > ${PRIVATE}/${INSTANCE}/db.env <<EOF
+DB_INSTANCE=ega_db_${INSTANCE}
 POSTGRES_USER=${DB_USER}
 POSTGRES_PASSWORD=${DB_PASSWORD}
 POSTGRES_DB=lega

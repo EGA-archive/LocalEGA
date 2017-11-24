@@ -7,5 +7,5 @@ RUN mkdir -p /root/.gnupg && \
 COPY gpg-agent.conf /root/.gnupg/gpg-agent.conf
 
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+ENV KEYSERVER_PORT=
 ENTRYPOINT ["entrypoint.sh"]
-CMD 9010

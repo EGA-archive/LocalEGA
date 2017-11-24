@@ -11,11 +11,6 @@ RUN rpm -i /var/src/ega/*.rpm && \
     echo "/usr/local/lib64" > /etc/ld.so.conf.d/gpg2.conf && \
     ldconfig -v
 
-COPY entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN chmod 755 /usr/local/bin/entrypoint.sh
-ENTRYPOINT ["entrypoint.sh"]
-# CMD swe1
-
 VOLUME /ega/inbox
 VOLUME /ega/staging
 
@@ -26,3 +21,11 @@ RUN git clone https://github.com/NBISweden/LocalEGA /root/ega && \
     pip3.6 install ./src
 #    cd src && \
 #    python3.6 setup.py install
+
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod 755 /usr/local/bin/entrypoint.sh
+
+ENV KEYSERVER_HOST=
+ENV KEYSERVER_PORT=
+ENV MQ_INSTANCE=
+ENTRYPOINT ["entrypoint.sh"]
