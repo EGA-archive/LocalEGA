@@ -7,8 +7,11 @@ services:
 
 before_install:
   - |
-        cd docker
-        make -C images -j 4
+        cd docker/images
+        make pull
+        make common
+        make -j 4 images
+        cd ..
         make bootstrap
         sudo chown -R $USER .
 
