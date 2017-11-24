@@ -57,7 +57,6 @@ exec 2>${PRIVATE}/.err
 cat > ${DOT_ENV} <<EOF
 COMPOSE_PROJECT_NAME=ega
 COMPOSE_FILE=ega.yml
-CODE=../src
 CEGA_USERS=./private/cega/users
 CEGA_MQ_DEFS=./private/cega/mq/defs.json
 EOF

@@ -2,21 +2,13 @@
 
 set -e
 
-db_instance=ega_db_$1
-
 chown root:ega /ega/inbox
 chmod 750 /ega/inbox
 chmod g+s /ega/inbox # setgid bit
 
-cp -r /root/ega /root/run
-pushd /root/run/auth
-make install #clean
-ldconfig -v
-popd
-
+db_instance=ega_db_$1
 EGA_DB_IP=$(getent hosts ${db_instance} | awk '{ print $1 }')
 
-mkdir -p /etc/ega
 cat > /etc/ega/auth.conf <<EOF
 debug = ok_why_not
 
