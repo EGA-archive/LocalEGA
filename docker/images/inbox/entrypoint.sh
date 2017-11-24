@@ -2,12 +2,14 @@
 
 set -e
 
+# DB_INSTANCE env must be defined
+[[ -z "${DB_INSTANCE}" ]] && echo 'Environment DB_INSTANCE is empty' 1>&2 && exit 1
+
 chown root:ega /ega/inbox
 chmod 750 /ega/inbox
 chmod g+s /ega/inbox # setgid bit
 
-db_instance=ega_db_$1
-EGA_DB_IP=$(getent hosts ${db_instance} | awk '{ print $1 }')
+EGA_DB_IP=$(getent hosts ${DB_INSTANCE} | awk '{ print $1 }')
 
 cat > /etc/ega/auth.conf <<EOF
 debug = ok_why_not
@@ -44,7 +46,7 @@ eid=\${1%%@*} # strip what's after the @ symbol
 
 query="SELECT pubkey from users where elixir_id = '\${eid}' LIMIT 1"
 
-PGPASSWORD=${POSTGRES_PASSWORD} psql -tqA -U ${POSTGRES_USER} -h ${db_instance} -d lega -c "\${query}"
+PGPASSWORD=${POSTGRES_PASSWORD} psql -tqA -U ${POSTGRES_USER} -h ${DB_INSTANCE} -d lega -c "\${query}"
 EOF
 chmod 750 /usr/local/bin/ega_ssh_keys.sh
 chgrp ega /usr/local/bin/ega_ssh_keys.sh
