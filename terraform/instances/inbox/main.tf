@@ -5,17 +5,20 @@ variable image_name { default = "EGA-common" }
 
 variable volume_size { default = 100 }
 
-variable db_password {}
 variable private_ip {}
-variable lega_conf {}
+variable instance_data {}
 variable cidr {}
+variable pool {}
 
-data "template_file" "boot" {
-  template = "${file("${path.module}/boot.tpl")}"
+resource "openstack_compute_secgroup_v2" "ega_inbox" {
+  name        = "ega-inbox"
+  description = "SFTP inbox rules"
 
-  vars {
-    db_password = "${var.db_password}"
-    cidr = "${var.cidr}"
+  rule {
+    from_port   = 22
+    to_port     = 22
+    ip_protocol = "tcp"
+    cidr        = "0.0.0.0/0"
   }
 }
 
@@ -23,21 +26,13 @@ data "template_file" "cloud_init" {
   template = "${file("${path.module}/cloud_init.tpl")}"
 
   vars {
-    boot_script = "${base64encode("${data.template_file.boot.rendered}")}"
-    hosts = "${base64encode("${file("${path.root}/hosts")}")}"
-    conf = "${var.lega_conf}"
-  }
-}
-
-resource "openstack_compute_secgroup_v2" "ega_inbox" {
-  name        = "ega-inbox"
-  description = "Inbox access"
-
-  rule {
-    from_port   = 22
-    to_port     = 22
-    ip_protocol = "tcp"
-    cidr        = "0.0.0.0/0"
+    boot_script = "${base64encode("${file("${path.module}/boot.sh")}")}"
+    cidr        = "${var.cidr}"
+    conf        = "${base64encode("${file("${var.instance_data}/auth.conf")}")}"
+    hosts       = "${base64encode("${file("${var.instance_data}/hosts")}")}"
+    hosts_allow = "${base64encode("${file("${var.instance_data}/hosts.allow")}")}"
+    sshd_config = "${base64encode("${file("${path.module}/sshd_config")}")}"
+    ega_pam     = "${base64encode("${file("${path.module}/pam.ega")}")}"
   }
 }
 
@@ -54,15 +49,6 @@ resource "openstack_compute_instance_v2" "inbox" {
   user_data       = "${data.template_file.cloud_init.rendered}"
 }
 
-# ===== Floating IP =====
-resource "openstack_networking_floatingip_v2" "inbox_ip" {
-  pool = "Public External IPv4 Network"
-}
-resource "openstack_compute_floatingip_associate_v2" "inbox_fip" {
-  floating_ip  = "${openstack_networking_floatingip_v2.inbox_ip.address}"
-  instance_id = "${openstack_compute_instance_v2.inbox.id}"
-}
-
 # ===== Staging area / Inbox volume =====
 resource "openstack_blockstorage_volume_v2" "disk" {
   name = "inbox"
@@ -73,4 +59,13 @@ resource "openstack_compute_volume_attach_v2" "inbox_attach" {
   instance_id = "${openstack_compute_instance_v2.inbox.id}"
   volume_id   = "${openstack_blockstorage_volume_v2.disk.id}"
   device = "/dev/vdb" # might cause re-attaching upon each 'apply'
+}
+
+# ===== Floating IP =====
+resource "openstack_networking_floatingip_v2" "fip" {
+  pool = "${var.pool}"
+}
+resource "openstack_compute_floatingip_associate_v2" "inbox_fip" {
+  floating_ip  = "${openstack_networking_floatingip_v2.fip.address}"
+  instance_id = "${openstack_compute_instance_v2.inbox.id}"
 }

@@ -3,6 +3,13 @@
 set -e # stop on errors
 set -x # show me the commands
 
+# ========================
+# No SELinux
+echo "Disabling SElinux"
+[ -f /etc/sysconfig/selinux ] && sed -i 's/SELINUX=.*/SELINUX=disabled/' /etc/sysconfig/selinux
+[ -f /etc/selinux/config ] && sed -i 's/SELINUX=.*/SELINUX=disabled/' /etc/selinux/config
+setenforce 0
+
 
 yum -y update
 
@@ -22,3 +29,5 @@ sed -i -e "s/local\(.*\)peer/local\1trust/" /var/lib/pgsql/9.6/data/pg_hba.conf
 sed -i -e "s;host.*1/128.*ident;host all all all md5;" /var/lib/pgsql/9.6/data/pg_hba.conf
 
 # Note: Update the sudo rights?
+
+poweroff

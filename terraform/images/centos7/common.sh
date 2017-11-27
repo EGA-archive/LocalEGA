@@ -3,30 +3,39 @@
 set -e # stop on errors
 set -x # show me the commands
 
-yum -y update && \
-yum -y install gcc git curl wget make gettext texinfo \
-               zlib-devel bzip2 bzip2-devel unzip \
-	       file readline-devel \
-	       sqlite sqlite-devel \
-	       openssl openssl-devel openssh-server \
+# ========================
+# No SELinux
+echo "Disabling SElinux"
+[ -f /etc/sysconfig/selinux ] && sed -i 's/SELINUX=.*/SELINUX=disabled/' /etc/sysconfig/selinux
+[ -f /etc/selinux/config ] && sed -i 's/SELINUX=.*/SELINUX=disabled/' /etc/selinux/config
+setenforce 0
+
+# ========================
+
+yum -y install https://centos7.iuscommunity.org/ius-release.rpm
+yum -y update
+yum -y install gcc git curl make bzip2 unzip patch \
+               openssl openssh-server \
 	       nss-tools nc nmap tcpdump lsof strace \
-	       bash-completion bash-completion-extras
+	       bash-completion bash-completion-extras \
+	       python36u python36u-pip
 
 LIBGPG_ERROR_VERSION=1.27
 LIBGCRYPT_VERSION=1.8.1
-LIBASSUAN_VERSION=2.4.3
+LIBASSUAN_VERSION=2.4.4
 LIBKSBA_VERSION=1.3.5
 LIBNPTH_VERSION=1.5
 NCURSES_VERSION=6.0
 PINENTRY_VERSION=1.0.0
-GNUPG_VERSION=2.2.0
-OPENSSH_VERSION=7.5p1
+GNUPG_VERSION=2.2.3
 
-mkdir -p /var/src/{gnupg,openssh} && \
+mkdir -p /var/src/gnupg && \
 mkdir -p /root/{.gnupg,.ssh} && \
 chmod 700 /root/{.gnupg,.ssh}
 
 cd /var/src/gnupg
+
+curl -O https://raw.githubusercontent.com/NBISweden/LocalEGA/feature/patch/docker/images/worker/rpmbuild/SOURCES/gnupg2-socketdir.patch
 
 echo "/usr/local/lib" > /etc/ld.so.conf.d/gpg2.conf && \
     ldconfig -v
@@ -39,22 +48,24 @@ gpg --list-keys && \
 gpg --keyserver pgp.mit.edu --recv-keys 0x4F25E3B6 0xE0856959 0x33BD3F06 0x7EFD60D9 0xF7E48EDB
 
 # Downloads
-curl -O ftp://ftp.gnupg.org/gcrypt/libgpg-error/libgpg-error-${LIBGPG_ERROR_VERSION}.tar.gz
-curl -O ftp://ftp.gnupg.org/gcrypt/libgpg-error/libgpg-error-${LIBGPG_ERROR_VERSION}.tar.gz.sig
-curl -O ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-${LIBGCRYPT_VERSION}.tar.gz
-curl -O ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-${LIBGCRYPT_VERSION}.tar.gz.sig
-curl -O ftp://ftp.gnupg.org/gcrypt/libassuan/libassuan-${LIBASSUAN_VERSION}.tar.bz2
-curl -O ftp://ftp.gnupg.org/gcrypt/libassuan/libassuan-${LIBASSUAN_VERSION}.tar.bz2.sig
-curl -O ftp://ftp.gnupg.org/gcrypt/libksba/libksba-${LIBKSBA_VERSION}.tar.bz2
-curl -O ftp://ftp.gnupg.org/gcrypt/libksba/libksba-${LIBKSBA_VERSION}.tar.bz2.sig
-curl -O ftp://ftp.gnupg.org/gcrypt/npth/npth-${LIBNPTH_VERSION}.tar.bz2
-curl -O ftp://ftp.gnupg.org/gcrypt/npth/npth-${LIBNPTH_VERSION}.tar.bz2.sig
+#SERVER=ftp://ftp.gnupg.org
+SERVER=ftp://mirrors.dotsrc.org
+curl -O ${SERVER}/gcrypt/libgpg-error/libgpg-error-${LIBGPG_ERROR_VERSION}.tar.gz
+curl -O ${SERVER}/gcrypt/libgpg-error/libgpg-error-${LIBGPG_ERROR_VERSION}.tar.gz.sig
+curl -O ${SERVER}/gcrypt/libgcrypt/libgcrypt-${LIBGCRYPT_VERSION}.tar.gz
+curl -O ${SERVER}/gcrypt/libgcrypt/libgcrypt-${LIBGCRYPT_VERSION}.tar.gz.sig
+curl -O ${SERVER}/gcrypt/libassuan/libassuan-${LIBASSUAN_VERSION}.tar.bz2
+curl -O ${SERVER}/gcrypt/libassuan/libassuan-${LIBASSUAN_VERSION}.tar.bz2.sig
+curl -O ${SERVER}/gcrypt/libksba/libksba-${LIBKSBA_VERSION}.tar.bz2
+curl -O ${SERVER}/gcrypt/libksba/libksba-${LIBKSBA_VERSION}.tar.bz2.sig
+curl -O ${SERVER}/gcrypt/npth/npth-${LIBNPTH_VERSION}.tar.bz2
+curl -O ${SERVER}/gcrypt/npth/npth-${LIBNPTH_VERSION}.tar.bz2.sig
 curl -O ftp://ftp.gnu.org/gnu/ncurses/ncurses-${NCURSES_VERSION}.tar.gz
 curl -O ftp://ftp.gnu.org/gnu/ncurses/ncurses-${NCURSES_VERSION}.tar.gz.sig
-curl -O ftp://ftp.gnupg.org/gcrypt/pinentry/pinentry-${PINENTRY_VERSION}.tar.bz2
-curl -O ftp://ftp.gnupg.org/gcrypt/pinentry/pinentry-${PINENTRY_VERSION}.tar.bz2.sig
-curl -O ftp://ftp.gnupg.org/gcrypt/gnupg/gnupg-${GNUPG_VERSION}.tar.bz2
-curl -O ftp://ftp.gnupg.org/gcrypt/gnupg/gnupg-${GNUPG_VERSION}.tar.bz2.sig
+curl -O ${SERVER}/gcrypt/pinentry/pinentry-${PINENTRY_VERSION}.tar.bz2
+curl -O ${SERVER}/gcrypt/pinentry/pinentry-${PINENTRY_VERSION}.tar.bz2.sig
+curl -O ${SERVER}/gcrypt/gnupg/gnupg-${GNUPG_VERSION}.tar.bz2
+curl -O ${SERVER}/gcrypt/gnupg/gnupg-${GNUPG_VERSION}.tar.bz2.sig
 
 
 # Verify and uncompress
@@ -69,70 +80,84 @@ gpg --verify gnupg-${GNUPG_VERSION}.tar.bz2.sig && tar -xjf gnupg-${GNUPG_VERSIO
 
 
 # Install libgpg-error
-pushd libgpg-error-${LIBGPG_ERROR_VERSION}/ && ./configure && make && make install && popd
+(
+    cd libgpg-error-${LIBGPG_ERROR_VERSION}
+    ./configure
+    make
+    make install
+)
 
 # Install libgcrypt
-pushd libgcrypt-${LIBGCRYPT_VERSION} && ./configure && make && make install && popd
+(
+    cd libgcrypt-${LIBGCRYPT_VERSION}
+    ./configure
+    make 
+    make install
+)
 
 # Install libassuan
-pushd libassuan-${LIBASSUAN_VERSION} && ./configure && make && make install && popd
+(
+    cd libassuan-${LIBASSUAN_VERSION}
+    ./configure
+    make 
+    make install
+)
 
 # Install libksba
-pushd libksba-${LIBKSBA_VERSION} && ./configure && make && make install && popd
+(
+    cd libksba-${LIBKSBA_VERSION}
+    ./configure
+    make
+    make install
+)
 
 # Install libnpth
-pushd npth-${LIBNPTH_VERSION} && ./configure && make && make install && popd
+(
+    cd npth-${LIBNPTH_VERSION}
+    ./configure 
+    make
+    make install
+)
 
 # Install ncurses
-pushd ncurses-${NCURSES_VERSION} && export CPPFLAGS="-P" && ./configure && make && make install && popd
+(
+    cd ncurses-${NCURSES_VERSION}
+    export CPPFLAGS="-P"
+    ./configure
+    make
+    make install
+)
 
 # Install pinentry
-pushd pinentry-${PINENTRY_VERSION} && ./configure --enable-pinentry-curses --disable-pinentry-qt5 --enable-pinentry-tty && \
-make && make install && popd
+(
+    cd pinentry-${PINENTRY_VERSION}
+    ./configure --enable-pinentry-curses --disable-pinentry-qt5 --enable-pinentry-tty
+    make
+    make install
+)
 
-# Install 
-pushd gnupg-${GNUPG_VERSION} && ./configure && make && make install && popd
-
-
-##############################################################
-cd /var/src/openssh
-
-gpg --keyserver pgp.mit.edu --recv-keys 0x6D920D30
-# Damien Miller <djm@mindrot.org>
-
-curl -O ftp://ftp.eu.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-${OPENSSH_VERSION}.tar.gz
-curl -O ftp://ftp.eu.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-${OPENSSH_VERSION}.tar.gz.asc
-gpg --verify openssh-${OPENSSH_VERSION}.tar.gz.asc && tar -xzf openssh-${OPENSSH_VERSION}.tar.gz
-pushd openssh-${OPENSSH_VERSION} && ./configure && make && make install && popd
+# Install
+(
+    cd gnupg-${GNUPG_VERSION}
+    patch -p1 < /var/src/gnupg/gnupg2-socketdir.patch
+    ./configure
+    make
+    make install
+)
 
 ##############################################################
 # Cleaning the previous gpg keys
-rm -rf /root/.gnupg && \
-mkdir -p /root/.gnupg && \
-chmod 700 /root/.gnupg
-
-##############################################################
-# Cleanup
-cd /
-rm -rf /var/src/{gnupg,openssh}
-
+rm -rf /root/.gnupg /var/src/gnupg
 
 #################################
 # Python 3
 #################################
 
-yum -y install https://centos7.iuscommunity.org/ius-release.rpm
-yum -y install python36u
-yum -y install python36u-pip
-
-ln -s /bin/python3.6 /usr/local/bin/python3
+[[ -e /lib64/libpython3.6m.so ]] || ln -s /lib64/libpython3.6m.so.1.0 /lib64/libpython3.6m.so
+[[ -e /usr/local/bin/python3 ]]  || ln -s /bin/python3.6 /usr/local/bin/python3
 
 # Installing required packages
-pip3.6 install PyYaml Markdown
-
-# And some extra ones, to speed up booting the VMs
-pip3.6 install pika==0.10.0 aiohttp==2.0.5 pycryptodomex==3.4.5 aiopg==0.13.0 colorama==0.3.7 aiohttp-jinja2==0.13.0
-
+pip3.6 install PyYaml Markdown pika aiohttp pycryptodomex aiopg colorama aiohttp-jinja2
 
 ##############################################################
 # Create ega user (with default settings)

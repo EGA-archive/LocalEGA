@@ -4,14 +4,22 @@ write_files:
     content: ${db_sql}
     owner: postgres:postgres
     path: /tmp/db.sql
+    permissions: '0600'
+  - encoding: b64
+    content: ${hosts}
+    owner: root:root
+    path: /etc/hosts
     permissions: '0644'
   - encoding: b64
-    content: ${boot_script}
+    content: ${hosts_allow}
     owner: root:root
-    path: /root/boot.sh
-    permissions: '0700'
+    path: /etc/hosts.allow
+    permissions: '0644'
 
 runcmd:
-  - /root/boot.sh
+  - systemctl start postgresql-9.6.service
+  - systemctl enable postgresql-9.6.service
+  - psql -v ON_ERROR_STOP=1 -U postgres -f /tmp/db.sql
+  - rm -f /tmp/db.sql
 
 final_message: "The system is finally up, after $UPTIME seconds"

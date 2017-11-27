@@ -58,3 +58,4 @@ function generate_password {
 
 
 function join_by { local IFS="$1"; shift; echo -n "$*"; }
+

@@ -1,8 +1,7 @@
-main.auto.tfvars
-main.tf
 .terraform*
 *.tfstate*
-tests/
-instances/workers/*.zip
-private
 *.rc
+main.tf
+images/centos7/main.tf
+cega/main.tf
+private

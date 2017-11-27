@@ -1,0 +1,28 @@
+[Unit]
+Description=EGA Socket forwarding service (to GPG-master on port 9010)
+After=syslog.target
+After=network.target
+After=user.slice systemd-logind.service
+
+Requires=ega-socket-forwarder.socket
+After=ega-socket-forwarder.socket
+
+[Service]
+Slice=ega.slice
+Type=simple
+User=ega
+Group=ega
+ExecStart=/bin/ega-socket-forwarder /run/ega/S.gpg-agent ${KEYSERVER_HOST}:${KEYSERVER_PORT} --certfile /etc/ega/ssl.cert
+RuntimeDirectory=ega
+Environment=KEYSERVER_HOST=ega-keys
+Environment=KEYSERVER_PORT=9010
+
+Restart=on-failure
+RestartSec=10
+TimeoutSec=600
+
+Sockets=ega-socket-forwarder.socket
+
+[Install]
+WantedBy=ega-worker.service
+RequiredBy=ega-worker.service

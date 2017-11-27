@@ -4,28 +4,13 @@ variable flavor_name { default = "ssc.small" }
 variable image_name { default = "EGA-common" }
 
 variable private_ip {}
-variable lega_conf {}
-
-data "template_file" "cloud_init" {
-  template = "${file("${path.module}/cloud_init.tpl")}"
-
-  vars {
-    boot_script = "${base64encode("${file("${path.module}/boot.sh")}")}"
-    hosts = "${base64encode("${file("${path.root}/hosts")}")}"
-    conf = "${var.lega_conf}"
-  }
-}
+variable instance_data {}
+variable pool {}
 
 resource "openstack_compute_secgroup_v2" "ega_web" {
   name        = "ega-web"
-  description = "Web access"
+  description = "Web rules"
 
-  rule {
-    from_port   = 9000
-    to_port     = 9000
-    ip_protocol = "tcp"
-    cidr        = "0.0.0.0/0"
-  }
   rule {
     from_port   = 80
     to_port     = 80
@@ -37,6 +22,19 @@ resource "openstack_compute_secgroup_v2" "ega_web" {
     to_port     = 443
     ip_protocol = "tcp"
     cidr        = "0.0.0.0/0"
+  }
+}
+
+data "template_file" "cloud_init" {
+  template = "${file("${path.module}/cloud_init.tpl")}"
+
+  vars {
+    hosts       = "${base64encode("${file("${var.instance_data}/hosts")}")}"
+    hosts_allow = "${base64encode("${file("${var.instance_data}/hosts.allow")}")}"
+    lega_conf   = "${base64encode("${file("${var.instance_data}/ega.conf")}")}"
+    ega_options = "${base64encode("${file("${path.root}/systemd/options")}")}"
+    ega_slice   = "${base64encode("${file("${path.root}/systemd/ega.slice")}")}"
+    ega_service = "${base64encode("${file("${path.root}/systemd/ega-frontend.service")}")}"
   }
 }
 
@@ -53,10 +51,11 @@ resource "openstack_compute_instance_v2" "frontend" {
   user_data       = "${data.template_file.cloud_init.rendered}"
 }
 
-resource "openstack_networking_floatingip_v2" "frontend_ip" {
-  pool = "Public External IPv4 Network"
+# ===== Floating IP =====
+resource "openstack_networking_floatingip_v2" "fip" {
+  pool = "${var.pool}"
 }
 resource "openstack_compute_floatingip_associate_v2" "frontend_fip" {
-  floating_ip  = "${openstack_networking_floatingip_v2.frontend_ip.address}"
+  floating_ip  = "${openstack_networking_floatingip_v2.fip.address}"
   instance_id = "${openstack_compute_instance_v2.frontend.id}"
 }
