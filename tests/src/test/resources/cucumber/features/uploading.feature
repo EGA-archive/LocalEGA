@@ -8,6 +8,6 @@ Feature: Uploading
     And I want to work with instance "swe1"
     And I have correct private key
     And I connect to the LocalEGA inbox via SFTP using private key
-    And I have an encrypted file
+    And I have a file encrypted with OpenPGP
     When I upload encrypted file to the LocalEGA inbox via SFTP
     Then the file is uploaded successfully
