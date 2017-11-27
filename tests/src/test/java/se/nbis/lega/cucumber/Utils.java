@@ -45,7 +45,7 @@ public class Utils {
      * @return Absolute path or a private folder.
      */
     public String getPrivateFolderPath() {
-        return Paths.get("").toAbsolutePath().getParent().toString() + "/docker/private";
+        return Paths.get("").toAbsolutePath().getParent().toString() + "deployments/docker/private";
     }
 
     /**
