@@ -4,7 +4,7 @@
 all: up
 
 .env private:
-	@docker run --rm -it --name ega_bootstrap -v ${PWD}:/ega nbisweden/ega-worker /ega/bootstrap/boot.sh
+	@docker run --rm -it -v ${PWD}:/ega nbisweden/ega-bootstrap
 
 bootstrap: .env private
 

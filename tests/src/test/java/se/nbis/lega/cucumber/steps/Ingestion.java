@@ -53,7 +53,7 @@ public class Ingestion implements En {
                 String output = utils.executeDBQuery(context.getTargetInstance(),
                         String.format("select stable_id from files where filename = '%s'", context.getEncryptedFile().getName()));
                 String vaultFileName = output.split(System.getProperty("line.separator"))[2];
-                String cat = utils.executeWithinContainer(utils.findContainer("nbisweden/ega-common", "ega_vault_" + context.getTargetInstance()), "cat", vaultFileName.trim());
+                String cat = utils.executeWithinContainer(utils.findContainer("nbisweden/ega-vault", "ega_vault_" + context.getTargetInstance()), "cat", vaultFileName.trim());
                 Assertions.assertThat(cat).startsWith("bytearray(b'1')|256|8|b'CTR'");
             } catch (IOException | InterruptedException e) {
                 log.error(e.getMessage(), e);
