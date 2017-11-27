@@ -7,7 +7,7 @@ services:
 
 before_install:
   - |
-        cd extras/docker/images
+        cd deployments/docker/images
         make pull
         make common
         make -j 4 images
@@ -26,7 +26,7 @@ after_success:
   - |
         if [ "$TRAVIS_BRANCH" == "dev" ] && [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
             docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
-            make -C ../extras/docker/images -j 4 push
+            make -C ../deployments/docker/images -j 4 push
         fi
 
 notifications:
