@@ -1,6 +1,5 @@
 package se.nbis.lega.cucumber.steps;
 
-import com.github.dockerjava.api.DockerClient;
 import cucumber.api.java8.En;
 import lombok.extern.slf4j.Slf4j;
 import net.schmizz.sshj.sftp.RemoteResourceInfo;
@@ -23,7 +22,6 @@ public class Uploading implements En {
         Utils utils = context.getUtils();
 
         Given("^I have a file encrypted with OpenPGP$", () -> {
-            DockerClient dockerClient = utils.getDockerClient();
             File rawFile = context.getRawFile();
             String dataFolderName = context.getDataFolder().getName();
             try {
