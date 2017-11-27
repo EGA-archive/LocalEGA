@@ -6,7 +6,7 @@ ARG checkout=dev
 RUN git clone https://github.com/NBISweden/LocalEGA /root/ega && \
     cd /root/ega && \
     git checkout ${checkout} && \
-    pip3.6 install ./src
+    pip3.6 install /root/ega 
 #    cd src && \
 #    python3.6 setup.py install
 
