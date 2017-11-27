@@ -1,31 +1,37 @@
-
-EGA_IMAGES=common db mq inbox worker cega_users cega_mq monitors
-
-TARGET=nbisweden/ega
-
 ifndef CI_BUILD_REF
 TAG=$(shell git rev-parse --short HEAD)
 else
 TAG=$(TRAVIS_COMMIT)
 endif
 
-all: $(EGA_IMAGES)
+TARGET=nbisweden/ega
 
-.PHONY: all push $(EGA_IMAGES)
+EGA_IMAGES=db mq inbox frontend worker vault keys cega_users cega_mq monitors
 
-all: $(EGA_IMAGES)
+.PHONY: all push pull common erase delete clean cleanall bootstrap $(EGA_IMAGES)
 
-worker: common
-cega_users: common
+all: pull common images bootstrap
 
-$(EGA_IMAGES):
-	-docker rmi $(TARGET)-$@:latest
-	docker pull $(TARGET)-$@:latest
-	docker build --cache-from $(TARGET)-$@:latest --tag $(TARGET)-$@:$(TAG) $@
-	docker tag $(TARGET)-$@:$(TAG) $(TARGET)-$@:latest
+images: $(EGA_IMAGES)
+common $(EGA_IMAGES):
+	docker build --build-arg checkout=$(TAG) \
+                     --cache-from $(TARGET)-$@:latest \
+                     --tag $(TARGET)-$@:$(TAG) \
+                     --tag $(TARGET)-$@:latest \
+                     $@
+
+bootstrap:
+	docker build -f worker/Dockerfile.$@ --build-arg checkout=$(TAG) \
+                     --cache-from $(TARGET)-$@:latest \
+                     --tag $(TARGET)-$@:$(TAG) \
+                     --tag $(TARGET)-$@:latest \
+                     worker
+
+pull:
+	for image in common bootstrap $(EGA_IMAGES); do docker pull $(TARGET)-$$image:latest; done
 
 push:
-	for image in $(EGA_IMAGES); do docker push $(TARGET)-$$image:latest; done
+	for image in common bootstrap $(EGA_IMAGES); do docker push $(TARGET)-$$image:latest; done
 
 clean:
 	@docker images $(TARGET)-* -f "dangling=true" -q | uniq | while read n; do docker rmi $$n; done
@@ -35,3 +41,6 @@ cleanall:
 
 delete:
 	@docker images $(TARGET)-* --format "{{.Repository}} {{.Tag}}" | awk '{ if ($$2 != "$(TAG)" && $$2 != "latest") print $$1":"$$2; }' | uniq | while read n; do docker rmi $$n; done
+
+erase:
+	@docker images $(TARGET)-* -q | uniq | while read n; do docker rmi $$n; done

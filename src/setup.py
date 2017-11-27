@@ -36,7 +36,7 @@ setup(name='lega',
       install_requires=[
           'pika==0.11.0',
           'aiohttp==2.2.5',
-          'pycryptodomex==3.4.5',
+          'pycryptodomex==3.4.7',
           'aiopg==0.13.0',
           'colorama==0.3.7',
           'aiohttp-jinja2==0.13.0',

@@ -7,4 +7,4 @@ RUN yum -y update && \
 		   rsyslog
 
 COPY ega.conf /etc/rsyslog.d/ega.conf
-#ENTRYPOINT ["rsyslogd", "-n", "-f", "/etc/rsyslogd.conf"]
+CMD ["rsyslogd", "-n"]

@@ -34,12 +34,9 @@ services:
     expose:
       - 80
     container_name: ega_frontend_swe1
-    image: nbisweden/ega-common
+    image: nbisweden/ega-frontend
     volumes:
        - ${CONF_swe1}:/etc/ega/conf.ini:ro
-       - ${CODE}:/root/ega
-       - ./entrypoints/frontend.sh:/usr/local/bin/frontend.sh:ro
-    command: frontend.sh
 
   # SFTP inbox for Sweden
   inbox_swe1:
@@ -54,11 +51,8 @@ services:
     container_name: ega_inbox_swe1
     image: nbisweden/ega-inbox
     volumes:
-       - ${CODE}:/root/ega
        - inbox_swe1:/ega/inbox
        - ${CONF_swe1}:/etc/ega/conf.ini:ro
-       - ./entrypoints/inbox.sh:/usr/local/bin/inbox.sh:ro
-    command: ["inbox.sh","swe1"]
 
   # SFTP inbox for Finland
   inbox_fin1:
@@ -73,11 +67,8 @@ services:
     container_name: ega_inbox_fin1
     image: nbisweden/ega-inbox
     volumes:
-       - ${CODE}:/root/ega
        - inbox_fin1:/ega/inbox
        - ${CONF_fin1}:/etc/ega/conf.ini:ro
-       - ./entrypoints/inbox.sh:/usr/local/bin/inbox.sh:ro
-    command: ["inbox.sh","fin1"]
 
   # Vault
   vault_swe1:
@@ -87,14 +78,13 @@ services:
       - inbox_swe1
     hostname: ega_vault
     container_name: ega_vault_swe1
-    image: nbisweden/ega-common
+    image: nbisweden/ega-vault
+    environment:
+      - MQ_INSTANCE=ega_mq_swe1
     volumes:
-       - ${CODE}:/root/ega
        - staging_swe1:/ega/staging
        - vault_swe1:/ega/vault
        - ${CONF_swe1}:/etc/ega/conf.ini:ro
-       - ./entrypoints/vault.sh:/usr/local/bin/vault.sh:ro
-    command: ["vault.sh","swe1"]
 
   # Ingestion Workers
   ingest_swe1:
@@ -106,25 +96,26 @@ services:
     image: nbisweden/ega-worker
     environment:
       - GPG_TTY=/dev/console
+      - MQ_INSTANCE=ega_mq_swe1
+      - KEYSERVER_HOST=ega_keys_swe1
+      - KEYSERVER_PORT=9010
     volumes:
-       - ${CODE}:/root/ega
        - inbox_swe1:/ega/inbox
        - staging_swe1:/ega/staging
        - ${CONF_swe1}:/etc/ega/conf.ini:ro
        - ${SSL_CERT_swe1}:/etc/ega/ssl.cert:ro
        - ${GPG_HOME_swe1}/pubring.kbx:/root/.gnupg/pubring.kbx:ro
        - ${GPG_HOME_swe1}/trustdb.gpg:/root/.gnupg/trustdb.gpg
-       - ./entrypoints/ingest.sh:/usr/local/bin/ingest.sh:ro
-    command: ["ingest.sh","swe1"]
 
   # Key server
   keys_swe1:
     env_file: private/swe1/gpg.env
     environment:
       - GPG_TTY=/dev/console
+      - KEYSERVER_PORT=9010
     hostname: ega_keys_swe1
     container_name: ega_keys_swe1
-    image: nbisweden/ega-worker
+    image: nbisweden/ega-keys
     tty: true
     expose:
       - "9010"
@@ -132,7 +123,6 @@ services:
     volumes:
        - ${CONF_swe1}:/etc/ega/conf.ini:ro
        - ${KEYS_swe1}:/etc/ega/keys.ini:ro
-       - ${CODE}:/root/ega
        - ${SSL_CERT_swe1}:/etc/ega/ssl.cert:ro
        - ${SSL_KEY_swe1}:/etc/ega/ssl.key:ro
        - ${GPG_HOME_swe1}/pubring.kbx:/root/.gnupg/pubring.kbx
@@ -141,8 +131,6 @@ services:
        - ${GPG_HOME_swe1}/private-keys-v1.d:/root/.gnupg/private-keys-v1.d:ro
        - ${RSA_SEC_swe1}:/etc/ega/rsa/sec.pem:ro
        - ${RSA_PUB_swe1}:/etc/ega/rsa/pub.pem:ro
-       - ./entrypoints/keys.sh:/usr/local/bin/keys.sh:ro
-    command: keys.sh
 
   # # Error Monitors
   # monitors_swe1:
@@ -155,7 +143,6 @@ services:
   #   hostname: ega_monitors_swe1
   #   container_name: ega_monitors_swe1
   #   image: nbisweden/ega-monitors
-  #   command: ["rsyslogd", "-n"]
 
   ############################################
   # Faking Central EGA

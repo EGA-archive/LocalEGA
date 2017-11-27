@@ -2,13 +2,13 @@
 
 set -e
 
-cp -r /root/ega /root/run
-pip3.6 install /root/run
+# MQ_INSTANCE env must be defined
+[[ -z "$MQ_INSTANCE" ]] && echo 'Environment MQ_INSTANCE is empty' 1>&2 && exit 1
 
 echo "Waiting for Central Message Broker"
 until nc -4 --send-only cega_mq 5672 </dev/null &>/dev/null; do sleep 1; done
 echo "Waiting for Local Message Broker"
-until nc -4 --send-only ega_mq_$1 5672 </dev/null &>/dev/null; do sleep 1; done
+until nc -4 --send-only ${MQ_INSTANCE} 5672 </dev/null &>/dev/null; do sleep 1; done
 
 echo "Starting the verifier"
 ega-verify &
