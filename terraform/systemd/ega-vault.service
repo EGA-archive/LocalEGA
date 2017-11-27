@@ -1,0 +1,23 @@
+[Unit]
+Description=EGA Vault service
+After=syslog.target
+After=network.target
+
+[Service]
+Slice=ega.slice
+Type=simple
+User=root
+Group=root
+EnvironmentFile=/etc/ega/options
+
+ExecStart=/bin/ega-vault $EGA_OPTIONS
+
+StandardOutput=syslog
+StandardError=syslog
+
+Restart=on-failure
+RestartSec=10
+TimeoutSec=600
+
+[Install]
+WantedBy=multi-user.target

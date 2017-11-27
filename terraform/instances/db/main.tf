@@ -3,15 +3,13 @@ variable ega_net {}
 variable flavor_name { default = "ssc.small" }
 variable image_name { default = "EGA-db" }
 
-variable db_user {}
-variable db_password {}
-variable db_name {}
 variable private_ip {}
 variable cidr {}
+variable instance_data {}
 
 resource "openstack_compute_secgroup_v2" "ega_db" {
   name        = "ega-db"
-  description = "Postgres DB access"
+  description = "Postgres DB"
 
   rule {
     from_port   = 5432
@@ -19,31 +17,17 @@ resource "openstack_compute_secgroup_v2" "ega_db" {
     ip_protocol = "tcp"
     cidr        = "${var.cidr}"
   }
-  rule {
-    from_port   = 5050
-    to_port     = 5050
-    ip_protocol = "tcp"
-    cidr        = "${var.cidr}"
-  }
-}
-
-data "template_file" "boot" {
-  template = "${file("${path.module}/boot.tpl")}"
-
-  vars {
-    db_password = "${var.db_password}"
-  }
 }
 
 data "template_file" "cloud_init" {
   template = "${file("${path.module}/cloud_init.tpl")}"
 
   vars {
-    boot_script = "${base64encode("${data.template_file.boot.rendered}")}"
-    db_sql = "${base64encode("${file("${path.module}/db.sql")}")}"
+    db_sql      = "${base64encode("${file("${var.instance_data}/db.sql")}")}"
+    hosts       = "${base64encode("${file("${var.instance_data}/hosts")}")}"
+    hosts_allow = "${base64encode("${file("${var.instance_data}/hosts.allow")}")}"
   }
 }
-
 
 resource "openstack_compute_instance_v2" "db" {
   name            = "db"

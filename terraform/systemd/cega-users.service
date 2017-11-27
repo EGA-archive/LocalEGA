@@ -1,0 +1,22 @@
+[Unit]
+Description=Central EGA Users service
+After=syslog.target
+After=network.target
+
+[Service]
+Slice=ega.slice
+Type=simple
+User=root
+Group=root
+EnvironmentFile=/var/lib/cega/env
+ExecStart=/var/lib/cega/server.py
+
+StandardOutput=syslog
+StandardError=syslog
+
+Restart=on-failure
+RestartSec=10
+TimeoutSec=600
+
+[Install]
+WantedBy=multi-user.target

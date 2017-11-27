@@ -1,0 +1,25 @@
+[Unit]
+Description=EGA Ingestion service
+After=syslog.target
+After=network.target
+
+After=ega-socket-forwarder.socket
+BindsTo=ega-socket-forwarder.socket
+
+[Service]
+Slice=ega.slice
+Type=simple
+User=ega
+Group=ega
+EnvironmentFile=/etc/ega/options
+ExecStart=/bin/ega-ingest $EGA_OPTIONS
+
+StandardOutput=syslog
+StandardError=syslog
+
+Restart=on-failure
+RestartSec=10
+TimeoutSec=600
+
+[Install]
+WantedBy=multi-user.target

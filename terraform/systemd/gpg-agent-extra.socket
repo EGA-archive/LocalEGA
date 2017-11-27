@@ -1,0 +1,14 @@
+[Unit]
+Description=GPG-agent (limited) socket activation
+After=syslog.target
+After=network.target
+
+[Socket]
+ListenStream=/run/ega/S.gpg-agent.extra
+FileDescriptorName=extra
+SocketMode=0600
+DirectoryMode=0700
+Service=gpg-agent.service
+
+[Install]
+WantedBy=sockets.target

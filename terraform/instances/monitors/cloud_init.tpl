@@ -10,6 +10,11 @@ write_files:
     owner: root:root
     path: /etc/hosts
     permissions: '0644'
+  - encoding: b64
+    content: ${hosts_allow}
+    owner: root:root
+    path: /etc/hosts.allow
+    permissions: '0644'
 
 runcmd:
   - /root/boot.sh
