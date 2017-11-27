@@ -52,9 +52,21 @@ public class Ingestion implements En {
             try {
                 String output = utils.executeDBQuery(context.getTargetInstance(),
                         String.format("select stable_id from files where filename = '%s'", context.getEncryptedFile().getName()));
-                String vaultFileName = output.split(System.getProperty("line.separator"))[2];
-                String cat = utils.executeWithinContainer(utils.findContainer("nbisweden/ega-vault", "ega_vault_" + context.getTargetInstance()), "cat", vaultFileName.trim());
+                String vaultFileName = output.split(System.getProperty("line.separator"))[2].trim();
+                String cat = utils.executeWithinContainer(utils.findContainer("nbisweden/ega-vault", "ega_vault_" + context.getTargetInstance()), "cat", vaultFileName);
                 Assertions.assertThat(cat).startsWith("bytearray(b'1')|256|8|b'CTR'");
+            } catch (IOException | InterruptedException e) {
+                log.error(e.getMessage(), e);
+                Assert.fail(e.getMessage());
+            }
+        });
+
+        Then("^ingestion failed$", () -> {
+            try {
+                String output = utils.executeDBQuery(context.getTargetInstance(),
+                        String.format("select stable_id from files where filename = '%s'", context.getEncryptedFile().getName()));
+                String vaultFileName = output.split(System.getProperty("line.separator"))[2].trim();
+                Assertions.assertThat(vaultFileName).isEmpty();
             } catch (IOException | InterruptedException e) {
                 log.error(e.getMessage(), e);
                 Assert.fail(e.getMessage());
