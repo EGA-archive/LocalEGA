@@ -111,7 +111,6 @@ host = ega_frontend_${INSTANCE}
 keyserver_host = ega_keys_${INSTANCE}
 EOF
 
-
 #########################################################################
 # Populate env-settings for docker compose
 #########################################################################
@@ -126,6 +125,7 @@ POSTGRES_DB=lega
 EOF
 
 cat > ${PRIVATE}/${INSTANCE}/gpg.env <<EOF
+GPG_EMAIL=${GPG_EMAIL}
 GPG_PASSPHRASE=${GPG_PASSPHRASE}
 EOF
 
