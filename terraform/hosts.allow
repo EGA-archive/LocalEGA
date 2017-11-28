@@ -1,4 +1,5 @@
 sshd: 192.168.10.0/24 : spawn (/usr/bin/logger -i -p authpriv.info "%d[%p]\: %h (allowed local)")&    : ALLOW
 sshd: 84.88.66.194    : spawn (/usr/bin/logger -i -p authpriv.info "%d[%p]\: %h (allowed fred@crg)")& : ALLOW
+sshd: 139.47.14.159   : spawn (/usr/bin/logger -i -p authpriv.info "%d[%p]\: %h (allowed fred@bcn)")& : ALLOW
 sshd: .se             : spawn (/usr/bin/logger -i -p authpriv.info "%d[%p]\: %h (allowed .se)")&      : ALLOW
 ALL : ALL             : spawn (/usr/bin/logger -i -p authpriv.info "%d[%p]\: %h (denied)")&           : DENY
