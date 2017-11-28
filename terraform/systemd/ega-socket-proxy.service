@@ -4,14 +4,17 @@ After=syslog.target
 After=network.target
 
 Requires=gpg-agent.service
-Requires=gpg-agent-extra.socket
 
 [Service]
 Slice=ega.slice
 Type=simple
-ExecStart=/bin/ega-socket-proxy ${KEYSERVER_HOST}:${KEYSERVER_PORT} /run/ega/S.gpg-agent.extra --certfile /etc/ega/ssl.cert --keyfile /etc/ega/ssl.key
-Environment=KEYSERVER_HOST=ega-keys
+ExecStart=/usr/bin/ega-socket-proxy ${KEYSERVER_HOST}:${KEYSERVER_PORT} /run/ega/S.gpg-agent.extra --certfile /etc/ega/ssl.cert --keyfile /etc/ega/ssl.key
+Environment=KEYSERVER_HOST=ega_keys
 Environment=KEYSERVER_PORT=9010
+User=ega
+Group=ega
+RuntimeDirectory=ega
+RuntimeDirectoryMode=0700
 
 StandardOutput=syslog
 StandardError=syslog

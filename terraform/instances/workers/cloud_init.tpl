@@ -58,7 +58,7 @@ write_files:
   - encoding: b64
     content: ${ega_ingest}
     owner: root:root
-    path: /etc/systemd/system/ega-socket-ingestion.service
+    path: /etc/systemd/system/ega-ingestion.service
     permissions: '0644'
 
 bootcmd:
@@ -67,6 +67,12 @@ bootcmd:
   - mkdir -p ~ega/.gnupg && chmod 700 ~ega/.gnupg
 
 runcmd:
-  - /root/boot.sh
+  - pip3.6 install git+https://github.com/NBISweden/LocalEGA.git
+  - sed -i -e '/ega_inbox:/ d' /etc/fstab
+  - echo "ega_inbox:/ega /ega  nfs  noauto,x-systemd.automount,x-systemd.device-timeout=10,timeo=14,x-systemd.idle-timeout=1min 0 0" >> /etc/fstab
+  - mount /ega
+  - ldconfig -v
+  - systemctl start ega-ingestion.service ega-socket-forwarder.service ega-socket-forwarder.socket
+  - systemctl enable ega-ingestion.service ega-socket-forwarder.service ega-socket-forwarder.socket
 
 final_message: "The system is finally up, after $UPTIME seconds"

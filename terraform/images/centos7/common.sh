@@ -147,6 +147,7 @@ gpg --verify gnupg-${GNUPG_VERSION}.tar.bz2.sig && tar -xjf gnupg-${GNUPG_VERSIO
 
 ##############################################################
 # Cleaning the previous gpg keys
+cd
 rm -rf /root/.gnupg /var/src/gnupg
 
 #################################

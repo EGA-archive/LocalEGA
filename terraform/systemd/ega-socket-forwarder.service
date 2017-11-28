@@ -1,14 +1,28 @@
 [Unit]
-Description=GPG-agent socket activation
+Description=EGA Socket forwarding service (to GPG-master on port 9010)
 After=syslog.target
 After=network.target
 
-[Socket]
-ListenStream=/run/ega/S.gpg-agent
-SocketUser=ega
-SocketGroup=ega
-SocketMode=0600
-ExecStartPre=/usr/bin/su - ega -c "gpgconf --create-socketdir"
+Requires=ega-socket-forwarder.socket
+After=ega-socket-forwarder.socket
+
+[Service]
+Slice=ega.slice
+Type=simple
+ExecStart=/usr/bin/ega-socket-forwarder /run/ega/S.gpg-agent ${KEYSERVER_HOST}:${KEYSERVER_PORT} --certfile /etc/ega/ssl.cert
+Environment=KEYSERVER_HOST=ega_keys
+Environment=KEYSERVER_PORT=9010
+User=ega
+Group=ega
+RuntimeDirectory=ega
+RuntimeDirectoryMode=0700
+
+Restart=on-failure
+RestartSec=10
+TimeoutSec=600
+
+Sockets=ega-socket-forwarder.socket
 
 [Install]
-WantedBy=sockets.target
+WantedBy=ega-ingestion.service
+RequiredBy=ega-ingestion.service

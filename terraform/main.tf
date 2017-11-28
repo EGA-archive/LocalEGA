@@ -115,9 +115,9 @@ module "vault" {
 
 module "workers" {
   source        = "./instances/workers"
-  count         = 3
+  count         = 2
   private_ip_keys = "192.168.10.16"
-  private_ips   = ["192.168.10.101","192.168.10.102","192.168.10.103"]
+  private_ips   = ["192.168.10.101","192.168.10.102"]
   ega_key       = "${openstack_compute_keypair_v2.ega_key.name}"
   ega_net       = "${openstack_networking_network_v2.ega_net.id}"
   cidr          = "192.168.10.0/24"
