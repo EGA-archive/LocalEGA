@@ -34,13 +34,13 @@ push:
 	for image in common bootstrap $(EGA_IMAGES); do docker push $(TARGET)-$$image:latest; done
 
 clean:
-	@docker images $(TARGET)-* -f "dangling=true" -q | uniq | while read n; do docker rmi $$n; done
+	@docker images $(TARGET)-* -f "dangling=true" -q | uniq | while read n; do docker rmi -f $$n; done
 
 cleanall:
-	@docker images -f "dangling=true" -q | uniq | while read n; do docker rmi $$n; done
+	@docker images -f "dangling=true" -q | uniq | while read n; do docker rmi -f $$n; done
 
 delete:
 	@docker images $(TARGET)-* --format "{{.Repository}} {{.Tag}}" | awk '{ if ($$2 != "$(TAG)" && $$2 != "latest") print $$1":"$$2; }' | uniq | while read n; do docker rmi $$n; done
 
 erase:
-	@docker images $(TARGET)-* -q | uniq | while read n; do docker rmi $$n; done
+	@docker images $(TARGET)-* -q | uniq | while read n; do docker rmi -f $$n; done
