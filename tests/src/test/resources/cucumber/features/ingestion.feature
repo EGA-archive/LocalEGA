@@ -11,7 +11,7 @@ Feature: Ingestion
     And I have a file encrypted not with OpenPGP
     And I upload encrypted file to the LocalEGA inbox via SFTP
     And I have CEGA MQ username and password
-    When I ingest file from the LocalEGA inbox
+    When I ingest file from the LocalEGA inbox using correct encrypted checksum
     Then ingestion failed
 
   Scenario: User ingests file encrypted with OpenPGP, but inbox is not created
@@ -25,7 +25,7 @@ Feature: Ingestion
     And I upload encrypted file to the LocalEGA inbox via SFTP
     And I have CEGA MQ username and password
     And inbox is deleted for my user
-    When I ingest file from the LocalEGA inbox
+    When I ingest file from the LocalEGA inbox using correct encrypted checksum
     Then ingestion failed
 
   Scenario: User ingests file encrypted with OpenPGP, but file was not found in the inbox
@@ -39,7 +39,7 @@ Feature: Ingestion
     And I upload encrypted file to the LocalEGA inbox via SFTP
     And I have CEGA MQ username and password
     And inbox is cleared for my user
-    When I ingest file from the LocalEGA inbox
+    When I ingest file from the LocalEGA inbox using correct encrypted checksum
     Then ingestion failed
 
   Scenario: User ingests file encrypted with OpenPGP using a wrong key
@@ -52,7 +52,20 @@ Feature: Ingestion
     And I have a file encrypted with OpenPGP using a "fin1" key
     And I upload encrypted file to the LocalEGA inbox via SFTP
     And I have CEGA MQ username and password
-    When I ingest file from the LocalEGA inbox
+    When I ingest file from the LocalEGA inbox using correct encrypted checksum
+    Then ingestion failed
+
+  Scenario: User ingests file encrypted with OpenPGP using a correct key, but its checksum doesn't match with the supplied one
+    Given I am a user of LocalEGA instances:
+      | swe1 |
+    And I have an account at Central EGA
+    And I want to work with instance "swe1"
+    And I have correct private key
+    And I connect to the LocalEGA inbox via SFTP using private key
+    And I have a file encrypted with OpenPGP using a "swe1" key
+    And I upload encrypted file to the LocalEGA inbox via SFTP
+    And I have CEGA MQ username and password
+    When I ingest file from the LocalEGA inbox using wrong encrypted checksum
     Then ingestion failed
 
   Scenario: User ingests file encrypted with OpenPGP using a correct key
@@ -65,5 +78,5 @@ Feature: Ingestion
     And I have a file encrypted with OpenPGP using a "swe1" key
     And I upload encrypted file to the LocalEGA inbox via SFTP
     And I have CEGA MQ username and password
-    When I ingest file from the LocalEGA inbox
+    When I ingest file from the LocalEGA inbox using correct encrypted checksum
     Then the file is ingested successfully
