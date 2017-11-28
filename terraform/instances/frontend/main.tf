@@ -1,6 +1,6 @@
 variable ega_key { default = "ega_key" }
 variable ega_net {}
-variable flavor_name { default = "ssc.small" }
+variable flavor_name {}
 variable image_name { default = "EGA-common" }
 
 variable private_ip {}
@@ -29,8 +29,8 @@ data "template_file" "cloud_init" {
   template = "${file("${path.module}/cloud_init.tpl")}"
 
   vars {
-    hosts       = "${base64encode("${file("${var.instance_data}/hosts")}")}"
-    hosts_allow = "${base64encode("${file("${var.instance_data}/hosts.allow")}")}"
+    hosts       = "${base64encode("${file("${path.root}/hosts")}")}"
+    hosts_allow = "${base64encode("${file("${path.root}/hosts.allow")}")}"
     lega_conf   = "${base64encode("${file("${var.instance_data}/ega.conf")}")}"
     ega_options = "${base64encode("${file("${path.root}/systemd/options")}")}"
     ega_slice   = "${base64encode("${file("${path.root}/systemd/ega.slice")}")}"

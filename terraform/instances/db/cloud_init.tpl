@@ -17,6 +17,7 @@ write_files:
     permissions: '0644'
 
 runcmd:
+  - sed -i -e "s;host.*1/128.*ident;host all all ${cidr} md5;" /var/lib/pgsql/9.6/data/pg_hba.conf
   - systemctl start postgresql-9.6.service
   - systemctl enable postgresql-9.6.service
   - psql -v ON_ERROR_STOP=1 -U postgres -f /tmp/db.sql

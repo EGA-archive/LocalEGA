@@ -26,7 +26,7 @@ echo "listen_addresses = '*'" >> /var/lib/pgsql/9.6/data/postgresql.conf
 mv /var/lib/pgsql/9.6/data/pg_hba.conf /var/lib/pgsql/9.6/data/pg_hba.conf.old
 grep -v '^$\|^\s*\#' /var/lib/pgsql/9.6/data/pg_hba.conf.old > /var/lib/pgsql/9.6/data/pg_hba.conf
 sed -i -e "s/local\(.*\)peer/local\1trust/" /var/lib/pgsql/9.6/data/pg_hba.conf
-sed -i -e "s;host.*1/128.*ident;host all all all md5;" /var/lib/pgsql/9.6/data/pg_hba.conf
+#sed -i -e "s;host.*1/128.*ident;host all all all md5;" /var/lib/pgsql/9.6/data/pg_hba.conf
 
 # Note: Update the sudo rights?
 

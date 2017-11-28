@@ -68,3 +68,4 @@ sed -i -e 's/^passwd:\(.*\)files/passwd:\1files ega/' /etc/nsswitch.conf
 # Reverting
 sed -i -e "s/name:\sega/name: centos/" /etc/cloud/cloud.cfg
 sed -i -e "s/gecos:.*/gecos: Centos User/" /etc/cloud/cloud.cfg
+systemctl reboot

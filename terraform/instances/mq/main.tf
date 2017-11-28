@@ -1,6 +1,6 @@
 variable ega_key { default = "ega_key" }
 variable ega_net {}
-variable flavor_name { default = "ssc.small" }
+variable flavor_name {}
 variable image_name { default = "EGA-mq" }
 
 variable private_ip {}
@@ -30,8 +30,8 @@ data "template_file" "cloud_init" {
 
   vars {
     mq_defs     = "${base64encode("${file("${path.module}/defs.json")}")}"
-    hosts       = "${base64encode("${file("${var.instance_data}/hosts")}")}"
-    hosts_allow = "${base64encode("${file("${var.instance_data}/hosts.allow")}")}"
+    hosts       = "${base64encode("${file("${path.root}/hosts")}")}"
+    hosts_allow = "${base64encode("${file("${path.root}/hosts.allow")}")}"
   }
 }
 

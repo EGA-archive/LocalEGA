@@ -1,7 +1,7 @@
 variable ega_key { default = "ega_key" }
 variable ega_net {}
-variable flavor_name { default = "ssc.xlarge" }
-variable flavor_name_keys { default = "ssc.small" }
+variable flavor_name_compute {}
+variable flavor_name {}
 variable image_name { default = "EGA-common" }
 
 variable count { default = 1 }
@@ -16,8 +16,8 @@ data "template_file" "cloud_init" {
 
   vars {
     boot_script = "${base64encode("${file("${path.module}/boot.sh")}")}"
-    hosts       = "${base64encode("${file("${var.instance_data}/hosts")}")}"
-    hosts_allow = "${base64encode("${file("${var.instance_data}/hosts.allow")}")}"
+    hosts       = "${base64encode("${file("${path.root}/hosts")}")}"
+    hosts_allow = "${base64encode("${file("${path.root}/hosts.allow")}")}"
     lega_conf   = "${base64encode("${file("${var.instance_data}/ega.conf")}")}"
     ssl_cert    = "${base64encode("${file("${var.instance_data}/certs/ssl.cert")}")}"
     gpg_pubring = "${base64encode("${file("${var.instance_data}/gpg/pubring.kbx")}")}"
@@ -33,7 +33,7 @@ data "template_file" "cloud_init" {
 resource "openstack_compute_instance_v2" "worker" {
   count     = "${var.count}"
   name      = "${format("worker-%02d", count.index+1)}"
-  flavor_name = "${var.flavor_name}"
+  flavor_name = "${var.flavor_name_compute}"
   image_name = "${var.image_name}"
   key_pair  = "${var.ega_key}"
   security_groups = ["default"]
@@ -61,8 +61,8 @@ resource "openstack_compute_instance_v2" "worker" {
 #   vars {
 #     boot_script = "${base64encode("${file("${path.module}/keys.sh")}")}"
 #     preset_script="${base64encode("${file("${var.instance_data}/preset.sh")}")}"
-#     hosts       = "${base64encode("${file("${var.instance_data}/hosts")}")}"
-#     hosts_allow = "${base64encode("${file("${var.instance_data}/hosts.allow")}")}"
+#     hosts       = "${base64encode("${file("${path.root}/hosts")}")}"
+#     hosts_allow = "${base64encode("${file("${path.root}/hosts.allow")}")}"
 #     lega_conf   = "${base64encode("${file("${var.instance_data}/ega.conf")}")}"
 #     keys_conf   = "${base64encode("${file("${var.instance_data}/keys.conf")}")}"
 #     ssl_cert    = "${base64encode("${file("${var.instance_data}/certs/ssl.cert")}")}"
@@ -95,7 +95,7 @@ resource "openstack_compute_instance_v2" "worker" {
 
 # resource "openstack_compute_instance_v2" "keys" {
 #   name      = "keys"
-#   flavor_name = "${var.flavor_name_keys}"
+#   flavor_name = "${var.flavor_name}"
 #   image_name = "${var.image_name}"
 #   key_pair  = "${var.ega_key}"
 #   security_groups = ["default","${openstack_compute_secgroup_v2.ega_gpg.name}"]

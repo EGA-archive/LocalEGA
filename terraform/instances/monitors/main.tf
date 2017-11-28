@@ -1,11 +1,11 @@
 variable ega_key { default = "ega_key" }
 variable ega_net {}
-variable flavor_name { default = "ssc.small" }
+variable flavor_name {}
 variable image_name { default = "EGA-common" }
 
 variable cidr {}
 variable private_ip {}
-variable lega_conf {}
+variable instance_data {}
 
 resource "openstack_compute_secgroup_v2" "ega_monitor" {
   name        = "ega-monitor"
@@ -23,8 +23,9 @@ data "template_file" "cloud_init" {
   template = "${file("${path.module}/cloud_init.tpl")}"
 
   vars {
-    boot_script = "${base64encode("${file("${path.module}/boot.sh")}")}"
-    hosts = "${base64encode("${file("${path.root}/hosts")}")}"
+    hosts       = "${base64encode("${file("${path.root}/hosts")}")}"
+    hosts_allow = "${base64encode("${file("${path.root}/hosts.allow")}")}"
+    syslog_conf = "${base64encode("${file("${path.module}/syslog-ega.conf")}")}"
   }
 }
 
