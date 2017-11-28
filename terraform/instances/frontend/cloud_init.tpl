@@ -32,8 +32,7 @@ write_files:
     permissions: '0644'
 
 runcmd:
-  - git clone https://github.com/NBISweden/LocalEGA.git ~/repo
-  - pip3.6 install ~/repo/src
+  - pip3.6 install git+https://github.com/NBISweden/LocalEGA.git
   - systemctl start ega-frontend
   - systemctl enable ega-frontend
 

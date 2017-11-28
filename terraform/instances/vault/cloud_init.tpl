@@ -46,7 +46,7 @@ runcmd:
   - mkfs -t btrfs -f /dev/vdb
   - echo '/dev/vdb /ega/vault btrfs defaults 0 0' >> /etc/fstab
   - mount /ega/vault
-  - git clone https://github.com/NBISweden/LocalEGA.git ~/repo && pip3.6 install ~/repo/src
+  - pip3.6 install git+https://github.com/NBISweden/LocalEGA.git
   - systemctl start ega-verify ega-vault
   - systemctl enable ega-verify ega-vault
 

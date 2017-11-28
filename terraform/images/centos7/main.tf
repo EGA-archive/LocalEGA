@@ -10,9 +10,9 @@ variable auth_url    {}
 variable region      {}
 variable domain_name {}
 
-varialbe boot_image  {}
-varialbe boot_network{}
-varialbe flavor      {}
+variable boot_image  {}
+variable boot_network{}
+variable flavor      {}
 variable pubkey      {}
 
 terraform {

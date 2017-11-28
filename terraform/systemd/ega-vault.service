@@ -9,8 +9,7 @@ Type=simple
 User=root
 Group=root
 EnvironmentFile=/etc/ega/options
-
-ExecStart=/bin/ega-vault $EGA_OPTIONS
+ExecStart=/usr/bin/ega-vault $EGA_OPTIONS
 
 StandardOutput=syslog
 StandardError=syslog

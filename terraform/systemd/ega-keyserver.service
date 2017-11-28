@@ -1,16 +1,15 @@
 [Unit]
-Description=EGA Frontend service
+Description=EGA Keys Server
 After=syslog.target
 After=network.target
 
 [Service]
 Slice=ega.slice
 Type=simple
-User=root
-Group=root
 EnvironmentFile=/etc/ega/options
-
-ExecStart=/usr/bin/ega-frontend $EGA_OPTIONS
+ExecStart=/usr/bin/ega-keyserver --keys /etc/ega/keys.ini $EGA_OPTIONS
+User=ega
+Group=ega
 
 StandardOutput=syslog
 StandardError=syslog
