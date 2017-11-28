@@ -30,12 +30,18 @@ write_files:
     owner: root:root
     path: /etc/pam.d/ega
     permissions: '0644'
+  - encoding: b64
+    content: ${ega_ssh_keys}
+    owner: root:ega
+    path: /usr/local/bin/ega-ssh-keys.sh
+    permissions: '0750'
 
 bootcmd:
   - mkdir -p /usr/local/lib/ega
 
 runcmd:
   - yum -y install automake autoconf libtool libgcrypt libgcrypt-devel postgresql-devel pam-devel libcurl-devel jq-devel nfs-utils
+  - echo '/usr/local/lib/ega' > /etc/ld.so.conf.d/ega.conf
   - git clone https://github.com/NBISweden/LocalEGA-auth.git ~/repo && cd ~/repo/src && make install && ldconfig -v
   - /root/boot.sh ${cidr}
 

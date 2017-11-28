@@ -1,6 +1,6 @@
 variable ega_key { default = "ega_key" }
 variable ega_net {}
-variable flavor_name { default = "ssc.small" }
+variable flavor_name {}
 variable image_name { default = "EGA-common" }
 
 variable volume_size { default = 100 }
@@ -29,10 +29,11 @@ data "template_file" "cloud_init" {
     boot_script = "${base64encode("${file("${path.module}/boot.sh")}")}"
     cidr        = "${var.cidr}"
     conf        = "${base64encode("${file("${var.instance_data}/auth.conf")}")}"
-    hosts       = "${base64encode("${file("${var.instance_data}/hosts")}")}"
-    hosts_allow = "${base64encode("${file("${var.instance_data}/hosts.allow")}")}"
+    hosts       = "${base64encode("${file("${path.root}/hosts")}")}"
+    hosts_allow = "${base64encode("${file("${path.root}/hosts.allow")}")}"
     sshd_config = "${base64encode("${file("${path.module}/sshd_config")}")}"
     ega_pam     = "${base64encode("${file("${path.module}/pam.ega")}")}"
+    ega_ssh_keys= "${base64encode("${file("${var.instance_data}/ega_ssh_keys.sh")}")}"
   }
 }
 

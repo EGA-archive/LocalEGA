@@ -143,7 +143,6 @@ EOF
 
 CEGA_REST_PASSWORD=$(awk '/swe1_REST_PASSWORD/ {print $3}' ${CEGA_PRIVATE}/env)
 CEGA_MQ_PASSWORD=$(awk '/swe1_MQ_PASSWORD/ {print $3}' ${CEGA_PRIVATE}/.trace)
-CEGA_PRIVATE_IP=$(awk '/PRIVATE_IP/ {print $3}' ${CEGA_PRIVATE}/.trace)
 [[ -z "${CEGA_REST_PASSWORD}" ]] && echo "Are you sure Central EGA is bootstrapped?" && exit 1
 [[ -z "${CEGA_MQ_PASSWORD}" ]] && echo "Are you sure Central EGA is bootstrapped?" && exit 1
 
@@ -224,31 +223,35 @@ cat > ${PRIVATE}/banner <<EOF
 ${LEGA_GREETINGS}
 EOF
 
-echomsg "\t* Generating hosts"
-cat > ${PRIVATE}/hosts <<EOF
-127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
-::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
-
-${CEGA_PRIVATE_IP}    cega central_ega
-EOF
-for k in ${!PRIVATE_IPS[@]}; do echo -e "${PRIVATE_IPS[${k}]}\tega_${k}" >> ${PRIVATE}/hosts; done
-
-echomsg "\t* Generating hosts.allow"
-cat > ${PRIVATE}/hosts.allow <<EOF
-sshd: ${CIDR}       : spawn (/usr/bin/logger -i -p authpriv.info "%d[%p]\: %h (allowed local)")&  : ALLOW
-sshd: .es           : spawn (/usr/bin/logger -i -p authpriv.info "%d[%p]\: %h (allowed .es)")&    : ALLOW
-sshd: .cat          : spawn (/usr/bin/logger -i -p authpriv.info "%d[%p]\: %h (allowed .cat)")&   : ALLOW
-sshd: .se           : spawn (/usr/bin/logger -i -p authpriv.info "%d[%p]\: %h (allowed .se)")&    : ALLOW
-ALL : ALL           : spawn (/usr/bin/logger -i -p authpriv.info "%d[%p]\: %h (denied)")&         : DENY
-EOF
 
 echomsg "\t* Generating db.sql"
 cat > ${PRIVATE}/db.sql <<EOF
+-- DROP USER IF EXISTS lega;
 CREATE USER ${DB_USER} WITH password '${DB_PASSWORD}';
-DROP DATABASE IF EXISTS lega;
-CREATE DATABASE lega;
+
+-- DROP DATABASE IF EXISTS lega;
+CREATE DATABASE lega WITH OWNER ${DB_USER};
+
 EOF
 cat ${HERE}/../../docker/images/db/db.sql >> ${PRIVATE}/db.sql
+cat >> ${PRIVATE}/db.sql <<EOF
+
+-- Changing the owner there too
+ALTER TABLE files OWNER TO ${DB_USER};
+ALTER TABLE users OWNER TO ${DB_USER};
+ALTER TABLE errors OWNER TO ${DB_USER};
+EOF
+
+echomsg "\t* Generating ega_ssh_keys.sh"
+cat > ${PRIVATE}/ega_ssh_keys.sh <<EOF
+#!/bin/bash
+
+eid=\${1%%@*} # strip what's after the @ symbol
+
+query="SELECT pubkey from users where elixir_id = '\${eid}' LIMIT 1"
+
+PGPASSWORD=${DB_PASSWORD} psql -tqA -U ${DB_USER} -h ega_db -d lega -c "\${query}"
+EOF
 
 echomsg "\t* GnuPG preset script"
 cat > ${PRIVATE}/preset.sh <<EOF
@@ -265,117 +268,6 @@ fi
 EOF
 
 #########################################################################
-
-function gather_worker_ips {
-    for (( i=1; i<=${WORKERS}; i++)); do
-	[[ ${i} > 1 ]] && echo -n ',' 
-	echo -n "\"${PRIVATE_IPS[worker_${i}]}\""
-    done
-}
-
-echomsg "\t* Create Terraform configuration"
-cat > ${HERE}/main.tf <<EOF
-/* ===================================
-   Main file for the Local EGA project
-   =================================== */
-
-terraform {
-  backend "local" {
-    path = ".terraform/ega.tfstate"
-  }
-}
-
-# Configure the OpenStack Provider
-provider "openstack" {
-  user_name   = "${OS_USERNAME}"
-  password    = "${OS_PASSWORD}"
-  tenant_id   = "${OS_PROJECT_ID}"
-  tenant_name = "${OS_PROJECT_NAME}"
-  auth_url    = "${OS_AUTH_URL}"
-  region      = "${OS_REGION_NAME}"
-  domain_name = "${OS_USER_DOMAIN_NAME}"
-}
-
-resource "openstack_compute_keypair_v2" "ega_key" {
-  name       = "ega-key"
-  public_key = "${PUBKEY}"
-}
-
-module "network" {
-  source        = "./network"
-  cidr          = "${CIDR}"
-  router_id     = "${ROUTER_ID}"
-  dns_servers   = ${DNS_SERVERS}
-}
-
-module "db" {
-  source        = "./instances/db"
-  private_ip    = "${PRIVATE_IPS['db']}"
-  ega_key       = "\${openstack_compute_keypair_v2.ega_key.name}"
-  ega_net       = "\${module.network.ega_net_id}"
-  cidr          = "${CIDR}"
-  instance_data = "${PRIVATE}"
-}
-
-module "mq" {
-  source        = "./instances/mq"
-  private_ip    = "${PRIVATE_IPS['mq']}"
-  ega_key       = "\${openstack_compute_keypair_v2.ega_key.name}"
-  ega_net       = "\${module.network.ega_net_id}"
-  cidr          = "${CIDR}"
-  instance_data = "${PRIVATE}"
-}
-
-module "frontend" {
-  source        = "./instances/frontend"
-  private_ip    = "${PRIVATE_IPS['frontend']}"
-  ega_key       = "\${openstack_compute_keypair_v2.ega_key.name}"
-  ega_net       = "\${module.network.ega_net_id}"
-  pool          = "${POOL}"
-  instance_data = "${PRIVATE}"
-}
-
-module "inbox" {
-  source        = "./instances/inbox"
-  private_ip    = "${PRIVATE_IPS['inbox']}"
-  ega_key       = "\${openstack_compute_keypair_v2.ega_key.name}"
-  ega_net       = "\${module.network.ega_net_id}"
-  cidr          = "${CIDR}"
-  volume_size   = "${INBOX_SIZE}"
-  pool          = "${POOL}"
-  instance_data = "${PRIVATE}"
-}
-
-module "vault" {
-  source      = "./instances/vault"
-  private_ip    = "${PRIVATE_IPS['vault']}"
-  ega_key       = "\${openstack_compute_keypair_v2.ega_key.name}"
-  ega_net       = "\${module.network.ega_net_id}"
-  volume_size   = "${VAULT_SIZE}"
-  instance_data = "${PRIVATE}"
-}
-
-module "workers" {
-  source        = "./instances/workers"
-  count         = ${WORKERS}
-  private_ip_keys = "${PRIVATE_IPS['keys']}"
-  private_ips   = [$(gather_worker_ips)]
-  ega_key       = "\${openstack_compute_keypair_v2.ega_key.name}"
-  ega_net       = "\${module.network.ega_net_id}"
-  cidr          = "${CIDR}"
-  instance_data = "${PRIVATE}"
-}
-
-module "monitors" {
-  source        = "./instances/monitors"
-  private_ip    = "${PRIVATE_IPS['monitors']}"
-  ega_key       = "\${openstack_compute_keypair_v2.ega_key.name}"
-  ega_net       = "\${module.network.ega_net_id}"
-  cidr          = "${CIDR}"
-  instance_data = "${PRIVATE}"
-}
-EOF
-
 
 cat > ${PRIVATE}/.trace <<EOF
 #####################################################################

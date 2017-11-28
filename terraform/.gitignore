@@ -1,7 +1,5 @@
 .terraform*
 *.tfstate*
 *.rc
-main.tf
-images/centos7/main.tf
-cega/main.tf
 private
+cega/private

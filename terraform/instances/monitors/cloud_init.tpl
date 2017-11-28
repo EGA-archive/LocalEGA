@@ -1,11 +1,6 @@
 #cloud-config
 write_files:
   - encoding: b64
-    content: ${boot_script}
-    owner: root:root
-    path: /root/boot.sh
-    permissions: '0700'
-  - encoding: b64
     content: ${hosts}
     owner: root:root
     path: /etc/hosts
@@ -15,8 +10,13 @@ write_files:
     owner: root:root
     path: /etc/hosts.allow
     permissions: '0644'
+  - encoding: b64
+    content: ${syslog_conf}
+    owner: root:root
+    path: /etc/rsyslog.d/ega.conf
+    permissions: '0644'
 
 runcmd:
-  - /root/boot.sh
+  - systemctl restart rsyslog
 
 final_message: "The system is finally up, after $UPTIME seconds"
