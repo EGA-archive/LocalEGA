@@ -31,7 +31,7 @@ Feature: Authentication
     And I have correct private key
     And I connect to the LocalEGA inbox via SFTP using private key
     And I disconnect from the LocalEGA inbox
-    And Inbox is deleted for my user
+    And inbox is deleted for my user
     When I connect to the LocalEGA inbox via SFTP using private key
     Then authentication fails
 
