@@ -112,15 +112,27 @@ public class Utils {
     }
 
     /**
-     * Removes the user from the inbox.
+     * Removes the user's inbox.
      *
      * @param instance LocalEGA site.
      * @param user     Username.
      * @throws IOException          In case of output error.
      * @throws InterruptedException In case the query execution is interrupted.
      */
-    public void removeUserFromInbox(String instance, String user) throws IOException, InterruptedException {
+    public void removeUserInbox(String instance, String user) throws IOException, InterruptedException {
         executeWithinContainer(findContainer("nbisweden/ega-inbox", "ega_inbox_" + instance), String.format("rm -rf /ega/inbox/%s", user).split(" "));
+    }
+
+    /**
+     * Clears the user's inbox.
+     *
+     * @param instance LocalEGA site.
+     * @param user     Username.
+     * @throws IOException          In case of output error.
+     * @throws InterruptedException In case the query execution is interrupted.
+     */
+    public void clearUserInbox(String instance, String user) throws IOException, InterruptedException {
+        executeWithinContainer(findContainer("nbisweden/ega-inbox", "ega_inbox_" + instance), String.format("rm -rf /ega/inbox/%s/inbox/*", user).split(" "));
     }
 
     /**
