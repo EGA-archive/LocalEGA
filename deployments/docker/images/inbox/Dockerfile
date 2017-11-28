@@ -36,10 +36,10 @@ COPY sshd_config /etc/ssh/sshd_config
 
 ARG checkout=dev
 
-RUN git clone https://github.com/NBISweden/LocalEGA /root/ega && \
-    cd /root/ega && \
+RUN git clone https://github.com/NBISweden/LocalEGA-auth /root/ega-auth && \
+    cd /root/ega-auth && \
     git checkout ${checkout} && \
-    cd src/auth && \
+    cd src && \
     make install clean && \
     ldconfig -v
 
