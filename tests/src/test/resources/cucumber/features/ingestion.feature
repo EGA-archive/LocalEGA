@@ -28,6 +28,20 @@ Feature: Ingestion
     When I ingest file from the LocalEGA inbox
     Then ingestion failed
 
+  Scenario: User ingests file encrypted with OpenPGP, but file was not found in the inbox
+    Given I am a user of LocalEGA instances:
+      | swe1 |
+    And I have an account at Central EGA
+    And I want to work with instance "swe1"
+    And I have correct private key
+    And I connect to the LocalEGA inbox via SFTP using private key
+    And I have a file encrypted with OpenPGP using a "swe1" key
+    And I upload encrypted file to the LocalEGA inbox via SFTP
+    And I have CEGA MQ username and password
+    And inbox is cleared for my user
+    When I ingest file from the LocalEGA inbox
+    Then ingestion failed
+
   Scenario: User ingests file encrypted with OpenPGP using a wrong key
     Given I am a user of LocalEGA instances:
       | swe1 |
