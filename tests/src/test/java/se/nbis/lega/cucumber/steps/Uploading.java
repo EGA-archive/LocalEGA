@@ -21,13 +21,12 @@ public class Uploading implements En {
     public Uploading(Context context) {
         Utils utils = context.getUtils();
 
-        Given("^I have a file encrypted with OpenPGP$", () -> {
+        Given("^I have a file encrypted with OpenPGP using a \"([^\"]*)\" key$", (String instance) -> {
             File rawFile = context.getRawFile();
             String dataFolderName = context.getDataFolder().getName();
             try {
-                String targetInstance = context.getTargetInstance();
-                String encryptionCommand = "gpg2 -r " + utils.readTraceProperty(targetInstance, "GPG_EMAIL") + " -e -o /data/" + rawFile.getName() + ".enc /data/" + rawFile.getName();
-                utils.spawnTempWorkerAndExecute(targetInstance, Paths.get(dataFolderName).toAbsolutePath().toString(), "/" + dataFolderName, encryptionCommand);
+                String encryptionCommand = "gpg2 -r " + utils.readTraceProperty(instance, "GPG_EMAIL") + " -e -o /data/" + rawFile.getName() + ".enc /data/" + rawFile.getName();
+                utils.spawnTempWorkerAndExecute(instance, Paths.get(dataFolderName).toAbsolutePath().toString(), "/" + dataFolderName, encryptionCommand);
             } catch (IOException | InterruptedException e) {
                 log.error(e.getMessage(), e);
                 Assert.fail(e.getMessage());
