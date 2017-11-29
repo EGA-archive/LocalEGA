@@ -158,7 +158,7 @@ function rabbitmq_hash {
 
 function output_password_hashes {
     declare -a tmp=()
-    for INSTANCE in ${INSTANCES}
+    for INSTANCE in ${INSTANCES[@]}
     do 
 	CEGA_MQ_HASH=$(rabbitmq_hash $CEGA_MQ_PASSWORD[${INSTANCE}])
 	tmp+=("{\"name\":\"cega_${INSTANCE}\",\"password_hash\":\"${CEGA_MQ_HASH}\",\"hashing_algorithm\":\"rabbit_password_hashing_sha256\",\"tags\":\"administrator\"}")
@@ -168,7 +168,7 @@ function output_password_hashes {
 
 function output_vhosts {
     declare -a tmp=()
-    for INSTANCE in ${INSTANCES}
+    for INSTANCE in ${INSTANCES[@]}
     do 
 	tmp+=("{\"name\":\"${INSTANCE}\"}")
     done
@@ -177,7 +177,7 @@ function output_vhosts {
 
 function output_permissions {
     declare -a tmp=()
-    for INSTANCE in ${INSTANCES}
+    for INSTANCE in ${INSTANCES[@]}
     do 
 	tmp+=("{\"user\":\"cega_${INSTANCE}\", \"vhost\":\"${INSTANCE}\", \"configure\":\".*\", \"write\":\".*\", \"read\":\".*\"}")
     done
@@ -186,7 +186,7 @@ function output_permissions {
 
 function output_queues {
     declare -a tmp=()
-    for INSTANCE in ${INSTANCES}
+    for INSTANCE in ${INSTANCES[@]}
     do
 	tmp+=("{\"name\":\"${INSTANCE}.v1.commands.file\",      \"vhost\":\"${INSTANCE}\", \"durable\":true, \"auto_delete\":false, \"arguments\":{}}")
 	tmp+=("{\"name\":\"${INSTANCE}.v1.commands.completed\", \"vhost\":\"${INSTANCE}\", \"durable\":true, \"auto_delete\":false, \"arguments\":{}}")
@@ -196,7 +196,7 @@ function output_queues {
 
 function output_exchanges {
     declare -a tmp=()
-    for INSTANCE in ${INSTANCES}
+    for INSTANCE in ${INSTANCES[@]}
     do
 	tmp+=("{\"name\":\"localega.v1\", \"vhost\":\"${INSTANCE}\", \"type\":\"topic\", \"durable\":true, \"auto_delete\":false, \"internal\":false, \"arguments\":{}}")
     done
@@ -206,7 +206,7 @@ function output_exchanges {
 
 function output_bindings {
     declare -a tmp=()
-    for INSTANCE in ${INSTANCES}
+    for INSTANCE in ${INSTANCES[@]}
     do
 	tmp+=("{\"source\":\"localega.v1\",\"vhost\":\"${INSTANCE}\",\"destination_type\":\"queue\",\"arguments\":{},\"destination\":\"${INSTANCE}.v1.commands.file\",\"routing_key\":\"${INSTANCE}.file\"}")
 	tmp+=("{\"source\":\"localega.v1\",\"vhost\":\"${INSTANCE}\",\"destination_type\":\"queue\",\"arguments\":{},\"destination\":\"${INSTANCE}.v1.commands.completed\",\"routing_key\":\"${INSTANCE}.completed\"}")

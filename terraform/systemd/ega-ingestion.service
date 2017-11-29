@@ -3,7 +3,7 @@ Description=EGA Ingestion service
 After=syslog.target
 After=network.target
 
-After=ega-socket-forwarder.service
+Requires=ega-socket-forwarder.service
 
 [Service]
 Slice=ega.slice

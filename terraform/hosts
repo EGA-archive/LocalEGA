@@ -1,7 +1,7 @@
 127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
 ::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
 
-192.168.100.100    cega central_ega
+192.168.100.100    cega central_ega cega_mq
 192.168.10.10	   ega_db
 192.168.10.11	   ega_mq
 192.168.10.12	   ega_inbox

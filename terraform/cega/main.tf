@@ -90,6 +90,7 @@ data "template_file" "cloud_init" {
   template = "${file("${path.module}/cloud_init.tpl")}"
 
   vars {
+    mq_conf     = "${base64encode("${file("${path.module}/rabbitmq.config")}")}"
     mq_defs     = "${base64encode("${file("private/defs.json")}")}"
     cega_env    = "${base64encode("${file("private/env")}")}"
     cega_server = "${base64encode("${file("${path.module}/server.py")}")}"
@@ -122,6 +123,6 @@ resource "openstack_compute_floatingip_associate_v2" "cega_fip" {
   instance_id = "${openstack_compute_instance_v2.cega.id}"
 }
 
-output "cega" {
-  value = "${openstack_compute_instance_v2.cega.public_ip}"
-}
+# output "cega" {
+#   value = "${openstack_compute_instance_v2.cega.public_ip}"
+# }

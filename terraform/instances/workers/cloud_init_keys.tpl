@@ -101,13 +101,14 @@ write_files:
     path: /etc/systemd/system/gpg-agent-extra.socket
     permissions: '0644'
 
-bootcmd:
+runcmd:
   - mkdir -p ~ega/.gnupg && chmod 700 ~ega/.gnupg
   - mkdir -p ~ega/.gnupg/private-keys-v1.d && chmod 700 ~ega/.gnupg/private-keys-v1.d
   - unzip /tmp/gpg_private.zip -d ~ega/.gnupg/private-keys-v1.d
   - rm /tmp/gpg_private.zip
   - ldconfig -v
   - pip3.6 install git+https://github.com/NBISweden/LocalEGA.git
+  - loginctl enable-linger ega
   - systemctl start gpg-agent.socket gpg-agent-extra.socket gpg-agent.service ega-socket-proxy.service ega-keyserver.service
   - systemctl enable gpg-agent.socket gpg-agent-extra.socket gpg-agent.service ega-socket-proxy.service ega-keyserver.service
 
