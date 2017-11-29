@@ -55,6 +55,11 @@ write_files:
     owner: root:root
     path: /etc/systemd/system/ega-ingestion.service
     permissions: '0644'
+  - encoding: b64
+    content: ${tmp_conf}
+    owner: root:root
+    path: /etc/tmpfiles.d/ega.conf
+    permissions: '0644'
 
 bootcmd:
   - mkdir -p -m 0700 /ega
