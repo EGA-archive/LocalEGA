@@ -1,0 +1,184 @@
+--- gnupg-2.2.2-orig/common/homedir.c	2017-08-28 12:22:54.000000000 +0200
++++ gnupg-2.2.2/common/homedir.c	2017-11-26 14:31:38.000000000 +0100
+@@ -541,11 +541,9 @@
+ 
+ #else /* Unix and stat(2) available. */
+ 
+-  static const char * const bases[] = { "/run", "/var/run", NULL};
+-  int i;
++  /* Cheating and fixing it to /run/ega */
+   struct stat sb;
+-  char prefix[13 + 1 + 20 + 6 + 1];
+-  const char *s;
++  char *prefix = "/run/ega";
+   char *name = NULL;
+ 
+   *r_info = 0;
+@@ -553,153 +551,28 @@
+   /* First make sure that non_default_homedir can be set.  */
+   gnupg_homedir ();
+ 
+-  /* It has been suggested to first check XDG_RUNTIME_DIR envvar.
+-   * However, the specs state that the lifetime of the directory MUST
+-   * be bound to the user being logged in.  Now GnuPG may also be run
+-   * as a background process with no (desktop) user logged in.  Thus
+-   * we better don't do that.  */
+-
+-  /* Check whether we have a /run/user dir.  */
+-  for (i=0; bases[i]; i++)
+-    {
+-      snprintf (prefix, sizeof prefix, "%s/user/%u",
+-                bases[i], (unsigned int)getuid ());
+-      if (!stat (prefix, &sb) && S_ISDIR(sb.st_mode))
+-        break;
+-    }
+-  if (!bases[i])
+-    {
+-      *r_info |= 2; /* No /run/user directory.  */
+-      goto leave;
+-    }
+-
+-  if (sb.st_uid != getuid ())
+-    {
+-      *r_info |= 4; /* Not owned by the user.  */
+-      if (!skip_checks)
+-        goto leave;
+-    }
+-
+-  if (strlen (prefix) + 7 >= sizeof prefix)
+-    {
+-      *r_info |= 1; /* Ooops: Buffer too short to append "/gnupg".  */
+-      goto leave;
+-    }
+-  strcat (prefix, "/gnupg");
+-
+-  /* Check whether the gnupg sub directory has proper permissions.  */
+-  if (stat (prefix, &sb))
+-    {
+-      if (errno != ENOENT)
+-        {
+-          *r_info |= 1; /* stat failed.  */
+-          goto leave;
+-        }
+-
+-      /* Try to create the directory and check again.  */
+-      if (gnupg_mkdir (prefix, "-rwx"))
+-        {
+-          *r_info |= 16; /* mkdir failed.  */
+-          goto leave;
+-        }
+-      if (stat (prefix, &sb))
+-        {
+-          *r_info |= 1; /* stat failed.  */
+-          goto leave;
+-        }
+-    }
+   /* Check that it is a directory, owned by the user, and only the
+    * user has permissions to use it.  */
++  if ((stat (prefix, &sb)) && (errno != ENOENT)){
++    *r_info |= 1; /* stat failed.  */
++    goto leave;
++  }
++
+   if (!S_ISDIR(sb.st_mode)
+       || sb.st_uid != getuid ()
+-      || (sb.st_mode & (S_IRWXG|S_IRWXO)))
+-    {
+-      *r_info |= 4; /* Bad permissions or not a directory. */
+-      if (!skip_checks)
+-        goto leave;
+-    }
+-
+-  /* If a non default homedir is used, we check whether an
+-   * corresponding sub directory below the socket dir is available
+-   * and use that.  We hash the non default homedir to keep the new
+-   * subdir short enough.  */
+-  if (non_default_homedir)
+-    {
+-      char sha1buf[20];
+-      char *suffix;
++      || (sb.st_mode & (S_IRWXG|S_IRWXO))) {
++    *r_info |= 4; /* Bad permissions or not a directory. */
++    if (!skip_checks) goto leave;
++  }
+ 
+-      *r_info |= 32; /* Testing subdir.  */
+-      s = gnupg_homedir ();
+-      gcry_md_hash_buffer (GCRY_MD_SHA1, sha1buf, s, strlen (s));
+-      suffix = zb32_encode (sha1buf, 8*15);
+-      if (!suffix)
+-        {
+-          *r_info |= 1; /* Out of core etc. */
+-          goto leave;
+-        }
+-      name = strconcat (prefix, "/d.", suffix, NULL);
+-      xfree (suffix);
+-      if (!name)
+-        {
+-          *r_info |= 1; /* Out of core etc. */
+-          goto leave;
+-        }
+-
+-      /* Stat that directory and check constraints.
+-       * The command
+-       *    gpgconf --remove-socketdir
+-       * can be used to remove that directory.  */
+-      if (stat (name, &sb))
+-        {
+-          if (errno != ENOENT)
+-            *r_info |= 1; /* stat failed. */
+-          else if (!skip_checks)
+-            {
+-              /* Try to create the directory and check again.  */
+-              if (gnupg_mkdir (name, "-rwx"))
+-                *r_info |= 16; /* mkdir failed.  */
+-              else if (stat (prefix, &sb))
+-                {
+-                  if (errno != ENOENT)
+-                    *r_info |= 1; /* stat failed. */
+-                  else
+-                    *r_info |= 64; /* Subdir does not exist.  */
+-                }
+-              else
+-                goto leave; /* Success!  */
+-            }
+-          else
+-            *r_info |= 64; /* Subdir does not exist.  */
+-          if (!skip_checks)
+-            {
+-              xfree (name);
+-              name = NULL;
+-              goto leave;
+-            }
+-        }
+-      else if (!S_ISDIR(sb.st_mode)
+-               || sb.st_uid != getuid ()
+-               || (sb.st_mode & (S_IRWXG|S_IRWXO)))
+-        {
+-          *r_info |= 8; /* Bad permissions or subdir is not a directory.  */
+-          if (!skip_checks)
+-            {
+-              xfree (name);
+-              name = NULL;
+-              goto leave;
+-            }
+-        }
+-    }
+-  else
+-    name = xstrdup (prefix);
++  name = xstrdup (prefix);
+ 
+  leave:
+   /* If nothing works fall back to the homedir.  */
+-  if (!name)
+-    {
+-      *r_info |= 128; /* Fallback.  */
+-      name = xstrdup (gnupg_homedir ());
+-    }
++  if (!name){
++    *r_info |= 128; /* Fallback.  */
++    name = xstrdup (gnupg_homedir ());
++  }
+ 
+ #endif /* Unix */
+ 
