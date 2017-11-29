@@ -38,7 +38,7 @@ ARG checkout=dev
 
 RUN git clone https://github.com/NBISweden/LocalEGA-auth /root/ega-auth && \
     cd /root/ega-auth && \
-    git checkout ${checkout} && \
+    git checkout && \
     cd src && \
     make install clean && \
     ldconfig -v
