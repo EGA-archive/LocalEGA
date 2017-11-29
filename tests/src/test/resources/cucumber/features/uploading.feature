@@ -1,7 +1,7 @@
 Feature: Uploading
   As a user I want to be able to upload files to the LocalEGA inbox
 
-  Scenario: Upload files to the LocalEGA inbox
+  Scenario: F.0 Upload files to the LocalEGA inbox
     Given I am a user of LocalEGA instances:
       | swe1 |
     And I have an account at Central EGA
