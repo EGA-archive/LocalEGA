@@ -65,9 +65,17 @@ public class Authentication implements En {
         Given("^I have incorrect private key$",
                 () -> context.setPrivateKey(new File(String.format("%s/cega/users/%s.sec", utils.getPrivateFolderPath(), "john"))));
 
-        Given("^Inbox is deleted for my user$", () -> {
+        Given("^inbox is deleted for my user$", () -> {
             try {
-                utils.removeUserFromInbox(context.getTargetInstance(), context.getUser());
+                utils.removeUserInbox(context.getTargetInstance(), context.getUser());
+            } catch (IOException | InterruptedException e) {
+                log.error(e.getMessage(), e);
+            }
+        });
+
+        Given("^inbox is cleared for my user$", () -> {
+            try {
+                utils.removeUserInbox(context.getTargetInstance(), context.getUser());
             } catch (IOException | InterruptedException e) {
                 log.error(e.getMessage(), e);
             }
@@ -101,7 +109,7 @@ public class Authentication implements En {
         When("^inbox is not created for me$", () -> {
             try {
                 disconnect(context);
-                utils.removeUserFromInbox(context.getTargetInstance(), context.getUser());
+                utils.removeUserInbox(context.getTargetInstance(), context.getUser());
                 connect(context);
             } catch (IOException | InterruptedException e) {
                 log.error(e.getMessage(), e);

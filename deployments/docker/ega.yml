@@ -132,6 +132,30 @@ services:
        - ${RSA_SEC_swe1}:/etc/ega/rsa/sec.pem:ro
        - ${RSA_PUB_swe1}:/etc/ega/rsa/pub.pem:ro
 
+  keys_fin1:
+    env_file: private/fin1/gpg.env
+    environment:
+      - GPG_TTY=/dev/console
+      - KEYSERVER_PORT=9010
+    hostname: ega_keys_fin1
+    container_name: ega_keys_fin1
+    image: nbisweden/ega-keys
+    tty: true
+    expose:
+      - "9010"
+      - "9011"
+    volumes:
+       - ${CONF_fin1}:/etc/ega/conf.ini:ro
+       - ${KEYS_fin1}:/etc/ega/keys.ini:ro
+       - ${SSL_CERT_fin1}:/etc/ega/ssl.cert:ro
+       - ${SSL_KEY_fin1}:/etc/ega/ssl.key:ro
+       - ${GPG_HOME_fin1}/pubring.kbx:/root/.gnupg/pubring.kbx
+       - ${GPG_HOME_fin1}/trustdb.gpg:/root/.gnupg/trustdb.gpg
+       - ${GPG_HOME_fin1}/openpgp-revocs.d:/root/.gnupg/openpgp-revocs.d:ro
+       - ${GPG_HOME_fin1}/private-keys-v1.d:/root/.gnupg/private-keys-v1.d:ro
+       - ${RSA_SEC_fin1}:/etc/ega/rsa/sec.pem:ro
+       - ${RSA_PUB_fin1}:/etc/ega/rsa/pub.pem:ro
+
   # # Error Monitors
   # monitors_swe1:
   #   # depends_on:
