@@ -6,8 +6,8 @@ After=network.target
 [Service]
 Slice=ega.slice
 Type=simple
-User=root
-Group=root
+User=ega
+Group=ega
 EnvironmentFile=/etc/ega/options
 ExecStart=/usr/bin/ega-verify $EGA_OPTIONS
 

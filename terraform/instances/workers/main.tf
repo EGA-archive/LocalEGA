@@ -15,7 +15,6 @@ data "template_file" "cloud_init" {
   template = "${file("${path.module}/cloud_init.tpl")}"
 
   vars {
-    boot_script = "${base64encode("${file("${path.module}/boot.sh")}")}"
     hosts       = "${base64encode("${file("${path.root}/hosts")}")}"
     hosts_allow = "${base64encode("${file("${path.root}/hosts.allow")}")}"
     lega_conf   = "${base64encode("${file("${var.instance_data}/ega.conf")}")}"

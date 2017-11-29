@@ -6,6 +6,11 @@ write_files:
     path: /etc/rabbitmq/defs.json
     permissions: '0400'
   - encoding: b64
+    content: ${mq_conf}
+    owner: rabbitmq:rabbitmq
+    path: /etc/rabbitmq/rabbitmq.config
+    permissions: '0400'
+  - encoding: b64
     content: ${cega_users}
     owner: root:root
     path: /tmp/cega_users.zip
