@@ -9,9 +9,9 @@ After=ega-socket-forwarder.socket
 [Service]
 Slice=ega.slice
 Type=simple
+#Restart=always
+EnvironmentFile=/etc/ega/options
 ExecStart=/usr/bin/ega-socket-forwarder /run/ega/S.gpg-agent ${KEYSERVER_HOST}:${KEYSERVER_PORT} --certfile /etc/ega/ssl.cert
-Environment=KEYSERVER_HOST=ega_keys
-Environment=KEYSERVER_PORT=9010
 User=ega
 Group=ega
 RuntimeDirectory=ega

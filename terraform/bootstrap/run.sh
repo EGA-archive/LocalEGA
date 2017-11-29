@@ -2,7 +2,6 @@
 set -e
 
 HERE=$(dirname ${BASH_SOURCE[0]})
-CREDS=${HERE}/../snic.rc
 SETTINGS=${HERE}/settings.rc
 PRIVATE=${HERE}/../private
 
@@ -22,7 +21,6 @@ function usage {
     echo -e "\t--gpgconf <value>   \tPath to the GnuPG conf executable [Default: ${GPG_CONF}]"
     echo -e "\t--gpg-agent <value> \tPath to the GnuPG agent executable [Default: ${GPG_AGENT}]"
     echo ""
-    echo -e "\t--creds <value>     \tPath to the credentials to the cloud [Default: ${CREDS}]"
     echo -e "\t--settings <value>  \tPath to the settings the instances [Default: ${SETTINGS}]"
     echo ""
     echo -e "\t--verbose, -v       \tShow verbose output"
@@ -42,7 +40,6 @@ while [[ $# -gt 0 ]]; do
 	--gpgconf) GPG_CONF=$2; shift;;
         --openssl) OPENSSL=$2; shift;;
         --settings) SETTINGS=$2; shift;;
-        --creds) CREDS=$2; shift;;
 	--) shift; break;;
         *) echo "$0: error - unrecognized option $1" 1>&2; usage; exit 1;;    esac
     shift
@@ -56,14 +53,6 @@ rm_politely ${PRIVATE}
 mkdir -p ${PRIVATE}
 
 exec 2>${PRIVATE}/.err
-
-# Loading the credentials
-if [[ -f "${CREDS}" ]]; then
-    source ${CREDS}
-else
-    echo "No credentials found"
-    exit 1
-fi
 
 ########################################################
 # Loading the settings

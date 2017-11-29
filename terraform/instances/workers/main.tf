@@ -26,6 +26,7 @@ data "template_file" "cloud_init" {
     ega_socket  = "${base64encode("${file("${path.root}/systemd/ega-socket-forwarder.socket")}")}"
     ega_forward = "${base64encode("${file("${path.root}/systemd/ega-socket-forwarder.service")}")}"
     ega_ingest  = "${base64encode("${file("${path.root}/systemd/ega-ingestion.service")}")}"
+    tmp_conf    = "${base64encode("${file("${path.root}/systemd/gpg-socket.tmpfiles.d.conf")}")}"
   }
 }
 
@@ -78,6 +79,7 @@ data "template_file" "cloud_init_keys" {
     gpg_agent_service = "${base64encode("${file("${path.root}/systemd/gpg-agent.service")}")}"
     gpg_agent_socket  = "${base64encode("${file("${path.root}/systemd/gpg-agent.socket")}")}"
     gpg_agent_extra   = "${base64encode("${file("${path.root}/systemd/gpg-agent-extra.socket")}")}"
+    tmp_conf          = "${base64encode("${file("${path.root}/systemd/gpg-socket.tmpfiles.d.conf")}")}"
   }
 }
 

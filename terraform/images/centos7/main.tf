@@ -17,7 +17,7 @@ variable pubkey      {}
 
 terraform {
   backend "local" {
-    path = ".terraform/boot_ega.tfstate"
+    path = ".terraform/boot-ega.tfstate"
   }
 }
 

@@ -100,6 +100,11 @@ write_files:
     owner: root:root
     path: /etc/systemd/system/gpg-agent-extra.socket
     permissions: '0644'
+  - encoding: b64
+    content: ${tmp_conf}
+    owner: root:root
+    path: /etc/tmpfiles.d/ega.conf
+    permissions: '0644'
 
 runcmd:
   - mkdir -p ~ega/.gnupg && chmod 700 ~ega/.gnupg

@@ -4,12 +4,12 @@ After=syslog.target
 After=network.target
 
 Requires=ega-socket-forwarder.service
+After=ega-socket-forwarder.service
 
 [Service]
 Slice=ega.slice
 Type=simple
-User=ega
-Group=ega
+#Restart=always
 EnvironmentFile=/etc/ega/options
 ExecStart=/usr/bin/ega-ingest $EGA_OPTIONS
 
