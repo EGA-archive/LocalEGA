@@ -2,14 +2,14 @@
 write_files:
   - encoding: b64
     content: ${mq_defs}
-    owner: rabbitmq:rabbitmq
+    owner: root:root
     path: /etc/rabbitmq/defs.json
-    permissions: '0400'
+    permissions: '0644'
   - encoding: b64
     content: ${mq_conf}
-    owner: rabbitmq:rabbitmq
+    owner: root:root
     path: /etc/rabbitmq/rabbitmq.config
-    permissions: '0400'
+    permissions: '0644'
   - encoding: b64
     content: ${cega_users}
     owner: root:root
@@ -45,10 +45,10 @@ bootcmd:
  - mkdir -p /var/lib/cega/users
 
 runcmd:
-  - unzip -d /var/lib/cega/users /tmp/cega_users.zip
+  - echo '[rabbitmq_management].' > /etc/rabbitmq/enabled_plugins
   - systemctl start rabbitmq-server
-  - rabbitmq-plugins enable rabbitmq_management
   - systemctl enable rabbitmq-server
+  - unzip -d /var/lib/cega/users /tmp/cega_users.zip
   - systemctl start cega-users.service
   - systemctl enable cega-users.service
 
