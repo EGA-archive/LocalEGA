@@ -73,6 +73,12 @@ resource "openstack_compute_secgroup_v2" "cega" {
     from_port   = 5672
     to_port     = 5672
     ip_protocol = "tcp"
+    cidr        = "192.168.10.0/24"
+  }
+  rule {
+    from_port   = 15672
+    to_port     = 15672
+    ip_protocol = "tcp"
     cidr        = "0.0.0.0/0"
   }
 }

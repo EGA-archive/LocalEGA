@@ -220,7 +220,7 @@ function output_bindings {
     echo -n ' "vhosts":['; output_vhosts; echo '],'
     echo -n ' "permissions":['; output_permissions; echo '],'
     echo    ' "parameters":[],'
-    echo -n ' "global_parameters":[{"name":"cluster_name", "value":"rabbit@localhost"}],'
+    echo -n ' "global_parameters":[{"name":"cluster_name", "value":"rabbit@cega"}],'
     echo    ' "policies":[],'
     echo -n ' "queues":['; output_queues; echo '],'
     echo -n ' "exchanges":['; output_exchanges; echo '],'

@@ -126,12 +126,12 @@ module "workers" {
   flavor_name_compute = "${var.flavor_compute}"
 }
 
-module "monitors" {
-  source        = "./instances/monitors"
-  private_ip    = "192.168.10.15"
-  ega_key       = "${openstack_compute_keypair_v2.ega_key.name}"
-  ega_net       = "${openstack_networking_network_v2.ega_net.id}"
-  cidr          = "192.168.10.0/24"
-  flavor_name   = "${var.flavor}"
-  instance_data = "private"
-}
+# module "monitors" {
+#   source        = "./instances/monitors"
+#   private_ip    = "192.168.10.15"
+#   ega_key       = "${openstack_compute_keypair_v2.ega_key.name}"
+#   ega_net       = "${openstack_networking_network_v2.ega_net.id}"
+#   cidr          = "192.168.10.0/24"
+#   flavor_name   = "${var.flavor}"
+#   instance_data = "private"
+# }
