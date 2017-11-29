@@ -168,6 +168,7 @@ function output_password_hashes {
 
 function output_vhosts {
     declare -a tmp=()
+    tmp+=("{\"name\":\"/\"}")
     for INSTANCE in ${INSTANCES[@]}
     do 
 	tmp+=("{\"name\":\"${INSTANCE}\"}")
@@ -215,17 +216,37 @@ function output_bindings {
 }
 
 {
-    echo    '{"rabbit_version":"3.6.11",'
-    echo -n ' "users":['; output_password_hashes; echo '],'
+    echo    '{"rabbit_version":"3.3.5",'
+    #echo -n ' "users":['; output_password_hashes; echo '],'
+    echo -n ' "users":[],'
     echo -n ' "vhosts":['; output_vhosts; echo '],'
-    echo -n ' "permissions":['; output_permissions; echo '],'
+    #echo -n ' "permissions":['; output_permissions; echo '],'
+    echo -n ' "permissions":[],'
     echo    ' "parameters":[],'
-    echo -n ' "global_parameters":[{"name":"cluster_name", "value":"rabbit@cega"}],'
     echo    ' "policies":[],'
     echo -n ' "queues":['; output_queues; echo '],'
     echo -n ' "exchanges":['; output_exchanges; echo '],'
     echo -n ' "bindings":['; output_bindings; echo ']'
     echo    '}'
 } > ${PRIVATE}/defs.json
+
+cat > ${PRIVATE}/mq_users.sh <<EOF
+#!/usr/bin/env bash
+set -e
+EOF
+for instance in ${!CEGA_MQ_PASSWORD[@]}
+do
+    {
+	echo
+	# Creating VHost
+	#echo "rabbitmqctl add_vhost ${instance}"
+	# Adding user
+	echo "rabbitmqctl add_user cega_${instance} ${CEGA_MQ_PASSWORD[${instance}]}"
+	echo "rabbitmqctl set_user_tags cega_${instance} administrator"
+	# Setting permissions
+	echo "rabbitmqctl set_permissions -p ${instance} cega_${instance} \".*\" \".*\" \".*\""
+	echo
+    } >> ${PRIVATE}/mq_users.sh
+done
 
 task_complete "Bootstrap complete"

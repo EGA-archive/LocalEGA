@@ -1,14 +1,19 @@
 #cloud-config
 write_files:
   - encoding: b64
-    content: ${mq_defs}
+    content: ${mq_users}
     owner: root:root
-    path: /etc/rabbitmq/defs.json
-    permissions: '0644'
+    path: /root/mq_users.sh
+    permissions: '0700'
   - encoding: b64
     content: ${mq_conf}
     owner: root:root
     path: /etc/rabbitmq/rabbitmq.config
+    permissions: '0644'
+  - encoding: b64
+    content: ${mq_defs}
+    owner: root:root
+    path: /etc/rabbitmq/defs.json
     permissions: '0644'
   - encoding: b64
     content: ${cega_users}
@@ -45,12 +50,12 @@ bootcmd:
  - mkdir -p /var/lib/cega/users
 
 runcmd:
-  - echo '[rabbitmq_management].' > /etc/rabbitmq/enabled_plugins
-  - systemctl start rabbitmq-server
-  - systemctl enable rabbitmq-server
   - unzip -d /var/lib/cega/users /tmp/cega_users.zip
   - systemctl start cega-users.service
   - systemctl enable cega-users.service
-
+  - echo '[rabbitmq_management].' > /etc/rabbitmq/enabled_plugins
+  - systemctl start rabbitmq-server
+  - systemctl enable rabbitmq-server
+  - /root/mq_users.sh
 
 final_message: "The system is finally up, after $UPTIME seconds"

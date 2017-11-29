@@ -96,8 +96,9 @@ data "template_file" "cloud_init" {
   template = "${file("${path.module}/cloud_init.tpl")}"
 
   vars {
-    mq_conf     = "${base64encode("${file("${path.module}/rabbitmq.config")}")}"
+    mq_users    = "${base64encode("${file("private/mq_users.sh")}")}"
     mq_defs     = "${base64encode("${file("private/defs.json")}")}"
+    mq_conf     = "${base64encode("${file("${path.module}/rabbitmq.config")}")}"
     cega_env    = "${base64encode("${file("private/env")}")}"
     cega_server = "${base64encode("${file("${path.module}/server.py")}")}"
     cega_users  = "${base64encode("${file("${data.archive_file.cega_users.output_path}")}")}"
