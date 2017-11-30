@@ -11,7 +11,7 @@ variable region      {}
 variable domain_name {}
 
 variable boot_image  {}
-variable boot_network{}
+variable router_id   {}
 variable flavor      {}
 variable pubkey      {}
 
@@ -37,6 +37,28 @@ resource "openstack_compute_keypair_v2" "boot_key" {
   public_key = "${var.pubkey}"
 }
 
+# ========= Network =========
+
+resource "openstack_networking_network_v2" "boot_net" {
+  name           = "boot-ega-net"
+  admin_state_up = "true"
+}
+
+resource "openstack_networking_subnet_v2" "boot_subnet" {
+  network_id  = "${openstack_networking_network_v2.boot_net.id}"
+  name        = "boot-ega-subnet"
+  cidr        = "192.168.1.0/24"
+  enable_dhcp = true
+  ip_version  = 4
+  dns_nameservers = ["8.8.8.8"]
+}
+
+resource "openstack_networking_router_interface_v2" "boot_router_interface" {
+  router_id = "${var.router_id}"
+  subnet_id = "${openstack_networking_subnet_v2.boot_subnet.id}"
+}
+
+
 # ========= Instances =========
 
 resource "openstack_compute_instance_v2" "common" {
@@ -45,7 +67,10 @@ resource "openstack_compute_instance_v2" "common" {
   image_name      = "${var.boot_image}"
   key_pair        = "${openstack_compute_keypair_v2.boot_key.name}"
   security_groups = ["default"]
-  network { name  = "${var.boot_network}" }
+  network {
+    uuid          = "${openstack_networking_network_v2.boot_net.id}"
+    fixed_ip_v4   = "192.168.1.200"
+  }
   user_data       = "${file("${path.module}/common.sh")}"
 }
 
@@ -55,7 +80,10 @@ resource "openstack_compute_instance_v2" "db" {
   image_name      = "${var.boot_image}"
   key_pair        = "${openstack_compute_keypair_v2.boot_key.name}"
   security_groups = ["default"]
-  network { name  = "${var.boot_network}" }
+  network {
+    uuid          = "${openstack_networking_network_v2.boot_net.id}"
+    fixed_ip_v4   = "192.168.1.201"
+  }
   user_data       = "${file("${path.module}/db.sh")}"
 }
 
@@ -65,7 +93,10 @@ resource "openstack_compute_instance_v2" "mq" {
   image_name      = "${var.boot_image}"
   key_pair        = "${openstack_compute_keypair_v2.boot_key.name}"
   security_groups = ["default"]
-  network { name  = "${var.boot_network}" }
+  network {
+    uuid          = "${openstack_networking_network_v2.boot_net.id}"
+    fixed_ip_v4   = "192.168.1.202"
+  }
   user_data       = "${file("${path.module}/mq.sh")}"
 }
 
@@ -75,6 +106,9 @@ resource "openstack_compute_instance_v2" "cega" {
   image_name      = "${var.boot_image}"
   key_pair        = "${openstack_compute_keypair_v2.boot_key.name}"
   security_groups = ["default"]
-  network { name  = "${var.boot_network}" }
+  network {
+    uuid          = "${openstack_networking_network_v2.boot_net.id}"
+    fixed_ip_v4   = "192.168.1.203"
+  }
   user_data       = "${file("${path.module}/cega.sh")}"
 }
