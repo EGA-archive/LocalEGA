@@ -57,7 +57,8 @@ public class Ingestion implements En {
                 String output = utils.executeDBQuery(context.getTargetInstance(),
                         String.format("select stable_id from files where filename = '%s'", context.getEncryptedFile().getName()));
                 String vaultFileName = output.split(System.getProperty("line.separator"))[2].trim();
-                String cat = utils.executeWithinContainer(utils.findContainer("nbisweden/ega-vault", "ega_vault_" + context.getTargetInstance()), "cat", vaultFileName);
+                String cat = utils.executeWithinContainer(utils.findContainer(utils.getProperty("images.name.vault"),
+                        utils.getProperty("container.prefix.vault") + context.getTargetInstance()), "cat", vaultFileName);
                 Assertions.assertThat(cat).startsWith("bytearray(b'1')|256|8|b'CTR'");
             } catch (IOException | InterruptedException e) {
                 log.error(e.getMessage(), e);
@@ -80,7 +81,7 @@ public class Ingestion implements En {
 
     private void ingestFile(Context context, Utils utils, String encryptedFileName, String rawChecksum, String encryptedChecksum) {
         try {
-            utils.executeWithinContainer(utils.findContainer("nbisweden/ega-cega_mq", "cega_mq"),
+            utils.executeWithinContainer(utils.findContainer(utils.getProperty("images.name.cega_mq"), utils.getProperty("container.prefix.cega_mq")),
                     String.format("publish --connection amqp://%s:%s@localhost:5672/%s %s %s %s --unenc %s --enc %s",
                             context.getCegaMQUser(),
                             context.getCegaMQPassword(),
@@ -91,7 +92,7 @@ public class Ingestion implements En {
                             rawChecksum,
                             encryptedChecksum).split(" "));
             Thread.sleep(1000);
-        } catch (IOException | InterruptedException e) {
+        } catch (InterruptedException e) {
             log.error(e.getMessage(), e);
             Assert.fail(e.getMessage());
         }

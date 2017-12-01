@@ -27,7 +27,7 @@ public class Uploading implements En {
             try {
                 String encryptionCommand = "gpg2 -r " + utils.readTraceProperty(instance, "GPG_EMAIL") + " -e -o /data/" + rawFile.getName() + ".enc /data/" + rawFile.getName();
                 utils.spawnTempWorkerAndExecute(instance, Paths.get(dataFolderName).toAbsolutePath().toString(), "/" + dataFolderName, encryptionCommand);
-            } catch (IOException | InterruptedException e) {
+            } catch (IOException e) {
                 log.error(e.getMessage(), e);
                 Assert.fail(e.getMessage());
             }
