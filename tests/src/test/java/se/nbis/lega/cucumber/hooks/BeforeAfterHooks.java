@@ -40,7 +40,8 @@ public class BeforeAfterHooks implements En {
         String targetInstance = context.getTargetInstance();
 
         // fix database connectivity
-        utils.executeWithinContainer(utils.findContainer("nbisweden/ega-inbox", "ega_inbox_" + context.getTargetInstance()),
+        utils.executeWithinContainer(utils.findContainer(utils.getProperty("images.name.inbox"),
+                utils.getProperty("container.prefix.inbox") + context.getTargetInstance()),
                 "sed -i s/dbname=wrong/dbname=lega/g /etc/ega/auth.conf".split(" "));
 
         FileUtils.deleteDirectory(context.getDataFolder());

@@ -5,12 +5,13 @@ import net.schmizz.sshj.SSHClient;
 import net.schmizz.sshj.sftp.SFTPClient;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.List;
 
 @Data
 public class Context {
 
-    private Utils utils = new Utils();
+    private final Utils utils;
 
     private String user;
     private List<String> instances;
@@ -27,5 +28,9 @@ public class Context {
     private File encryptedFile;
 
     private boolean authenticationFailed;
+
+    public Context() throws IOException {
+        this.utils = new Utils();
+    }
 
 }
