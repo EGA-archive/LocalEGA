@@ -12,7 +12,7 @@ variable domain_name {}
 variable pool        {}
 variable router_id   {}
 variable dns_servers { type = "list" }
-variable pubkey      {}
+variable key         {}
 variable flavor      {}
 
 terraform {
@@ -30,11 +30,6 @@ provider "openstack" {
   auth_url    = "${var.auth_url}"
   region      = "${var.region}"
   domain_name = "${var.domain_name}"
-}
-
-resource "openstack_compute_keypair_v2" "cega_key" {
-  name       = "cega-key"
-  public_key = "${var.pubkey}"
 }
 
 # ========= Network =========
@@ -112,7 +107,7 @@ resource "openstack_compute_instance_v2" "cega" {
   name        = "cega"
   flavor_name = "${var.flavor}"
   image_name  = "EGA-cega"
-  key_pair  = "${openstack_compute_keypair_v2.cega_key.name}"
+  key_pair  = "${var.key}"
   security_groups = ["default","${openstack_compute_secgroup_v2.cega.name}"]
   network {
     uuid = "${openstack_networking_network_v2.cega_net.id}"

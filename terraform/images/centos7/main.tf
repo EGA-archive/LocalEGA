@@ -13,7 +13,7 @@ variable domain_name {}
 variable boot_image  {}
 variable router_id   {}
 variable flavor      {}
-variable pubkey      {}
+variable key         {}
 
 terraform {
   backend "local" {
@@ -30,11 +30,6 @@ provider "openstack" {
   auth_url    = "${var.auth_url}"
   region      = "${var.region}"
   domain_name = "${var.domain_name}"
-}
-
-resource "openstack_compute_keypair_v2" "boot_key" {
-  name       = "boot-key"
-  public_key = "${var.pubkey}"
 }
 
 # ========= Network =========
@@ -65,7 +60,7 @@ resource "openstack_compute_instance_v2" "common" {
   name            = "ega-common"
   flavor_name     = "${var.flavor}"
   image_name      = "${var.boot_image}"
-  key_pair        = "${openstack_compute_keypair_v2.boot_key.name}"
+  key_pair        = "${var.key}"
   security_groups = ["default"]
   network {
     uuid          = "${openstack_networking_network_v2.boot_net.id}"
@@ -78,7 +73,7 @@ resource "openstack_compute_instance_v2" "db" {
   name            = "ega-db"
   flavor_name     = "${var.flavor}"
   image_name      = "${var.boot_image}"
-  key_pair        = "${openstack_compute_keypair_v2.boot_key.name}"
+  key_pair        = "${var.key}"
   security_groups = ["default"]
   network {
     uuid          = "${openstack_networking_network_v2.boot_net.id}"
@@ -91,7 +86,7 @@ resource "openstack_compute_instance_v2" "mq" {
   name            = "ega-mq"
   flavor_name     = "${var.flavor}"
   image_name      = "${var.boot_image}"
-  key_pair        = "${openstack_compute_keypair_v2.boot_key.name}"
+  key_pair        = "${var.key}"
   security_groups = ["default"]
   network {
     uuid          = "${openstack_networking_network_v2.boot_net.id}"
@@ -104,7 +99,7 @@ resource "openstack_compute_instance_v2" "cega" {
   name            = "cega"
   flavor_name     = "${var.flavor}"
   image_name      = "${var.boot_image}"
-  key_pair        = "${openstack_compute_keypair_v2.boot_key.name}"
+  key_pair        = "${var.key}"
   security_groups = ["default"]
   network {
     uuid          = "${openstack_networking_network_v2.boot_net.id}"
