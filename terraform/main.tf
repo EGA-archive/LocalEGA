@@ -12,7 +12,7 @@ variable domain_name {}
 variable pool        {}
 variable router_id   {}
 variable dns_servers { type = "list" }
-variable pubkey      {}
+variable key         {}
 variable flavor      {}
 variable flavor_compute {}
 
@@ -31,11 +31,6 @@ provider "openstack" {
   auth_url    = "${var.auth_url}"
   region      = "${var.region}"
   domain_name = "${var.domain_name}"
-}
-
-resource "openstack_compute_keypair_v2" "ega_key" {
-  name       = "ega-key"
-  public_key = "${var.pubkey}"
 }
 
 # ========= Network LEGA =========
@@ -64,7 +59,7 @@ resource "openstack_networking_router_interface_v2" "router_interface" {
 module "db" {
   source        = "./instances/db"
   private_ip    = "192.168.10.10"
-  ega_key       = "${openstack_compute_keypair_v2.ega_key.name}"
+  ega_key       = "${var.key}"
   ega_net       = "${openstack_networking_network_v2.ega_net.id}"
   cidr          = "192.168.10.0/24"
   flavor_name   = "${var.flavor}"
@@ -74,7 +69,7 @@ module "db" {
 module "mq" {
   source        = "./instances/mq"
   private_ip    = "192.168.10.11"
-  ega_key       = "${openstack_compute_keypair_v2.ega_key.name}"
+  ega_key       = "${var.key}"
   ega_net       = "${openstack_networking_network_v2.ega_net.id}"
   cidr          = "192.168.10.0/24"
   flavor_name   = "${var.flavor}"
@@ -84,7 +79,7 @@ module "mq" {
 module "frontend" {
   source        = "./instances/frontend"
   private_ip    = "192.168.10.13"
-  ega_key       = "${openstack_compute_keypair_v2.ega_key.name}"
+  ega_key       = "${var.key}"
   ega_net       = "${openstack_networking_network_v2.ega_net.id}"
   pool          = "Public External IPv4 Network"
   flavor_name   = "${var.flavor}"
@@ -94,7 +89,7 @@ module "frontend" {
 module "inbox" {
   source        = "./instances/inbox"
   private_ip    = "192.168.10.12"
-  ega_key       = "${openstack_compute_keypair_v2.ega_key.name}"
+  ega_key       = "${var.key}"
   ega_net       = "${openstack_networking_network_v2.ega_net.id}"
   cidr          = "192.168.10.0/24"
   volume_size   = "300"
@@ -106,7 +101,7 @@ module "inbox" {
 module "vault" {
   source      = "./instances/vault"
   private_ip    = "192.168.10.14"
-  ega_key       = "${openstack_compute_keypair_v2.ega_key.name}"
+  ega_key       = "${var.key}"
   ega_net       = "${openstack_networking_network_v2.ega_net.id}"
   volume_size   = "150"
   flavor_name   = "${var.flavor}"
@@ -118,7 +113,7 @@ module "workers" {
   count         = 2
   private_ip_keys = "192.168.10.16"
   private_ips   = ["192.168.10.101","192.168.10.102"]
-  ega_key       = "${openstack_compute_keypair_v2.ega_key.name}"
+  ega_key       = "${var.key}"
   ega_net       = "${openstack_networking_network_v2.ega_net.id}"
   cidr          = "192.168.10.0/24"
   flavor_name   = "${var.flavor}"
@@ -129,7 +124,7 @@ module "workers" {
 # module "monitors" {
 #   source        = "./instances/monitors"
 #   private_ip    = "192.168.10.15"
-#   ega_key       = "${openstack_compute_keypair_v2.ega_key.name}"
+#   ega_key       = "${var.key}"
 #   ega_net       = "${openstack_networking_network_v2.ega_net.id}"
 #   cidr          = "192.168.10.0/24"
 #   flavor_name   = "${var.flavor}"
