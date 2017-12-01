@@ -43,7 +43,7 @@ public class Authentication implements En {
                     String publicKey = results.get(2);
                     File userYML = new File(String.format(cegaUsersFolderPath + "/%s.yml", user));
                     FileUtils.writeLines(userYML, Arrays.asList("---", "pubkey: " + publicKey));
-                } catch (IOException | InterruptedException e) {
+                } catch (IOException e) {
                     log.error(e.getMessage(), e);
                 }
             }
@@ -68,24 +68,25 @@ public class Authentication implements En {
         Given("^inbox is deleted for my user$", () -> {
             try {
                 utils.removeUserInbox(context.getTargetInstance(), context.getUser());
-            } catch (IOException | InterruptedException e) {
+            } catch (InterruptedException e) {
                 log.error(e.getMessage(), e);
             }
         });
 
-        Given("^inbox is cleared for my user$", () -> {
+        Given("^file is removed from the inbox$", () -> {
             try {
-                utils.removeUserInbox(context.getTargetInstance(), context.getUser());
-            } catch (IOException | InterruptedException e) {
+                utils.removeUploadedFileFromInbox(context.getTargetInstance(), context.getUser(), context.getEncryptedFile().getName());
+            } catch (InterruptedException e) {
                 log.error(e.getMessage(), e);
             }
         });
 
         Given("^the database connectivity is broken$", () -> {
             try {
-                utils.executeWithinContainer(utils.findContainer("nbisweden/ega-inbox", "ega_inbox_" + context.getTargetInstance()),
+                utils.executeWithinContainer(utils.findContainer(utils.getProperty("images.name.inbox"),
+                        utils.getProperty("container.prefix.inbox") + context.getTargetInstance()),
                         "sed -i s/dbname=lega/dbname=wrong/g /etc/ega/auth.conf".split(" "));
-            } catch (IOException | InterruptedException e) {
+            } catch (InterruptedException e) {
                 log.error(e.getMessage(), e);
             }
         });
@@ -111,7 +112,7 @@ public class Authentication implements En {
                 disconnect(context);
                 utils.removeUserInbox(context.getTargetInstance(), context.getUser());
                 connect(context);
-            } catch (IOException | InterruptedException e) {
+            } catch (InterruptedException e) {
                 log.error(e.getMessage(), e);
             }
         });
