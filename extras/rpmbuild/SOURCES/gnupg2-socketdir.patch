@@ -1,5 +1,5 @@
---- gnupg-2.2.2-orig/common/homedir.c	2017-08-28 12:22:54.000000000 +0200
-+++ gnupg-2.2.2/common/homedir.c	2017-11-26 14:31:38.000000000 +0100
+--- gnupg-2.2.2.org/common/homedir.c	2017-12-02 19:52:43.000000000 +0000
++++ gnupg-2.2.2/common/homedir.c	2017-12-02 19:54:03.000000000 +0000
 @@ -541,11 +541,9 @@
  
  #else /* Unix and stat(2) available. */
@@ -81,7 +81,7 @@
 +  }
 +
    if (!S_ISDIR(sb.st_mode)
-       || sb.st_uid != getuid ()
+-      || sb.st_uid != getuid ()
 -      || (sb.st_mode & (S_IRWXG|S_IRWXO)))
 -    {
 -      *r_info |= 4; /* Bad permissions or not a directory. */
@@ -97,11 +97,7 @@
 -    {
 -      char sha1buf[20];
 -      char *suffix;
-+      || (sb.st_mode & (S_IRWXG|S_IRWXO))) {
-+    *r_info |= 4; /* Bad permissions or not a directory. */
-+    if (!skip_checks) goto leave;
-+  }
- 
+-
 -      *r_info |= 32; /* Testing subdir.  */
 -      s = gnupg_homedir ();
 -      gcry_md_hash_buffer (GCRY_MD_SHA1, sha1buf, s, strlen (s));
@@ -166,6 +162,12 @@
 -    }
 -  else
 -    name = xstrdup (prefix);
++      /* || sb.st_uid != getuid () */
++      || (sb.st_mode & (S_IRWXG|S_IRWXO))) {
++    *r_info |= 4; /* Bad permissions or not a directory. */
++    if (!skip_checks) goto leave;
++  }
++
 +  name = xstrdup (prefix);
  
   leave:
