@@ -1,16 +1,16 @@
 --- gnupg-2.2.2.org/common/homedir.c	2017-12-02 19:52:43.000000000 +0000
-+++ gnupg-2.2.2/common/homedir.c	2017-12-02 19:54:03.000000000 +0000
++++ gnupg-2.2.2/common/homedir.c	2017-12-03 11:50:25.000000000 +0000
 @@ -541,11 +541,9 @@
  
  #else /* Unix and stat(2) available. */
  
 -  static const char * const bases[] = { "/run", "/var/run", NULL};
 -  int i;
-+  /* Cheating and fixing it to /run/ega */
++  /* Cheating and fixing it to /etc/ega/gnupg */
    struct stat sb;
 -  char prefix[13 + 1 + 20 + 6 + 1];
 -  const char *s;
-+  char *prefix = "/run/ega";
++  char *prefix = "/etc/ega/gnupg";
    char *name = NULL;
  
    *r_info = 0;
@@ -81,7 +81,7 @@
 +  }
 +
    if (!S_ISDIR(sb.st_mode)
--      || sb.st_uid != getuid ()
+       || sb.st_uid != getuid ()
 -      || (sb.st_mode & (S_IRWXG|S_IRWXO)))
 -    {
 -      *r_info |= 4; /* Bad permissions or not a directory. */
@@ -162,7 +162,6 @@
 -    }
 -  else
 -    name = xstrdup (prefix);
-+      /* || sb.st_uid != getuid () */
 +      || (sb.st_mode & (S_IRWXG|S_IRWXO))) {
 +    *r_info |= 4; /* Bad permissions or not a directory. */
 +    if (!skip_checks) goto leave;
