@@ -10,6 +10,14 @@ echo "Disabling SElinux"
 [ -f /etc/selinux/config ] && sed -i 's/SELINUX=.*/SELINUX=disabled/' /etc/selinux/config
 setenforce 0
 
+# ========================
+# No IPv6
+cat > /etc/sysctl.d/01-no-ipv6.conf <<EOF
+net.ipv6.conf.all.disable_ipv6 = 1
+net.ipv6.conf.default.disable_ipv6 = 1
+EOF
+
+# ========================
 
 yum -y update
 yum -y install epel-release

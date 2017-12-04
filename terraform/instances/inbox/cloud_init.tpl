@@ -35,24 +35,35 @@ write_files:
     owner: root:ega
     path: /usr/local/bin/ega-ssh-keys.sh
     permissions: '0750'
+  - encoding: b64
+    content: ${ega_ssh_keys}
+    owner: root:ega
+    path: /usr/local/bin/ega-ssh-keys.sh
+    permissions: '0750'
+  - encoding: b64
+    content: ${ega_mount}
+    owner: root:root
+    path: /etc/systemd/system/ega.mount
+    permissions: '0644'
 
 bootcmd:
   - mkdir -p /usr/local/lib/ega
   - rm -rf /ega
-  - mkdir -m 0755 /ega
-  - chown root:ega /ega
-  - chmod g+s /ega
+  - mkdir -m 0750 /ega
 
 runcmd:
   - yum -y install automake autoconf libtool libgcrypt libgcrypt-devel postgresql-devel pam-devel libcurl-devel jq-devel nfs-utils
   - echo '/usr/local/lib/ega' > /etc/ld.so.conf.d/ega.conf
   - mkfs -t btrfs -f /dev/vdb
-  - echo '/dev/vdb /ega btrfs defaults 0 0' >> /etc/fstab
-  - mount /ega
-  - echo '/ega ${cidr}(rw,sync,no_root_squash,no_all_squash,no_subtree_check)' > /etc/exports
-  - mkdir -m 0755 /ega/{inbox,staging}
-  - chown root:ega /ega/{inbox,staging}
+  - systemctl start ega.mount
+  - systemctl enable ega.mount
+  - mkdir -p /ega/{inbox,staging}
+  - chown root:ega /ega/inbox
+  - chown ega:ega /ega/staging
+  - chmod 0750 /ega/{inbox,staging}
   - chmod g+s /ega/{inbox,staging}
+  - echo '/ega/inbox   ${cidr}(rw,sync,no_root_squash,no_all_squash,no_subtree_check)' > /etc/exports
+  - echo '/ega/staging ${cidr}(rw,sync,no_root_squash,no_all_squash,no_subtree_check)' >> /etc/exports
   - systemctl restart rpcbind nfs-server nfs-lock nfs-idmap
   - systemctl enable rpcbind nfs-server nfs-lock nfs-idmap
   - git clone https://github.com/NBISweden/LocalEGA-auth.git ~/repo && cd ~/repo/src && make install && ldconfig -v

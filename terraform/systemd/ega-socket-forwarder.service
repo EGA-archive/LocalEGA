@@ -10,16 +10,13 @@ After=ega-socket-forwarder.socket
 Slice=ega.slice
 Type=simple
 #Restart=always
-EnvironmentFile=/etc/ega/options
-ExecStart=/usr/bin/ega-socket-forwarder /run/ega/S.gpg-agent ${KEYSERVER_HOST}:${KEYSERVER_PORT} --certfile /etc/ega/ssl.cert
+ExecStart=/usr/bin/ega-socket-forwarder /etc/ega/gnupg/S.gpg-agent ega_keys:9010 --certfile /etc/ega/ssl.cert
 User=ega
 Group=ega
-RuntimeDirectory=ega
-RuntimeDirectoryMode=0700
 
-Restart=on-failure
-RestartSec=10
-TimeoutSec=600
+#Restart=on-failure
+#RestartSec=10
+#TimeoutSec=600
 
 Sockets=ega-socket-forwarder.socket
 

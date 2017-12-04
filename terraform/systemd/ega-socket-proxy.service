@@ -8,20 +8,16 @@ Requires=gpg-agent.service
 [Service]
 Slice=ega.slice
 Type=simple
-ExecStart=/usr/bin/ega-socket-proxy ${KEYSERVER_HOST}:${KEYSERVER_PORT} /run/ega/S.gpg-agent.extra --certfile /etc/ega/ssl.cert --keyfile /etc/ega/ssl.key
-Environment=KEYSERVER_HOST=ega_keys
-Environment=KEYSERVER_PORT=9010
+ExecStart=/usr/bin/ega-socket-proxy ega_keys:9010 /etc/ega/gnupg/S.gpg-agent --certfile /etc/ega/ssl.cert --keyfile /etc/ega/ssl.key
 User=ega
 Group=ega
-RuntimeDirectory=ega
-RuntimeDirectoryMode=0700
 
 StandardOutput=syslog
 StandardError=syslog
 
-Restart=on-failure
-RestartSec=10
-TimeoutSec=600
+#Restart=on-failure
+#RestartSec=10
+#TimeoutSec=600
 
 [Install]
 WantedBy=multi-user.target

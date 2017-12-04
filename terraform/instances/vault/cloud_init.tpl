@@ -35,17 +35,23 @@ write_files:
     owner: root:root
     path: /etc/systemd/system/ega-vault.service
     permissions: '0644'
+  - encoding: b64
+    content: ${ega_vault_mount}
+    owner: root:root
+    path: /etc/systemd/system/ega-vault.mount
+    permissions: '0644'
+  - encoding: b64
+    content: ${ega_staging_mount}
+    owner: root:root
+    path: /etc/systemd/system/ega-staging.mount
+    permissions: '0644'
 
 bootcmd:
-  - rm -rf /ega/vault
-  - mkdir -p /ega/vault
-  - chown ega:ega /ega/vault
-  - chmod 0700 /ega/vault
+  - mkdir -p -m 0700 /ega
+  - chown ega:ega /ega
 
 runcmd:
   - mkfs -t btrfs -f /dev/vdb
-  - echo '/dev/vdb /ega/vault btrfs defaults 0 0' >> /etc/fstab
-  - mount /ega/vault
   - pip3.6 install git+https://github.com/NBISweden/LocalEGA.git
   - systemctl start ega-verify ega-vault
   - systemctl enable ega-verify ega-vault

@@ -18,6 +18,8 @@ data "template_file" "cloud_init" {
     ega_slice   = "${base64encode("${file("${path.root}/systemd/ega.slice")}")}"
     ega_verify  = "${base64encode("${file("${path.root}/systemd/ega-verify.service")}")}"
     ega_vault   = "${base64encode("${file("${path.root}/systemd/ega-vault.service")}")}"
+    ega_vault_mount   = "${base64encode("${file("${path.root}/systemd/ega-vault.mount")}")}"
+    ega_staging_mount = "${base64encode("${file("${path.root}/systemd/ega-staging.mount")}")}"
   }
 
 }

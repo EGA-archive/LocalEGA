@@ -141,7 +141,7 @@ cat > ${PRIVATE}/ega.conf <<EOF
 log = debug
 
 [ingestion]
-gpg_cmd = gpg2 --decrypt %(file)s
+gpg_cmd = /usr/local/bin/gpg2 --homedir /etc/ega/gnupg --decrypt %(file)s
 
 # Keyserver communication
 keyserver_host = ega_keys
@@ -149,6 +149,9 @@ keyserver_host = ega_keys
 ## Connecting to Local EGA
 [local.broker]
 host = ega_mq
+username = lega
+password = ${MQ_PASSWORD}
+vhost = /
 
 ## Connecting to Central EGA
 [cega.broker]
@@ -246,7 +249,7 @@ echomsg "\t* GnuPG preset script"
 cat > ${PRIVATE}/preset.sh <<EOF
 #!/bin/bash
 set -e
-KEYGRIP=\$(gpg -k --with-keygrip ${GPG_EMAIL} | awk '/Keygrip/{print \$3;exit;}')
+KEYGRIP=\$(/usr/local/bin/gpg2 --homedir /etc/ega/gnupg -k --with-keygrip ${GPG_EMAIL} | awk '/Keygrip/{print \$3;exit;}')
 if [ ! -z "\$KEYGRIP" ]; then 
     echo 'Unlocking the GPG key'
     # This will use the standard socket. The proxy forwards to the extra socket.
@@ -255,6 +258,30 @@ else
     echo 'Skipping the GPG key preseting'
 fi
 EOF
+
+cat > ${PRIVATE}/defs.json <<EOF
+{"rabbit_version":"3.6.10",
+ "vhosts":[{"name":"/"}],
+ "parameters":[],
+ "policies":[],
+ "queues":[{"name":"archived",  "vhost":"/", "durable":true, "auto_delete":false, "arguments":{}},
+	   {"name":"verified",  "vhost":"/", "durable":true, "auto_delete":false, "arguments":{}},
+	   {"name":"completed", "vhost":"/", "durable":true, "auto_delete":false, "arguments":{}}],
+ "exchanges":[{"name":"lega",   "vhost":"/", "type":"topic", "durable":true, "auto_delete":false, "internal":false, "arguments":{}}],
+ "bindings":[{"source":"lega",  "vhost":"/", "destination":"archived", "destination_type":"queue", "routing_key":"lega.archived", "arguments":{}},
+	     {"source":"lega",  "vhost":"/", "destination":"completed", "destination_type":"queue", "routing_key":"lega.complete", "arguments":{}},
+	     {"source":"lega",  "vhost":"/", "destination":"verified",  "destination_type":"queue", "routing_key":"lega.verified", "arguments":{}}]}
+EOF
+
+cat > ${PRIVATE}/mq_users.sh <<EOF
+#!/usr/bin/env bash
+set -e
+
+rabbitmqctl add_user lega ${MQ_PASSWORD}
+rabbitmqctl set_user_tags lega administrator
+rabbitmqctl set_permissions lega ".*" ".*" ".*" # -p /
+EOF
+
 
 #########################################################################
 
@@ -265,21 +292,27 @@ cat > ${PRIVATE}/.trace <<EOF
 #
 #####################################################################
 #
-GPG_PASSPHRASE            = ${GPG_PASSPHRASE}
-GPG_NAME                  = ${GPG_NAME}
-GPG_COMMENT               = ${GPG_COMMENT}
-GPG_EMAIL                 = ${GPG_EMAIL}
-RSA_PASSPHRASE            = ${RSA_PASSPHRASE}
-SSL_SUBJ                  = ${SSL_SUBJ}
+GPG_PASSPHRASE      = ${GPG_PASSPHRASE}
+GPG_NAME            = ${GPG_NAME}
+GPG_COMMENT         = ${GPG_COMMENT}
+GPG_EMAIL           = ${GPG_EMAIL}
 #
-DB_USER                   = ${DB_USER}
-DB_PASSWORD               = ${DB_PASSWORD}
-DB_TRY                    = ${DB_TRY}
+RSA_PASSPHRASE      = ${RSA_PASSPHRASE}
 #
-LEGA_GREETINGS            = ${LEGA_GREETINGS}
+SSL_SUBJ            = ${SSL_SUBJ}
 #
-CEGA_REST_PASSWORD        = ${CEGA_REST_PASSWORD}
-CEGA_MQ_PASSWORD          = ${CEGA_MQ_PASSWORD}
+DB_USER             = ${DB_USER}
+DB_PASSWORD         = ${DB_PASSWORD}
+DB_TRY              = ${DB_TRY}
+#
+LEGA_GREETINGS      = ${LEGA_GREETINGS}
+#
+MQ_USER             = lega
+MQ_PASSWORD         = ${MQ_PASSWORD}
+MQ_VHOST            = /
+#
+CEGA_REST_PASSWORD  = ${CEGA_REST_PASSWORD}
+CEGA_MQ_PASSWORD    = ${CEGA_MQ_PASSWORD}
 EOF
 
 task_complete "Bootstrap complete"

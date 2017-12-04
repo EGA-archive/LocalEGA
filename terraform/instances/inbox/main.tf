@@ -34,6 +34,7 @@ data "template_file" "cloud_init" {
     sshd_pam    = "${base64encode("${file("${path.module}/pam.sshd")}")}"
     ega_pam     = "${base64encode("${file("${path.module}/pam.ega")}")}"
     ega_ssh_keys= "${base64encode("${file("${var.instance_data}/ega_ssh_keys.sh")}")}"
+    ega_mount   = "${base64encode("${file("${path.root}/systemd/ega.mount")}")}"
   }
 }
 
@@ -69,4 +70,8 @@ resource "openstack_networking_floatingip_v2" "fip" {
 resource "openstack_compute_floatingip_associate_v2" "inbox_fip" {
   floating_ip  = "${openstack_networking_floatingip_v2.fip.address}"
   instance_id = "${openstack_compute_instance_v2.inbox.id}"
+}
+
+output "address" {
+  value = "${openstack_networking_floatingip_v2.fip.address}"
 }

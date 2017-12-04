@@ -36,6 +36,11 @@ write_files:
     path: /var/lib/cega/env
     permissions: '0400'
   - encoding: b64
+    content: ${cega_publish}
+    owner: root:root
+    path: /var/lib/cega/publish
+    permissions: '0755'
+  - encoding: b64
     content: ${ega_slice}
     owner: root:root
     path: /etc/systemd/system/ega.slice

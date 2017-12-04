@@ -18,12 +18,12 @@ write_files:
   - encoding: b64
     content: ${gpg_pubring}
     owner: ega:ega
-    path: /ega/.gnupg/pubring.kbx
+    path: /etc/ega/gnupg/pubring.kbx
     permissions: '0600'
   - encoding: b64
     content: ${gpg_trustdb}
     owner: ega:ega
-    path: /ega/.gnupg/trustdb.gpg
+    path: /etc/ega/gnupg/trustdb.gpg
     permissions: '0600'
   - encoding: b64
     content: ${ssl_cert}
@@ -56,22 +56,27 @@ write_files:
     path: /etc/systemd/system/ega-ingestion.service
     permissions: '0644'
   - encoding: b64
-    content: ${tmp_conf}
+    content: ${ega_inbox_mount}
     owner: root:root
-    path: /etc/tmpfiles.d/ega.conf
+    path: /etc/systemd/system/ega-inbox.mount
+    permissions: '0644'
+  - encoding: b64
+    content: ${ega_staging_mount}
+    owner: root:root
+    path: /etc/systemd/system/ega-staging.mount
     permissions: '0644'
 
 bootcmd:
-  - mkdir -p -m 0700 /ega
-  - chown -R ega:ega /ega
-  - mkdir -p ~ega/.gnupg && chmod 700 ~ega/.gnupg
+  - mkdir -p /etc/ega/gnupg
+  - chmod 700 /etc/ega/gnupg
+  - chown -R ega:ega /etc/ega/gnupg
+  - mkdir -p /ega
+  - chown ega:ega /ega
+  - chmod 700 /ega
 
 runcmd:
-  - pip3.6 install git+https://github.com/NBISweden/LocalEGA.git
-  - sed -i -e '/ega_inbox:/ d' /etc/fstab
-  - echo "ega_inbox:/ega /ega  nfs  noauto,x-systemd.automount,x-systemd.device-timeout=10,timeo=14,x-systemd.idle-timeout=1min 0 0" >> /etc/fstab
-  - mount /ega
   - ldconfig -v
+  - pip3.6 install git+https://github.com/NBISweden/LocalEGA.git
   - systemctl start ega-ingestion.service ega-socket-forwarder.service ega-socket-forwarder.socket
   - systemctl enable ega-ingestion.service ega-socket-forwarder.service ega-socket-forwarder.socket
 

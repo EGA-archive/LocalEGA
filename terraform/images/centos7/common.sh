@@ -11,6 +11,13 @@ echo "Disabling SElinux"
 setenforce 0
 
 # ========================
+# No IPv6
+cat > /etc/sysctl.d/01-no-ipv6.conf <<EOF
+net.ipv6.conf.all.disable_ipv6 = 1
+net.ipv6.conf.default.disable_ipv6 = 1
+EOF
+
+# ========================
 
 yum -y update
 yum -y install epel-release https://centos7.iuscommunity.org/ius-release.rpm
