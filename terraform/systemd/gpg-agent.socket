@@ -4,13 +4,10 @@ After=syslog.target
 After=network.target
 
 [Socket]
-ListenStream=/run/ega/S.gpg-agent
-FileDescriptorName=std
+ListenStream=/etc/ega/gnupg/S.gpg-agent
 SocketUser=ega
 SocketGroup=ega
 SocketMode=0600
-DirectoryMode=0700
-#Service=gpg-agent.service
 
 [Install]
 WantedBy=sockets.target

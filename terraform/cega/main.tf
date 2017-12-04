@@ -96,6 +96,7 @@ data "template_file" "cloud_init" {
     mq_conf     = "${base64encode("${file("${path.module}/rabbitmq.config")}")}"
     cega_env    = "${base64encode("${file("private/env")}")}"
     cega_server = "${base64encode("${file("${path.module}/server.py")}")}"
+    cega_publish= "${base64encode("${file("${path.module}/publish.py")}")}"
     cega_users  = "${base64encode("${file("${data.archive_file.cega_users.output_path}")}")}"
     cega_html   = "${base64encode("${file("${path.module}/users.html")}")}"
     ega_slice   = "${base64encode("${file("../systemd/ega.slice")}")}"
@@ -125,6 +126,6 @@ resource "openstack_compute_floatingip_associate_v2" "cega_fip" {
   instance_id = "${openstack_compute_instance_v2.cega.id}"
 }
 
-# output "cega" {
-#   value = "${openstack_compute_instance_v2.cega.public_ip}"
-# }
+output "address" {
+  value = "${openstack_networking_floatingip_v2.fip.address}"
+}

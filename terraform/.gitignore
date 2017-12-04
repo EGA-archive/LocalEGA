@@ -3,3 +3,5 @@
 *.rc
 private
 cega/private
+test/*
+!test/Makefile

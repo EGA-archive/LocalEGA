@@ -5,18 +5,15 @@ After=syslog.target
 After=network.target
 
 Requires=gpg-agent.socket
-Requires=gpg-agent-extra.socket
 
 [Service]
 Slice=ega.slice
 Type=simple
-ExecStart=/usr/local/bin/gpg-agent --supervised
+EnvironmentFile=/etc/ega/options
+ExecStart=/usr/local/bin/gpg-agent --homedir /etc/ega/gnupg --supervised
 ExecReload=/usr/local/bin/gpgconf --reload gpg-agent
-ExecStartPost=/root/preset.sh
 User=ega
 Group=ega
-RuntimeDirectory=ega
-RuntimeDirectoryMode=0700
 
 StandardOutput=syslog
 StandardError=syslog

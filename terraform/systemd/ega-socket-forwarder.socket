@@ -4,12 +4,10 @@ After=syslog.target
 After=network.target
 
 [Socket]
-ListenStream=/run/ega/S.gpg-agent
+ListenStream=/etc/ega/gnupg/S.gpg-agent
 SocketUser=ega
 SocketGroup=ega
 SocketMode=0600
-DirectoryMode=0700
-#ExecStartPre=/usr/bin/su - ega -c "gpgconf --create-socketdir"
 
 [Install]
 WantedBy=sockets.target

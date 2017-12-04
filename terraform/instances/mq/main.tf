@@ -29,7 +29,9 @@ data "template_file" "cloud_init" {
   template = "${file("${path.module}/cloud_init.tpl")}"
 
   vars {
-    mq_defs     = "${base64encode("${file("${path.module}/defs.json")}")}"
+    mq_users    = "${base64encode("${file("private/mq_users.sh")}")}"
+    mq_defs     = "${base64encode("${file("private/defs.json")}")}"
+    mq_conf     = "${base64encode("${file("${path.module}/rabbitmq.config")}")}"
     hosts       = "${base64encode("${file("${path.root}/hosts")}")}"
     hosts_allow = "${base64encode("${file("${path.root}/hosts.allow")}")}"
   }

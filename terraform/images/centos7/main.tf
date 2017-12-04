@@ -14,6 +14,7 @@ variable boot_image  {}
 variable router_id   {}
 variable flavor      {}
 variable key         {}
+variable dns_servers {}
 
 terraform {
   backend "local" {
@@ -45,7 +46,7 @@ resource "openstack_networking_subnet_v2" "boot_subnet" {
   cidr        = "192.168.1.0/24"
   enable_dhcp = true
   ip_version  = 4
-  dns_nameservers = ["8.8.8.8"]
+  dns_nameservers = ${var.dns_servers}
 }
 
 resource "openstack_networking_router_interface_v2" "boot_router_interface" {

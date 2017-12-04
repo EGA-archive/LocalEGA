@@ -3,6 +3,9 @@ Description=EGA Vault service
 After=syslog.target
 After=network.target
 
+Requires=ega-vault.mount ega-staging.mount
+After=ega-vault.mount ega-staging.mount
+
 [Service]
 Slice=ega.slice
 Type=simple
@@ -11,12 +14,17 @@ Group=ega
 EnvironmentFile=/etc/ega/options
 ExecStart=/usr/bin/ega-vault $EGA_OPTIONS
 
+PermissionsStartOnly=true
+ExecStartPre=/usr/bin/chown ega:ega /ega/vault
+ExecStartPre=/usr/bin/chmod 700 /ega/vault
+ExecStartPre=/usr/bin/chmod g+s /ega/vault
+
 StandardOutput=syslog
 StandardError=syslog
 
-Restart=on-failure
-RestartSec=10
-TimeoutSec=600
+#Restart=on-failure
+#RestartSec=10
+#TimeoutSec=600
 
 [Install]
 WantedBy=multi-user.target

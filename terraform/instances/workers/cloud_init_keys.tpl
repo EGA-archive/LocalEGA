@@ -2,8 +2,8 @@
 write_files:
   - encoding: b64
     content: ${preset_script}
-    owner: root:root
-    path: /root/preset.sh
+    owner: ega:ega
+    path: /home/ega/preset.sh
     permissions: '0700'
   - encoding: b64
     content: ${hosts}
@@ -28,12 +28,12 @@ write_files:
   - encoding: b64
     content: ${gpg_pubring}
     owner: ega:ega
-    path: /ega/.gnupg/pubring.kbx
+    path: /etc/ega/gnupg/pubring.kbx
     permissions: '0600'
   - encoding: b64
     content: ${gpg_trustdb}
     owner: ega:ega
-    path: /ega/.gnupg/trustdb.gpg
+    path: /etc/ega/gnupg/trustdb.gpg
     permissions: '0600'
   - encoding: b64
     content: ${gpg_private}
@@ -82,8 +82,8 @@ write_files:
     permissions: '0644'
   - encoding: b64
     content: ${gpg_agent}
-    owner: root:root
-    path: /home/ega/.gnupg/gpg-agent.conf
+    owner: ega:ega
+    path: /etc/ega/gnupg/gpg-agent.conf
     permissions: '0644'
   - encoding: b64
     content: ${gpg_agent_service}
@@ -95,27 +95,22 @@ write_files:
     owner: root:root
     path: /etc/systemd/system/gpg-agent.socket
     permissions: '0644'
-  - encoding: b64
-    content: ${gpg_agent_extra}
-    owner: root:root
-    path: /etc/systemd/system/gpg-agent-extra.socket
-    permissions: '0644'
-  - encoding: b64
-    content: ${tmp_conf}
-    owner: root:root
-    path: /etc/tmpfiles.d/ega.conf
-    permissions: '0644'
+
+bootcmd:
+  - mkdir -p /etc/ega/gnupg
+  - chmod 700 /etc/ega/gnupg
+  - chown -R ega:ega /etc/ega/gnupg
 
 runcmd:
-  - mkdir -p ~ega/.gnupg && chmod 700 ~ega/.gnupg
-  - mkdir -p ~ega/.gnupg/private-keys-v1.d && chmod 700 ~ega/.gnupg/private-keys-v1.d
-  - unzip /tmp/gpg_private.zip -d ~ega/.gnupg/private-keys-v1.d
+  - unzip /tmp/gpg_private.zip -d /etc/ega/gnupg/private-keys-v1.d
   - rm /tmp/gpg_private.zip
+  - chmod 700 /etc/ega/gnupg/private-keys-v1.d
+  - chown -R ega:ega /etc/ega/gnupg
   - ldconfig -v
   - pip3.6 install git+https://github.com/NBISweden/LocalEGA.git
-  - loginctl enable-linger ega
-  - systemctl start gpg-agent.socket gpg-agent-extra.socket gpg-agent.service ega-socket-proxy.service ega-keyserver.service
-  - systemctl enable gpg-agent.socket gpg-agent-extra.socket gpg-agent.service ega-socket-proxy.service ega-keyserver.service
+  - systemctl start gpg-agent.socket gpg-agent.service ega-socket-proxy.service ega-keyserver.service
+  - systemctl enable gpg-agent.socket gpg-agent.service ega-socket-proxy.service ega-keyserver.service
+  - su - ega -c '/home/ega/preset.sh'
 
 
 final_message: "The system is finally up, after $UPTIME seconds"
