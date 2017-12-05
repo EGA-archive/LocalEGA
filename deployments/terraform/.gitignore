@@ -5,3 +5,4 @@ private
 cega/private
 test/*
 !test/Makefile
+!test/*.png
