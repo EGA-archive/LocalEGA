@@ -19,3 +19,5 @@ GPG_EMAIL="ega@nbis.se"
 
 GPG_PASSPHRASE=$(generate_password 16)
 RSA_PASSPHRASE=$(generate_password 16)
+
+LOG_LEVEL=DEBUG
