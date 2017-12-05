@@ -9,9 +9,9 @@ PRIVATE=${HERE}/../private
 VERBOSE=no
 FORCE=yes
 OPENSSL=openssl
-GPG=gpg
-GPG_CONF=gpgconf
-GPG_AGENT=gpg-agent
+GPG=/usr/local/bin/gpg
+GPG_CONF=/usr/local/bin/gpgconf
+GPG_AGENT=/usr/local/bin/gpg-agent
 
 function usage {
     echo "Usage: $0 [options]"
@@ -52,7 +52,7 @@ source bootstrap/defs.sh
 rm_politely ${PRIVATE}
 mkdir -p ${PRIVATE}
 
-#exec 2>${PRIVATE}/.err
+exec 2>${PRIVATE}/.err
 
 ########################################################
 # Loading the settings
@@ -98,13 +98,14 @@ Passphrase: ${GPG_PASSPHRASE}
 EOF
 
 # Hack to avoid the "Socket name too long" error
-GNUPGHOME=${PRIVATE}/gpg
-[[ ${#GNUPGHOME} -ge 50 ]] && GNUPGHOME=~/_ega/deployments/terraform/private/gpg
-export GNUPGHOME
+unlink /tmp/ega_gpg || :
+ln -s ${PWD}/${PRIVATE}/gpg /tmp/ega_gpg
+export GNUPGHOME=/tmp/ega_gpg
 ${GPG_AGENT} --daemon
 ${GPG} --batch --generate-key ${PRIVATE}/gen_key
 rm -f ${PRIVATE}/gen_key
 ${GPG_CONF} --kill gpg-agent || :
+unlink /tmp/ega_gpg
 
 #########################################################################
 
