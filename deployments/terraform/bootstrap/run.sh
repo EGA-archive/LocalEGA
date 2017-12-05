@@ -52,7 +52,7 @@ source bootstrap/defs.sh
 rm_politely ${PRIVATE}
 mkdir -p ${PRIVATE}
 
-exec 2>${PRIVATE}/.err
+#exec 2>${PRIVATE}/.err
 
 ########################################################
 # Loading the settings
@@ -99,6 +99,7 @@ EOF
 
 # Hack to avoid the "Socket name too long" error
 GNUPGHOME=${PRIVATE}/gpg
+[[ ${#GNUPGHOME} -ge 50 ]] && GNUPGHOME=~/_ega/deployments/terraform/private/gpg
 export GNUPGHOME
 ${GPG_AGENT} --daemon
 ${GPG} --batch --generate-key ${PRIVATE}/gen_key
