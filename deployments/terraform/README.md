@@ -33,6 +33,10 @@ Services are started, and Volumes are mounted, using Systemd units.
 
 [![asciicast](https://asciinema.org/a/V8VTO0rVxW5zZK8bnNmlO3qV0.png)](https://asciinema.org/a/V8VTO0rVxW5zZK8bnNmlO3qV0)
 
+![Local EGA VMs](test/vms.png)
+
+![Local EGA Network](test/network.png)
+
 ## Stopping
 
 	cd cega
