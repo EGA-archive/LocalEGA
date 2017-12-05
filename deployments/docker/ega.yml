@@ -37,6 +37,7 @@ services:
     image: nbisweden/ega-frontend
     volumes:
        - ${CONF_swe1}:/etc/ega/conf.ini:ro
+       - ${LOG_swe1}:/etc/ega/logger.yml:ro
 
   # SFTP inbox for Sweden
   inbox_swe1:
@@ -53,6 +54,7 @@ services:
     volumes:
        - inbox_swe1:/ega/inbox
        - ${CONF_swe1}:/etc/ega/conf.ini:ro
+       - ${LOG_swe1}:/etc/ega/logger.yml:ro
 
   # SFTP inbox for Finland
   inbox_fin1:
@@ -69,6 +71,7 @@ services:
     volumes:
        - inbox_fin1:/ega/inbox
        - ${CONF_fin1}:/etc/ega/conf.ini:ro
+       - ${LOG_fin1}:/etc/ega/logger.yml:ro
 
   # Vault
   vault_swe1:
@@ -85,6 +88,7 @@ services:
        - staging_swe1:/ega/staging
        - vault_swe1:/ega/vault
        - ${CONF_swe1}:/etc/ega/conf.ini:ro
+       - ${LOG_swe1}:/etc/ega/logger.yml:ro
 
   # Ingestion Workers
   ingest_swe1:
@@ -103,6 +107,7 @@ services:
        - inbox_swe1:/ega/inbox
        - staging_swe1:/ega/staging
        - ${CONF_swe1}:/etc/ega/conf.ini:ro
+       - ${LOG_swe1}:/etc/ega/logger.yml:ro
        - ${SSL_CERT_swe1}:/etc/ega/ssl.cert:ro
        - ${GPG_HOME_swe1}/pubring.kbx:/root/.gnupg/pubring.kbx:ro
        - ${GPG_HOME_swe1}/trustdb.gpg:/root/.gnupg/trustdb.gpg
@@ -122,6 +127,7 @@ services:
       - "9011"
     volumes:
        - ${CONF_swe1}:/etc/ega/conf.ini:ro
+       - ${LOG_swe1}:/etc/ega/logger.yml:ro
        - ${KEYS_swe1}:/etc/ega/keys.ini:ro
        - ${SSL_CERT_swe1}:/etc/ega/ssl.cert:ro
        - ${SSL_KEY_swe1}:/etc/ega/ssl.key:ro
