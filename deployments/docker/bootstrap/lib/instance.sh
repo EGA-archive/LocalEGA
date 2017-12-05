@@ -74,7 +74,8 @@ EOF
 
 cat > ${PRIVATE}/${INSTANCE}/ega.conf <<EOF
 [DEFAULT]
-log = debug
+#log = debug
+log = /etc/ega/logger.yml
 
 [ingestion]
 gpg_cmd = gpg2 --decrypt %(file)s
@@ -110,6 +111,108 @@ host = ega_frontend_${INSTANCE}
 # Keyserver communication
 keyserver_host = ega_keys_${INSTANCE}
 EOF
+
+_LOG_LEVEL=${LOG_LEVEL:-DEBUG}
+
+cat > ${PRIVATE}/${INSTANCE}/logger.yml <<EOF
+version: 1
+root:
+  level: NOTSET
+  handlers: [noHandler]
+
+loggers:
+  connect:
+    level: ${_LOG_LEVEL}
+    handlers: [logstash,console]
+  frontend:
+    level: ${_LOG_LEVEL}
+    handlers: [logstash,console]
+  ingestion:
+    level: ${_LOG_LEVEL}
+    handlers: [logstash,console]
+  keyserver:
+    level: ${_LOG_LEVEL}
+    handlers: [logstash,console]
+  vault:
+    level: ${_LOG_LEVEL}
+    handlers: [logstash,console]
+  verify:
+    level: ${_LOG_LEVEL}
+    handlers: [logstash,console]
+  socket-utils:
+    level: ${_LOG_LEVEL}
+    handlers: [logstash,console]
+  inbox:
+    level: ${_LOG_LEVEL}
+    handlers: [logstash,console]
+  utils:
+    level: ${_LOG_LEVEL}
+    handlers: [logstash,console]
+  sys-monitor:
+    level: ${_LOG_LEVEL}
+    handlers: [logstash,console]
+  user-monitor:
+    level: ${_LOG_LEVEL}
+    handlers: [logstash,console]
+  amqp:
+    level: ${_LOG_LEVEL}
+    handlers: [logstash,console]
+  db:
+    level: ${_LOG_LEVEL}
+    handlers: [logstash,console]
+  crypto:
+    level: ${_LOG_LEVEL}
+    handlers: [logstash,console]
+  asyncio:
+    level: ${_LOG_LEVEL}
+    handlers: [logstash]
+  aiopg:
+    level: ${_LOG_LEVEL}
+    handlers: [logstash]
+  aiohttp.access:
+    level: ${_LOG_LEVEL}
+    handlers: [logstash]
+  aiohttp.client:
+    level: ${_LOG_LEVEL}
+    handlers: [logstash]
+  aiohttp.internal:
+    level: ${_LOG_LEVEL}
+    handlers: [logstash]
+  aiohttp.server:
+    level: ${_LOG_LEVEL}
+    handlers: [logstash]
+  aiohttp.web:
+    level: ${_LOG_LEVEL}
+    handlers: [logstash]
+  aiohttp.websocket:
+    level: ${_LOG_LEVEL}
+    handlers: [logstash]
+
+
+handlers:
+  noHandler:
+    class: logging.NullHandler
+    level: NOTSET
+  console:
+    class: logging.StreamHandler
+    formatter: simple
+    stream: ext://sys.stdout
+  logstash:
+    class: logging.handlers.SocketHandler
+    formatter: lega
+    host: ega_logstash_${INSTANCE}
+    port: 5000
+
+formatters:
+  lega:
+    format: '[{asctime:<20}][{name}][{process:d} {processName:>15}][{levelname}] (L:{lineno}) {funcName}: {message}'
+    style: '{'
+    datefmt: '%Y-%m-%d %H:%M:%S'
+  simple:
+    format: '[{name:^10}][{levelname:^6}] (L{lineno}) {message}'
+    style: '{'
+EOF
+
 
 #########################################################################
 # Populate env-settings for docker compose
@@ -147,6 +250,7 @@ EOF
 cat >> ${DOT_ENV} <<EOF
 CONF_${INSTANCE}=./private/${INSTANCE}/ega.conf
 KEYS_${INSTANCE}=./private/${INSTANCE}/keys.conf
+LOG_${INSTANCE}=./private/${INSTANCE}/logger.yml
 #
 SSL_CERT_${INSTANCE}=./private/${INSTANCE}/certs/ssl.cert
 SSL_KEY_${INSTANCE}=./private/${INSTANCE}/certs/ssl.key
