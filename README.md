@@ -3,12 +3,12 @@
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/3dd83b28ec2041889bfb13641da76c5b)](https://www.codacy.com/app/NBIS/LocalEGA?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=NBISweden/LocalEGA&amp;utm_campaign=Badge_Grade)
 [![Build Status](https://travis-ci.org/NBISweden/LocalEGA.svg?branch=dev)](https://travis-ci.org/NBISweden/LocalEGA)
 
-The [code](./src) is written in Python (3.6+).
+The [code](lega) is written in Python (3.6+).
 
 You can provision and deploy the different components:
 
-* locally, using [docker-compose](./docker).
-* on an OpenStack cluster, using [terraform](./terraform).
+* locally, using [docker-compose](deployments/docker).
+* on an OpenStack cluster, using [terraform](deployments/terraform).
 
 # Architecture
 
