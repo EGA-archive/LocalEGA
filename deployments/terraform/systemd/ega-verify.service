@@ -16,9 +16,9 @@ ExecStart=/usr/bin/ega-verify $EGA_OPTIONS
 StandardOutput=syslog
 StandardError=syslog
 
-#Restart=on-failure
-#RestartSec=10
-#TimeoutSec=600
+Restart=on-failure
+RestartSec=10
+TimeoutSec=600
 
 [Install]
 WantedBy=multi-user.target
