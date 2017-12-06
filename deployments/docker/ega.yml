@@ -213,7 +213,7 @@ services:
     container_name: ega-logstash-swe1
     volumes:
       - ${LOGSTASH_CONF_swe1}:/usr/share/logstash/config/logstash.yml:ro
-      - ${LOGSTASH_PIPELINE_swe1}:/usr/share/logstash/pipeline
+      - ${LOGSTASH_PIPELINE_swe1}:/usr/share/logstash/pipeline/logstash.conf:ro
     ports:
       - "9600:9600"
       - "5000:5000"
@@ -226,7 +226,7 @@ services:
     image: docker.elastic.co/kibana/kibana-oss:6.0.0
     container_name: ega-kibana-swe1
     volumes:
-      - ${KIBANA_CONF_swe1}:/usr/share/kibana/config:ro
+      - ${KIBANA_CONF_swe1}:/usr/share/kibana/config/kibana.yml:ro
     ports:
       - "5601:5601"
     depends_on:

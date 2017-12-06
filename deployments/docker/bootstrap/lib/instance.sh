@@ -24,8 +24,8 @@ fi
 # And....cue music
 #########################################################################
 
-mkdir -p $PRIVATE/${INSTANCE}/{gpg,rsa,certs,elasticsearch/config,logstash/config,logstash/pipeline,kibana/config}
-chmod 700 $PRIVATE/${INSTANCE}/{gpg,rsa,certs,elasticsearch/config,logstash/config,logstash/pipeline,kibana/config}
+mkdir -p $PRIVATE/${INSTANCE}/{gpg,rsa,certs,logs}
+chmod 700 $PRIVATE/${INSTANCE}/{gpg,rsa,certs,logs}
 
 echomsg "\t* the GnuPG key"
 
@@ -248,20 +248,20 @@ CEGA_ENDPOINT_RESP_PUBKEY=.pubkey
 EOF
 
 echomsg "\t* Elasticsearch configuration files"
-cat > ${PRIVATE}/${INSTANCE}/elasticsearch/config/elasticsearch.yml <<EOF
+cat > ${PRIVATE}/${INSTANCE}/logs/elasticsearch.yml <<EOF
 cluster.name: local-ega
 network.host: 0.0.0.0
 http.port: 9200
 EOF
 
 echomsg "\t* Logstash configuration files"
-cat > ${PRIVATE}/${INSTANCE}/logstash/config/logstash.yml <<EOF
+cat > ${PRIVATE}/${INSTANCE}/logs/logstash.yml <<EOF
 path.config: /usr/share/logstash/pipeline
 http.host: "0.0.0.0"
 http.port: 9600
 EOF
 
-cat > ${PRIVATE}/${INSTANCE}/logstash/pipeline/logstash.conf <<EOF
+cat > ${PRIVATE}/${INSTANCE}/logs/logstash.conf <<EOF
 input {
 	tcp {
 		port => 5000
@@ -275,7 +275,7 @@ output {
 EOF
 
 echomsg "\t* Kibana configuration files"
-cat > ${PRIVATE}/${INSTANCE}/kibana/config/kibana.yml <<EOF
+cat > ${PRIVATE}/${INSTANCE}/logs/kibana.yml <<EOF
 server.port: 5601
 server.host: "0.0.0.0"
 elasticsearch.url: "http://ega-elasticsearch-${INSTANCE}:9200"
@@ -294,10 +294,10 @@ GPG_HOME_${INSTANCE}=./private/${INSTANCE}/gpg
 #
 DOCKER_INBOX_${INSTANCE}_PORT=${DOCKER_INBOX_PORT}
 #
-ELASTICSEARCH_CONF_${INSTANCE}=./private/${INSTANCE}/elasticsearch/config/elasticsearch.yml
-LOGSTASH_CONF_${INSTANCE}=./private/${INSTANCE}/logstash/config/logstash.yml
-LOGSTASH_PIPELINE_${INSTANCE}=./private/${INSTANCE}/logstash/pipeline
-KIBANA_CONF_${INSTANCE}=./private/${INSTANCE}/kibana/config
+ELASTICSEARCH_CONF_${INSTANCE}=./private/${INSTANCE}/logs/elasticsearch.yml
+LOGSTASH_CONF_${INSTANCE}=./private/${INSTANCE}/logs/logstash.yml
+LOGSTASH_PIPELINE_${INSTANCE}=./private/${INSTANCE}/logs/logstash.conf
+KIBANA_CONF_${INSTANCE}=./private/${INSTANCE}/logs/kibana.yml
 EOF
 
 
