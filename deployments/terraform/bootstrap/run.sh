@@ -2,7 +2,7 @@
 set -e
 
 HERE=$(dirname ${BASH_SOURCE[0]})
-SETTINGS=${HERE}/settings.rc
+SETTINGS=${HERE}/settings
 PRIVATE=${HERE}/../private
 
 # Defaults
@@ -145,6 +145,8 @@ log = debug
 [ingestion]
 gpg_cmd = /usr/local/bin/gpg2 --homedir /etc/ega/gnupg --decrypt %(file)s
 
+inbox = ${INBOX_PATH}/%(user_id)s/inbox
+
 # Keyserver communication
 keyserver_host = ega_keys
 
@@ -180,8 +182,6 @@ host = ega_frontend
 keyserver_host = ega_keys
 EOF
 
-EGA_USER=1001
-EGA_GROUP=1001 # I don't like that solution
 
 echomsg "\t* Generating auth.conf"
 cat > ${PRIVATE}/auth.conf <<EOF
