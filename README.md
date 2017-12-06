@@ -84,3 +84,32 @@ start.
 The next step is to move the file from the staging area into the
 vault. A verification step is included to ensure that the storing went
 fine.  After that, a message of completion is sent to Central EGA.
+
+
+# Local EGA implementation
+
+# Configuration and Logging settings
+
+Most of the LocalEGA components can be started with configuration and logging command-line arguments.
+
+The `--conf <file>` allows the user to override the configuration settings.
+The settings are loaded, in order:
+* from the package's `defaults.ini`
+* from the file `/etc/ega/conf.ini` (if it exists)
+* and finally from the file specified as the `--conf` argument.
+
+Note: No need to update the `defaults.ini`. Instead, to reset any
+key/value pairs, either update `/etc/ega/conf.ini` or create your own
+file passed to `--conf` as a command-line arguments.
+
+## Logging
+
+The `--log <file>` argument is used to configuration where the logs go.
+Without it, we look at the `DEFAULT/log_conf` key/value pair from the loaded configuration.
+If the latter doesn't exist, there is no logging capabilities.
+
+The `<file>` argument can either be a file path in `INI` or `YAML`
+format, or one of the following keywords: `default`, `debug` or
+`syslog`. In the latter case, it uses some
+default [logger files](lega/conf/loggers).
+

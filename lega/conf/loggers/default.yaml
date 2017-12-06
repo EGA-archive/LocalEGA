@@ -1,0 +1,55 @@
+version: 1
+root:
+  level: NOTSET
+  handlers: [noHandler]
+
+loggers:
+  connect:
+    level: INFO
+    handlers: [syslog,mainFile]
+  frontend:
+    level: INFO
+    handlers: [syslog,mainFile]
+  keyserver:
+    level: INFO
+    handlers: [syslog,console]
+  ingestion:
+    level: INFO
+    handlers: [syslog,mainFile]
+  vault:
+    level: INFO
+    handlers: [syslog,mainFile]
+  verify:
+    level: INFO
+    handlers: [syslog,mainFile]
+  inbox:
+    level: INFO
+    handlers: [syslog,mainFile]
+  sys-monitor:
+    level: INFO
+    handlers: [syslog,mainFile]
+  user-monitor:
+    level: INFO
+    handlers: [syslog,mainFile]
+
+handlers:
+  noHandler:
+    class: logging.NullHandler
+    level: NOTSET
+  mainFile:
+    class: logging.FileHandler
+    formatter: lega
+    filename: '/tmp/ega.log'
+    mode: 'w'
+  syslog:
+    class: logging.handlers.SysLogHandler
+    address: !!python/tuple ['ega-db', 514]
+    formatter: lega
+    facility: 'local1'
+    # socktype: socket.SOCK_STREAM # for tcp. Defaults to udp
+
+formatters:
+  lega:
+    format: '[{asctime:<20}][{name}][{process:d} {processName:>15}][{levelname}] (L:{lineno}) {funcName}: {message}'
+    style: '{'
+    datefmt: '%Y-%m-%d %H:%M:%S'

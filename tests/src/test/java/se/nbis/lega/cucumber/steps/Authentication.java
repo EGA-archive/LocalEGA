@@ -1,10 +1,5 @@
 package se.nbis.lega.cucumber.steps;
 
-import com.github.dockerjava.api.DockerClient;
-import com.github.dockerjava.api.command.CreateContainerResponse;
-import com.github.dockerjava.api.model.Bind;
-import com.github.dockerjava.api.model.Container;
-import com.github.dockerjava.api.model.Volume;
 import cucumber.api.DataTable;
 import cucumber.api.java8.En;
 import lombok.extern.slf4j.Slf4j;
@@ -21,7 +16,7 @@ import java.nio.file.Files;
 import java.nio.file.attribute.PosixFilePermission;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.UUID;
+import java.util.List;
 
 @Slf4j
 public class Authentication implements En {
@@ -36,30 +31,20 @@ public class Authentication implements En {
 
         Given("^I have an account at Central EGA$", () -> {
             for (String instance : context.getInstances()) {
-                DockerClient dockerClient = utils.getDockerClient();
                 String cegaUsersFolderPath = utils.getPrivateFolderPath() + "/cega/users/" + instance;
-                String name = UUID.randomUUID().toString();
                 String dataFolderName = context.getDataFolder().getName();
-                CreateContainerResponse createContainerResponse = dockerClient.
-                        createContainerCmd("nbisweden/ega-worker").
-                        withName(name).
-                        withCmd("sleep", "1000").
-                        withBinds(new Bind(cegaUsersFolderPath, new Volume("/" + dataFolderName))).
-                        exec();
-                dockerClient.startContainerCmd(createContainerResponse.getId()).exec();
+                double password = Math.random();
+                String user = context.getUser();
+                String command1 = String.format("openssl genrsa -out /%s/%s.sec -passout pass:%f 2048", dataFolderName, user, password);
+                String command2 = String.format("openssl rsa -in /%s/%s.sec -passin pass:%f -pubout -out /%s/%s.pub", dataFolderName, user, password, dataFolderName, user);
+                String command3 = String.format("ssh-keygen -i -mPKCS8 -f /%s/%s.pub", dataFolderName, user);
                 try {
-                    Container tempWorker = utils.findContainer("nbisweden/ega-worker", name);
-                    double password = Math.random();
-                    String user = context.getUser();
-                    utils.executeWithinContainer(tempWorker, String.format("openssl genrsa -out /%s/%s.sec -passout pass:%f 2048", dataFolderName, user, password).split(" "));
-                    utils.executeWithinContainer(tempWorker, String.format("openssl rsa -in /%s/%s.sec -passin pass:%f -pubout -out /%s/%s.pub", dataFolderName, user, password, dataFolderName, user).split(" "));
-                    String publicKey = utils.executeWithinContainer(tempWorker, String.format("ssh-keygen -i -mPKCS8 -f /%s/%s.pub", dataFolderName, user).split(" "));
+                    List<String> results = utils.spawnTempWorkerAndExecute(instance, cegaUsersFolderPath, "/" + dataFolderName, command1, command2, command3);
+                    String publicKey = results.get(2);
                     File userYML = new File(String.format(cegaUsersFolderPath + "/%s.yml", user));
                     FileUtils.writeLines(userYML, Arrays.asList("---", "pubkey: " + publicKey));
-                } catch (IOException | InterruptedException e) {
+                } catch (IOException e) {
                     log.error(e.getMessage(), e);
-                } finally {
-                    dockerClient.removeContainerCmd(createContainerResponse.getId()).withForce(true).exec();
                 }
             }
         });
@@ -80,19 +65,28 @@ public class Authentication implements En {
         Given("^I have incorrect private key$",
                 () -> context.setPrivateKey(new File(String.format("%s/cega/users/%s.sec", utils.getPrivateFolderPath(), "john"))));
 
-        Given("^Inbox is deleted for my user$", () -> {
+        Given("^inbox is deleted for my user$", () -> {
             try {
-                utils.removeUserFromInbox(context.getTargetInstance(), context.getUser());
-            } catch (IOException | InterruptedException e) {
+                utils.removeUserInbox(context.getTargetInstance(), context.getUser());
+            } catch (InterruptedException e) {
+                log.error(e.getMessage(), e);
+            }
+        });
+
+        Given("^file is removed from the inbox$", () -> {
+            try {
+                utils.removeUploadedFileFromInbox(context.getTargetInstance(), context.getUser(), context.getEncryptedFile().getName());
+            } catch (InterruptedException e) {
                 log.error(e.getMessage(), e);
             }
         });
 
         Given("^the database connectivity is broken$", () -> {
             try {
-                utils.executeWithinContainer(utils.findContainer("nbisweden/ega-inbox", "ega_inbox_" + context.getTargetInstance()),
+                utils.executeWithinContainer(utils.findContainer(utils.getProperty("images.name.inbox"),
+                        utils.getProperty("container.prefix.inbox") + context.getTargetInstance()),
                         "sed -i s/dbname=lega/dbname=wrong/g /etc/ega/auth.conf".split(" "));
-            } catch (IOException | InterruptedException e) {
+            } catch (InterruptedException e) {
                 log.error(e.getMessage(), e);
             }
         });
@@ -116,9 +110,9 @@ public class Authentication implements En {
         When("^inbox is not created for me$", () -> {
             try {
                 disconnect(context);
-                utils.removeUserFromInbox(context.getTargetInstance(), context.getUser());
+                utils.removeUserInbox(context.getTargetInstance(), context.getUser());
                 connect(context);
-            } catch (IOException | InterruptedException e) {
+            } catch (InterruptedException e) {
                 log.error(e.getMessage(), e);
             }
         });

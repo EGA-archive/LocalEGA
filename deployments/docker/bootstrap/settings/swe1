@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+set -e
+
+DOCKER_INBOX_PORT=2222
+
+LEGA_GREETINGS="Welcome to Local EGA Sweden @ NBIS"
+CEGA_MQ_PASSWORD=$(generate_password 16)
+CEGA_REST_PASSWORD=$(generate_password 16)
+
+SSL_SUBJ="/C=SE/ST=Sweden/L=Uppsala/O=NBIS/OU=SysDevs/CN=LocalEGA/emailAddress=ega@nbis.se"
+
+DB_USER=lega
+DB_PASSWORD=$(generate_password 16)
+DB_TRY=30
+
+GPG_NAME="EGA Sweden"
+GPG_COMMENT="@NBIS"
+GPG_EMAIL="ega@nbis.se"
+
+GPG_PASSPHRASE=$(generate_password 16)
+RSA_PASSPHRASE=$(generate_password 16)
+
+LOG_LEVEL=DEBUG

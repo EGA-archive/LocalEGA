@@ -1,0 +1,32 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Central EGA</title>
+	<style>
+	  em { display:inline-block; min-width:10em; text-align:right; }
+	  em:after { content:":"; display:inline-block; margin:0 1em; font-style: normal; }
+	  span { display:inline-block; max-width:60em; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+	  h1 { text.aligned: center; }
+	  h2 { padding-left:2em; background:black; color:white; }
+	  dt { font-weight: bold; font-variant: small-caps; border-top:1px solid black; margin-top:1em; padding-top:0.5em; }
+	  dt:first-child { border-top:none; margin-top:0; padding-top:0; }
+	</style>
+    </head>
+    <body>
+      <h1>Central EGA Users</h1>
+
+      {% for instance, lega_users in cega_users.items() %}
+      <h2>{{ instance }}</h2>
+      <dl>
+	{% for username, data in lega_users.items() %}
+        <dt>{{ username }}</dt>
+	<dd><em>password_hash</em>{{ data['password_hash'] }}</dd>
+	<dd><em>pubkey</em><span>{{ data['pubkey'] }}</span></dd>
+	<dd><em>expiration</em>{{ data['expiration'] }}</dd>
+	{% endfor %}
+      </dl>
+      {% endfor %}
+
+    </body>
+</html>
