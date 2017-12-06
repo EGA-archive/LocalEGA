@@ -195,12 +195,49 @@ services:
     volumes:
       - ${CEGA_USERS}:/cega/users:rw
 
+  ############################################
+  # Logging & Monitoring (ELK: Elasticsearch, Logstash, Kibana).
+  # NB: can't use underscores for containers' names, because of Logstash issue.
+  ############################################
+  elasticsearch_swe1:
+    image: docker.elastic.co/elasticsearch/elasticsearch-oss:6.0.0
+    container_name: ega-elasticsearch-swe1
+    volumes:
+      - ${ELASTICSEARCH_CONF_swe1}:/usr/share/elasticsearch/config/elasticsearch.yml:ro
+      - elasticsearch_swe1:/usr/share/elasticsearch/data
+    environment:
+      ES_JAVA_OPTS: "-Xmx256m -Xms256m"
+
+  logstash_swe1:
+    image: docker.elastic.co/logstash/logstash-oss:6.0.0
+    container_name: ega-logstash-swe1
+    volumes:
+      - ${LOGSTASH_CONF_swe1}:/usr/share/logstash/config/logstash.yml:ro
+      - ${LOGSTASH_PIPELINE_swe1}:/usr/share/logstash/pipeline/logstash.conf:ro
+    ports:
+      - "9600:9600"
+      - "5000:5000"
+    environment:
+      LS_JAVA_OPTS: "-Xmx256m -Xms256m"
+    depends_on:
+      - elasticsearch_swe1
+
+  kibana_swe1:
+    image: docker.elastic.co/kibana/kibana-oss:6.0.0
+    container_name: ega-kibana-swe1
+    volumes:
+      - ${KIBANA_CONF_swe1}:/usr/share/kibana/config/kibana.yml:ro
+    ports:
+      - "5601:5601"
+    depends_on:
+      - elasticsearch_swe1
 
 # Use the default driver for volume creation
 volumes:
   inbox_swe1:
   staging_swe1:
   vault_swe1:
+  elasticsearch_swe1:
   inbox_fin1:
   # staging_fin1:
   # vault_fin1:

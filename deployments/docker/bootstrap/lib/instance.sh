@@ -24,8 +24,8 @@ fi
 # And....cue music
 #########################################################################
 
-mkdir -p $PRIVATE/${INSTANCE}/{gpg,rsa,certs}
-chmod 700 $PRIVATE/${INSTANCE}/{gpg,rsa,certs}
+mkdir -p $PRIVATE/${INSTANCE}/{gpg,rsa,certs,logs}
+chmod 700 $PRIVATE/${INSTANCE}/{gpg,rsa,certs,logs}
 
 echomsg "\t* the GnuPG key"
 
@@ -200,7 +200,7 @@ handlers:
   logstash:
     class: logging.handlers.SocketHandler
     formatter: lega
-    host: ega_logstash_${INSTANCE}
+    host: ega-logstash-${INSTANCE}
     port: 5000
 
 formatters:
@@ -247,6 +247,40 @@ CEGA_ENDPOINT_RESP_PASSWD=.password_hash
 CEGA_ENDPOINT_RESP_PUBKEY=.pubkey
 EOF
 
+echomsg "\t* Elasticsearch configuration files"
+cat > ${PRIVATE}/${INSTANCE}/logs/elasticsearch.yml <<EOF
+cluster.name: local-ega
+network.host: 0.0.0.0
+http.port: 9200
+EOF
+
+echomsg "\t* Logstash configuration files"
+cat > ${PRIVATE}/${INSTANCE}/logs/logstash.yml <<EOF
+path.config: /usr/share/logstash/pipeline
+http.host: "0.0.0.0"
+http.port: 9600
+EOF
+
+cat > ${PRIVATE}/${INSTANCE}/logs/logstash.conf <<EOF
+input {
+	tcp {
+		port => 5000
+	}
+}
+output {
+	elasticsearch {
+		hosts => "ega-elasticsearch-${INSTANCE}:9200"
+	}
+}
+EOF
+
+echomsg "\t* Kibana configuration files"
+cat > ${PRIVATE}/${INSTANCE}/logs/kibana.yml <<EOF
+server.port: 5601
+server.host: "0.0.0.0"
+elasticsearch.url: "http://ega-elasticsearch-${INSTANCE}:9200"
+EOF
+
 cat >> ${DOT_ENV} <<EOF
 CONF_${INSTANCE}=./private/${INSTANCE}/ega.conf
 KEYS_${INSTANCE}=./private/${INSTANCE}/keys.conf
@@ -259,6 +293,11 @@ RSA_PUB_${INSTANCE}=./private/${INSTANCE}/rsa/ega.pub
 GPG_HOME_${INSTANCE}=./private/${INSTANCE}/gpg
 #
 DOCKER_INBOX_${INSTANCE}_PORT=${DOCKER_INBOX_PORT}
+#
+ELASTICSEARCH_CONF_${INSTANCE}=./private/${INSTANCE}/logs/elasticsearch.yml
+LOGSTASH_CONF_${INSTANCE}=./private/${INSTANCE}/logs/logstash.yml
+LOGSTASH_PIPELINE_${INSTANCE}=./private/${INSTANCE}/logs/logstash.conf
+KIBANA_CONF_${INSTANCE}=./private/${INSTANCE}/logs/kibana.yml
 EOF
 
 

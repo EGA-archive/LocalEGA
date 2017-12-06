@@ -69,6 +69,14 @@ Next step is about mapping Gherkin scenarios to executable code. Currently we us
 ----------
 
 
+Configuration
+-------------
+
+Configurable parameters of the test-suite (e.g. `private` folder path) are externalized to the `tests/src/test/resources/config.properties` file.
+
+----------
+
+
 Execution
 -------------
 
@@ -100,6 +108,9 @@ Automation
 --------------------
 
 We've created the CI pipeline in order to automate test execution and maintain stability of the build. The job can be found here: https://travis-ci.org/NBISweden/LocalEGA
+
+----------
+
 
 Flow
 --------------------
