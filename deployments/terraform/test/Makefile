@@ -1,6 +1,6 @@
 .PHONY: upload submit user rabbitmqadmin check vault
 
-TERRAFORM_PATH=~/_ega/terraform
+TERRAFORM_PATH=$(dir $(abspath $(lastword $(MAKEFILE_LIST))))..
 GPG_EXEC=gpg
 SSH_KEY_PUB=~/.ssh/lega.pub
 SSH_KEY_PRIV=~/.ssh/lega
@@ -14,7 +14,7 @@ NOCOLOR=$'          \033[0m
 ##############################
 
 GPG_HOME=$(TERRAFORM_PATH)/private/gpg
-GPG_EMAIL=$(shell awk -F= '/GPG_EMAIL/ {print $$2}' $(TERRAFORM_PATH)/bootstrap/settings.rc)
+GPG_EMAIL=$(shell awk -F= '/GPG_EMAIL/ {print $$2}' $(TERRAFORM_PATH)/bootstrap/settings)
 CEGA_MQ_PASSWORD=$(shell awk -F' ' '/CEGA_swe1_MQ_PASSWORD/ {print $$3}' $(TERRAFORM_PATH)/cega/private/.trace)
 CEGA_MQ_CONNECTION=amqp://cega_swe1:$(strip $(CEGA_MQ_PASSWORD))@localhost:5672/swe1
 
