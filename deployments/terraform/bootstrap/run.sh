@@ -76,6 +76,9 @@ fi
 CEGA_PRIVATE=${HERE}/../cega/private
 [[ ! -d "${CEGA_PRIVATE}" ]] && echo "You need to bootstrap Central EGA first" && exit 5
 
+# Making sure INBOX_PATH ends with /
+[[ "${INBOX_PATH: -1}" == "/" ]] || INBOX_PATH=${INBOX_PATH}/
+
 #########################################################################
 # And....cue music
 #########################################################################
@@ -147,7 +150,7 @@ log = debug
 [ingestion]
 gpg_cmd = /usr/local/bin/gpg2 --decrypt %(file)s
 
-inbox = ${INBOX_PATH}/%(user_id)s/inbox
+inbox = ${INBOX_PATH}%(user_id)s/inbox
 
 # Keyserver communication
 keyserver_host = ega_keys
