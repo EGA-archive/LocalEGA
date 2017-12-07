@@ -28,12 +28,12 @@ write_files:
   - encoding: b64
     content: ${gpg_pubring}
     owner: ega:ega
-    path: /etc/ega/gnupg/pubring.kbx
+    path: /home/ega/.gnupg/pubring.kbx
     permissions: '0600'
   - encoding: b64
     content: ${gpg_trustdb}
     owner: ega:ega
-    path: /etc/ega/gnupg/trustdb.gpg
+    path: /home/ega/.gnupg/trustdb.gpg
     permissions: '0600'
   - encoding: b64
     content: ${gpg_private}
@@ -83,7 +83,7 @@ write_files:
   - encoding: b64
     content: ${gpg_agent}
     owner: ega:ega
-    path: /etc/ega/gnupg/gpg-agent.conf
+    path: /home/ega/.gnupg/gpg-agent.conf
     permissions: '0644'
   - encoding: b64
     content: ${gpg_agent_service}
@@ -97,15 +97,15 @@ write_files:
     permissions: '0644'
 
 bootcmd:
-  - mkdir -p /etc/ega/gnupg
-  - chmod 700 /etc/ega/gnupg
-  - chown -R ega:ega /etc/ega/gnupg
+  - mkdir -p /home/ega/.gnupg
+  - chmod 700 /home/ega/.gnupg
+  - chown -R ega:ega /home/ega/.gnupg
 
 runcmd:
-  - unzip /tmp/gpg_private.zip -d /etc/ega/gnupg/private-keys-v1.d
+  - unzip /tmp/gpg_private.zip -d /home/ega/.gnupg/private-keys-v1.d
   - rm /tmp/gpg_private.zip
-  - chmod 700 /etc/ega/gnupg/private-keys-v1.d
-  - chown -R ega:ega /etc/ega/gnupg
+  - chmod 700 /home/ega/.gnupg/private-keys-v1.d
+  - chown -R ega:ega /home/ega/.gnupg
   - ldconfig -v
   - pip3.6 install git+https://github.com/NBISweden/LocalEGA.git
   - systemctl start gpg-agent.socket gpg-agent.service ega-socket-proxy.service ega-keyserver.service

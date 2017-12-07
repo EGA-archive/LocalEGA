@@ -8,7 +8,7 @@ Requires=gpg-agent.service
 [Service]
 Slice=ega.slice
 Type=simple
-ExecStart=/usr/bin/ega-socket-proxy ega_keys:9010 /etc/ega/gnupg/S.gpg-agent --certfile /etc/ega/ssl.cert --keyfile /etc/ega/ssl.key
+ExecStart=/usr/bin/ega-socket-proxy ega_keys:9010 /home/ega/.gnupg/S.gpg-agent --certfile /etc/ega/ssl.cert --keyfile /etc/ega/ssl.key
 User=ega
 Group=ega
 

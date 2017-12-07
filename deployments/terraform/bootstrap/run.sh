@@ -145,7 +145,7 @@ cat > ${PRIVATE}/ega.conf <<EOF
 log = debug
 
 [ingestion]
-gpg_cmd = /usr/local/bin/gpg2 --homedir /etc/ega/gnupg --decrypt %(file)s
+gpg_cmd = /usr/local/bin/gpg2 --decrypt %(file)s
 
 inbox = ${INBOX_PATH}/%(user_id)s/inbox
 
@@ -253,7 +253,7 @@ echomsg "\t* GnuPG preset script"
 cat > ${PRIVATE}/preset.sh <<EOF
 #!/bin/bash
 set -e
-KEYGRIP=\$(/usr/local/bin/gpg2 --homedir /etc/ega/gnupg -k --with-keygrip ${GPG_EMAIL} | awk '/Keygrip/{print \$3;exit;}')
+KEYGRIP=\$(/usr/local/bin/gpg2 -k --with-keygrip ${GPG_EMAIL} | awk '/Keygrip/{print \$3;exit;}')
 if [ ! -z "\$KEYGRIP" ]; then 
     echo 'Unlocking the GPG key'
     # This will use the standard socket. The proxy forwards to the extra socket.

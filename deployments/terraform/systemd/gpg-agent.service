@@ -10,7 +10,8 @@ Requires=gpg-agent.socket
 Slice=ega.slice
 Type=simple
 EnvironmentFile=/etc/ega/options
-ExecStart=/usr/local/bin/gpg-agent --homedir /etc/ega/gnupg --supervised
+Environment=EGA_FORCE_GNUPG=yes
+ExecStart=/usr/local/bin/gpg-agent --supervised
 ExecReload=/usr/local/bin/gpgconf --reload gpg-agent
 User=ega
 Group=ega

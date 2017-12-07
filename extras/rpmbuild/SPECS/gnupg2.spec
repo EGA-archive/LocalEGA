@@ -47,7 +47,7 @@ is provided by the gnupg2-smime package.
 
 %prep
 %setup -q
-%patch0 -p1
+%patch0 -p2
 
 %build
 %configure --enable-gpg-is-gpg2 \

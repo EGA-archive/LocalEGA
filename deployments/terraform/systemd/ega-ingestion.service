@@ -13,6 +13,7 @@ Slice=ega.slice
 Type=simple
 #Restart=always
 EnvironmentFile=/etc/ega/options
+Environment=EGA_FORCE_GNUPG=yes
 ExecStart=/usr/bin/ega-ingest $EGA_OPTIONS
 User=ega
 Group=ega
