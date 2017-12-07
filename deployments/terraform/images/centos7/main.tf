@@ -14,7 +14,7 @@ variable boot_image  {}
 variable router_id   {}
 variable flavor      {}
 variable key         {}
-variable dns_servers {}
+variable dns_servers { type = "list" }
 
 terraform {
   backend "local" {
