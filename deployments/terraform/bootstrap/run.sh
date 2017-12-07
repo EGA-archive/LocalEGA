@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -e
 
+[ ${BASH_VERSINFO[0]} -lt 4 ] && echo 'Bash 4 (or higher) is required' 1>&2 && exit 1
+
 HERE=$(dirname ${BASH_SOURCE[0]})
 SETTINGS=${HERE}/settings
 PRIVATE=${HERE}/../private
@@ -24,7 +26,7 @@ function usage {
     echo -e "\t--settings <value>  \tPath to the settings the instances [Default: ${SETTINGS}]"
     echo ""
     echo -e "\t--verbose, -v       \tShow verbose output"
-    echo -e "\t--polite, -p        \tDo not force the re-creation of the subfolders. Ask instead"
+    echo -e "\t--polite, -p        \tDo not force the re-creation of the subfolders. Ask instead."
     echo -e "\t--help, -h          \tOutputs this message and exits"
     echo -e "\t-- ...              \tAny other options appearing after the -- will be ignored"
     echo ""
@@ -49,7 +51,7 @@ done
 
 source bootstrap/defs.sh
 
-rm_politely ${PRIVATE}
+rm_politely ${PRIVATE} ${FORCE}
 mkdir -p ${PRIVATE}
 
 exec 2>${PRIVATE}/.err

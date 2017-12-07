@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -e
 
+[ ${BASH_VERSINFO[0]} -lt 4 ] && echo 'Bash 4 (or higher) is required' 1>&2 && exit 1
+
 HERE=$(dirname ${BASH_SOURCE[0]})
 PRIVATE=${HERE}/private
 
@@ -39,7 +41,7 @@ INSTANCES=($@)
 
 source ${HERE}/../bootstrap/defs.sh
 
-rm_politely ${PRIVATE}
+rm_politely ${PRIVATE} ${FORCE}
 mkdir -p ${PRIVATE}
 
 exec 2>${PRIVATE}/.err
@@ -143,29 +145,6 @@ done
 
 echomsg "Generating passwords for the Message Broker"
 
-function rabbitmq_hash {
-    # 1) Generate a random 32 bit salt
-    # 2) Concatenate that with the UTF-8 representation of the password
-    # 3) Take the SHA-256 hash
-    # 4) Concatenate the salt again
-    # 5) Convert to base64 encoding
-    local SALT=${2:-$(${OPENSSL:-openssl} rand -hex 4)}
-    {
-	printf ${SALT} | xxd -p -r
-	( printf ${SALT} | xxd -p -r; printf $1 ) | ${OPENSSL:-openssl} dgst -binary -sha256
-    } | base64
-}
-
-function output_password_hashes {
-    declare -a tmp=()
-    for INSTANCE in ${INSTANCES[@]}
-    do 
-	CEGA_MQ_HASH=$(rabbitmq_hash $CEGA_MQ_PASSWORD[${INSTANCE}])
-	tmp+=("{\"name\":\"cega_${INSTANCE}\",\"password_hash\":\"${CEGA_MQ_HASH}\",\"hashing_algorithm\":\"rabbit_password_hashing_sha256\",\"tags\":\"administrator\"}")
-    done
-    join_by ",\n" "${tmp[@]}"
-}
-
 function output_vhosts {
     declare -a tmp=()
     tmp+=("{\"name\":\"/\"}")
@@ -174,15 +153,6 @@ function output_vhosts {
 	tmp+=("{\"name\":\"${INSTANCE}\"}")
     done
     join_by "," "${tmp[@]}"
-}
-
-function output_permissions {
-    declare -a tmp=()
-    for INSTANCE in ${INSTANCES[@]}
-    do 
-	tmp+=("{\"user\":\"cega_${INSTANCE}\", \"vhost\":\"${INSTANCE}\", \"configure\":\".*\", \"write\":\".*\", \"read\":\".*\"}")
-    done
-    join_by $',\n' "${tmp[@]}"
 }
 
 function output_queues {
@@ -217,10 +187,8 @@ function output_bindings {
 
 {
     echo    '{"rabbit_version":"3.3.5",'
-    #echo -n ' "users":['; output_password_hashes; echo '],'
     echo -n ' "users":[],'
     echo -n ' "vhosts":['; output_vhosts; echo '],'
-    #echo -n ' "permissions":['; output_permissions; echo '],'
     echo -n ' "permissions":[],'
     echo    ' "parameters":[],'
     echo    ' "policies":[],'
