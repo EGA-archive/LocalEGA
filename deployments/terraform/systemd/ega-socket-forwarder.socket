@@ -4,7 +4,7 @@ After=syslog.target
 After=network.target
 
 [Socket]
-ListenStream=/etc/ega/gnupg/S.gpg-agent
+ListenStream=/home/ega/.gnupg/S.gpg-agent
 SocketUser=ega
 SocketGroup=ega
 SocketMode=0600

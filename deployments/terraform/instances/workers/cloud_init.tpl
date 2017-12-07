@@ -18,12 +18,12 @@ write_files:
   - encoding: b64
     content: ${gpg_pubring}
     owner: ega:ega
-    path: /etc/ega/gnupg/pubring.kbx
+    path: /home/ega/.gnupg/pubring.kbx
     permissions: '0600'
   - encoding: b64
     content: ${gpg_trustdb}
     owner: ega:ega
-    path: /etc/ega/gnupg/trustdb.gpg
+    path: /home/ega/.gnupg/trustdb.gpg
     permissions: '0600'
   - encoding: b64
     content: ${ssl_cert}
@@ -67,9 +67,9 @@ write_files:
     permissions: '0644'
 
 bootcmd:
-  - mkdir -p /etc/ega/gnupg
-  - chmod 700 /etc/ega/gnupg
-  - chown -R ega:ega /etc/ega/gnupg
+  - mkdir -p /home/ega/.gnupg
+  - chmod 700 /home/ega/.gnupg
+  - chown -R ega:ega /home/ega/.gnupg
   - mkdir -p /ega
   - chown ega:ega /ega
   - chmod 700 /ega

@@ -10,7 +10,7 @@ After=ega-socket-forwarder.socket
 Slice=ega.slice
 Type=simple
 #Restart=always
-ExecStart=/usr/bin/ega-socket-forwarder /etc/ega/gnupg/S.gpg-agent ega_keys:9010 --certfile /etc/ega/ssl.cert
+ExecStart=/usr/bin/ega-socket-forwarder /home/ega/.gnupg/S.gpg-agent ega_keys:9010 --certfile /etc/ega/ssl.cert
 User=ega
 Group=ega
 
