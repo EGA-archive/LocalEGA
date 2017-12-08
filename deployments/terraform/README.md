@@ -1,57 +1,59 @@
 # Deploy LocalEGA on Openstack using Terraform
 
-You need to create a `main.auto.tfvars` file (in that same folder) with the following information:
+## Preliminaries
 
-	os_username = "<your-openstack-keystone-username>"
-	os_password = "<your-openstack-keystone-password>"
-	pubkey      = "ssh-rsa AAAABBBBBB ... bla bla....your-public-key"
-	
-	lega_conf   = "<path/to/your/ini/file>"
-	db_password = "<your-secret-password>"
+You need to prepare a file with your cloud credentials and source it.
 
-	gpg_home    = "<path/to/gpg/folder>"
-	gpg_certs   = "<path/to/certs/folder>"  # including .cert and .key files
-	rsa_home    = "<path/to/rsa/folder>"    # including ega-public.pem and ega.pem files
-	gpg_passphrase = "<something-complex>"
+Have a look at `credentials.rc.sample` and _"fill in the blanks."_
 
-## Initialize Terraform
+The file contains the Openstack configuration along with a few
+variable for Terraform.
 
+## Create a fake Central EGA
+
+	cd cega
+	./bootstrap.sh swe1 fin1   # List of space separated instances
 	terraform init
-	
-	# Check what's to be done (optional)
-	terraform plan
-	
-## Running
-
 	terraform apply
 	
-That's it.	
+## Create an instance of Local EGA
 
-----
-If it fails, it might be a good idea to bring them up little at a time.
+Move back to the main directory for Terraform (ie `cd ..`).
+The following creates _one_ instance of Local EGA.
 
-So... network first:
-
-	terraform apply -target=module.network
-
-...database, Message Borker and Logger:
-
-	terraform apply -target=module.db -target=module.mq -target=module.monitors
-
-...connecting to CentralEGA:
-
-	terraform apply -target=module.connectors
-
-...and the rest:
-
+	bootstrap/run.sh
+	terraform init
 	terraform apply
+	
+That's it. Wait for Terraform to contact your cloud and create the resources.
+
+Services are started, and Volumes are mounted, using Systemd units.
+
+## Demo
+
+[![asciicast](https://asciinema.org/a/V8VTO0rVxW5zZK8bnNmlO3qV0.png)](https://asciinema.org/a/V8VTO0rVxW5zZK8bnNmlO3qV0)
+
+![Local EGA VMs](test/vms.png)
+
+![Local EGA Network](test/network.png)
 
 ## Stopping
 
+	cd cega
+	terraform destroy
+	cd ..
 	terraform destroy
 
 Type `yes` for confirmation (or use the `--force` flag)
 
 ## Build the EGA-common, EGA-db and EGA-mq images
 
-	terraform apply images/centos7
+	cd images/centos7
+	terraform init
+	terraform apply
+
+The booted VMs use a CentOS7 Cloud image and are configured with
+`cloud-init`. Once configured, they are powered off.
+
+You can then take a snapshot of them and call them 'EGA-common',
+'EGA-db', 'EGA-mq' and 'EGA-cega'.

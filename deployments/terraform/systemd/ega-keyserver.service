@@ -1,0 +1,22 @@
+[Unit]
+Description=EGA Keys Server
+After=syslog.target
+After=network.target
+
+[Service]
+Slice=ega.slice
+Type=simple
+EnvironmentFile=/etc/ega/options
+ExecStart=/usr/bin/ega-keyserver --keys /etc/ega/keys.ini $EGA_OPTIONS
+User=ega
+Group=ega
+
+StandardOutput=syslog
+StandardError=syslog
+
+Restart=on-failure
+RestartSec=10
+TimeoutSec=600
+
+[Install]
+WantedBy=multi-user.target

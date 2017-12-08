@@ -1,0 +1,13 @@
+[Unit]
+Description=GPG-agent socket activation
+After=syslog.target
+After=network.target
+
+[Socket]
+ListenStream=/home/ega/.gnupg/S.gpg-agent
+SocketUser=ega
+SocketGroup=ega
+SocketMode=0600
+
+[Install]
+WantedBy=sockets.target

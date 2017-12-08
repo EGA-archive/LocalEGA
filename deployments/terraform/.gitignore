@@ -1,7 +1,8 @@
-ega.conf
-main.auto.tfvars
-snic.cloud.rc
 .terraform*
 *.tfstate*
-tests/
-instances/workers/*.zip
+*.rc
+private
+cega/private
+test/*
+!test/Makefile
+!test/*.png

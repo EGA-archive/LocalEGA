@@ -1,20 +1,27 @@
 variable ega_key { default = "ega_key" }
 variable ega_net {}
-variable flavor_name { default = "ssc.small" }
+variable flavor_name {}
 variable image_name { default = "EGA-common" }
 variable volume_size { default = 100 }
 
 variable private_ip {}
-variable lega_conf {}
+variable instance_data {}
 
 data "template_file" "cloud_init" {
   template = "${file("${path.module}/cloud_init.tpl")}"
 
   vars {
-    boot_script = "${base64encode("${file("${path.module}/boot.sh")}")}"
-    hosts = "${base64encode("${file("${path.root}/hosts")}")}"
-    conf = "${var.lega_conf}"
+    hosts       = "${base64encode("${file("${path.root}/hosts")}")}"
+    hosts_allow = "${base64encode("${file("${path.root}/hosts.allow")}")}"
+    conf        = "${base64encode("${file("${var.instance_data}/ega.conf")}")}"
+    ega_options = "${base64encode("${file("${path.root}/systemd/options")}")}"
+    ega_slice   = "${base64encode("${file("${path.root}/systemd/ega.slice")}")}"
+    ega_verify  = "${base64encode("${file("${path.root}/systemd/ega-verify.service")}")}"
+    ega_vault   = "${base64encode("${file("${path.root}/systemd/ega-vault.service")}")}"
+    ega_vault_mount   = "${base64encode("${file("${path.root}/systemd/ega-vault.mount")}")}"
+    ega_staging_mount = "${base64encode("${file("${path.root}/systemd/ega-staging.mount")}")}"
   }
+
 }
 
 resource "openstack_compute_instance_v2" "vault" {
@@ -27,7 +34,7 @@ resource "openstack_compute_instance_v2" "vault" {
     uuid = "${var.ega_net}"
     fixed_ip_v4 = "${var.private_ip}"
   }
-  user_data       = "${data.template_file.cloud_init.rendered}"
+  user_data = "${data.template_file.cloud_init.rendered}"
 }
 
 resource "openstack_blockstorage_volume_v2" "vault" {

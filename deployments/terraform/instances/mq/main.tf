@@ -1,14 +1,15 @@
 variable ega_key { default = "ega_key" }
 variable ega_net {}
-variable flavor_name { default = "ssc.small" }
+variable flavor_name {}
 variable image_name { default = "EGA-mq" }
 
 variable private_ip {}
 variable cidr {}
+variable instance_data {}
 
 resource "openstack_compute_secgroup_v2" "ega_mq" {
   name        = "ega-mq"
-  description = "RabbitMQ access"
+  description = "RabbitMQ rules"
 
   rule {
     from_port   = 5672
@@ -28,8 +29,11 @@ data "template_file" "cloud_init" {
   template = "${file("${path.module}/cloud_init.tpl")}"
 
   vars {
-    rabbitmq_config = "${base64encode("${file("${path.root}/../docker/images/mq/rabbitmq.config")}")}"
-    rabbitmq_defs = "${base64encode("${file("${path.root}/../docker/images/mq/rabbitmq.json")}")}"
+    mq_users    = "${base64encode("${file("private/mq_users.sh")}")}"
+    mq_defs     = "${base64encode("${file("${path.module}/defs.json")}")}"
+    mq_conf     = "${base64encode("${file("${path.module}/rabbitmq.config")}")}"
+    hosts       = "${base64encode("${file("${path.root}/hosts")}")}"
+    hosts_allow = "${base64encode("${file("${path.root}/hosts.allow")}")}"
   }
 }
 
