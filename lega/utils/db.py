@@ -195,9 +195,8 @@ def set_error(file_id, error):
     hostname = gethostname()
     with connect() as conn:
         with conn.cursor() as cur:
-            err = error.__class__.__name__ if error else 'NoneType'
             cur.execute('SELECT insert_error(%(file_id)s,%(msg)s,%(from_user)s);',
-                        {'msg':f"[{hostname}][{err}] {error!s}", 'file_id': file_id, 'from_user': from_user})
+                        {'msg':f"[{hostname}][{error.__class__.__name__}] {error!s}", 'file_id': file_id, 'from_user': from_user})
 
 def get_details(file_id):
     with connect() as conn:
