@@ -1,0 +1,25 @@
+[Unit]
+Description=EGA Socket forwarding service (to GPG-master on port 9010)
+After=syslog.target
+After=network.target
+
+Requires=ega-socket-forwarder.socket
+After=ega-socket-forwarder.socket
+
+[Service]
+Slice=ega.slice
+Type=simple
+#Restart=always
+ExecStart=/usr/bin/ega-socket-forwarder /home/ega/.gnupg/S.gpg-agent ega_keys:9010 --certfile /etc/ega/ssl.cert
+User=ega
+Group=ega
+
+#Restart=on-failure
+#RestartSec=10
+#TimeoutSec=600
+
+Sockets=ega-socket-forwarder.socket
+
+[Install]
+WantedBy=ega-ingestion.service
+RequiredBy=ega-ingestion.service

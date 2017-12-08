@@ -1,0 +1,23 @@
+[Unit]
+Description=EGA Socket Proxy service (GPG-master on port 9010)
+After=syslog.target
+After=network.target
+
+Requires=gpg-agent.service
+
+[Service]
+Slice=ega.slice
+Type=simple
+ExecStart=/usr/bin/ega-socket-proxy ega_keys:9010 /home/ega/.gnupg/S.gpg-agent --certfile /etc/ega/ssl.cert --keyfile /etc/ega/ssl.key
+User=ega
+Group=ega
+
+StandardOutput=syslog
+StandardError=syslog
+
+#Restart=on-failure
+#RestartSec=10
+#TimeoutSec=600
+
+[Install]
+WantedBy=multi-user.target

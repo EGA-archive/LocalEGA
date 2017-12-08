@@ -1,0 +1,22 @@
+--- SOURCES/gnupg-2.2.2.org/common/homedir.c	2017-12-07 18:13:05.000000000 +0000
++++ SOURCES/gnupg-2.2.2/common/homedir.c	2017-12-07 20:00:52.000000000 +0000
+@@ -33,6 +33,7 @@
+ #include <errno.h>
+ #include <fcntl.h>
+ #include <unistd.h>
++#include <string.h>
+ 
+ #ifdef HAVE_W32_SYSTEM
+ #include <winsock2.h>   /* Due to the stupid mingw64 requirement to
+@@ -553,6 +554,11 @@
+   /* First make sure that non_default_homedir can be set.  */
+   gnupg_homedir ();
+ 
++  /* Force it to bail out, in case EGA_FORCE_GNUPG is set */
++  char *ega_force = getenv("EGA_FORCE_GNUPG");
++  if (ega_force && !strcmp(ega_force, "yes"))
++    goto leave;
++
+   /* It has been suggested to first check XDG_RUNTIME_DIR envvar.
+    * However, the specs state that the lifetime of the directory MUST
+    * be bound to the user being logged in.  Now GnuPG may also be run

@@ -1,0 +1,27 @@
+[Unit]
+Description=GPG-agent
+Documentation=man:gpg-agent(1)
+After=syslog.target
+After=network.target
+
+Requires=gpg-agent.socket
+
+[Service]
+Slice=ega.slice
+Type=simple
+EnvironmentFile=/etc/ega/options
+Environment=EGA_FORCE_GNUPG=yes
+ExecStart=/usr/local/bin/gpg-agent --supervised
+ExecReload=/usr/local/bin/gpgconf --reload gpg-agent
+User=ega
+Group=ega
+
+StandardOutput=syslog
+StandardError=syslog
+
+Restart=on-failure
+RestartSec=10
+TimeoutSec=600
+
+[Install]
+WantedBy=multi-user.target

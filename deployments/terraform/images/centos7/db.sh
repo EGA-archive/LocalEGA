@@ -3,6 +3,21 @@
 set -e # stop on errors
 set -x # show me the commands
 
+# ========================
+# No SELinux
+echo "Disabling SElinux"
+[ -f /etc/sysconfig/selinux ] && sed -i 's/SELINUX=.*/SELINUX=disabled/' /etc/sysconfig/selinux
+[ -f /etc/selinux/config ] && sed -i 's/SELINUX=.*/SELINUX=disabled/' /etc/selinux/config
+setenforce 0
+
+# ========================
+# No IPv6
+cat > /etc/sysctl.d/01-no-ipv6.conf <<EOF
+net.ipv6.conf.all.disable_ipv6 = 1
+net.ipv6.conf.default.disable_ipv6 = 1
+EOF
+
+# ========================
 
 yum -y update
 
@@ -19,6 +34,8 @@ echo "listen_addresses = '*'" >> /var/lib/pgsql/9.6/data/postgresql.conf
 mv /var/lib/pgsql/9.6/data/pg_hba.conf /var/lib/pgsql/9.6/data/pg_hba.conf.old
 grep -v '^$\|^\s*\#' /var/lib/pgsql/9.6/data/pg_hba.conf.old > /var/lib/pgsql/9.6/data/pg_hba.conf
 sed -i -e "s/local\(.*\)peer/local\1trust/" /var/lib/pgsql/9.6/data/pg_hba.conf
-sed -i -e "s;host.*1/128.*ident;host all all all md5;" /var/lib/pgsql/9.6/data/pg_hba.conf
+#sed -i -e "s;host.*1/128.*ident;host all all all md5;" /var/lib/pgsql/9.6/data/pg_hba.conf
 
 # Note: Update the sudo rights?
+
+poweroff

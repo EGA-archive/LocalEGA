@@ -1,0 +1,11 @@
+{"rabbit_version":"3.6.10",
+ "vhosts":[{"name":"/"}],
+ "parameters":[],
+ "policies":[],
+ "queues":[{"name":"archived",  "vhost":"/", "durable":true, "auto_delete":false, "arguments":{}},
+	   {"name":"verified",  "vhost":"/", "durable":true, "auto_delete":false, "arguments":{}},
+	   {"name":"completed", "vhost":"/", "durable":true, "auto_delete":false, "arguments":{}}],
+ "exchanges":[{"name":"lega",   "vhost":"/", "type":"topic", "durable":true, "auto_delete":false, "internal":false, "arguments":{}}],
+ "bindings":[{"source":"lega",  "vhost":"/", "destination":"archived", "destination_type":"queue", "routing_key":"lega.archived", "arguments":{}},
+	     {"source":"lega",  "vhost":"/", "destination":"completed", "destination_type":"queue", "routing_key":"lega.complete", "arguments":{}},
+	     {"source":"lega",  "vhost":"/", "destination":"verified",  "destination_type":"queue", "routing_key":"lega.verified", "arguments":{}}]}

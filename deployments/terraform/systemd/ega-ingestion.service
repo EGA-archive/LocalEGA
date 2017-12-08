@@ -1,0 +1,34 @@
+[Unit]
+Description=EGA Ingestion service
+After=syslog.target
+After=network.target
+
+Requires=ega-socket-forwarder.service
+After=ega-socket-forwarder.service
+Requires=ega-inbox.mount ega-staging.mount
+After=ega-inbox.mount ega-staging.mount
+
+[Service]
+Slice=ega.slice
+Type=simple
+#Restart=always
+EnvironmentFile=/etc/ega/options
+Environment=EGA_FORCE_GNUPG=yes
+ExecStart=/usr/bin/ega-ingest $EGA_OPTIONS
+User=ega
+Group=ega
+
+# PermissionsStartOnly=true
+# ExecStartPre=/usr/bin/chown ega:ega /ega/staging
+# ExecStartPre=/usr/bin/chmod 700 /ega/staging
+# ExecStartPre=/usr/bin/chmod g+s /ega/staging
+
+StandardOutput=syslog
+StandardError=syslog
+
+#Restart=on-failure
+#RestartSec=10
+#TimeoutSec=600
+
+[Install]
+WantedBy=multi-user.target
