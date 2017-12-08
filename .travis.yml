@@ -10,7 +10,7 @@ before_install:
         cd deployments/docker/images
         make pull
         make common
-        make -j 4 images
+        make -j 1 images
         cd ..
         make bootstrap
         sudo chown -R $USER .
