@@ -103,7 +103,7 @@ Passphrase: ${GPG_PASSPHRASE}
 EOF
 
 # Hack to avoid the "Socket name too long" error
-unlink /tmp/ega_gpg || :
+[[ -L /tmp/ega_gpg ]] && unlink /tmp/ega_gpg
 ln -s ${PWD}/${PRIVATE}/gpg /tmp/ega_gpg
 export GNUPGHOME=/tmp/ega_gpg
 ${GPG_AGENT} --daemon
@@ -266,20 +266,7 @@ else
 fi
 EOF
 
-cat > ${PRIVATE}/defs.json <<EOF
-{"rabbit_version":"3.6.10",
- "vhosts":[{"name":"/"}],
- "parameters":[],
- "policies":[],
- "queues":[{"name":"archived",  "vhost":"/", "durable":true, "auto_delete":false, "arguments":{}},
-	   {"name":"verified",  "vhost":"/", "durable":true, "auto_delete":false, "arguments":{}},
-	   {"name":"completed", "vhost":"/", "durable":true, "auto_delete":false, "arguments":{}}],
- "exchanges":[{"name":"lega",   "vhost":"/", "type":"topic", "durable":true, "auto_delete":false, "internal":false, "arguments":{}}],
- "bindings":[{"source":"lega",  "vhost":"/", "destination":"archived", "destination_type":"queue", "routing_key":"lega.archived", "arguments":{}},
-	     {"source":"lega",  "vhost":"/", "destination":"completed", "destination_type":"queue", "routing_key":"lega.complete", "arguments":{}},
-	     {"source":"lega",  "vhost":"/", "destination":"verified",  "destination_type":"queue", "routing_key":"lega.verified", "arguments":{}}]}
-EOF
-
+echomsg "\t* MQ user"
 cat > ${PRIVATE}/mq_users.sh <<EOF
 #!/usr/bin/env bash
 set -e
