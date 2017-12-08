@@ -2,6 +2,7 @@ import sys
 import configparser
 import logging
 from logging.config import fileConfig, dictConfig
+import lega.utils.logging
 from pathlib import Path
 import yaml
 
