@@ -205,7 +205,7 @@ handlers:
 
 formatters:
   json:
-    format: '{"timeLogged": "%(asctime)s", "name": "%(name)s", "process": "%(process)s", "processName": "%(processName)s", "levelName": "%(levelName)s", "lineNumber": "%(lineno)s", "functionName": "%(funcName)s", "message": "%(message)s"}'
+    format: '{"timeLogged": "%(asctime)s", "name": "%(name)s", "process": "%(process)s", "processName": "%(processName)s", "levelName": "%(levelname)s", "lineNumber": "%(lineno)s", "functionName": "%(funcName)s", "message": "%(message)s"}'
   lega:
     format: '[{asctime:<20}][{name}][{process:d} {processName:>15}][{levelname}] (L:{lineno}) {funcName}: {message}'
     style: '{'
