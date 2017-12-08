@@ -195,6 +195,8 @@ def set_error(file_id, error):
     hostname = gethostname()
     with connect() as conn:
         with conn.cursor() as cur:
+            print(error)
+            print(error.__class__)
             cur.execute('SELECT insert_error(%(file_id)s,%(msg)s,%(from_user)s);',
                         {'msg':f"[{hostname}][{error.__class__.__name__}] {error!s}", 'file_id': file_id, 'from_user': from_user})
 
