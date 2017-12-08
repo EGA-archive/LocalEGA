@@ -199,7 +199,7 @@ handlers:
     stream: ext://sys.stdout
   logstash:
     class: lega.utils.logging.LogstashHandler
-    formatter: logstash
+    formatter: json
     host: ega-logstash-${INSTANCE}
     port: 5000
 
