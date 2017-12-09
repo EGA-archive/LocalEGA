@@ -25,7 +25,7 @@ data "template_file" "cloud_init" {
     ega_slice   = "${base64encode("${file("${path.root}/systemd/ega.slice")}")}"
     ega_socket  = "${base64encode("${file("${path.root}/systemd/ega-socket-forwarder.socket")}")}"
     ega_forward = "${base64encode("${file("${path.root}/systemd/ega-socket-forwarder.service")}")}"
-    ega_ingest  = "${base64encode("${file("${path.root}/systemd/ega-ingestion.service")}")}"
+    ega_ingest  = "${base64encode("${file("${path.root}/systemd/ega-ingestion@.service")}")}"
     ega_inbox_mount   = "${base64encode("${file("${path.root}/systemd/ega-inbox.mount")}")}"
     ega_staging_mount = "${base64encode("${file("${path.root}/systemd/ega-staging.mount")}")}"
   }
