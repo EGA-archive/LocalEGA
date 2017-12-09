@@ -198,12 +198,14 @@ handlers:
     formatter: simple
     stream: ext://sys.stdout
   logstash:
-    class: logging.handlers.SocketHandler
-    formatter: lega
+    class: lega.utils.logging.LogstashHandler
+    formatter: json
     host: ega-logstash-${INSTANCE}
     port: 5000
 
 formatters:
+  json:
+    format: '{"timeLogged": "%(asctime)s", "name": "%(name)s", "process": "%(process)s", "processName": "%(processName)s", "levelName": "%(levelname)s", "lineNumber": "%(lineno)s", "functionName": "%(funcName)s", "message": "%(message)s"}'
   lega:
     format: '[{asctime:<20}][{name}][{process:d} {processName:>15}][{levelname}] (L:{lineno}) {funcName}: {message}'
     style: '{'
@@ -265,6 +267,9 @@ cat > ${PRIVATE}/${INSTANCE}/logs/logstash.conf <<EOF
 input {
 	tcp {
 		port => 5000
+		codec => json {
+            charset => "UTF-8"
+        }
 	}
 }
 output {
