@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 from logging.handlers import SocketHandler
-import ssl
 
 
 class LogstashHandler(SocketHandler):
