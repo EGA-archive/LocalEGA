@@ -1,7 +1,9 @@
-ifndef CI_BUILD_REF
 TAG=$(shell git rev-parse --short HEAD)
-else
+ifdef TRAVIS_COMMIT
 TAG=$(TRAVIS_COMMIT)
+endif
+ifdef TRAVIS_PULL_REQUEST_SHA
+TAG=$(TRAVIS_PULL_REQUEST_SHA)
 endif
 
 TARGET=nbisweden/ega
