@@ -52,7 +52,6 @@ function rm_politely {
 
 function generate_password {
     local size=${1:-16} # defaults to 16 characters
-    p=$(python3.6 -c "import secrets,string;print(''.join(secrets.choice(string.ascii_letters + string.digits) for i in range(${size})))")
-    echo $p
+    python3.6 -c "import secrets,string;print(''.join(secrets.choice(string.ascii_letters + string.digits) for i in range(${size})))"
 }
 

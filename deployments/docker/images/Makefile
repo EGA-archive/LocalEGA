@@ -8,7 +8,7 @@ endif
 
 TARGET=nbisweden/ega
 
-EGA_IMAGES=db mq inbox frontend worker vault keys cega_users cega_mq monitors
+EGA_IMAGES=mq inbox frontend worker vault keys cega_users cega_mq monitors
 
 .PHONY: all push pull common erase delete clean cleanall bootstrap $(EGA_IMAGES)
 

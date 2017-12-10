@@ -76,6 +76,18 @@ $update_users$ LANGUAGE plpgsql;
 
 CREATE TRIGGER delete_expired_users_trigger AFTER UPDATE ON users EXECUTE PROCEDURE update_users();
 
+CREATE FUNCTION flush_user(elixir_id users.elixir_id%TYPE)
+    RETURNS void AS $flush_user$
+    #variable_conflict use_column
+    DECLARE
+	eid     users.elixir_id%TYPE;
+    BEGIN
+	eid := sanitize_id(elixir_id);
+	DELETE FROM users WHERE elixir_id = eid; -- Future: and ega_user is true
+	RETURN;
+    END;
+$flush_user$ LANGUAGE plpgsql;
+
 -- ##################################################
 --                        FILES
 -- ##################################################
@@ -112,7 +124,6 @@ CREATE FUNCTION insert_file(filename    files.filename%TYPE,
     END;
 $insert_file$ LANGUAGE plpgsql;
 
-
 -- ##################################################
 --                      ERRORS
 -- ##################################################
@@ -140,3 +151,46 @@ CREATE FUNCTION insert_error(file_id    errors.file_id%TYPE,
 $set_error$ LANGUAGE plpgsql;
 
 
+-- ##################################################
+--        Extra Functionality
+-- ##################################################
+
+CREATE FUNCTION file_info(fname TEXT, eid TEXT)
+    RETURNS JSON AS $file_info$
+    #variable_conflict use_column
+    DECLARE
+        r RECORD;
+    BEGIN
+	SELECT filename, elixir_id, created_at,
+	       enc_checksum, enc_checksum_algo,
+	       org_checksum, org_checksum_algo,
+	       status, (CASE status
+	       	       	     WHEN 'Error'::status THEN
+			       	          (SELECT msg FROM errors e WHERE e.file_id = f.id)  
+       	       	             WHEN 'Archived'::status THEN f.stable_id
+ 			     ELSE status::text
+	               END) AS status_message
+        FROM files f WHERE f.filename = fname AND f.elixir_id = eid
+	INTO STRICT r;
+	RETURN row_to_json(r);
+	EXCEPTION WHEN NO_DATA_FOUND THEN RAISE EXCEPTION 'File % or User % not found', fname, eid;
+                  WHEN TOO_MANY_ROWS THEN RAISE EXCEPTION 'Not unique';
+    END;
+$file_info$ LANGUAGE plpgsql;
+
+CREATE FUNCTION userfiles_info(eid TEXT)
+    RETURNS JSON AS $file_info$
+    #variable_conflict use_column
+    BEGIN
+    	RETURN (SELECT json_agg(t)
+	        FROM (SELECT filename, elixir_id, created_at,
+	                     enc_checksum, enc_checksum_algo,
+	                     org_checksum, org_checksum_algo,
+	                     status, (CASE status WHEN 'Error'::status THEN
+			       	                       (SELECT msg FROM errors e WHERE e.file_id = f.id)  
+       	       	                                  WHEN 'Archived'::status THEN f.stable_id
+ 			                          ELSE status::text
+    		                      END) AS status_message
+                      FROM files f WHERE f.elixir_id = eid) AS t);
+    END;
+$file_info$ LANGUAGE plpgsql;
