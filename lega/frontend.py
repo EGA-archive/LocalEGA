@@ -10,13 +10,14 @@
 
 We provide:
 
-|---------------------------------------|-----------------|----------------|
-| endpoint                              | accepted method |     Note       |
-|---------------------------------------|-----------------|----------------|
-| [LocalEGA-URL]/                       |       GET       |                |
-| [LocalEGA-URL]/status/file/<id>       |       GET       |                |
-| [LocalEGA-URL]/status/user/<id>       |       GET       |                |
-|---------------------------------------|-----------------|----------------|
+|-----------------------------------|------------|----------------------------------------|
+| endpoint                          | method     | Notes                                  |
+|-----------------------------------|------------|----------------------------------------|
+| [LocalEGA-URL]/                   | GET        | Frontpage                              |
+| [LocalEGA-URL]/file?user=&name=   | GET        | Information on a file for a given user |
+| [LocalEGA-URL]/user/<name>        | GET        | JSON array of all files information    |
+| [LocalEGA-URL]/user/<name>        | DELETE     | Revoking inbox access                  |
+|-----------------------------------|------------|----------------------------------------|
 
 :author: Frédéric Haziza
 :copyright: (c) 2017, NBIS System Developers.
@@ -28,6 +29,7 @@ import logging
 import asyncio
 from pathlib import Path
 from functools import wraps
+from base64 import b64decode
 
 from aiohttp import web
 import jinja2
@@ -39,11 +41,24 @@ from .utils import db
 LOG = logging.getLogger('frontend')
 
 def only_central_ega(async_func):
-    '''Decorator restrain endpoint access to only Central EGA'''
+    '''Decorator restrain endpoint access to only Central EGA
+
+       We use Basic Authentication.
+       HTTPS will add security.
+    '''
     @wraps(async_func)
     async def wrapper(request):
-        # Just an example
-        if request.headers.get('X-CentralEGA', 'no') != 'yes':
+        auth_header = request.headers.get('AUTHORIZATION')
+        if not auth_header:
+            LOG.error('No header, No answer')
+            raise web.HTTPUnauthorized(text=f'Protected access\n')
+        _, token = auth_header.split(None, 1) # Skipping the Basic keyword
+        cega_password = CONF.get('frontend','cega_password')
+        request_user,request_password = b64decode(token).decode().split(':', 1)
+        if request_user != "cega" or cega_password != request_password:
+            LOG.error(f'CEGA password: {cega_password}')
+            LOG.error(f'Request user: {request_user}')
+            LOG.error(f'Request password: {request_password}')
             raise web.HTTPUnauthorized(text='Not authorized. You should be Central EGA.\n')
         # Otherwise, it is from CentralEGA, we continue
         res = async_func(request)
@@ -51,7 +66,6 @@ def only_central_ega(async_func):
         res.__qualname__ = getattr(async_func, '__qualname__', None)
         return (await res)
     return wrapper
-
 
 @aiohttp_jinja2.template('index.html')
 async def index(request):
@@ -62,33 +76,36 @@ async def index(request):
     return { 'country': 'Sweden', 'text' : '<p>There should be some info here.</p>' }
 
 @only_central_ega
+async def flush_user(request):
+    '''Flush an EGA user from the database'''
+    name = request.match_info['name']
+    LOG.info(f'Flushing user {name} from the database')
+    res = await db.flush_user(request.app['db'], name)
+    if not res:
+        raise web.HTTPBadRequest(text=f'An error occured for user {name}\n')
+    return web.Response(text=f'Success')
+
+@only_central_ega
 async def status_file(request):
     '''Status endpoint for a given file'''
-    file_id = request.match_info['id']
-    LOG.info(f'Getting info for file_id {file_id}')
-    res = await db.get_file_info(request.app['db'], file_id)
-    if not res:
-        raise web.HTTPBadRequest(text=f'No info about file with id {file_id}... yet\n')
-    filename, status, created_at, last_modified, stable_id = res
-    return web.Response(text=f'Status for {file_id}: {status}'
-                        f'\n\t* Created at: {created_at}'
-                        f'\n\t* Last updated: {last_modified}'
-                        f'\n\t* Submitted file name: {filename}'
-                        f'\n\t* Stable file name: {stable_id}\n')
+    filename = request.query['name']
+    username = request.query['user']
+    if not filename or not username:
+        raise web.HTTPBadRequest(text=f'Invalid query\n')
+    LOG.info(f'Getting info for file {filename} of user {username}')
+    json_data = await db.get_file_info(request.app['db'], filename, username)
+    if not json_data:
+        raise web.HTTPNotFound(text=f'No info about file {filename} (from {username})\n')
+    return web.json_response(json_data)
 
 @only_central_ega
 async def status_user(request):
     '''Status endpoint for a given file'''
-    user_id = request.match_info['id']
-    LOG.info(f'Getting info for user: {user_id}')
-    res = await db.get_user_info(request.app['db'], user_id)
-    if not res:
-        raise web.HTTPBadRequest(text=f'No info for that user {user_id}... yet\n')
-    json_data = [ { 'filename': info[0],
-                    'status': str(info[1]),
-                    'created_at': str(info[2]),
-                    'last_modifed': str(info[3]),
-                    'final_name': info[4] } for info in res]
+    name = request.match_info['name']
+    LOG.info(f'Getting info for user: {name}')
+    json_data = await db.get_user_info(request.app['db'], name)
+    if not json_data:
+        raise web.HTTPBadRequest(text=f'No info for that user {name}... yet\n')
     return web.json_response(json_data)
 
 async def init(app):
@@ -130,9 +147,10 @@ def main(args=None):
 
     # Registering the routes
     LOG.info('Registering routes')
-    server.router.add_get( '/'                      , index        , name='root'             )
-    server.router.add_get( '/status/file/{id}'      , status_file  , name='status_file'      )
-    server.router.add_get( '/status/user/{id}'      , status_user  , name='status_user'      )
+    server.router.add_get( '/'              , index        , name='root'         )
+    server.router.add_get( '/file'          , status_file  , name='status_file'  )
+    server.router.add_get( '/user/{name}'   , status_user  , name='status_user'  )
+    server.router.add_delete( '/user/{name}', flush_user   , name='flush_user'   )
 
     # Registering some initialization and cleanup routines
     LOG.info('Setting up callbacks')

@@ -15,14 +15,19 @@ services:
     env_file: private/swe1/db.env
     hostname: ega_db_swe1
     container_name: ega_db_swe1
-    image: nbisweden/ega-db
+    image: postgres:latest
+    volumes:
+       - ${DATA}/swe1/db.sql:/docker-entrypoint-initdb.d/ega.sql:ro
+      
 
   # Postgres Database for Finland
   db_fin1:
     env_file: private/fin1/db.env
     hostname: ega_db_fin1
     container_name: ega_db_fin1
-    image: nbisweden/ega-db
+    image: postgres:latest
+    volumes:
+       - ${DATA}/fin1/db.sql:/docker-entrypoint-initdb.d/ega.sql:ro
 
   # ReST frontend
   frontend_swe1:
@@ -36,8 +41,8 @@ services:
     container_name: ega_frontend_swe1
     image: nbisweden/ega-frontend
     volumes:
-       - ${CONF_swe1}:/etc/ega/conf.ini:ro
-       - ${LOG_swe1}:/etc/ega/logger.yml:ro
+       - ${DATA}/swe1/ega.conf:/etc/ega/conf.ini:ro
+       - ${DATA}/swe1/logger.yml:/etc/ega/logger.yml:ro
 
   # SFTP inbox for Sweden
   inbox_swe1:
@@ -53,8 +58,8 @@ services:
     image: nbisweden/ega-inbox
     volumes:
        - inbox_swe1:/ega/inbox
-       - ${CONF_swe1}:/etc/ega/conf.ini:ro
-       - ${LOG_swe1}:/etc/ega/logger.yml:ro
+       - ${DATA}/swe1/ega.conf:/etc/ega/conf.ini:ro
+       - ${DATA}/swe1/logger.yml:/etc/ega/logger.yml:ro
 
   # SFTP inbox for Finland
   inbox_fin1:
@@ -70,8 +75,8 @@ services:
     image: nbisweden/ega-inbox
     volumes:
        - inbox_fin1:/ega/inbox
-       - ${CONF_fin1}:/etc/ega/conf.ini:ro
-       - ${LOG_fin1}:/etc/ega/logger.yml:ro
+       - ${DATA}/fin1/ega.conf:/etc/ega/conf.ini:ro
+       - ${DATA}/fin1/logger.yml:/etc/ega/logger.yml:ro
 
   # Vault
   vault_swe1:
@@ -87,8 +92,8 @@ services:
     volumes:
        - staging_swe1:/ega/staging
        - vault_swe1:/ega/vault
-       - ${CONF_swe1}:/etc/ega/conf.ini:ro
-       - ${LOG_swe1}:/etc/ega/logger.yml:ro
+       - ${DATA}/swe1/ega.conf:/etc/ega/conf.ini:ro
+       - ${DATA}/swe1/logger.yml:/etc/ega/logger.yml:ro
 
   # Ingestion Workers
   ingest_swe1:
@@ -106,11 +111,11 @@ services:
     volumes:
        - inbox_swe1:/ega/inbox
        - staging_swe1:/ega/staging
-       - ${CONF_swe1}:/etc/ega/conf.ini:ro
-       - ${LOG_swe1}:/etc/ega/logger.yml:ro
-       - ${SSL_CERT_swe1}:/etc/ega/ssl.cert:ro
-       - ${GPG_HOME_swe1}/pubring.kbx:/root/.gnupg/pubring.kbx:ro
-       - ${GPG_HOME_swe1}/trustdb.gpg:/root/.gnupg/trustdb.gpg
+       - ${DATA}/swe1/ega.conf:/etc/ega/conf.ini:ro
+       - ${DATA}/swe1/logger.yml:/etc/ega/logger.yml:ro
+       - ${DATA}/swe1/certs/ssl.cert:/etc/ega/ssl.cert:ro
+       - ${DATA}/swe1/gpg/pubring.kbx:/root/.gnupg/pubring.kbx:ro
+       - ${DATA}/swe1/gpg/trustdb.gpg:/root/.gnupg/trustdb.gpg
 
   # Key server
   keys_swe1:
@@ -126,17 +131,17 @@ services:
       - "9010"
       - "9011"
     volumes:
-       - ${CONF_swe1}:/etc/ega/conf.ini:ro
-       - ${LOG_swe1}:/etc/ega/logger.yml:ro
-       - ${KEYS_swe1}:/etc/ega/keys.ini:ro
-       - ${SSL_CERT_swe1}:/etc/ega/ssl.cert:ro
-       - ${SSL_KEY_swe1}:/etc/ega/ssl.key:ro
-       - ${GPG_HOME_swe1}/pubring.kbx:/root/.gnupg/pubring.kbx
-       - ${GPG_HOME_swe1}/trustdb.gpg:/root/.gnupg/trustdb.gpg
-       - ${GPG_HOME_swe1}/openpgp-revocs.d:/root/.gnupg/openpgp-revocs.d:ro
-       - ${GPG_HOME_swe1}/private-keys-v1.d:/root/.gnupg/private-keys-v1.d:ro
-       - ${RSA_SEC_swe1}:/etc/ega/rsa/sec.pem:ro
-       - ${RSA_PUB_swe1}:/etc/ega/rsa/pub.pem:ro
+       - ${DATA}/swe1/ega.conf:/etc/ega/conf.ini:ro
+       - ${DATA}/swe1/logger.yml:/etc/ega/logger.yml:ro
+       - ${DATA}/swe1/keys.conf:/etc/ega/keys.ini:ro
+       - ${DATA}/swe1/certs/ssl.cert:/etc/ega/ssl.cert:ro
+       - ${DATA}/swe1/certs/ssl.key:/etc/ega/ssl.key:ro
+       - ${DATA}/swe1/gpg/pubring.kbx:/root/.gnupg/pubring.kbx
+       - ${DATA}/swe1/gpg/trustdb.gpg:/root/.gnupg/trustdb.gpg
+       - ${DATA}/swe1/gpg/openpgp-revocs.d:/root/.gnupg/openpgp-revocs.d:ro
+       - ${DATA}/swe1/gpg/private-keys-v1.d:/root/.gnupg/private-keys-v1.d:ro
+       - ${DATA}/swe1/rsa/ega.sec:/etc/ega/rsa/sec.pem:ro
+       - ${DATA}/swe1/rsa/ega.pub:/etc/ega/rsa/pub.pem:ro
 
   keys_fin1:
     env_file: private/fin1/gpg.env
@@ -151,28 +156,17 @@ services:
       - "9010"
       - "9011"
     volumes:
-       - ${CONF_fin1}:/etc/ega/conf.ini:ro
-       - ${KEYS_fin1}:/etc/ega/keys.ini:ro
-       - ${SSL_CERT_fin1}:/etc/ega/ssl.cert:ro
-       - ${SSL_KEY_fin1}:/etc/ega/ssl.key:ro
-       - ${GPG_HOME_fin1}/pubring.kbx:/root/.gnupg/pubring.kbx
-       - ${GPG_HOME_fin1}/trustdb.gpg:/root/.gnupg/trustdb.gpg
-       - ${GPG_HOME_fin1}/openpgp-revocs.d:/root/.gnupg/openpgp-revocs.d:ro
-       - ${GPG_HOME_fin1}/private-keys-v1.d:/root/.gnupg/private-keys-v1.d:ro
-       - ${RSA_SEC_fin1}:/etc/ega/rsa/sec.pem:ro
-       - ${RSA_PUB_fin1}:/etc/ega/rsa/pub.pem:ro
-
-  # # Error Monitors
-  # monitors_swe1:
-  #   # depends_on:
-  #   #   - db_swe1
-  #   ports:
-  #     - "10514:10514"
-  #   expose:
-  #     - 10514
-  #   hostname: ega_monitors_swe1
-  #   container_name: ega_monitors_swe1
-  #   image: nbisweden/ega-monitors
+       - ${DATA}/fin1/ega.conf:/etc/ega/conf.ini:ro
+       - ${DATA}/fin1/logger.yml:/etc/ega/logger.yml:ro
+       - ${DATA}/fin1/keys.conf:/etc/ega/keys.ini:ro
+       - ${DATA}/fin1/certs/ssl.cert:/etc/ega/ssl.cert:ro
+       - ${DATA}/fin1/certs/ssl.key:/etc/ega/ssl.key:ro
+       - ${DATA}/fin1/gpg/pubring.kbx:/root/.gnupg/pubring.kbx
+       - ${DATA}/fin1/gpg/trustdb.gpg:/root/.gnupg/trustdb.gpg
+       - ${DATA}/fin1/gpg/openpgp-revocs.d:/root/.gnupg/openpgp-revocs.d:ro
+       - ${DATA}/fin1/gpg/private-keys-v1.d:/root/.gnupg/private-keys-v1.d:ro
+       - ${DATA}/fin1/rsa/ega.sec:/etc/ega/rsa/sec.pem:ro
+       - ${DATA}/fin1/rsa/ega.pub:/etc/ega/rsa/pub.pem:ro
 
   ############################################
   # Faking Central EGA
@@ -184,7 +178,7 @@ services:
     image: nbisweden/ega-cega_mq
     container_name: cega_mq
     volumes:
-       - ${CEGA_MQ_DEFS}:/etc/rabbitmq/defs.json:ro
+       - ${DATA}/cega/mq/defs.json:/etc/rabbitmq/defs.json:ro
 
   cega_users:
     env_file: private/cega/env
@@ -193,7 +187,7 @@ services:
     ports:
       - "9100:80"
     volumes:
-      - ${CEGA_USERS}:/cega/users:rw
+      - ${DATA}/cega/users:/cega/users:rw
 
   ############################################
   # Logging & Monitoring (ELK: Elasticsearch, Logstash, Kibana).
@@ -203,7 +197,7 @@ services:
     image: docker.elastic.co/elasticsearch/elasticsearch-oss:6.0.0
     container_name: ega-elasticsearch-swe1
     volumes:
-      - ${ELASTICSEARCH_CONF_swe1}:/usr/share/elasticsearch/config/elasticsearch.yml:ro
+      - ${DATA}/swe1/logs/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
       - elasticsearch_swe1:/usr/share/elasticsearch/data
     environment:
       ES_JAVA_OPTS: "-Xmx256m -Xms256m"
@@ -212,8 +206,8 @@ services:
     image: docker.elastic.co/logstash/logstash-oss:6.0.0
     container_name: ega-logstash-swe1
     volumes:
-      - ${LOGSTASH_CONF_swe1}:/usr/share/logstash/config/logstash.yml:ro
-      - ${LOGSTASH_PIPELINE_swe1}:/usr/share/logstash/pipeline/logstash.conf:ro
+      - ${DATA}/swe1/logs/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
+      - ${DATA}/swe1/logs/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
     ports:
       - "9600:9600"
       - "5000:5000"
@@ -226,7 +220,7 @@ services:
     image: docker.elastic.co/kibana/kibana-oss:6.0.0
     container_name: ega-kibana-swe1
     volumes:
-      - ${KIBANA_CONF_swe1}:/usr/share/kibana/config/kibana.yml:ro
+      - ${DATA}/swe1/logs/kibana.yml:/usr/share/kibana/config/kibana.yml:ro
     ports:
       - "5601:5601"
     depends_on:

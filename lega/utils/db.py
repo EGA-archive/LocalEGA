@@ -113,31 +113,29 @@ async def create_pool(loop):
     db_args = fetch_args(CONF)
     return await aiopg.create_pool(**db_args, loop=loop, echo=True)
 
-async def get_file_info(conn, file_id):
-    assert file_id, 'Eh? No file_id?'
+async def get_file_info(conn, filename, username):
+    assert filename, 'Eh? No filename?'
+    assert username, 'Eh? No username?'
+    try:
+        with (await conn.cursor()) as cur:
+            query = 'SELECT file_info(%(filename)s, %(username)s);'
+            await cur.execute(query, {'filename': filename, 'username':username})
+            return await cur.fetchone()
+    except psycopg2.InternalError as pgerr:
+        return None
+
+
+async def get_user_info(conn, username):
+    assert username, 'Eh? No username?'
     with (await conn.cursor()) as cur:
-        query = 'SELECT filename, status, created_at, last_modified, stable_id FROM files WHERE id = %(file_id)s'
-        await cur.execute(query, {'file_id': file_id})
+        query = 'SELECT userfiles_info(%(username)s);'
+        await cur.execute(query, {'username': username})
         return await cur.fetchone()
 
-async def get_user_info(conn, user_id):
-    assert user_id, 'Eh? No user_id?'
+async def flush_user(conn, name):
     with (await conn.cursor()) as cur:
-        query = 'SELECT filename, status, created_at, last_modified, stable_id FROM files WHERE elixir_id = %(user_id)s'
-        await cur.execute(query, {'user_id': user_id})
-        return await cur.fetchall()
-
-async def insert_user(conn, user_id, password_hash, pubkey):
-    with (await conn.cursor()) as cur:
-        await cur.execute('SELECT insert_user(%(uid)s,%(ph)s,%(pk)s);',
-                          { 'uid': user_id,
-                            'ph': password_hash,
-                            'pk': pubkey })
-        internal_id = (await cur.fetchone())[0]
-        if internal_id:
-            LOG.debug(f'User {user_id} added to the database (as entry {internal_id}).')
-        else:
-            raise Exception('Database issue with insert_user')
+        await cur.execute('SELECT flush_user(%(name)s);', { 'name': name })
+        return await cur.fetchone()
 
 ######################################
 ##         "Classic" code           ##
@@ -241,7 +239,6 @@ def finalize_file(file_id, stable_id, filesize):
                         'SET status = %(status)s, stable_id = %(stable_id)s, reenc_size = %(filesize)s '
                         'WHERE id = %(file_id)s;',
                         {'stable_id': stable_id, 'file_id': file_id, 'status': Status.Archived.value, 'filesize': filesize})
-
 
 ######################################
 ##           Decorator              ##

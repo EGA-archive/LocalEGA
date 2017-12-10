@@ -6,12 +6,14 @@ DOCKER_INBOX_PORT=2223
 LEGA_GREETINGS="Welcome to Local EGA Finland @ CSC"
 CEGA_MQ_PASSWORD=$(generate_password 16)
 CEGA_REST_PASSWORD=$(generate_password 16)
+CEGA_PASSWORD=$(generate_password 16) # when CEGA contacts our REST frontend
 
 SSL_SUBJ="/C=FI/ST=Finland/L=Helsinki/O=CSC/OU=SysDevs/CN=LocalEGA/emailAddress=ega@csc.fi"
 
 DB_USER=lega
 DB_PASSWORD=$(generate_password 16)
 DB_TRY=30
+
 
 GPG_NAME="EGA Finland"
 GPG_COMMENT="@CSC"

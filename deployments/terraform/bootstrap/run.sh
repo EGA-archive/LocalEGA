@@ -181,6 +181,7 @@ try = ${DB_TRY}
 
 [frontend]
 host = ega_frontend
+cega_password = ${CEGA_PASSWORD}
 
 [outgestion]
 # Keyserver communication
@@ -307,6 +308,7 @@ MQ_VHOST            = /
 #
 CEGA_REST_PASSWORD  = ${CEGA_REST_PASSWORD}
 CEGA_MQ_PASSWORD    = ${CEGA_MQ_PASSWORD}
+CEGA_PASSWORD       = ${CEGA_PASSWORD}
 EOF
 
 task_complete "Bootstrap complete"
