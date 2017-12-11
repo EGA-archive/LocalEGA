@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 set -e
 
+[ ${BASH_VERSINFO[0]} -lt 4 ] && echo 'Bash 4 (or higher) is required' 1>&2 && exit 1
+
 HERE=$(dirname ${BASH_SOURCE[0]})
 PRIVATE=${HERE}/../private
 DOT_ENV=${HERE}/../.env
-LIB=${HERE}/lib
 SETTINGS=${HERE}/settings
 
 # Defaults
@@ -44,7 +45,7 @@ done
 
 [[ $VERBOSE == 'no' ]] && echo -en "Bootstrapping "
 
-source ${LIB}/defs.sh
+source ${HERE}/defs.sh
 
 INSTANCES=$(ls ${SETTINGS} | xargs) # make it one line. ls -lx didn't work
 
@@ -57,21 +58,25 @@ exec 2>${PRIVATE}/.err
 cat > ${DOT_ENV} <<EOF
 COMPOSE_PROJECT_NAME=ega
 COMPOSE_FILE=ega.yml
-CEGA_USERS=./private/cega/users
-CEGA_MQ_DEFS=./private/cega/mq/defs.json
+DATA=./private
 EOF
+# Do not use ${PRIVATE}: Wrong path if run in container
 
 cat >> ${PRIVATE}/cega/env <<EOF
 LEGA_INSTANCES=${INSTANCES// /,}
 EOF
 
 # Central EGA Users
-source ${LIB}/cega_users.sh
+source ${HERE}/cega_users.sh
 
 # Generate the configuration for each instance
-for INSTANCE in ${INSTANCES}; do source ${LIB}/instance.sh; done
+for INSTANCE in ${INSTANCES}
+do
+    echomsg "Generating private data for ${INSTANCE} [Default in ${SETTINGS}/${INSTANCE}]"
+    source ${HERE}/instance.sh
+done
 
-# Central EGA Message Broker
-source ${LIB}/cega_mq.sh
+# Central EGA Message Broker. Must be run after the instances
+source ${HERE}/cega_mq.sh
 
 task_complete "Bootstrap complete"

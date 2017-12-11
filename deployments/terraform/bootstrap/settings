@@ -11,6 +11,8 @@ DB_TRY=30
 
 MQ_PASSWORD=$(generate_password 16)
 
+CEGA_PASSWORD=$(generate_password 16)
+
 GPG_NAME="EGA Sweden"
 GPG_COMMENT="@NBIS"
 GPG_EMAIL="ega@nbis.se"

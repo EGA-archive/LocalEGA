@@ -93,10 +93,3 @@ cat > ${PRIVATE}/cega/mq/defs.json <<EOF
  "bindings":[$(output_bindings)]
 }
 EOF
-
-
-cat >> ${DOT_ENV} <<EOF
-#
-CEGA_MQ_DEFS=./private/cega/mq/defs.json
-#
-EOF

@@ -1,11 +1,5 @@
 from setuptools import setup
 from lega import __version__
-from markdown import markdown
-from pathlib import Path
-
-def readme():
-    with open(Path(__file__).parent / 'README.md') as f:
-        return markdown(f.read())
 
 setup(name='lega',
       version=__version__,
@@ -14,7 +8,14 @@ setup(name='lega',
       author='NBIS System Developers',
       author_email='ega@nbis.se',
       description='Local EGA',
-      long_description=readme(),
+      long_description='''\
+LocalEGA ingests into its vault, files that are dropped in some inbox.
+
+The program is divided into several components interconnected via a
+message broker and a database.
+
+Users are handled throught Central EGA, directly.
+''',
       packages=['lega', 'lega/utils', 'lega/conf'],
       include_package_data=False,
       package_data={ 'lega': ['conf/loggers/*.yaml', 'conf/defaults.ini', 'conf/templates/*.html'] },

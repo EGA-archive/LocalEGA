@@ -1,12 +1,13 @@
+ARGS=
 
-.PHONY: all bootstrap
+.PHONY: all bootstrap private
 
 all: up
 
-.env private:
-	@docker run --rm -it -v ${PWD}:/ega nbisweden/ega-bootstrap
+private:
+	@docker run --rm -it -v ${PWD}:/ega -v ${PWD}/../../extras/db.sql:/tmp/db.sql nbisweden/ega-bootstrap ${ARGS}
 
-bootstrap: .env private
+bootstrap: private
 
 clean:
 	rm -rf .env private
