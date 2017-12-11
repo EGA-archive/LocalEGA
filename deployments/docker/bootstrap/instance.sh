@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-[[ -z ${INSTANCE} ]] && echo '${INSTANCE} must be defined' 1>&2 && exit 1
+[[ -z "${INSTANCE}" ]] && echo 'The variable INSTANCE must be defined' 1>&2 && exit 1
 
 ########################################################
 # Loading the instance's settings
