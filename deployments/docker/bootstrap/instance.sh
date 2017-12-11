@@ -287,7 +287,7 @@ network.host: 0.0.0.0
 http.port: 9200
 EOF
 
-echomsg "\t* Logstash configuration file"
+echomsg "\t* Logstash configuration files"
 cat > ${PRIVATE}/${INSTANCE}/logs/logstash.yml <<EOF
 path.config: /usr/share/logstash/pipeline
 http.host: "0.0.0.0"
