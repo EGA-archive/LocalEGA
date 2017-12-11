@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-echomsg "Generating private data for ${INSTANCE} [Default in ${SETTINGS}/${INSTANCE}]"
+[[ -z "${INSTANCE}" ]] && echo 'The variable INSTANCE must be defined' 1>&2 && exit 1
 
 ########################################################
 # Loading the instance's settings
@@ -61,7 +61,7 @@ ${OPENSSL} req -x509 -newkey rsa:2048 -keyout ${PRIVATE}/${INSTANCE}/certs/ssl.k
 
 #########################################################################
 
-echomsg "\t* the EGA configuration files"
+echomsg "\t* keys.conf"
 cat > ${PRIVATE}/${INSTANCE}/keys.conf <<EOF
 [DEFAULT]
 active_master_key = 1
@@ -72,6 +72,7 @@ pubkey = /etc/ega/rsa/pub.pem
 passphrase = ${RSA_PASSPHRASE}
 EOF
 
+echomsg "\t* ega.conf"
 cat > ${PRIVATE}/${INSTANCE}/ega.conf <<EOF
 [DEFAULT]
 #log = debug
@@ -106,12 +107,42 @@ try = ${DB_TRY}
 
 [frontend]
 host = ega_frontend_${INSTANCE}
+cega_password = ${CEGA_PASSWORD}
 
 [outgestion]
 # Keyserver communication
 keyserver_host = ega_keys_${INSTANCE}
 EOF
 
+echomsg "\t* SFTP Inbox port"
+cat >> ${DOT_ENV} <<EOF
+DOCKER_INBOX_${INSTANCE}_PORT=${DOCKER_INBOX_PORT}
+EOF
+
+echomsg "\t* db.sql"
+# cat > ${PRIVATE}/${INSTANCE}/db.sql <<EOF
+# -- DROP USER IF EXISTS lega;
+# -- CREATE USER ${DB_USER} WITH password '${DB_PASSWORD}';
+# DROP DATABASE IF EXISTS lega;
+# CREATE DATABASE lega WITH OWNER ${DB_USER};
+
+# EOF
+if [[ -f /tmp/db.sql ]]; then
+    # Running in a container
+    cat /tmp/db.sql >> ${PRIVATE}/${INSTANCE}/db.sql
+else
+    # Running on host, outside a container
+    cat ${HERE}/../../../extras/db.sql >> ${PRIVATE}/${INSTANCE}/db.sql
+fi
+# cat >> ${PRIVATE}/${INSTANCE}/db.sql <<EOF
+
+# -- Changing the owner there too
+# ALTER TABLE files OWNER TO ${DB_USER};
+# ALTER TABLE users OWNER TO ${DB_USER};
+# ALTER TABLE errors OWNER TO ${DB_USER};
+# EOF
+
+echomsg "\t* logger.yml"
 _LOG_LEVEL=${LOG_LEVEL:-DEBUG}
 
 cat > ${PRIVATE}/${INSTANCE}/logger.yml <<EOF
@@ -220,7 +251,7 @@ EOF
 # Populate env-settings for docker compose
 #########################################################################
 
-echomsg "\t* Generating the docker-compose configuration files"
+echomsg "\t* the docker-compose configuration files"
 
 cat > ${PRIVATE}/${INSTANCE}/db.env <<EOF
 DB_INSTANCE=ega_db_${INSTANCE}
@@ -249,7 +280,7 @@ CEGA_ENDPOINT_RESP_PASSWD=.password_hash
 CEGA_ENDPOINT_RESP_PUBKEY=.pubkey
 EOF
 
-echomsg "\t* Elasticsearch configuration files"
+echomsg "\t* Elasticsearch configuration file"
 cat > ${PRIVATE}/${INSTANCE}/logs/elasticsearch.yml <<EOF
 cluster.name: local-ega
 network.host: 0.0.0.0
@@ -279,32 +310,16 @@ output {
 }
 EOF
 
-echomsg "\t* Kibana configuration files"
+echomsg "\t* Kibana configuration file"
 cat > ${PRIVATE}/${INSTANCE}/logs/kibana.yml <<EOF
 server.port: 5601
 server.host: "0.0.0.0"
 elasticsearch.url: "http://ega-elasticsearch-${INSTANCE}:9200"
 EOF
 
-cat >> ${DOT_ENV} <<EOF
-CONF_${INSTANCE}=./private/${INSTANCE}/ega.conf
-KEYS_${INSTANCE}=./private/${INSTANCE}/keys.conf
-LOG_${INSTANCE}=./private/${INSTANCE}/logger.yml
-#
-SSL_CERT_${INSTANCE}=./private/${INSTANCE}/certs/ssl.cert
-SSL_KEY_${INSTANCE}=./private/${INSTANCE}/certs/ssl.key
-RSA_SEC_${INSTANCE}=./private/${INSTANCE}/rsa/ega.sec
-RSA_PUB_${INSTANCE}=./private/${INSTANCE}/rsa/ega.pub
-GPG_HOME_${INSTANCE}=./private/${INSTANCE}/gpg
-#
-DOCKER_INBOX_${INSTANCE}_PORT=${DOCKER_INBOX_PORT}
-#
-ELASTICSEARCH_CONF_${INSTANCE}=./private/${INSTANCE}/logs/elasticsearch.yml
-LOGSTASH_CONF_${INSTANCE}=./private/${INSTANCE}/logs/logstash.yml
-LOGSTASH_PIPELINE_${INSTANCE}=./private/${INSTANCE}/logs/logstash.conf
-KIBANA_CONF_${INSTANCE}=./private/${INSTANCE}/logs/kibana.yml
-EOF
-
+#########################################################################
+# Keeping a trace of if
+#########################################################################
 
 cat >> ${PRIVATE}/${INSTANCE}/.trace <<EOF
 #####################################################################
@@ -329,6 +344,7 @@ LEGA_GREETINGS            = ${LEGA_GREETINGS}
 CEGA_MQ_USER              = cega_${INSTANCE}
 CEGA_MQ_PASSWORD          = ${CEGA_MQ_PASSWORD}
 CEGA_REST_PASSWORD        = ${CEGA_REST_PASSWORD}
+CEGA_PASSWORD             = ${CEGA_PASSWORD}
 #
 DOCKER_INBOX_PORT         = ${DOCKER_INBOX_PORT}
 EOF
