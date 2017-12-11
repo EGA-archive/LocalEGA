@@ -53,7 +53,7 @@ write_files:
   - encoding: b64
     content: ${ega_ingest}
     owner: root:root
-    path: /etc/systemd/system/ega-ingestion.service
+    path: /etc/systemd/system/ega-ingestion@.service
     permissions: '0644'
   - encoding: b64
     content: ${ega_inbox_mount}
@@ -77,7 +77,9 @@ bootcmd:
 runcmd:
   - ldconfig -v
   - pip3.6 install git+https://github.com/NBISweden/LocalEGA.git
-  - systemctl start ega-ingestion.service ega-socket-forwarder.service ega-socket-forwarder.socket
-  - systemctl enable ega-ingestion.service ega-socket-forwarder.service ega-socket-forwarder.socket
+  - systemctl start ega-socket-forwarder.service ega-socket-forwarder.socket
+  - systemctl enable ega-socket-forwarder.service ega-socket-forwarder.socket
+  - systemctl start ega-ingestion@1.service ega-ingestion@2.service
+  - systemctl enable ega-ingestion@1.service ega-ingestion@2.service
 
 final_message: "The system is finally up, after $UPTIME seconds"
