@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-echomsg "Generating private data for ${INSTANCE} [Default in ${SETTINGS}/${INSTANCE}]"
+[[ -z ${INSTANCE} ]] && echo '${INSTANCE} must be defined' 1>&2 && exit 1
 
 ########################################################
 # Loading the instance's settings

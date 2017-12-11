@@ -122,6 +122,7 @@ async def get_file_info(conn, filename, username):
             await cur.execute(query, {'filename': filename, 'username':username})
             return await cur.fetchone()
     except psycopg2.InternalError as pgerr:
+        LOG.debug(f'File Info for {filename} (User: {username}): {pgerr!r}')
         return None
 
 

@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -e
 
+[ ${BASH_VERSINFO[0]} -lt 4 ] && echo 'Bash 4 (or higher) is required' 1>&2 && exit 1
+
 HERE=$(dirname ${BASH_SOURCE[0]})
 PRIVATE=${HERE}/../private
 DOT_ENV=${HERE}/../.env
@@ -68,7 +70,11 @@ EOF
 source ${HERE}/cega_users.sh
 
 # Generate the configuration for each instance
-for INSTANCE in ${INSTANCES}; do source ${HERE}/instance.sh; done
+for INSTANCE in ${INSTANCES}
+do
+    echomsg "Generating private data for ${INSTANCE} [Default in ${SETTINGS}/${INSTANCE}]"
+    source ${HERE}/instance.sh
+done
 
 # Central EGA Message Broker. Must be run after the instances
 source ${HERE}/cega_mq.sh
