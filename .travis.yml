@@ -17,6 +17,7 @@ before_install:
 
 install:
   - docker-compose up -d
+  - docker-compose ps
 
 script:
   - cd ../../tests
