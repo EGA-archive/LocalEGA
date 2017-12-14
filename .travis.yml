@@ -20,7 +20,7 @@ install:
 
 script:
   - cd ../../tests
-  - sudo mvn test -B
+  - sudo env "PATH=$PATH" mvn test -B
 
 after_success:
   - |
