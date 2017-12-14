@@ -92,7 +92,7 @@ public class Utils {
             log.trace(output);
         }
         if (StringUtils.isNotEmpty(error)) {
-            log.trace(error);
+            log.error(error);
         }
         return output;
     }
