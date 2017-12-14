@@ -6,5 +6,6 @@ RUN apt-get update -y && \
     rm -rf /var/lib/apt/lists/*
 
 COPY rabbitmq.config /etc/rabbitmq/rabbitmq.config
+COPY enabled_plugins /etc/rabbitmq/enabled_plugins
 COPY publish.py /usr/local/bin/publish
 RUN chmod 755 /usr/local/bin/publish

@@ -37,7 +37,7 @@ from Cryptodome.PublicKey import RSA
 
 from .conf import CONF
 from .utils import db, exceptions, checksum, sanitize_user_id
-from .utils.amqp import get_connection, consume
+from .utils.amqp import consume
 from .utils.crypto import ingest as crypto_ingest
 from .keyserver import MASTER_PUBKEY, ACTIVE_MASTER_KEY
 
@@ -109,6 +109,8 @@ def work(active_master_key, master_pubkey, data):
     except KeyError:
         LOG.info('Finding a companion file')
         encrypted_hash, encrypted_algo = checksum.get_from_companion(inbox_filepath)
+        data['encrypted_integrity'] = {'hash': encrypted_hash,
+                                       'algorithm': encrypted_algo }
 
 
     assert( isinstance(encrypted_hash,str) )
@@ -139,6 +141,8 @@ def work(active_master_key, master_pubkey, data):
         # Strip the suffix first.
         LOG.info('Finding a companion file')
         unencrypted_hash, unencrypted_algo = checksum.get_from_companion(inbox_filepath.with_suffix(''))
+        data['unencrypted_integrity'] = {'hash': unencrypted_hash,
+                                         'algorithm': unencrypted_algo }
 
     LOG.debug(f'Starting the re-encryption\n\tfrom {inbox_filepath}\n\tto {staging_filepath}')
     db.set_progress(file_id, str(staging_filepath), encrypted_hash, encrypted_algo, unencrypted_hash, unencrypted_algo)
@@ -197,9 +201,8 @@ def main(args=None):
         loop.close()
         sys.exit(1)
     else:
-        from_broker = (get_connection('cega.broker'), CONF.get('cega.broker','file_queue'))
-        to_broker = (get_connection('local.broker'), 'lega', 'lega.complete')
-        consume(from_broker, do_work, to_broker)
+        # upstream link configured in local broker
+        consume(do_work, 'files', 'lega.staged')
     finally:
         loop.close()
 

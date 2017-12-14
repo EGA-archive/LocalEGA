@@ -29,9 +29,13 @@ data "template_file" "cloud_init" {
   template = "${file("${path.module}/cloud_init.tpl")}"
 
   vars {
-    mq_users    = "${base64encode("${file("private/mq_users.sh")}")}"
     mq_defs     = "${base64encode("${file("${path.module}/defs.json")}")}"
     mq_conf     = "${base64encode("${file("${path.module}/rabbitmq.config")}")}"
+    mq_users    = "${base64encode("${file("private/mq_users.sh")}")}"
+    mq_creds    = "${base64encode("${file("private/mq_lega.rc")}")}"
+    mq_cega_defs= "${base64encode("${file("private/mq_cega_defs.json")}")}"
+    ega_slice   = "${base64encode("${file("${path.root}/systemd/ega.slice")}")}"
+    mq_load     = "${base64encode("${file("${path.root}/systemd/ega-mq-cega-defs.service")}")}"
     hosts       = "${base64encode("${file("${path.root}/hosts")}")}"
     hosts_allow = "${base64encode("${file("${path.root}/hosts.allow")}")}"
   }

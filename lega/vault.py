@@ -25,7 +25,7 @@ import shutil
 
 from .conf import CONF
 from .utils import db
-from .utils.amqp import get_connection, consume
+from .utils.amqp import consume
 
 
 LOG = logging.getLogger('vault')
@@ -64,10 +64,8 @@ def main(args=None):
         args = sys.argv[1:]
 
     CONF.setup(args) # re-conf
-    connection = get_connection('local.broker')
-    from_broker = (connection, 'completed')
-    to_broker = (connection, 'lega', 'lega.archived')
-    consume(from_broker, work, to_broker)
+
+    consume(work, 'staged', 'lega.archived')
 
 if __name__ == '__main__':
     main()

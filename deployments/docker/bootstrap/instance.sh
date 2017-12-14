@@ -85,19 +85,8 @@ gpg_cmd = gpg2 --decrypt %(file)s
 keyserver_host = ega_keys_${INSTANCE}
 
 ## Connecting to Local EGA
-[local.broker]
+[broker]
 host = ega_mq_${INSTANCE}
-
-## Connecting to Central EGA
-[cega.broker]
-host = cega_mq
-username = cega_${INSTANCE}
-password = ${CEGA_MQ_PASSWORD}
-vhost = ${INSTANCE}
-heartbeat = 0
-
-file_queue = ${INSTANCE}.v1.commands.file
-file_routing = ${INSTANCE}.completed
 
 [db]
 host = ega_db_${INSTANCE}
@@ -177,12 +166,6 @@ loggers:
     level: ${_LOG_LEVEL}
     handlers: [logstash,console]
   utils:
-    level: ${_LOG_LEVEL}
-    handlers: [logstash,console]
-  sys-monitor:
-    level: ${_LOG_LEVEL}
-    handlers: [logstash,console]
-  user-monitor:
     level: ${_LOG_LEVEL}
     handlers: [logstash,console]
   amqp:
@@ -316,6 +299,15 @@ server.port: 5601
 server.host: "0.0.0.0"
 elasticsearch.url: "http://ega-elasticsearch-${INSTANCE}:9200"
 EOF
+
+
+# For the moment, still using guest:guest
+echomsg "\t* Local broker to Central EGA broker credentials"
+cat > ${PRIVATE}/${INSTANCE}/mq.env <<EOF
+INSTANCE=${INSTANCE}
+CEGA_MQ_PASSWORD=${CEGA_MQ_PASSWORD}
+EOF
+
 
 #########################################################################
 # Keeping a trace of if

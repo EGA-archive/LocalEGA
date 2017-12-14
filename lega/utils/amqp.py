@@ -1,7 +1,7 @@
 import logging
 import pika
-import uuid
 import json
+import uuid
 
 from ..conf import CONF
 
@@ -52,7 +52,7 @@ def get_connection(domain, blocking=True):
     return pika.SelectConnection( pika.ConnectionParameters(**params) )
     
 
-def consume(from_broker, work, to_broker):
+def consume(work, from_queue, to_routing):
     '''Blocking function, registering callback `work` to be called.
 
     from_broker must be a pair (from_connection: pika:Connection, from_queue: str)
@@ -66,18 +66,14 @@ def consume(from_broker, work, to_broker):
     routing key.
     '''
 
-    assert( from_broker and to_broker )
-    from_connection, from_queue = from_broker
-    to_connection, to_exchange, to_routing = to_broker
-
-    assert( from_connection and from_queue and
-            to_connection and to_exchange and to_routing)
+    assert( from_queue and to_routing )
+    connection = get_connection('broker')
 
     LOG.debug(f'Consuming message from {from_queue}')
 
-    from_channel = from_connection.channel()
+    from_channel = connection.channel()
     from_channel.basic_qos(prefetch_count=1) # One job per worker
-    to_channel = to_connection.channel()
+    to_channel = connection.channel()
 
     def process_request(channel, method_frame, props, body):
         correlation_id = props.correlation_id
@@ -90,10 +86,12 @@ def consume(from_broker, work, to_broker):
         # Publish the answer
         if answer:
             LOG.debug(f'Replying to {to_routing} with {answer}')
-            to_channel.basic_publish(exchange    = to_exchange,
+            to_channel.basic_publish(exchange    = 'lega',
                                      routing_key = to_routing,
-                                     properties  = pika.BasicProperties( correlation_id = props.correlation_id ),
-                                     body        = json.dumps(answer))
+                                     body        = json.dumps(answer),
+                                     properties  = pika.BasicProperties( correlation_id = props.correlation_id,
+                                                                         content_type='application/json',
+                                                                         delivery_mode=2 ))
         # Acknowledgment: Cancel the message resend in case MQ crashes
         LOG.debug(f'Sending ACK for message {message_id} (Correlation ID: {correlation_id})')
         channel.basic_ack(delivery_tag=method_frame.delivery_tag)        
@@ -105,6 +103,15 @@ def consume(from_broker, work, to_broker):
     except KeyboardInterrupt:
         from_channel.stop_consuming()
     finally:
-        from_connection.close()
-        if to_connection and from_connection is not to_connection: # not same physical object
-            to_connection.close()
+        connection.close()
+
+# def report_user_error(message):
+#     LOG.debug(f'Sending user error to LocalEGA error queue: {message}')
+#     broker = get_connection('broker')
+#     channel = broker.channel()
+#     channel.basic_publish(exchange    = 'lega',
+#                           routing_key = 'lega.error.user',
+#                           body        = json.dumps(message),
+#                           properties  = pika.BasicProperties(correlation_id=str(uuid.uuid4()),
+#                                                              content_type='application/json',
+#                                                              delivery_mode=2))

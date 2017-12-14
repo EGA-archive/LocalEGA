@@ -17,6 +17,6 @@ def sanitize_user_id(data):
     # [a-z_][a-z0-9_-]*? that ends with a fixed @elixir-europe.org
 
     user_id = data['elixir_id'].split('@')[0]
-    del data['elixir_id']
+    #del data['elixir_id']
     data['user_id'] = user_id
     return user_id
