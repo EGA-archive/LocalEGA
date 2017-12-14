@@ -7,7 +7,6 @@
 192.168.10.12	   ega_inbox
 192.168.10.13	   ega_frontend
 192.168.10.14	   ega_vault
-192.168.10.15	   ega_monitors
-192.168.10.16	   ega_keys
+192.168.10.15	   ega_keys
 
 # Ignoring the workers 192.168.10.$((100+i)) where i={1..n}

@@ -35,7 +35,6 @@ The following images are created locally:
 | nbisweden/ega-worker   | <HEAD commit> or latest | Adding GnuPG 2.2.2 to `nbisweden/ega-common:latest` |
 | nbisweden/ega-keys     | <HEAD commit> or latest | Key server, depends on `nbisweden/ega-worker:latest` |
 | nbisweden/ega-vault    | <HEAD commit> or latest | Vault container |
-| nbisweden/ega-monitors | <HEAD commit> or latest | Including rsyslog or logstash |
 
 We also use 2 stubbing images in order to fake the necessary Central EGA components
 

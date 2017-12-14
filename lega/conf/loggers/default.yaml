@@ -25,12 +25,6 @@ loggers:
   inbox:
     level: INFO
     handlers: [syslog,mainFile]
-  sys-monitor:
-    level: INFO
-    handlers: [syslog,mainFile]
-  user-monitor:
-    level: INFO
-    handlers: [syslog,mainFile]
 
 handlers:
   noHandler:

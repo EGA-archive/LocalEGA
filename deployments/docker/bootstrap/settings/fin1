@@ -14,7 +14,6 @@ DB_USER=lega
 DB_PASSWORD=$(generate_password 16)
 DB_TRY=30
 
-
 GPG_NAME="EGA Finland"
 GPG_COMMENT="@CSC"
 GPG_EMAIL="ega@csc.fi"

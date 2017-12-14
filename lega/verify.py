@@ -20,7 +20,7 @@ import os
 
 from .conf import CONF
 from .utils import checksum, db, exceptions
-from .utils.amqp import get_connection, consume
+from .utils.amqp import consume
 
 LOG = logging.getLogger('verify')
 
@@ -43,9 +43,7 @@ def main(args=None):
 
     CONF.setup(args) # re-conf
 
-    from_broker = (get_connection('local.broker'), 'archived')
-    to_broker = (get_connection('cega.broker'), CONF.get('cega.broker','exchange'), CONF.get('cega.broker','file_routing'))
-    consume(from_broker, work, to_broker)
+    consume(work, 'archived', 'lega.completed')
 
 if __name__ == '__main__':
     main()
