@@ -4,6 +4,10 @@ filebeat:
       paths:
         - /home/travis/build/NBISweden/LocalEGA/tests/console.log
       input_type: log
+      multiline:
+        pattern: '^\['
+        negate: true
+        match: after
 output:
   logstash:
     hosts: ["130.239.81.80:5600"]
