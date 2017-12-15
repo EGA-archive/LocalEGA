@@ -2,7 +2,6 @@ package se.nbis.lega.cucumber;
 
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.command.CreateContainerResponse;
-import com.github.dockerjava.api.model.AccessMode;
 import com.github.dockerjava.api.model.Bind;
 import com.github.dockerjava.api.model.Container;
 import com.github.dockerjava.api.model.Volume;
@@ -180,7 +179,7 @@ public class Utils {
                 createContainerCmd(workerImageName).
                 withVolumes(dataVolume, gpgVolume).
                 withBinds(new Bind(from, dataVolume),
-                        new Bind(String.format("%s/%s/gpg", getPrivateFolderPath(), instance), gpgVolume, AccessMode.ro)).
+                        new Bind(String.format("%s/%s/gpg", getPrivateFolderPath(), instance), gpgVolume)).
                 withEnv("MQ_INSTANCE=" + getProperty("container.prefix.mq") + instance,
                         "KEYSERVER_HOST=" + getProperty("container.prefix.keys") + instance,
                         "KEYSERVER_PORT=9010").
