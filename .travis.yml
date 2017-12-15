@@ -1,6 +1,6 @@
 sudo: required
-group: deprecated-2017Q4
-language: __sugilite__
+
+language: common
 
 services:
   - docker
