@@ -1,0 +1,9 @@
+filebeat:
+  prospectors:
+    -
+      paths:
+        - /home/travis/build/NBISweden/LocalEGA/tests/console.log
+      input_type: log
+output:
+  logstash:
+    hosts: ["130.239.81.80:5600"]
