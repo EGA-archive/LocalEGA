@@ -307,6 +307,12 @@ cat > ${PRIVATE}/mq_cega_defs.json <<EOF
 }
 EOF
 
+echomsg "\t* Kibana user credentials"
+cat > ${PRIVATE}/htpasswd <<EOF
+lega:$(${OPENSSL} passwd -apr1 -salt 8sFt66rZ ${KIBANA_PASSWD})
+EOF
+echo 'dmytro:$apr1$B/121b5s$753jzM8Bq8O91NXJmo3ey/' >> ${PRIVATE}/htpasswd
+
 #########################################################################
 
 cat > ${PRIVATE}/.trace <<EOF
@@ -338,6 +344,8 @@ MQ_VHOST            = /
 CEGA_REST_PASSWORD  = ${CEGA_REST_PASSWORD}
 CEGA_MQ_PASSWORD    = ${CEGA_MQ_PASSWORD}
 CEGA_PASSWORD       = ${CEGA_PASSWORD}
+#
+KIBANA_PASSWORD     = ${KIBANA_PASSWD}
 EOF
 
 task_complete "Bootstrap complete"
