@@ -44,7 +44,6 @@ cat > /etc/ld.so.conf.d/gpg2.conf <<EOF
 /usr/local/lib
 /usr/local/lib64
 EOF
-ldconfig -v
 
 #################################
 # Python 3 missing stuff
@@ -53,11 +52,16 @@ ldconfig -v
 [[ -e /usr/local/bin/python3 ]]  || ln -s /bin/python3.6 /usr/local/bin/python3
 
 # Installing required packages
-pip3.6 install PyYaml Markdown pika aiohttp pycryptodomex aiopg colorama aiohttp-jinja2
+pip3.6 install PyYaml Markdown #pika aiohttp pycryptodomex aiopg colorama aiohttp-jinja2
 
 ##############################################################
 # Create ega user (with default settings)
 useradd -m ega
+
+# Install LocalEGA code
+pip3.6 install git+https://github.com/NBISweden/LocalEGA.git
+
+ldconfig -v
 
 # Update cloud-init
 sed -i -e "s/name:\scentos/name: ega/" /etc/cloud/cloud.cfg
