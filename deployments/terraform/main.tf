@@ -81,7 +81,7 @@ module "frontend" {
   private_ip    = "192.168.10.13"
   ega_key       = "${var.key}"
   ega_net       = "${openstack_networking_network_v2.ega_net.id}"
-  pool          = "Public External IPv4 Network"
+  pool          = "${var.pool}"
   flavor_name   = "${var.flavor}"
   instance_data = "private"
 }
@@ -93,7 +93,7 @@ module "inbox" {
   ega_net       = "${openstack_networking_network_v2.ega_net.id}"
   cidr          = "192.168.10.0/24"
   volume_size   = "300"
-  pool          = "Public External IPv4 Network"
+  pool          = "${var.pool}"
   flavor_name   = "${var.flavor}"
   instance_data = "private"
 }
