@@ -1,0 +1,25 @@
+[Unit]
+Description=Loading the Central EGA's broker definitions into the local broker
+After=syslog.target
+After=network.target
+
+Requires=rabbitmq-server.service
+After=rabbitmq-server.service
+
+[Service]
+Slice=ega.slice
+Type=oneshot
+EnvironmentFile=/etc/rabbitmq/creds.rc
+ExecStart=/usr/bin/curl -X POST -u ${MQ_USER}:${MQ_PASSWORD} -H "Content-Type: application/json" --data @/etc/rabbitmq/defs-cega.json http://localhost:15672/api/definitions
+User=rabbitmq
+Group=rabbitmq
+
+StandardOutput=syslog
+StandardError=syslog
+
+Restart=on-failure
+RestartSec=10
+TimeoutSec=600
+
+[Install]
+WantedBy=multi-user.target

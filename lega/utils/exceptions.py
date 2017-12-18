@@ -3,16 +3,16 @@
 
 # Errors for the users
 class FromUser(Exception):
-    def __str__(self):
-        return repr(self)
     def __repr__(self):
+        return str(self)
+    def __str__(self):
         return 'Incorrect user input'
 
 class NotFoundInInbox(FromUser):
     def __init__(self, filename):
         self.filename = filename
     def __str__(self):
-        return f'Inbox missing {self.filename}'
+        return f'Inbox missing file: {self.filename}'
 
 class UnsupportedHashAlgorithm(FromUser):
     def __init__(self, algo):

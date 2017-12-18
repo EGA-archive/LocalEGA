@@ -22,6 +22,7 @@ import asyncio
 
 from ..conf import CONF
 from .exceptions import FromUser
+# from .amqp import report_user_error
 
 LOG = logging.getLogger('db')
 
@@ -186,11 +187,10 @@ def get_errors(from_user=False):
             cur.execute(query)
             return cur.fetchall()
 
-def set_error(file_id, error):
+def set_error(file_id, error, from_user=False):
     assert file_id, 'Eh? No file_id?'
     assert error, 'Eh? No error?'
     LOG.debug(f'Setting error for {file_id}: {error!s}')
-    from_user = isinstance(error,FromUser)
     hostname = gethostname()
     with connect() as conn:
         with conn.cursor() as cur:
@@ -271,7 +271,12 @@ def catch_error(func):
             try:
                 data = args[-1]
                 file_id = data['file_id'] # I should have it
-                set_error(file_id, e)
+                from_user = isinstance(e,FromUser)
+                set_error(file_id, e, from_user)
+                # if from_user: # Send to CEGA
+                #     data = args[-1] # data is the last argument
+                #     data['error'] = repr(e)
+                #     report_user_error(data)
             except Exception as e2:
                 LOG.error(f'Exception: {e!r}')
                 print(repr(e), file=sys.stderr)

@@ -31,12 +31,6 @@ loggers:
   utils:
     level: DEBUG
     handlers: [syslog]
-  sys-monitor:
-    level: DEBUG
-    handlers: [syslog]
-  user-monitor:
-    level: DEBUG
-    handlers: [syslog]
   amqp:
     level: DEBUG
     handlers: [syslog]
