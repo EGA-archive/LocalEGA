@@ -20,7 +20,7 @@ before_install:
         make bootstrap
         cd ..
         make bootstrap
-        sudo chown -R $USER .
+        sudo env "PATH=$PATH" chown -R $USER .
 
 install:
   - docker-compose up -d
