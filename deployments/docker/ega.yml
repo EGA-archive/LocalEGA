@@ -4,6 +4,7 @@ services:
 
   # Local Message broker
   mq_swe1:
+    env_file: private/swe1/mq.env
     hostname: ega_mq
     ports:
       - "15672:15672"
@@ -17,7 +18,7 @@ services:
     container_name: ega_db_swe1
     image: postgres:latest
     volumes:
-       - ${DATA}/swe1/db.sql:/docker-entrypoint-initdb.d/ega.sql:ro
+      - ${DATA}/swe1/db.sql:/docker-entrypoint-initdb.d/ega.sql:ro
       
 
   # Postgres Database for Finland
@@ -27,7 +28,7 @@ services:
     container_name: ega_db_fin1
     image: postgres:latest
     volumes:
-       - ${DATA}/fin1/db.sql:/docker-entrypoint-initdb.d/ega.sql:ro
+      - ${DATA}/fin1/db.sql:/docker-entrypoint-initdb.d/ega.sql:ro
 
   # ReST frontend
   frontend_swe1:

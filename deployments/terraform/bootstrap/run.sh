@@ -156,22 +156,11 @@ inbox = ${INBOX_PATH}%(user_id)s/inbox
 keyserver_host = ega_keys
 
 ## Connecting to Local EGA
-[local.broker]
+[broker]
 host = ega_mq
 username = lega
 password = ${MQ_PASSWORD}
 vhost = /
-
-## Connecting to Central EGA
-[cega.broker]
-host = cega_mq
-username = cega_swe1
-password = ${CEGA_MQ_PASSWORD}
-vhost = swe1
-heartbeat = 0
-
-file_queue = swe1.v1.commands.file
-file_routing = swe1.completed
 
 [db]
 host = ega_db
@@ -233,7 +222,7 @@ CREATE USER ${DB_USER} WITH password '${DB_PASSWORD}';
 CREATE DATABASE lega WITH OWNER ${DB_USER};
 
 EOF
-cat ${HERE}/../../docker/images/db/db.sql >> ${PRIVATE}/db.sql
+cat ${HERE}/../../../extras/db.sql >> ${PRIVATE}/db.sql
 cat >> ${PRIVATE}/db.sql <<EOF
 
 -- Changing the owner there too
@@ -277,6 +266,46 @@ rabbitmqctl set_user_tags lega administrator
 rabbitmqctl set_permissions lega ".*" ".*" ".*" # -p /
 EOF
 
+cat > ${PRIVATE}/mq_lega.rc <<EOF
+MQ_USER=lega
+MQ_PASSWORD=${MQ_PASSWORD}
+EOF
+
+cat > ${PRIVATE}/mq_cega_defs.json <<EOF
+{"parameters":[{"value":{"src-uri":"amqp://",
+			 "src-exchange":"lega",
+			 "src-exchange-key":"lega.error.user",
+			 "dest-uri":"amqp://cega_swe1:${CEGA_MQ_PASSWORD}@cega_mq:5672/swe1",
+			 "dest-exchange":"localega.v1",
+			 "dest-exchange-key":"swe1.errors",
+			 "add-forward-headers":false,
+			 "ack-mode":"on-confirm",
+			 "delete-after":"never"},
+		"vhost":"/",
+		"component":"shovel",
+		"name":"CEGA-errors"},
+	       {"value":{"src-uri":"amqp://",
+			 "src-exchange":"lega",
+			 "src-exchange-key":"lega.completed",
+			 "dest-uri":"amqp://cega_swe1:${CEGA_MQ_PASSWORD}@cega_mq:5672/swe1",
+			 "dest-exchange":"localega.v1",
+			 "dest-exchange-key":"swe1.completed",
+			 "add-forward-headers":false,
+			 "ack-mode":"on-confirm",
+			 "delete-after":"never"},
+		"vhost":"/",
+		"component":"shovel",
+		"name":"CEGA-completion"},
+	       {"value":{"uri":"amqp://cega_swe1:${CEGA_MQ_PASSWORD}@cega_mq:5672/swe1",
+			 "ack-mode":"on-confirm",
+			 "trust-user-id":false,
+			 "queue":"swe1.v1.commands.file"},
+		"vhost":"/",
+		"component":"federation-upstream",
+		"name":"CEGA"}],
+ "policies":[{"vhost":"/","name":"CEGA","pattern":"files","apply-to":"queues","definition":{"federation-upstream":"CEGA"},"priority":0}]
+}
+EOF
 
 #########################################################################
 

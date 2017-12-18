@@ -12,7 +12,7 @@ bootstrap: private
 clean:
 	rm -rf .env private
 
-up: bootstrap
+up:
 	@docker-compose up -d
 
 ps:

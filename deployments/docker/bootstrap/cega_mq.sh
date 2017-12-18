@@ -56,6 +56,7 @@ function output_queues {
     do
 	tmp+=("{\"name\":\"${INSTANCE}.v1.commands.file\",      \"vhost\":\"${INSTANCE}\", \"durable\":true, \"auto_delete\":false, \"arguments\":{}}")
 	tmp+=("{\"name\":\"${INSTANCE}.v1.commands.completed\", \"vhost\":\"${INSTANCE}\", \"durable\":true, \"auto_delete\":false, \"arguments\":{}}")
+	tmp+=("{\"name\":\"${INSTANCE}.v1.commands.errors\",    \"vhost\":\"${INSTANCE}\", \"durable\":true, \"auto_delete\":false, \"arguments\":{}}")
     done
     join_by $',\n' "${tmp[@]}"
 }
@@ -76,6 +77,7 @@ function output_bindings {
     do
 	tmp+=("{\"source\":\"localega.v1\",\"vhost\":\"${INSTANCE}\",\"destination_type\":\"queue\",\"arguments\":{},\"destination\":\"${INSTANCE}.v1.commands.file\",\"routing_key\":\"${INSTANCE}.file\"}")
 	tmp+=("{\"source\":\"localega.v1\",\"vhost\":\"${INSTANCE}\",\"destination_type\":\"queue\",\"arguments\":{},\"destination\":\"${INSTANCE}.v1.commands.completed\",\"routing_key\":\"${INSTANCE}.completed\"}")
+	tmp+=("{\"source\":\"localega.v1\",\"vhost\":\"${INSTANCE}\",\"destination_type\":\"queue\",\"arguments\":{},\"destination\":\"${INSTANCE}.v1.commands.errors\",\"routing_key\":\"${INSTANCE}.errors\"}")
     done
     join_by $',\n' "${tmp[@]}"
 }
