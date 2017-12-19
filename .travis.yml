@@ -1,5 +1,3 @@
-sudo: required
-
 language: common
 
 services:
