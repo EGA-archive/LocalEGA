@@ -7,20 +7,12 @@ services:
 
 before_install:
   - |
-        wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo apt-key add -
-        sudo apt-get install apt-transport-https
-        echo "deb https://artifacts.elastic.co/packages/6.x/apt stable main" | sudo tee -a /etc/apt/sources.list.d/elastic-6.x.list
-        sudo apt-get update && sudo apt-get install filebeat
-        sudo cp -f .filebeat.yml /etc/filebeat/filebeat.yml
-        sudo service filebeat restart
-
         cd deployments/docker/images
         make pull common
         make -j 4 images
         make bootstrap
         cd ..
         make bootstrap
-        sudo env "PATH=$PATH" chown -R $USER .
 
 install:
   - docker-compose up -d
@@ -28,7 +20,7 @@ install:
 
 script:
   - cd ../../tests
-  - sudo env "PATH=$PATH" mvn test -B
+  - mvn test -B
 
 after_success:
   - |
