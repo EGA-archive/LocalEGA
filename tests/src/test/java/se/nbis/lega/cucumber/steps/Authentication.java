@@ -5,6 +5,7 @@ import cucumber.api.java8.En;
 import lombok.extern.slf4j.Slf4j;
 import net.schmizz.sshj.SSHClient;
 import net.schmizz.sshj.transport.verification.PromiscuousVerifier;
+import net.schmizz.sshj.userauth.UserAuthException;
 import org.apache.commons.io.FileUtils;
 import org.junit.Assert;
 import se.nbis.lega.cucumber.Context;
@@ -12,10 +13,7 @@ import se.nbis.lega.cucumber.Utils;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.attribute.PosixFilePermission;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 @Slf4j
@@ -38,8 +36,9 @@ public class Authentication implements En {
                 String command1 = String.format("openssl genrsa -out /%s/%s.sec -passout pass:%f 2048", dataFolderName, user, password);
                 String command2 = String.format("openssl rsa -in /%s/%s.sec -passin pass:%f -pubout -out /%s/%s.pub", dataFolderName, user, password, dataFolderName, user);
                 String command3 = String.format("ssh-keygen -i -mPKCS8 -f /%s/%s.pub", dataFolderName, user);
+                String command4 = String.format("chmod -R 0777 /%s", dataFolderName);
                 try {
-                    List<String> results = utils.spawnTempWorkerAndExecute(instance, cegaUsersFolderPath, "/" + dataFolderName, command1, command2, command3);
+                    List<String> results = utils.spawnTempWorkerAndExecute(instance, cegaUsersFolderPath, "/" + dataFolderName, command1, command2, command3, command4);
                     String publicKey = results.get(2);
                     File userYML = new File(String.format(cegaUsersFolderPath + "/%s.yml", user));
                     FileUtils.writeLines(userYML, Arrays.asList("---", "pubkey: " + publicKey));
@@ -53,13 +52,8 @@ public class Authentication implements En {
 
         Given("^I have correct private key$",
                 () -> {
-                    try {
-                        File privateKey = new File(String.format("%s/cega/users/%s/%s.sec", utils.getPrivateFolderPath(), context.getTargetInstance(), context.getUser()));
-                        Files.setPosixFilePermissions(privateKey.toPath(), Collections.singleton(PosixFilePermission.OWNER_READ));
-                        context.setPrivateKey(privateKey);
-                    } catch (IOException e) {
-                        log.error(e.getMessage(), e);
-                    }
+                    File privateKey = new File(String.format("%s/cega/users/%s/%s.sec", utils.getPrivateFolderPath(), context.getTargetInstance(), context.getUser()));
+                    context.setPrivateKey(privateKey);
                 });
 
         Given("^I have incorrect private key$",
@@ -153,9 +147,10 @@ public class Authentication implements En {
             context.setSsh(ssh);
             context.setSftp(ssh.newSFTPClient());
             context.setAuthenticationFailed(false);
-        } catch (Exception e) {
-            log.error(e.getMessage(), e);
+        } catch (UserAuthException e) {
             context.setAuthenticationFailed(true);
+        } catch (IOException e) {
+            log.error(e.getMessage(), e);
         }
     }
 
