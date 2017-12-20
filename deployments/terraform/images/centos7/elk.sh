@@ -83,9 +83,10 @@ chown -R elasticsearch /usr/share/elasticsearch
 
 cat > /etc/logstash/conf.d/10-logstash.conf <<EOF
 input {
-      beats {
-      	    port => 5600
-      }
+	tcp {
+		port => 5600
+		codec => json { charset => "UTF-8" }
+	}
 }
 output {
 	elasticsearch {
