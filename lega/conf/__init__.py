@@ -12,12 +12,6 @@ _config_files =  [
     '/etc/ega/conf.ini'
  ]
 
-_loggers =  {
-    'default': _here / 'loggers/default.yaml',
-    'debug':  _here / 'loggers/debug.yaml',
-    'syslog': _here / 'loggers/syslog.yaml',
-}
-
 f"""\
 This module provides a dictionary-like with configuration settings.
 It also loads the logging settings when `setup` is called.
@@ -78,9 +72,9 @@ class Configuration(configparser.ConfigParser):
 
         assert( isinstance(filename,str) )
 
-        # Try first a default logger
-        if filename in _loggers: # keys
-            _logger = _loggers[filename]
+        # Try first if it is a default logger
+        _logger = _here / f'loggers/{filename}.yaml'
+        if _logger.exists():
             with open(_logger, 'r') as stream:
                 #print(f'Reading the default log configuration from: {_logger}', file=sys.stderr)
                 dictConfig(yaml.load(stream))
