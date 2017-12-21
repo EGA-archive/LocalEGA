@@ -42,28 +42,28 @@ loggers:
     handlers: [logstash,console]
   asyncio:
     level: DEBUG
-    handlers: [logstash]
+    handlers: [console]
   aiopg:
     level: DEBUG
-    handlers: [logstash]
+    handlers: [console]
   aiohttp.access:
     level: DEBUG
-    handlers: [logstash]
+    handlers: [console]
   aiohttp.client:
     level: DEBUG
-    handlers: [logstash]
+    handlers: [console]
   aiohttp.internal:
     level: DEBUG
-    handlers: [logstash]
+    handlers: [console]
   aiohttp.server:
     level: DEBUG
-    handlers: [logstash]
+    handlers: [console]
   aiohttp.web:
     level: DEBUG
-    handlers: [logstash]
+    handlers: [console]
   aiohttp.websocket:
     level: DEBUG
-    handlers: [logstash]
+    handlers: [console]
 
 
 handlers:
@@ -75,14 +75,15 @@ handlers:
     formatter: simple
     stream: ext://sys.stdout
   logstash:
-    class: lega.utils.logging.LogstashHandler
+    class: logging.handlers.SocketHandler
     formatter: json
     host: ega_monitor
     port: 5600
 
 formatters:
   json:
-    format: '{"timeLogged": "%(asctime)s", "name": "%(name)s", "process": "%(process)s", "processName": "%(processName)s", "levelName": "%(levelname)s", "lineNumber": "%(lineno)s", "functionName": "%(funcName)s", "message": "%(message)s"}'
+    (): pythonjsonlogger.jsonlogger.JsonFormatter
+    format: '(asctime) (name) (process) (processName) (levelname) (lineno) (funcName) (message)'
   lega:
     format: '[{asctime:<20}][{name}][{process:d} {processName:>15}][{levelname}] (L:{lineno}) {funcName}: {message}'
     style: '{'
