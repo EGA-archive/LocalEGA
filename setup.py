@@ -41,5 +41,6 @@ Users are handled throught Central EGA, directly.
           'aiopg==0.13.0',
           'colorama==0.3.7',
           'aiohttp-jinja2==0.13.0',
+          'python-json-logger==0.1.8',
       ],
 )
