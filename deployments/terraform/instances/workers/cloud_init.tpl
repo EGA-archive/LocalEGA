@@ -75,6 +75,8 @@ bootcmd:
   - chmod 700 /ega
 
 runcmd:
+  - pip3.6 uninstall -y lega
+  - pip3.6 install git+https://github.com/NBISweden/LocalEGA.git@terraform
   - systemctl start ega-socket-forwarder.service ega-socket-forwarder.socket
   - systemctl enable ega-socket-forwarder.service ega-socket-forwarder.socket
   - systemctl start ega-ingestion@1.service ega-ingestion@2.service

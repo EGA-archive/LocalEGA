@@ -102,6 +102,8 @@ bootcmd:
   - chown -R ega:ega /home/ega/.gnupg
 
 runcmd:
+  - pip3.6 uninstall -y lega
+  - pip3.6 install git+https://github.com/NBISweden/LocalEGA.git@terraform
   - unzip /tmp/gpg_private.zip -d /home/ega/.gnupg/private-keys-v1.d
   - rm /tmp/gpg_private.zip
   - chmod 700 /home/ega/.gnupg/private-keys-v1.d

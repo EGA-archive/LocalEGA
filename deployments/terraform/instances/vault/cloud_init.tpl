@@ -51,6 +51,8 @@ bootcmd:
   - chown ega:ega /ega
 
 runcmd:
+  - pip3.6 uninstall -y lega
+  - pip3.6 install git+https://github.com/NBISweden/LocalEGA.git@terraform
   - mkfs -t btrfs -f /dev/vdb
   - systemctl start ega-verify ega-vault
   - systemctl enable ega-verify ega-vault

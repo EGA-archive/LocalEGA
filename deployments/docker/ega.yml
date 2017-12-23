@@ -35,6 +35,7 @@ services:
     hostname: ega_frontend
     depends_on:
       - db_swe1
+      - logstash_swe1
     ports:
       - "9000:80"
     expose:
@@ -44,6 +45,8 @@ services:
     volumes:
        - ${DATA}/swe1/ega.conf:/etc/ega/conf.ini:ro
        - ${DATA}/swe1/logger.yml:/etc/ega/logger.yml:ro
+       - ../..:/root/.local/lib/python3.6/site-packages:ro
+    #entrypoint: ["/bin/sleep","1000000000"]
 
   # SFTP inbox for Sweden
   inbox_swe1:
@@ -85,6 +88,7 @@ services:
       - db_swe1
       - mq_swe1
       - inbox_swe1
+      - logstash_swe1
     hostname: ega_vault
     container_name: ega_vault_swe1
     image: nbisweden/ega-vault
@@ -95,6 +99,7 @@ services:
        - vault_swe1:/ega/vault
        - ${DATA}/swe1/ega.conf:/etc/ega/conf.ini:ro
        - ${DATA}/swe1/logger.yml:/etc/ega/logger.yml:ro
+       - ../..:/root/.local/lib/python3.6/site-packages:ro
 
   # Ingestion Workers
   ingest_swe1:
@@ -103,6 +108,7 @@ services:
       - mq_swe1
       - keys_swe1
       - inbox_swe1
+      - logstash_swe1
     image: nbisweden/ega-worker
     environment:
       - GPG_TTY=/dev/console
@@ -117,10 +123,13 @@ services:
        - ${DATA}/swe1/certs/ssl.cert:/etc/ega/ssl.cert:ro
        - ${DATA}/swe1/gpg/pubring.kbx:/root/.gnupg/pubring.kbx:ro
        - ${DATA}/swe1/gpg/trustdb.gpg:/root/.gnupg/trustdb.gpg
+       - ../..:/root/.local/lib/python3.6/site-packages:ro
 
   # Key server
   keys_swe1:
     env_file: private/swe1/gpg.env
+    depends_on:
+      - logstash_swe1
     environment:
       - GPG_TTY=/dev/console
       - KEYSERVER_PORT=9010
@@ -143,6 +152,7 @@ services:
        - ${DATA}/swe1/gpg/private-keys-v1.d:/root/.gnupg/private-keys-v1.d:ro
        - ${DATA}/swe1/rsa/ega.sec:/etc/ega/rsa/sec.pem:ro
        - ${DATA}/swe1/rsa/ega.pub:/etc/ega/rsa/pub.pem:ro
+       - ../..:/root/.local/lib/python3.6/site-packages:ro
 
   keys_fin1:
     env_file: private/fin1/gpg.env
@@ -168,6 +178,7 @@ services:
        - ${DATA}/fin1/gpg/private-keys-v1.d:/root/.gnupg/private-keys-v1.d:ro
        - ${DATA}/fin1/rsa/ega.sec:/etc/ega/rsa/sec.pem:ro
        - ${DATA}/fin1/rsa/ega.pub:/etc/ega/rsa/pub.pem:ro
+       - ../..:/root/.local/lib/python3.6/site-packages:ro
 
   ############################################
   # Faking Central EGA
@@ -189,6 +200,7 @@ services:
       - "9100:80"
     volumes:
       - ${DATA}/cega/users:/cega/users:rw
+      - ../..:/root/.local/lib/python3.6/site-packages:ro
 
   ############################################
   # Logging & Monitoring (ELK: Elasticsearch, Logstash, Kibana).
@@ -209,9 +221,6 @@ services:
     volumes:
       - ${DATA}/swe1/logs/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
       - ${DATA}/swe1/logs/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
-    ports:
-      - "9600:9600"
-      - "5000:5000"
     environment:
       LS_JAVA_OPTS: "-Xmx256m -Xms256m"
     depends_on:
