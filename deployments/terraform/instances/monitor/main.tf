@@ -38,6 +38,9 @@ data "template_file" "cloud_init" {
     hosts       = "${base64encode("${file("${path.root}/hosts")}")}"
     hosts_allow = "${base64encode("${file("${path.root}/hosts.allow")}")}"
     users       = "${base64encode("${file("${var.instance_data}/htpasswd")}")}"
+    logstash    = "${base64encode("${file("${var.instance_data}/logstash.conf")}")}"
+    es          = "${base64encode("${file("${path.module}/elasticsearch.yml")}")}"
+    kibana      = "${base64encode("${file("${path.module}/kibana.yml")}")}"
   }
 }
 
