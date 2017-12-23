@@ -66,37 +66,7 @@ EOF
 
 yum -y install logstash elasticsearch kibana
 
-cat > /etc/elasticsearch/elasticsearch.yml <<EOF
-cluster.name: ega-monitor
-network.host: 0.0.0.0
-http.port: 9200
-EOF
-
-# Fix
-chown -R elasticsearch /usr/share/elasticsearch
-
-# cat > /etc/kibana/kibana.yml <<EOF
-# server.port: 5601
-# server.host: "localhost"
-# elasticsearch.url: "http://localhost:9200"
-# EOF
-
-cat > /etc/logstash/conf.d/10-logstash.conf <<EOF
-input {
-	tcp {
-		port => 5600
-		codec => json { charset => "UTF-8" }
-	}
-}
-output {
-	elasticsearch {
-		hosts => ["localhost:9200"]
-	}
-}
-EOF
-
 # For NGINX
-
 cat > /etc/nginx/nginx.conf <<'EOF'
 user nginx;
 worker_processes auto;
@@ -181,12 +151,6 @@ EOF
 # For SElinux
 setsebool -P httpd_can_network_connect 1
 
-# Start the services
-systemctl daemon-reload
-systemctl start logstash elasticsearch kibana nginx
-systemctl enable logstash elasticsearch kibana nginx
-
-
 # Iptables
 cat > /etc/sysconfig/iptables <<EOF
 *filter
@@ -208,4 +172,4 @@ systemctl start iptables
 systemctl enable iptables
 
 # Turning it off
-#poweroff
+poweroff

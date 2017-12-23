@@ -75,14 +75,14 @@ handlers:
     formatter: simple
     stream: ext://sys.stdout
   logstash:
-    class: logging.handlers.SocketHandler
+    class: logging.handlers.LEGAHandler
     formatter: json
     host: ega_monitor
     port: 5600
 
 formatters:
   json:
-    (): pythonjsonlogger.jsonlogger.JsonFormatter
+    (): lega.utils.logging.JSONFormatter
     format: '(asctime) (name) (process) (processName) (levelname) (lineno) (funcName) (message)'
   lega:
     format: '[{asctime:<20}][{name}][{process:d} {processName:>15}][{levelname}] (L:{lineno}) {funcName}: {message}'
