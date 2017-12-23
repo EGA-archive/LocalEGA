@@ -42,37 +42,3 @@ channel.basic_publish(exchange='localega.v1', routing_key='{}.file'.format(args.
                       body=json.dumps(message),
                       properties=pika.BasicProperties(correlation_id=str(uuid.uuid4()), content_type='application/json',delivery_mode=2))
 connection.close()
-
-
-
-# {
-
-#    "filename":"my_path/mypath/file.vcf.gpg",
-
-#    "checksumType":"md5",
-
-#    "checksumEncrypted":"79054025255fb1a26e4bc422aef54eb4",
-
-#    "checksumUnencrypted":"d41d8cd98f00b204e9800998ecf8427e",
-
-#    "status":{
-
-#       "state":"New",
-
-#       "message":"File just landed."
-
-#    },
-
-#    "filesize":92922020,
-
-#    "createdAt":19999999,
-
-#    "editedAt":199999999,
-
-#    "localEgaStableId":"LEGAF00000001",
-
-#    "user":"ega-box-999",
-
-#    "lega":"LEGA1"
-
-# }
