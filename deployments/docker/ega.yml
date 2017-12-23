@@ -46,7 +46,6 @@ services:
        - ${DATA}/swe1/ega.conf:/etc/ega/conf.ini:ro
        - ${DATA}/swe1/logger.yml:/etc/ega/logger.yml:ro
        - ../..:/root/.local/lib/python3.6/site-packages:ro
-    #entrypoint: ["/bin/sleep","1000000000"]
 
   # SFTP inbox for Sweden
   inbox_swe1:
