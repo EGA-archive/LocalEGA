@@ -32,6 +32,8 @@ write_files:
     permissions: '0644'
 
 runcmd:
+  - pip3.6 uninstall -y lega
+  - pip3.6 install git+https://github.com/NBISweden/LocalEGA.git@terraform
   - systemctl start ega-frontend
   - systemctl enable ega-frontend
 
