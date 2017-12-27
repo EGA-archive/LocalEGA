@@ -20,4 +20,3 @@ def sanitize_user_id(data):
     #del data['elixir_id']
     data['user_id'] = user_id
     return user_id
-    
