@@ -106,8 +106,6 @@ runcmd:
   - rm /tmp/gpg_private.zip
   - chmod 700 /home/ega/.gnupg/private-keys-v1.d
   - chown -R ega:ega /home/ega/.gnupg
-  - ldconfig -v
-  - pip3.6 install git+https://github.com/NBISweden/LocalEGA.git
   - systemctl start gpg-agent.socket gpg-agent.service ega-socket-proxy.service ega-keyserver.service
   - systemctl enable gpg-agent.socket gpg-agent.service ega-socket-proxy.service ega-keyserver.service
   - su - ega -c '/home/ega/preset.sh'

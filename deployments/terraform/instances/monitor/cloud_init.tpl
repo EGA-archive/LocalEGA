@@ -11,28 +11,29 @@ write_files:
     path: /etc/hosts.allow
     permissions: '0644'
   - encoding: b64
-    content: ${lega_conf}
-    owner: ega:ega
-    path: /etc/ega/conf.ini
-    permissions: '0600'
-  - encoding: b64
-    content: ${ega_options}
+    content: ${users}
     owner: root:root
-    path: /etc/ega/options
+    path: /etc/nginx/ega_kibana_users
     permissions: '0644'
   - encoding: b64
-    content: ${ega_slice}
+    content: ${es}
     owner: root:root
-    path: /etc/systemd/system/ega.slice
+    path: /etc/elasticsearch/elasticsearch.yml
     permissions: '0644'
   - encoding: b64
-    content: ${ega_service}
+    content: ${kibana}
     owner: root:root
-    path: /etc/systemd/system/ega-frontend.service
+    path: /etc/kibana/kibana.yml
+    permissions: '0644'
+  - encoding: b64
+    content: ${logstash}
+    owner: root:root
+    path: /etc/logstash/conf.d/10-logstash.conf
     permissions: '0644'
 
 runcmd:
-  - systemctl start ega-frontend
-  - systemctl enable ega-frontend
+  - chown -R elasticsearch /usr/share/elasticsearch
+  - systemctl start logstash elasticsearch kibana nginx
+  - systemctl enable logstash elasticsearch kibana nginx
 
 final_message: "The system is finally up, after $UPTIME seconds"

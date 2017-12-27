@@ -25,3 +25,5 @@ LOG_LEVEL=DEBUG
 INBOX_PATH=/ega/inbox
 EGA_USER=1001
 EGA_GROUP=1001 # I don't like that solution
+
+KIBANA_PASSWD=$(generate_password 16)
