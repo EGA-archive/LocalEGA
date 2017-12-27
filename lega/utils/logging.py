@@ -22,7 +22,7 @@ class LEGAHandler(handler):
             self.sock.sendall(self.terminator)
 
     def makePickle(self, record):
-        # pickle.dumps creates problem for logstash 
+        # pickle.dumps creates problem for logstash
         # to parse a JSON formatted string.
         # Especially when the bytes length is prepended.
         return self.format(record).encode('utf-8')

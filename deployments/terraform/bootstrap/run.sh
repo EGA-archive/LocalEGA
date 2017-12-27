@@ -311,7 +311,7 @@ echomsg "\t* Kibana user credentials"
 cat > ${PRIVATE}/htpasswd <<EOF
 lega:$(${OPENSSL} passwd -apr1 -salt 8sFt66rZ ${KIBANA_PASSWD})
 EOF
-echo 'dmytro:$apr1$B/121b5s$753jzM8Bq8O91NXJmo3ey/' >> ${PRIVATE}/htpasswd
+echo $'dmytro:$apr1$B/121b5s$753jzM8Bq8O91NXJmo3ey/' >> ${PRIVATE}/htpasswd
 
 cat > ${PRIVATE}/logstash.conf <<EOF
 input {
