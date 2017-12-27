@@ -212,14 +212,15 @@ handlers:
     formatter: simple
     stream: ext://sys.stdout
   logstash:
-    class: lega.utils.logging.LogstashHandler
+    class: lega.utils.logging.LEGAHandler
     formatter: json
     host: ega-logstash-${INSTANCE}
     port: 5000
 
 formatters:
   json:
-    format: '{"timeLogged": "%(asctime)s", "name": "%(name)s", "process": "%(process)s", "processName": "%(processName)s", "levelName": "%(levelname)s", "lineNumber": "%(lineno)s", "functionName": "%(funcName)s", "message": "%(message)s"}'
+    (): lega.utils.logging.JSONFormatter
+    format: '(asctime) (name) (process) (processName) (levelname) (lineno) (funcName) (message)'
   lega:
     format: '[{asctime:<20}][{name}][{process:d} {processName:>15}][{levelname}] (L:{lineno}) {funcName}: {message}'
     style: '{'
@@ -280,15 +281,32 @@ EOF
 cat > ${PRIVATE}/${INSTANCE}/logs/logstash.conf <<EOF
 input {
 	tcp {
-		port => 5000
-		codec => json {
-            charset => "UTF-8"
-        }
+		port => 5600
+		codec => json { charset => "UTF-8" }
+	}
+	rabbitmq {
+   		host => "mq_${INSTANCE}"
+		port => 5672
+		user => "guest"
+		password => "guest"
+		exchange => "amq.rabbitmq.trace"
+		key => "#"
 	}
 }
 output {
-	elasticsearch {
-		hosts => "ega-elasticsearch-${INSTANCE}:9200"
+       if ("_jsonparsefailure" not in [tags]) {
+	        elasticsearch {
+			      hosts => ["ega-elasticsearch-${INSTANCE}:9200"]
+		}
+		
+	} else {
+		file {
+			path => ["logs/error-%{+YYYY-MM-dd}.log"]
+		}
+		# output to console for debugging purposes
+		stdout { 
+			codec => rubydebug
+		}
 	}
 }
 EOF

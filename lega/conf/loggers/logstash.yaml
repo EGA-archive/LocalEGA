@@ -1,0 +1,93 @@
+version: 1
+root:
+  level: NOTSET
+  handlers: [noHandler]
+
+loggers:
+  connect:
+    level: DEBUG
+    handlers: [logstash,console]
+  frontend:
+    level: DEBUG
+    handlers: [logstash,console]
+  ingestion:
+    level: DEBUG
+    handlers: [logstash,console]
+  keyserver:
+    level: DEBUG
+    handlers: [logstash,console]
+  vault:
+    level: DEBUG
+    handlers: [logstash,console]
+  verify:
+    level: DEBUG
+    handlers: [logstash,console]
+  socket-utils:
+    level: DEBUG
+    handlers: [logstash,console]
+  inbox:
+    level: DEBUG
+    handlers: [logstash,console]
+  utils:
+    level: DEBUG
+    handlers: [logstash,console]
+  amqp:
+    level: DEBUG
+    handlers: [logstash,console]
+  db:
+    level: DEBUG
+    handlers: [logstash,console]
+  crypto:
+    level: DEBUG
+    handlers: [logstash,console]
+  asyncio:
+    level: DEBUG
+    handlers: [console]
+  aiopg:
+    level: DEBUG
+    handlers: [console]
+  aiohttp.access:
+    level: DEBUG
+    handlers: [console]
+  aiohttp.client:
+    level: DEBUG
+    handlers: [console]
+  aiohttp.internal:
+    level: DEBUG
+    handlers: [console]
+  aiohttp.server:
+    level: DEBUG
+    handlers: [console]
+  aiohttp.web:
+    level: DEBUG
+    handlers: [console]
+  aiohttp.websocket:
+    level: DEBUG
+    handlers: [console]
+
+
+handlers:
+  noHandler:
+    class: logging.NullHandler
+    level: NOTSET
+  console:
+    class: logging.StreamHandler
+    formatter: simple
+    stream: ext://sys.stdout
+  logstash:
+    class: logging.handlers.LEGAHandler
+    formatter: json
+    host: ega_monitor
+    port: 5600
+
+formatters:
+  json:
+    (): lega.utils.logging.JSONFormatter
+    format: '(asctime) (name) (process) (processName) (levelname) (lineno) (funcName) (message)'
+  lega:
+    format: '[{asctime:<20}][{name}][{process:d} {processName:>15}][{levelname}] (L:{lineno}) {funcName}: {message}'
+    style: '{'
+    datefmt: '%Y-%m-%d %H:%M:%S'
+  simple:
+    format: '[{name:^10}][{levelname:^6}] (L{lineno}) {message}'
+    style: '{'

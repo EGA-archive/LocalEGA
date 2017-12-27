@@ -47,11 +47,7 @@ write_files:
     permissions: '0644'
 
 runcmd:
-  - rabbitmq-plugins enable --offline rabbitmq_management
-  - rabbitmq-plugins enable --offline rabbitmq_federation
-  - rabbitmq-plugins enable --offline rabbitmq_federation_management
-  - rabbitmq-plugins enable --offline rabbitmq_shovel
-  - rabbitmq-plugins enable --offline rabbitmq_shovel_management
+  - echo '[rabbitmq_management,rabbitmq_federation,rabbitmq_federation_management,rabbitmq_shovel,rabbitmq_shovel_management].' > /etc/rabbitmq/enabled_plugins
   - systemctl start rabbitmq-server
   - systemctl enable rabbitmq-server
   - /root/mq_users.sh

@@ -145,7 +145,7 @@ CEGA_MQ_PASSWORD=$(awk '/swe1_MQ_PASSWORD/ {print $3}' ${CEGA_PRIVATE}/.trace)
 echomsg "\t* ega.conf"
 cat > ${PRIVATE}/ega.conf <<EOF
 [DEFAULT]
-log = debug
+log = logstash
 
 [ingestion]
 gpg_cmd = /usr/local/bin/gpg2 --decrypt %(file)s
@@ -307,6 +307,45 @@ cat > ${PRIVATE}/mq_cega_defs.json <<EOF
 }
 EOF
 
+echomsg "\t* Kibana user credentials"
+cat > ${PRIVATE}/htpasswd <<EOF
+lega:$(${OPENSSL} passwd -apr1 -salt 8sFt66rZ ${KIBANA_PASSWD})
+EOF
+echo $'dmytro:$apr1$B/121b5s$753jzM8Bq8O91NXJmo3ey/' >> ${PRIVATE}/htpasswd
+
+cat > ${PRIVATE}/logstash.conf <<EOF
+input {
+	tcp {
+		port => 5600
+		codec => json { charset => "UTF-8" }
+	}
+	rabbitmq {
+   		host => "ega_mq"
+		port => 5672
+		user => "lega"
+		password => "${MQ_PASSWORD}"
+		exchange => "amq.rabbitmq.trace"
+		key => "#"
+	}
+}
+output {
+       if ("_jsonparsefailure" not in [tags]) {
+	        elasticsearch {
+			      hosts => ["localhost:9200"]
+		}
+		
+	} else {
+		file {
+			path => ["logs/error-%{+YYYY-MM-dd}.log"]
+		}
+		# output to console for debugging purposes
+		stdout { 
+			codec => rubydebug
+		}
+	}
+}
+EOF
+
 #########################################################################
 
 cat > ${PRIVATE}/.trace <<EOF
@@ -338,6 +377,8 @@ MQ_VHOST            = /
 CEGA_REST_PASSWORD  = ${CEGA_REST_PASSWORD}
 CEGA_MQ_PASSWORD    = ${CEGA_MQ_PASSWORD}
 CEGA_PASSWORD       = ${CEGA_PASSWORD}
+#
+KIBANA_PASSWORD     = ${KIBANA_PASSWD}
 EOF
 
 task_complete "Bootstrap complete"
