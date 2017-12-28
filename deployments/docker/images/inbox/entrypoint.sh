@@ -9,6 +9,8 @@ chown root:ega /ega/inbox
 chmod 750 /ega/inbox
 chmod g+s /ega/inbox # setgid bit
 
+mkdir -p /fuse
+
 EGA_DB_IP=$(getent hosts ${DB_INSTANCE} | awk '{ print $1 }')
 
 cat > /etc/ega/auth.conf <<EOF
@@ -29,7 +31,7 @@ rest_resp_pubkey = ${CEGA_ENDPOINT_RESP_PUBKEY}
 ##################
 # NSS Queries
 ##################
-nss_get_user = SELECT elixir_id,'x',1000,1000,'EGA User','/ega/inbox/'|| elixir_id,'/sbin/nologin' FROM users WHERE elixir_id = \$1 LIMIT 1
+nss_get_user = SELECT elixir_id,'x',1000,1000,'EGA User','/fuse/'|| elixir_id,'/sbin/nologin' FROM users WHERE elixir_id = \$1 LIMIT 1
 nss_add_user = SELECT insert_user(\$1,\$2,\$3)
 
 ##################
@@ -53,6 +55,10 @@ chgrp ega /usr/local/bin/ega_ssh_keys.sh
 
 # Greetings per site
 [[ -z "${LEGA_GREETINGS}" ]] || echo ${LEGA_GREETING} > /ega/banner
+
+# Starting the FUSE layer
+#ega-inbox &
+python3.6 -m lega.inbox &
 
 echo "Starting the SFTP server"
 exec /usr/sbin/sshd -D -e

@@ -1,13 +1,7 @@
-FROM centos:latest
+FROM nbisweden/ega-common:latest
 LABEL maintainer "Frédéric Haziza, NBIS"
 
-RUN yum install -y epel-release && \
-    yum -y update && \
-    yum -y install gcc git make rsyslog \
-		   openssh-server \
-		   nss-tools nc nmap tcpdump lsof strace \
-	       	   bash-completion bash-completion-extras \
-		   postgresql-devel pam-devel libcurl-devel jq-devel
+RUN yum -y install openssh-server postgresql-devel pam-devel libcurl-devel jq-devel fuse fuse-libs
 
 ##################################
 RUN mkdir -p /usr/local/lib/ega
@@ -24,8 +18,8 @@ RUN ssh-keygen -t rsa     -N '' -f /etc/ssh/ssh_host_rsa_key && \
     ssh-keygen -t ed25519 -N '' -f /etc/ssh/ssh_host_ed25519_key 
 
 ##################################
-COPY pam.ega /etc/pam.d/ega
 RUN mv /etc/pam.d/sshd /etc/pam.d/sshd.bak
+COPY pam.ega /etc/pam.d/ega
 COPY pam.sshd /etc/pam.d/sshd
 
 RUN cp /etc/nsswitch.conf /etc/nsswitch.conf.bak && \
@@ -42,7 +36,12 @@ RUN git clone https://github.com/NBISweden/LocalEGA-auth /root/ega-auth && \
 RUN useradd ega
 VOLUME /ega/inbox
 
+ARG checkout=dev
+RUN pip3.6 install fusepy && \
+    pip3.6 install git+https://github.com/NBISweden/LocalEGA.git@${checkout}  
+
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod 755 /usr/local/bin/entrypoint.sh
 ENV DB_INSTANCE=
 ENTRYPOINT ["entrypoint.sh"]
+
