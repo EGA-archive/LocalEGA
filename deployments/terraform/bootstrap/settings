@@ -22,7 +22,6 @@ RSA_PASSPHRASE=$(generate_password 16)
 
 LOG_LEVEL=DEBUG
 
-INBOX_PATH=/ega/inbox
 EGA_USER=1001
 EGA_GROUP=1001 # I don't like that solution
 
