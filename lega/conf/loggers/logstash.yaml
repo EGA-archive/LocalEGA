@@ -75,7 +75,7 @@ handlers:
     formatter: simple
     stream: ext://sys.stdout
   logstash:
-    class: logging.handlers.LEGAHandler
+    class: lega.utils.logging.LEGAHandler
     formatter: json
     host: ega_monitor
     port: 5600
