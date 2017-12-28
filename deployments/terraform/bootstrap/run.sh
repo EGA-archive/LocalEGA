@@ -76,9 +76,6 @@ fi
 CEGA_PRIVATE=${HERE}/../cega/private
 [[ ! -d "${CEGA_PRIVATE}" ]] && echo "You need to bootstrap Central EGA first" && exit 5
 
-# Making sure INBOX_PATH ends with /
-[[ "${INBOX_PATH: -1}" == "/" ]] || INBOX_PATH=${INBOX_PATH}/
-
 #########################################################################
 # And....cue music
 #########################################################################
@@ -147,10 +144,16 @@ cat > ${PRIVATE}/ega.conf <<EOF
 [DEFAULT]
 log = logstash
 
+[inbox]
+mountpoint = /mnt/fuse
+rootdir = /ega/inbox
+allow_user = True
+group_id = ${EGA_GROUP}
+
 [ingestion]
 gpg_cmd = /usr/local/bin/gpg2 --decrypt %(file)s
 
-inbox = ${INBOX_PATH}%(user_id)s/inbox
+inbox = /ega/inbox/%(user_id)s/inbox
 
 # Keyserver communication
 keyserver_host = ega_keys
@@ -197,7 +200,7 @@ rest_resp_pubkey = .pubkey
 ##################
 # NSS Queries
 ##################
-nss_get_user = SELECT elixir_id,'x',${EGA_USER},${EGA_GROUP},'EGA User','${INBOX_PATH}'|| elixir_id,'/sbin/nologin' FROM users WHERE elixir_id = \$1 LIMIT 1
+nss_get_user = SELECT elixir_id,'x',${EGA_USER},${EGA_GROUP},'EGA User','/mnt/fuse'|| elixir_id,'/sbin/nologin' FROM users WHERE elixir_id = \$1 LIMIT 1
 nss_add_user = SELECT insert_user(\$1,\$2,\$3)
 
 ##################

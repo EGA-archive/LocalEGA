@@ -52,8 +52,10 @@ bootcmd:
   - mkdir -m 0750 /ega
 
 runcmd:
-  - yum -y install automake autoconf libtool libgcrypt libgcrypt-devel postgresql-devel pam-devel libcurl-devel jq-devel nfs-utils
+  - yum -y install automake autoconf libtool libgcrypt libgcrypt-devel postgresql-devel pam-devel libcurl-devel jq-devel nfs-utils fuse fuse-libs
   - echo '/usr/local/lib/ega' > /etc/ld.so.conf.d/ega.conf
+  - modprobe fuse
+  - mkdir -p /mnt/fuse
   - mkfs -t btrfs -f /dev/vdb
   - systemctl start ega.mount
   - systemctl enable ega.mount
@@ -67,6 +69,9 @@ runcmd:
   - systemctl restart rpcbind nfs-server nfs-lock nfs-idmap
   - systemctl enable rpcbind nfs-server nfs-lock nfs-idmap
   - git clone https://github.com/NBISweden/LocalEGA-auth.git ~/repo && cd ~/repo/src && make install && ldconfig -v
+  - pip3.6 install git+https://github.com/NBISweden/LocalEGA.git@dev
+  - systemctl start ega-inbox.service
+  - systemctl enable ega-inbox.service
   - cp /etc/pam.d/sshd /etc/pam.d/sshd.bak
   - mv -f /etc/pam.d/ega_sshd /etc/pam.d/sshd
   - cp /etc/nsswitch.conf /etc/nsswitch.conf.bak
