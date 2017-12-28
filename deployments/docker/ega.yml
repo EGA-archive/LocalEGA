@@ -43,15 +43,19 @@ services:
     container_name: ega_frontend_swe1
     image: nbisweden/ega-frontend
     volumes:
-       - ${DATA}/swe1/ega.conf:/etc/ega/conf.ini:ro
-       - ${DATA}/swe1/logger.yml:/etc/ega/logger.yml:ro
-       - ../..:/root/.local/lib/python3.6/site-packages:ro
+      - ${DATA}/swe1/ega.conf:/etc/ega/conf.ini:ro
+      - ${DATA}/swe1/logger.yml:/etc/ega/logger.yml:ro
+      - ../..:/root/.local/lib/python3.6/site-packages:ro
 
   # SFTP inbox for Sweden
   inbox_swe1:
     hostname: ega_inbox
     depends_on:
       - db_swe1
+      - logstash_swe1
+      - elasticsearch_swe1
+      - kibana_swe1
+      - cega_users
     env_file:
       - private/swe1/db.env
       - private/swe1/cega.env
@@ -59,16 +63,23 @@ services:
       - "${DOCKER_INBOX_swe1_PORT}:22"
     container_name: ega_inbox_swe1
     image: nbisweden/ega-inbox
+    privileged: true
+    cap_add:
+      - ALL
+    devices:
+      - /dev/fuse
     volumes:
-       - inbox_swe1:/ega/inbox
-       - ${DATA}/swe1/ega.conf:/etc/ega/conf.ini:ro
-       - ${DATA}/swe1/logger.yml:/etc/ega/logger.yml:ro
+      - inbox_swe1:/ega/inbox
+      - ${DATA}/swe1/ega.conf:/etc/ega/conf.ini:ro
+      - ${DATA}/swe1/logger.yml:/etc/ega/logger.yml:ro
+      - ../..:/root/.local/lib/python3.6/site-packages:ro
 
   # SFTP inbox for Finland
   inbox_fin1:
     hostname: ega_inbox
     depends_on:
       - db_fin1
+      - cega_users
     env_file:
       - private/fin1/db.env
       - private/fin1/cega.env
@@ -234,6 +245,7 @@ services:
       - "5601:5601"
     depends_on:
       - elasticsearch_swe1
+      - logstash_swe1
 
 # Use the default driver for volume creation
 volumes:

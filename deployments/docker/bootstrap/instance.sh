@@ -75,8 +75,12 @@ EOF
 echomsg "\t* ega.conf"
 cat > ${PRIVATE}/${INSTANCE}/ega.conf <<EOF
 [DEFAULT]
-#log = debug
 log = /etc/ega/logger.yml
+
+[inbox]
+mountpoint = /fuse
+rootdir = /ega/inbox
+allow_other = True
 
 [ingestion]
 gpg_cmd = gpg2 --decrypt %(file)s
