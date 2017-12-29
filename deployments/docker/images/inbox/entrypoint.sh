@@ -56,7 +56,7 @@ chgrp ega /usr/local/bin/ega_ssh_keys.sh
 
 # Starting the FUSE layer
 sed -i -e '/lega:/ d' /etc/fstab
-echo "/usr/bin/ega-fs /mnt/lega fuse allow_other,gid=0 0 0" >> /etc/fstab # no foreground!
+echo "/usr/bin/ega-fs /mnt/lega fuse allow_other,gid=0,rootdir=/ega/inbox 0 0" >> /etc/fstab # no foreground!
 mount -a
 
 echo "Starting the SFTP server"
