@@ -5,6 +5,7 @@ import os
 import sys
 import errno
 import logging
+import shutil
 
 from fuse import FUSE, FuseOSError, Operations
 
@@ -138,6 +139,7 @@ def main(args=None):
     if not os.path.exists(mountpoint):
         LOG.debug('Mountpoint missing. Creating it')
         os.makedirs(mountpoint, exist_ok=True)
+        shutil.chown(mountpoint, group='ega')
 
     # Filtering the mount options (last argument)
     # Only interested in gid and allow_other. No uid!
