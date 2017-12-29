@@ -17,10 +17,11 @@ LOG = logging.getLogger('inbox')
 class LEGA(Operations):
     def __init__(self, root):
         self.root = root
+        self.pending = set()
+
 
     # Helpers
     # =======
-
     def _full_path(self, partial):
         if partial.startswith("/"):
             partial = partial[1:]
@@ -30,19 +31,6 @@ class LEGA(Operations):
     # Filesystem methods
     # ==================
 
-    def access(self, path, mode):
-        full_path = self._full_path(path)
-        if not os.access(full_path, mode):
-            raise FuseOSError(errno.EACCES)
-
-    def chmod(self, path, mode):
-        full_path = self._full_path(path)
-        return os.chmod(full_path, mode)
-
-    def chown(self, path, uid, gid):
-        full_path = self._full_path(path)
-        return os.chown(full_path, uid, gid)
-
     def getattr(self, path, fh=None):
         full_path = self._full_path(path)
         st = os.lstat(full_path)
@@ -50,7 +38,7 @@ class LEGA(Operations):
                      'st_gid', 'st_mode', 'st_mtime', 'st_nlink', 'st_size', 'st_uid'))
 
     def readdir(self, path, fh):
-        LOG.debug(f'Reading directory {path}')
+        #LOG.debug(f'Reading directory {path}')
         full_path = self._full_path(path)
 
         dirents = ['.', '..']
@@ -59,26 +47,17 @@ class LEGA(Operations):
         for r in dirents:
             yield r
 
-    def readlink(self, path):
-        pathname = os.readlink(self._full_path(path))
-        if pathname.startswith("/"):
-            # Path name is absolute, sanitize it.
-            return os.path.relpath(pathname, self.root)
-        else:
-            return pathname
-
-    def mknod(self, path, mode, dev):
-        return os.mknod(self._full_path(path), mode, dev)
-
     def rmdir(self, path):
+        #LOG.debug(f"rmdir {path}")
         full_path = self._full_path(path)
         return os.rmdir(full_path)
 
     def mkdir(self, path, mode):
+        #LOG.debug(f"mkdir {path}")
         return os.mkdir(self._full_path(path), mode)
 
     def statfs(self, path):
-        LOG.debug(f"Running stats for {path}")
+        #LOG.debug(f"Running stats for {path}")
         full_path = self._full_path(path)
         stv = os.statvfs(full_path)
         return dict((key, getattr(stv, key)) for key in ('f_bavail', 'f_bfree',
@@ -86,54 +65,58 @@ class LEGA(Operations):
             'f_frsize', 'f_namemax'))
 
     def unlink(self, path):
+        #LOG.debug(f"Unlink {path}")
         return os.unlink(self._full_path(path))
 
-    def symlink(self, name, target):
-        return os.symlink(name, self._full_path(target))
-
     def rename(self, old, new):
+        #LOG.debug(f"Rename {old} into {new}")
         return os.rename(self._full_path(old), self._full_path(new))
 
-    def link(self, target, name):
-        return os.link(self._full_path(target), self._full_path(name))
-
-    def utimens(self, path, times=None):
-        return os.utime(self._full_path(path), times)
 
     # File methods
     # ============
 
     def open(self, path, flags):
-        LOG.debug(f"Open {path}")
+        #LOG.debug(f"Open {path}")
         full_path = self._full_path(path)
         return os.open(full_path, flags)
 
     def create(self, path, mode, fi=None):
         LOG.debug(f"Creating {path}")
+        self.pending.add(path)
         full_path = self._full_path(path)
         return os.open(full_path, os.O_WRONLY | os.O_CREAT, mode)
 
     def read(self, path, length, offset, fh):
+        #LOG.debug(f"Read {path}")
         os.lseek(fh, offset, os.SEEK_SET)
         return os.read(fh, length)
 
     def write(self, path, buf, offset, fh):
+        #LOG.debug(f"Write {path}")
         os.lseek(fh, offset, os.SEEK_SET)
         return os.write(fh, buf)
 
     def truncate(self, path, length, fh=None):
+        LOG.debug(f"Truncate {path}")
+        self.pending.add(path)
         full_path = self._full_path(path)
         with open(full_path, 'r+') as f:
             f.truncate(length)
 
     def flush(self, path, fh):
+        #LOG.debug(f"Flush {path}")
         return os.fsync(fh)
 
     def release(self, path, fh):
-        LOG.debug(f"Releasing {path}")
+        #LOG.debug(f"Releasing {path}")
+        if path in self.pending:
+            LOG.debug(f"File {path} just landed. Contact CentralEGA")
+            self.pending.remove(path)
         return os.close(fh)
 
     def fsync(self, path, fdatasync, fh):
+        #LOG.debug(f"fsync {path}")
         return self.flush(path, fh)
 
 
@@ -142,22 +125,48 @@ def main(args=None):
     if not args:
         args = sys.argv[1:]
 
-    CONF.setup(args) # re-conf
+    CONF.setup(args) # re-conf, just for the logger!
 
-    mountpoint = CONF.get('inbox','mountpoint')
-    rootdir = CONF.get('inbox','rootdir')
+    assert len(args) >= 3, "Usage: $0 <mountpoint> -o options"
 
-    LOG.debug(f'mountpoint: {mountpoint}')
-    LOG.debug(f'rootdir: {rootdir}')
+    mountpoint = args[0]
+    rootdir = None
+    fg = False
 
-    extra_options = {}
-    gid = CONF.getint('inbox','group_id', fallback=0)
-    if gid:
-        extra_options['gid'] = gid
-    if CONF.getboolean('inbox','allow_other', fallback=False):
-        extra_options['allow_other'] = True
-    
-    FUSE(LEGA(rootdir), mountpoint, nothreads=True, foreground=True, **extra_options) # No uid, please!
+    # Creating the mountpoint if not existing.
+    if not os.path.exists(mountpoint):
+        LOG.debug('Mountpoint missing. Creating it')
+        os.makedirs(mountpoint, exist_ok=True)
+
+    # Filtering the mount options (last argument)
+    # Only interested in gid and allow_other. No uid!
+    # Fetch fg and rootdir from there too.
+    options = {}
+    for opt in args[-1].split(','):
+        try:
+            k,v = opt.split('=')
+        except ValueError:
+            k,v = opt, True
+
+        if k == 'fg':
+            fg = True
+
+        if k == 'rootdir':
+            rootdir = v
+
+        if k in ('gid', 'allow_other'):
+            options[k] = v
+
+    assert rootdir is not None, "You must specify rootdir in the mount options"
+
+    LOG.debug(f'Mountpoint: {mountpoint} | Root dir: {rootdir}')
+    if fg:
+        LOG.debug('Mounting LEGA filesystem in foreground')
+    if options:
+        LOG.debug(f'Adding mount options: {options!r}')
+
+    # ....aaand cue music!
+    FUSE(LEGA(rootdir), mountpoint, nothreads=True, foreground=fg, **options) # No uid, please!
 
 
 if __name__ == '__main__':
