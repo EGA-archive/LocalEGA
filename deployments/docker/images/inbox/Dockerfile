@@ -37,8 +37,7 @@ RUN useradd ega
 VOLUME /ega/inbox
 
 ARG checkout=dev
-RUN pip3.6 install fusepy && \
-    pip3.6 install git+https://github.com/NBISweden/LocalEGA.git@${checkout}  
+RUN pip3.6 install git+https://github.com/NBISweden/LocalEGA.git@${checkout}
 
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod 755 /usr/local/bin/entrypoint.sh

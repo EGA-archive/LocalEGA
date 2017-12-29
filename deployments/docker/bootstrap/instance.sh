@@ -77,11 +77,6 @@ cat > ${PRIVATE}/${INSTANCE}/ega.conf <<EOF
 [DEFAULT]
 log = /etc/ega/logger.yml
 
-[inbox]
-mountpoint = /fuse
-rootdir = /ega/inbox
-allow_other = True
-
 [ingestion]
 gpg_cmd = gpg2 --decrypt %(file)s
 
@@ -219,7 +214,7 @@ handlers:
     class: lega.utils.logging.LEGAHandler
     formatter: json
     host: ega-logstash-${INSTANCE}
-    port: 5000
+    port: 5600
 
 formatters:
   json:
