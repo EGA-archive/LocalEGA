@@ -87,10 +87,16 @@ services:
       - "${DOCKER_INBOX_fin1_PORT}:22"
     container_name: ega_inbox_fin1
     image: nbisweden/ega-inbox
+    privileged: true
+    cap_add:
+      - ALL
+    devices:
+      - /dev/fuse
     volumes:
-       - inbox_fin1:/ega/inbox
-       - ${DATA}/fin1/ega.conf:/etc/ega/conf.ini:ro
-       - ${DATA}/fin1/logger.yml:/etc/ega/logger.yml:ro
+      - inbox_fin1:/ega/inbox
+      - ${DATA}/fin1/ega.conf:/etc/ega/conf.ini:ro
+      - ${DATA}/fin1/logger.yml:/etc/ega/logger.yml:ro
+      - ../..:/root/.local/lib/python3.6/site-packages:ro
 
   # Vault
   vault_swe1:
