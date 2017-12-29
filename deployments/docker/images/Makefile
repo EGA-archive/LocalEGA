@@ -14,12 +14,15 @@ EGA_IMAGES=mq inbox frontend worker vault keys cega_users cega_mq
 
 all: pull common images bootstrap
 
-images: $(EGA_IMAGES)
+images: common
+	make -j 4 $(EGA_IMAGES)
+
 common $(EGA_IMAGES):
 	docker build --build-arg checkout=$(TAG) \
                      --cache-from $(TARGET)-$@:latest \
                      --tag $(TARGET)-$@:$(TAG) \
                      --tag $(TARGET)-$@:latest \
+                     --build-arg checkout=$(TAG) \
                      $@
 
 bootstrap:
