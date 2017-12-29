@@ -9,7 +9,7 @@ import logging
 from fuse import FUSE, FuseOSError, Operations
 
 from .conf import CONF
-from .utils import db
+from .utils.amqp import file_landed
 
 LOG = logging.getLogger('inbox')
 
@@ -111,7 +111,8 @@ class LEGA(Operations):
     def release(self, path, fh):
         #LOG.debug(f"Releasing {path}")
         if path in self.pending:
-            LOG.debug(f"File {path} just landed. Contact CentralEGA")
+            LOG.debug(f"File {path} just landed")
+            file_landed(path)
             self.pending.remove(path)
         return os.close(fh)
 
