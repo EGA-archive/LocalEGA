@@ -23,7 +23,7 @@ cat > /etc/rabbitmq/defs-cega.json <<EOF
 			 "src-exchange-key":"lega.error.user",
 			 "dest-uri":"amqp://cega_${INSTANCE}:${CEGA_MQ_PASSWORD}@cega_mq:5672/${INSTANCE}",
 			 "dest-exchange":"localega.v1",
-			 "dest-exchange-key":"${INSTANCE}.errors",
+			 "dest-exchange-key":"errors",
 			 "add-forward-headers":false,
 			 "ack-mode":"on-confirm",
 			 "delete-after":"never"},
@@ -35,17 +35,29 @@ cat > /etc/rabbitmq/defs-cega.json <<EOF
 			 "src-exchange-key":"lega.completed",
 			 "dest-uri":"amqp://cega_${INSTANCE}:${CEGA_MQ_PASSWORD}@cega_mq:5672/${INSTANCE}",
 			 "dest-exchange":"localega.v1",
-			 "dest-exchange-key":"${INSTANCE}.completed",
+			 "dest-exchange-key":"completed",
 			 "add-forward-headers":false,
 			 "ack-mode":"on-confirm",
 			 "delete-after":"never"},
 		"vhost":"/",
 		"component":"shovel",
 		"name":"CEGA-completion"},
+	       {"value":{"src-uri":"amqp://",
+			 "src-exchange":"lega",
+			 "src-exchange-key":"lega.inbox",
+			 "dest-uri":"amqp://cega_${INSTANCE}:${CEGA_MQ_PASSWORD}@cega_mq:5672/${INSTANCE}",
+			 "dest-exchange":"localega.v1",
+			 "dest-exchange-key":"inbox",
+			 "add-forward-headers":false,
+			 "ack-mode":"on-confirm",
+			 "delete-after":"never"},
+		"vhost":"/",
+		"component":"shovel",
+		"name":"CEGA-inbox"},
 	       {"value":{"uri":"amqp://cega_${INSTANCE}:${CEGA_MQ_PASSWORD}@cega_mq:5672/${INSTANCE}",
 			 "ack-mode":"on-confirm",
 			 "trust-user-id":false,
-			 "queue":"${INSTANCE}.v1.commands.file"},
+			 "queue":"file"},
 		"vhost":"/",
 		"component":"federation-upstream",
 		"name":"CEGA"}],
@@ -69,6 +81,7 @@ chown -R rabbitmq /var/lib/rabbitmq
 	sleep 1
 	$((ROUND--))
     done
+    ((ROUND<0)) && echo "Central EGA connections *_not_* loaded" 2>&1 && exit 1
     echo "Central EGA connections loaded"
 } &
 
