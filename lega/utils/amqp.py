@@ -2,6 +2,7 @@ import logging
 import pika
 import json
 import uuid
+from pathlib import Path
 
 from ..conf import CONF
 
@@ -115,3 +116,17 @@ def consume(work, from_queue, to_routing):
 #                           properties  = pika.BasicProperties(correlation_id=str(uuid.uuid4()),
 #                                                              content_type='application/json',
 #                                                              delivery_mode=2))
+
+def file_landed(path):
+    broker = get_connection('broker')
+    channel = broker.channel()
+    user = path[1:path.find('/inbox/')]
+    rest = os.path.relpath(path, f"/{user}/inbox/")
+    message = { 'user': user, 'path': rest }
+    LOG.debug(f'Contacting CentralEGA: File {rest} just landed for user {user}')
+    channel.basic_publish(exchange    = 'lega',
+                          routing_key = 'lega.inbox',
+                          body        = json.dumps(message),
+                          properties  = pika.BasicProperties(correlation_id=str(uuid.uuid4()),
+                                                             content_type='application/json',
+                                                             delivery_mode=2))
