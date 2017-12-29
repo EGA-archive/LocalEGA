@@ -5,7 +5,7 @@ import os
 import sys
 import errno
 import logging
-import shutil
+import stat
 
 from fuse import FUSE, FuseOSError, Operations
 
@@ -15,7 +15,7 @@ from .utils.amqp import file_landed
 LOG = logging.getLogger('inbox')
 
 
-class LEGA(Operations):
+class LegaFS(Operations):
     def __init__(self, root):
         self.root = root
         self.pending = set()
@@ -133,43 +133,59 @@ def main(args=None):
 
     mountpoint = args[0]
     rootdir = None
-    fg = False
+    mode = 0o0
 
     # Creating the mountpoint if not existing.
     if not os.path.exists(mountpoint):
         LOG.debug('Mountpoint missing. Creating it')
         os.makedirs(mountpoint, exist_ok=True)
-        shutil.chown(mountpoint, group='ega')
 
-    # Filtering the mount options (last argument)
-    # Only interested in gid and allow_other. No uid!
-    # Fetch fg and rootdir from there too.
-    options = {}
+    # Collecting the mount options (last argument)
+    # Especially interested in gid and allow_other. Not in uid!
+    # Fetch foreground, nothreads and rootdir from there too.
+    # Enforcing nothreads
+    options = { 'nothreads': True }
     for opt in args[-1].split(','):
         try:
             k,v = opt.split('=')
         except ValueError:
             k,v = opt, True
 
-        if k == 'fg':
-            fg = True
-
         if k == 'rootdir':
             rootdir = v
+            continue
 
-        if k in ('gid', 'allow_other'):
-            options[k] = v
+        if k == 'uid': # Nope!
+            continue
 
+        if k == 'setgid':
+            mode |= stat.S_ISGID
+            continue
+
+        if k == 'rootmode':
+            mode |= int(v,8) # octal
+            continue
+
+        # Otherwise, add to options
+        options[k] = v
+ 
     assert rootdir is not None, "You must specify rootdir in the mount options"
 
     LOG.debug(f'Mountpoint: {mountpoint} | Root dir: {rootdir}')
-    if fg:
-        LOG.debug('Mounting LEGA filesystem in foreground')
     if options:
         LOG.debug(f'Adding mount options: {options!r}')
 
+    # Update the mountpoint
+    if 'gid' in options:
+        LOG.debug(f"Setting owner to {options['gid']}")
+        os.chown(mountpoint, -1, int(options['gid'])) # user: root | grp: ega
+
+    if mode:
+        LOG.debug(f'chmod 0o{mode:o} {mountpoint}')
+        os.chmod(mountpoint, mode)
+
     # ....aaand cue music!
-    FUSE(LEGA(rootdir), mountpoint, nothreads=True, foreground=fg, **options) # No uid, please!
+    FUSE(LegaFS(rootdir), mountpoint, **options)
 
 
 if __name__ == '__main__':

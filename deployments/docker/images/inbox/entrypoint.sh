@@ -11,6 +11,9 @@ chmod g+s /ega/inbox # setgid bit
 
 EGA_DB_IP=$(getent hosts ${DB_INSTANCE} | awk '{ print $1 }')
 
+EGA_ID=$(id -u ega)
+EGA_GROUP=$(id -g ega)
+
 cat > /etc/ega/auth.conf <<EOF
 debug = ok_why_not
 
@@ -29,7 +32,7 @@ rest_resp_pubkey = ${CEGA_ENDPOINT_RESP_PUBKEY}
 ##################
 # NSS Queries
 ##################
-nss_get_user = SELECT elixir_id,'x',1000,1000,'EGA User','/mnt/lega/'|| elixir_id,'/sbin/nologin' FROM users WHERE elixir_id = \$1 LIMIT 1
+nss_get_user = SELECT elixir_id,'x',${EGA_ID},${EGA_GROUP},'EGA User','/mnt/lega/'|| elixir_id,'/sbin/nologin' FROM users WHERE elixir_id = \$1 LIMIT 1
 nss_add_user = SELECT insert_user(\$1,\$2,\$3)
 
 ##################
@@ -56,7 +59,7 @@ chgrp ega /usr/local/bin/ega_ssh_keys.sh
 
 # Starting the FUSE layer
 sed -i -e '/lega:/ d' /etc/fstab
-echo "/usr/bin/ega-fs /mnt/lega fuse allow_other,gid=0,rootdir=/ega/inbox 0 0" >> /etc/fstab # no foreground!
+echo "/usr/bin/ega-fs /mnt/lega fuse auto,allow_other,gid=${EGA_GROUP},rootdir=/ega/inbox,setgid,rootmode=750 0 0" >> /etc/fstab # no foreground!
 mount -a
 
 echo "Starting the SFTP server"
