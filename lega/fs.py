@@ -13,6 +13,8 @@ from .utils.amqp import file_landed
 
 LOG = logging.getLogger('inbox')
 
+ATTRIBUTES = ('st_uid', 'st_gid', 'st_mode', 'st_size',
+              'st_nlink', 'st_atime', 'st_ctime', 'st_mtime')
 
 class LegaFS(Operations):
     def __init__(self, root):
@@ -28,30 +30,7 @@ class LegaFS(Operations):
 
     def getattr(self, path, fh=None):
         st = os.lstat(self._real_path(path))
-        return dict((key, getattr(st, key)) for key in ('st_atime', 'st_ctime',
-                     'st_gid', 'st_mode', 'st_mtime', 'st_nlink', 'st_size', 'st_uid'))
-
-    # def readdir(self, path, fh):
-    #     LOG.debug(f'readdir {path}')
-    #     full_path = self._real_path(path)
-    #     LOG.debug(f'Walking from {full_path}')
-
-    #     dirents = ['.', '..']
-    #     if os.path.isdir(full_path):
-    #         dirents.extend(os.listdir(full_path))
-    #     for r in dirents:
-    #         yield r
-
-    # def readdir(self, path, fh):
-    #     LOG.debug(f'readdir {path}')
-    #     full_path = self._real_path(path)
-    #     LOG.debug(f'Walking from {full_path}')
-
-    #     yield '.'
-    #     yield '..'
-    #     if os.path.isdir(full_path):
-    #         for r in os.listdir(full_path):
-    #             yield r
+        return dict((key, getattr(st, key)) for key in ATTRIBUTES)
 
     def readdir(self, path, fh):
         yield '.'
