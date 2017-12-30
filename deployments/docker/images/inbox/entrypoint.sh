@@ -61,7 +61,7 @@ chmod g+s /ega/inbox # setgid bit
 # Starting the FUSE layer
 echo "Mounting LegaFS onto /mnt/lega"
 sed -i -e '/lega:/ d' /etc/fstab
-echo "/usr/bin/ega-fs /mnt/lega fuse auto,allow_root,nodev,noexec,suid,uid=0,gid=${EGA_GROUP},rootdir=/ega/inbox,setgid,rootmode=750 0 0" >> /etc/fstab # no foreground!
+echo "/usr/bin/ega-fs /mnt/lega fuse auto,allow_other,default_permissions,nodev,noexec,suid,gid=${EGA_GROUP},rootdir=/ega/inbox,setgid,rootmode=750 0 0" >> /etc/fstab # no foreground!
 mount -a
 
 echo "Starting the SFTP server"
