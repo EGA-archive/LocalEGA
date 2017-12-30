@@ -69,9 +69,9 @@ services:
     devices:
       - /dev/fuse
     volumes:
-      - inbox_swe1:/ega/inbox
       - ${DATA}/swe1/ega.conf:/etc/ega/conf.ini:ro
       - ${DATA}/swe1/logger.yml:/etc/ega/logger.yml:ro
+#      - inbox_swe1:/ega/inbox
       - ../..:/root/.local/lib/python3.6/site-packages:ro
 
   # SFTP inbox for Finland

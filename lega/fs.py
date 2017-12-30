@@ -2,10 +2,9 @@
 # -*- coding: utf-8 -*-
 
 import os
-import sys
-import errno
 import logging
 import stat
+from pathlib import Path
 
 from fuse import FUSE, FuseOSError, Operations
 
@@ -17,114 +16,129 @@ LOG = logging.getLogger('inbox')
 
 class LegaFS(Operations):
     def __init__(self, root):
-        self.root = root
+        self.root = root #.rstrip('/') # remove trailing /
         self.pending = set()
 
-
-    # Helpers
-    # =======
-    def _full_path(self, partial):
-        if partial.startswith("/"):
-            partial = partial[1:]
-        path = os.path.join(self.root, partial)
-        return path
+    # Helper
+    def _real_path(self, path):
+        return os.path.join(self.root, path.lstrip('/'))
 
     # Filesystem methods
     # ==================
 
     def getattr(self, path, fh=None):
-        full_path = self._full_path(path)
-        st = os.lstat(full_path)
+        st = os.lstat(self._real_path(path))
         return dict((key, getattr(st, key)) for key in ('st_atime', 'st_ctime',
                      'st_gid', 'st_mode', 'st_mtime', 'st_nlink', 'st_size', 'st_uid'))
 
-    def readdir(self, path, fh):
-        #LOG.debug(f'Reading directory {path}')
-        full_path = self._full_path(path)
+    # def readdir(self, path, fh):
+    #     LOG.debug(f'readdir {path}')
+    #     full_path = self._real_path(path)
+    #     LOG.debug(f'Walking from {full_path}')
 
-        dirents = ['.', '..']
-        if os.path.isdir(full_path):
-            dirents.extend(os.listdir(full_path))
-        for r in dirents:
-            yield r
+    #     dirents = ['.', '..']
+    #     if os.path.isdir(full_path):
+    #         dirents.extend(os.listdir(full_path))
+    #     for r in dirents:
+    #         yield r
+
+    # def readdir(self, path, fh):
+    #     LOG.debug(f'readdir {path}')
+    #     full_path = self._real_path(path)
+    #     LOG.debug(f'Walking from {full_path}')
+
+    #     yield '.'
+    #     yield '..'
+    #     if os.path.isdir(full_path):
+    #         for r in os.listdir(full_path):
+    #             yield r
+
+    def readdir(self, path, fh):
+        yield '.'
+        yield '..'
+        full_path = self._real_path(path)
+        #if os.path.isdir(full_path):
+        g = os.walk(full_path)
+        top, dirs, files = next(g) # Just here. Don't recurse
+        for name in dirs: yield name
+        for name in files: yield name
+        g.close() # cleaning
+        
+    def access(self, path, mode):
+        if not os.access(self._real_path(path), mode):
+            raise FuseOSError(errno.EACCES)
+
+    def chown(self, path, uid, gid):
+        return os.chown(self._real_path(path), uid, gid)
+
+    def chmod(self, path, mode):
+        return os.chmod(self._real_path(path), mode)
 
     def rmdir(self, path):
-        #LOG.debug(f"rmdir {path}")
-        full_path = self._full_path(path)
-        return os.rmdir(full_path)
+        return os.rmdir(self._real_path(path))
 
     def mkdir(self, path, mode):
-        #LOG.debug(f"mkdir {path}")
-        return os.mkdir(self._full_path(path), mode)
+        return os.mkdir(self._real_path(path), mode)
 
     def statfs(self, path):
-        #LOG.debug(f"Running stats for {path}")
-        full_path = self._full_path(path)
-        stv = os.statvfs(full_path)
+        stv = os.statvfs(self._real_path(path))
         return dict((key, getattr(stv, key)) for key in ('f_bavail', 'f_bfree',
             'f_blocks', 'f_bsize', 'f_favail', 'f_ffree', 'f_files', 'f_flag',
             'f_frsize', 'f_namemax'))
 
     def unlink(self, path):
-        #LOG.debug(f"Unlink {path}")
-        return os.unlink(self._full_path(path))
+        return os.unlink(self._real_path(path))
 
     def rename(self, old, new):
-        #LOG.debug(f"Rename {old} into {new}")
-        return os.rename(self._full_path(old), self._full_path(new))
+        return os.rename(self._real_path(old), self._real_path(new))
+    
+    def utimens(self, path, times=None):
+        return os.utime(self._real_path(path), times)
 
 
     # File methods
     # ============
 
     def open(self, path, flags):
-        #LOG.debug(f"Open {path}")
-        full_path = self._full_path(path)
-        return os.open(full_path, flags)
+        return os.open(self._real_path(path), flags)
 
     def create(self, path, mode, fi=None):
         LOG.debug(f"Creating {path}")
         self.pending.add(path)
-        full_path = self._full_path(path)
-        return os.open(full_path, os.O_WRONLY | os.O_CREAT, mode)
+        return os.open(self._real_path(path), os.O_WRONLY | os.O_CREAT, mode)
 
     def read(self, path, length, offset, fh):
-        #LOG.debug(f"Read {path}")
         os.lseek(fh, offset, os.SEEK_SET)
         return os.read(fh, length)
 
     def write(self, path, buf, offset, fh):
-        #LOG.debug(f"Write {path}")
         os.lseek(fh, offset, os.SEEK_SET)
         return os.write(fh, buf)
 
     def truncate(self, path, length, fh=None):
         LOG.debug(f"Truncate {path}")
         self.pending.add(path)
-        full_path = self._full_path(path)
-        with open(full_path, 'r+') as f:
+        with open(self._real_path(path), 'r+') as f:
             f.truncate(length)
 
-    def flush(self, path, fh):
-        #LOG.debug(f"Flush {path}")
-        return os.fsync(fh)
-
     def release(self, path, fh):
-        #LOG.debug(f"Releasing {path}")
         if path in self.pending:
             LOG.debug(f"File {path} just landed")
             file_landed(path)
             self.pending.remove(path)
         return os.close(fh)
 
+    def flush(self, path, fh):
+        return os.fsync(fh)
+
     def fsync(self, path, fdatasync, fh):
-        #LOG.debug(f"fsync {path}")
-        return self.flush(path, fh)
+        return os.fsync(fh)
 
 
 def main(args=None):
 
     if not args:
+        import sys
         args = sys.argv[1:]
 
     CONF.setup(args) # re-conf, just for the logger!
@@ -141,10 +155,8 @@ def main(args=None):
         os.makedirs(mountpoint, exist_ok=True)
 
     # Collecting the mount options (last argument)
-    # Especially interested in gid and allow_other. Not in uid!
-    # Fetch foreground, nothreads and rootdir from there too.
-    # Enforcing nothreads
-    options = { 'nothreads': True }
+    # Fetch foreground, rootmode, setgid and rootdir from there too.
+    options = { 'nothreads': True } # Enforcing nothreads
     for opt in args[-1].split(','):
         try:
             k,v = opt.split('=')
@@ -153,9 +165,6 @@ def main(args=None):
 
         if k == 'rootdir':
             rootdir = v
-            continue
-
-        if k == 'uid': # Nope!
             continue
 
         if k == 'setgid':

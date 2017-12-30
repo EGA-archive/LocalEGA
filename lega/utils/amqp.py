@@ -3,6 +3,7 @@ import pika
 import json
 import uuid
 from pathlib import Path
+import os
 
 from ..conf import CONF
 
@@ -106,24 +107,31 @@ def consume(work, from_queue, to_routing):
     finally:
         connection.close()
 
-# def report_user_error(message):
-#     LOG.debug(f'Sending user error to LocalEGA error queue: {message}')
-#     broker = get_connection('broker')
-#     channel = broker.channel()
-#     channel.basic_publish(exchange    = 'lega',
-#                           routing_key = 'lega.error.user',
-#                           body        = json.dumps(message),
-#                           properties  = pika.BasicProperties(correlation_id=str(uuid.uuid4()),
-#                                                              content_type='application/json',
-#                                                              delivery_mode=2))
-
-def file_landed(path):
+def report_user_error(message):
+    '''
+    Sending user error to local broker
+    '''
+    LOG.debug(f'Sending user error to LocalEGA error queue: {message}')
     broker = get_connection('broker')
     channel = broker.channel()
-    user = path[1:path.find('/inbox/')]
-    rest = os.path.relpath(path, f"/{user}/inbox/")
-    message = { 'user': user, 'path': rest }
-    LOG.debug(f'Contacting CentralEGA: File {rest} just landed for user {user}')
+    channel.basic_publish(exchange    = 'lega',
+                          routing_key = 'lega.error.user',
+                          body        = json.dumps(message),
+                          properties  = pika.BasicProperties(correlation_id=str(uuid.uuid4()),
+                                                             content_type='application/json',
+                                                             delivery_mode=2))
+
+def file_landed(filepath):
+    '''
+    Sending a message to the local broker with `filepath` was updated
+    '''
+    broker = get_connection('broker')
+    channel = broker.channel()
+    pos = filepath.find('/inbox/')
+    user = filepath[1 : pos]
+    rest = os.path.relpath(filepath, f"/{user}/inbox/")
+    message = { 'user': user, 'filepath': rest }
+    LOG.info(f'Contacting CentralEGA: File {rest} just landed for user {user}')
     channel.basic_publish(exchange    = 'lega',
                           routing_key = 'lega.inbox',
                           body        = json.dumps(message),

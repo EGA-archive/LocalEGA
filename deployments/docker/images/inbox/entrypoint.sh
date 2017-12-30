@@ -5,12 +5,7 @@ set -e
 # DB_INSTANCE env must be defined
 [[ -z "${DB_INSTANCE}" ]] && echo 'Environment DB_INSTANCE is empty' 1>&2 && exit 1
 
-chown root:ega /ega/inbox
-chmod 750 /ega/inbox
-chmod g+s /ega/inbox # setgid bit
-
 EGA_DB_IP=$(getent hosts ${DB_INSTANCE} | awk '{ print $1 }')
-
 EGA_ID=$(id -u ega)
 EGA_GROUP=$(id -g ega)
 
@@ -57,9 +52,16 @@ chgrp ega /usr/local/bin/ega_ssh_keys.sh
 # Greetings per site
 [[ -z "${LEGA_GREETINGS}" ]] || echo ${LEGA_GREETING} > /ega/banner
 
+# Changing permissions
+echo "Changing permissions for /ega/inbox"
+chown root:ega /ega/inbox
+chmod 750 /ega/inbox
+chmod g+s /ega/inbox # setgid bit
+
 # Starting the FUSE layer
+echo "Mounting LegaFS onto /mnt/lega"
 sed -i -e '/lega:/ d' /etc/fstab
-echo "/usr/bin/ega-fs /mnt/lega fuse auto,allow_other,gid=${EGA_GROUP},rootdir=/ega/inbox,setgid,rootmode=750 0 0" >> /etc/fstab # no foreground!
+echo "/usr/bin/ega-fs /mnt/lega fuse auto,allow_root,nodev,noexec,suid,uid=0,gid=${EGA_GROUP},rootdir=/ega/inbox,setgid,rootmode=750 0 0" >> /etc/fstab # no foreground!
 mount -a
 
 echo "Starting the SFTP server"
