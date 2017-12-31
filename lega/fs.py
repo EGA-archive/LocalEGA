@@ -1,23 +1,28 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import sys
 import os
 import logging
+import argparse
 import stat
-from pathlib import Path
 
 from fuse import FUSE, FuseOSError, Operations
 
-from .conf import CONF
-from .utils.amqp import file_landed
+from lega.conf import CONF
+from lega.utils.amqp import file_landed
 
 LOG = logging.getLogger('inbox')
 
 ATTRIBUTES = ('st_uid', 'st_gid', 'st_mode', 'st_size',
               'st_nlink', 'st_atime', 'st_ctime', 'st_mtime')
 
+DEFAULT_OPTIONS = ('nothreads', 'allow_other', 'default_permissions', 'nodev', 'noexec', 'suid')
+DEFAULT_MODE = 0o750
+
 class LegaFS(Operations):
-    def __init__(self, root):
+    def __init__(self, root, user=None):
+        self.user = user
         self.root = root #.rstrip('/') # remove trailing /
         self.pending = set()
 
@@ -103,7 +108,7 @@ class LegaFS(Operations):
     def release(self, path, fh):
         if path in self.pending:
             LOG.debug(f"File {path} just landed")
-            file_landed(path)
+            file_landed(self.user, path)
             self.pending.remove(path)
         return os.close(fh)
 
@@ -114,66 +119,81 @@ class LegaFS(Operations):
         return os.fsync(fh)
 
 
-def main(args=None):
+def parse_options():
+    parser = argparse.ArgumentParser(description='LegaFS filesystem')
+    parser.add_argument('mountpoint', help='mountpoint for the LegaFS filesystem')
+    parser.add_argument('-o', metavar='mnt_options', help='mount flags', required=True)
+    args = parser.parse_args()
+    
+    options = dict((opt,True) for opt in DEFAULT_OPTIONS)
+    
+    for opt in args.o.split(','):
+        try:
+            k,v = opt.split('=')
+        except ValueError:
+            k,v = opt, True
 
-    if not args:
-        import sys
-        args = sys.argv[1:]
+        options[k] = v
 
-    CONF.setup(args) # re-conf, just for the logger!
+    options['mode'] = DEFAULT_MODE if 'mode' not in options else int(options['mode'],8)
+    if 'setgid' in options:
+        options['mode'] |= stat.S_ISGID
+        del options['setgid']
 
-    assert len(args) >= 3, "Usage: $0 <mountpoint> -o options"
+    # For the conf and logger
+    _args = []
+    conf = options.pop('conf', None)
+    if conf:
+        _args.append('--conf')
+        _args.append(conf)
+    logger = options.pop('log', None)
+    if logger:
+        _args.append('--log')
+        _args.append(logger)
+    CONF.setup(_args)
 
-    mountpoint = args[0]
-    rootdir = None
-    mode = 0o0
+    return args.mountpoint, options
+
+def main():
+
+    mountpoint, options = parse_options()
+    uid = int(options.get('uid',0))
+    gid = int(options.get('gid',0))
+    mode = options.pop('mode') # should be there
+    rootdir = options.pop('rootdir',None)
+
+    LOG.debug(f'Mountpoint: {mountpoint} | Root dir: {rootdir}')
+    LOG.debug(f'Adding mount options: {options!r}')
+
+    assert rootdir, "You did not specify the rootdir in the mount options"
+
+    user = os.path.basename(rootdir if rootdir[-1] != '/' else rootdir[:-1])
+
+    LOG.debug(f'EGA User: {user}')
 
     # Creating the mountpoint if not existing.
     if not os.path.exists(mountpoint):
         LOG.debug('Mountpoint missing. Creating it')
         os.makedirs(mountpoint, exist_ok=True)
 
-    # Collecting the mount options (last argument)
-    # Fetch foreground, rootmode, setgid and rootdir from there too.
-    options = { 'nothreads': True } # Enforcing nothreads
-    for opt in args[-1].split(','):
-        try:
-            k,v = opt.split('=')
-        except ValueError:
-            k,v = opt, True
-
-        if k == 'rootdir':
-            rootdir = v
-            continue
-
-        if k == 'setgid':
-            mode |= stat.S_ISGID
-            continue
-
-        if k == 'rootmode':
-            mode |= int(v,8) # octal
-            continue
-
-        # Otherwise, add to options
-        options[k] = v
- 
-    assert rootdir is not None, "You must specify rootdir in the mount options"
-
-    LOG.debug(f'Mountpoint: {mountpoint} | Root dir: {rootdir}')
-    if options:
-        LOG.debug(f'Adding mount options: {options!r}')
-
     # Update the mountpoint
-    if 'gid' in options:
-        LOG.debug(f"Setting owner to {options['gid']}")
-        os.chown(mountpoint, -1, int(options['gid'])) # user: root | grp: ega
+    LOG.debug(f"Setting owner to {uid}:{gid}")
+    os.chown(mountpoint, uid, gid)
 
-    if mode:
-        LOG.debug(f'chmod 0o{mode:o} {mountpoint}')
-        os.chmod(mountpoint, mode)
+    LOG.debug(f'chmod 0o{mode:o} {mountpoint}')
+    os.chmod(mountpoint, mode)
 
     # ....aaand cue music!
-    FUSE(LegaFS(rootdir), mountpoint, **options)
+    try:
+        FUSE(LegaFS(rootdir, user), mountpoint, **options)
+    except RuntimeError as e:
+        if e == 1: # not empty
+            LOG.debug(f'Already mounted')
+            sys.exit(0)
+        else:
+            LOG.debug(f'RuntimeError {e}')
+            sys.exit(2)
+            
 
 
 if __name__ == '__main__':
