@@ -121,17 +121,18 @@ def report_user_error(message):
                                                              content_type='application/json',
                                                              delivery_mode=2))
 
-def file_landed(filepath):
+def file_landed(user, filepath):
     '''
     Sending a message to the local broker with `filepath` was updated
     '''
     broker = get_connection('broker')
     channel = broker.channel()
-    pos = filepath.find('/inbox/')
-    user = filepath[1 : pos]
-    rest = os.path.relpath(filepath, f"/{user}/inbox/")
-    message = { 'user': user, 'filepath': rest }
-    LOG.info(f'Contacting CentralEGA: File {rest} just landed for user {user}')
+    # pos = filepath.find('/inbox/')
+    # user = filepath[1 : pos]
+    # path = os.path.relpath(filepath, f"/{user}/inbox/")
+    path = filepath
+    message = { 'user': user, 'filepath': path }
+    LOG.info(f'Contacting CentralEGA: File {path} just landed for user {user}')
     channel.basic_publish(exchange    = 'lega',
                           routing_key = 'lega.inbox',
                           body        = json.dumps(message),
