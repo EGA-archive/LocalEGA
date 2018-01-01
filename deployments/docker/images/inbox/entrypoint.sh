@@ -29,6 +29,7 @@ rest_resp_pubkey = ${CEGA_ENDPOINT_RESP_PUBKEY}
 ##################
 nss_get_user = SELECT elixir_id,'x',${EGA_ID},${EGA_GROUP},'EGA User','/mnt/lega/'|| elixir_id,'/sbin/nologin' FROM users WHERE elixir_id = \$1 LIMIT 1
 nss_add_user = SELECT insert_user(\$1,\$2,\$3)
+ega_root = /ega/inbox
 
 ##################
 # PAM Queries
@@ -57,12 +58,6 @@ echo "Changing permissions for /ega/inbox"
 chown root:ega /ega/inbox
 chmod 750 /ega/inbox
 chmod g+s /ega/inbox # setgid bit
-
-# Starting the FUSE layer
-echo "Mounting LegaFS onto /mnt/lega"
-sed -i -e '/lega:/ d' /etc/fstab
-echo "/usr/bin/ega-fs /mnt/lega fuse auto,allow_other,default_permissions,nodev,noexec,suid,gid=${EGA_GROUP},rootdir=/ega/inbox,setgid,rootmode=750 0 0" >> /etc/fstab # no foreground!
-mount -a
 
 echo "Starting the SFTP server"
 exec /usr/sbin/sshd -D -e
