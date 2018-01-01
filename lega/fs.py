@@ -187,7 +187,7 @@ def main():
     try:
         FUSE(LegaFS(rootdir, user), mountpoint, **options)
     except RuntimeError as e:
-        if e == 1: # not empty
+        if str(e) == '1': # not empty
             LOG.debug(f'Already mounted')
             sys.exit(0)
         else:

@@ -27,8 +27,7 @@ RUN ssh-keygen -t rsa     -N '' -f /etc/ssh/ssh_host_rsa_key && \
     chown root:ega /ega/inbox && \
     chmod 750 /ega/inbox && \
     chmod g+s /ega/inbox && \
-    mv /etc/pam.d/sshd /etc/pam.d/sshd.bak && \
-    echo 'user_allow_other' > /etc/fuse.conf
+    mv /etc/pam.d/sshd /etc/pam.d/sshd.bak
 
 ARG checkout=dev
 RUN pip3.6 install git+https://github.com/NBISweden/LocalEGA.git@${checkout}
