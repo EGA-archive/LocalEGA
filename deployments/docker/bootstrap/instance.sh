@@ -81,25 +81,25 @@ log = /etc/ega/logger.yml
 gpg_cmd = gpg2 --decrypt %(file)s
 
 # Keyserver communication
-keyserver_host = ega_keys_${INSTANCE}
+keyserver_host = ega-keys-${INSTANCE}
 
 ## Connecting to Local EGA
 [broker]
-host = ega_mq_${INSTANCE}
+host = ega-mq-${INSTANCE}
 
 [db]
-host = ega_db_${INSTANCE}
+host = ega-db-${INSTANCE}
 username = ${DB_USER}
 password = ${DB_PASSWORD}
 try = ${DB_TRY}
 
 [frontend]
-host = ega_frontend_${INSTANCE}
+host = ega-frontend-${INSTANCE}
 cega_password = ${CEGA_PASSWORD}
 
 [outgestion]
 # Keyserver communication
-keyserver_host = ega_keys_${INSTANCE}
+keyserver_host = ega-keys-${INSTANCE}
 EOF
 
 echomsg "\t* SFTP Inbox port"
@@ -237,7 +237,7 @@ EOF
 echomsg "\t* the docker-compose configuration files"
 
 cat > ${PRIVATE}/${INSTANCE}/db.env <<EOF
-DB_INSTANCE=ega_db_${INSTANCE}
+DB_INSTANCE=ega-db-${INSTANCE}
 POSTGRES_USER=${DB_USER}
 POSTGRES_PASSWORD=${DB_PASSWORD}
 POSTGRES_DB=lega
