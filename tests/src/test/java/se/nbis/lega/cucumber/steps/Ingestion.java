@@ -82,11 +82,10 @@ public class Ingestion implements En {
     private void ingestFile(Context context, Utils utils, String encryptedFileName, String rawChecksum, String encryptedChecksum) {
         try {
             utils.executeWithinContainer(utils.findContainer(utils.getProperty("images.name.cega_mq"), utils.getProperty("container.prefix.cega_mq")),
-                    String.format("publish --connection amqp://%s:%s@localhost:5672/%s %s %s %s --unenc %s --enc %s",
+                    String.format("publish --connection amqp://%s:%s@localhost:5672/%s %s %s --unenc %s --enc %s",
                             context.getCegaMQUser(),
                             context.getCegaMQPassword(),
                             context.getCegaMQVHost(),
-                            context.getRoutingKey(),
                             context.getUser(),
                             encryptedFileName,
                             rawChecksum,

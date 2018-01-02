@@ -2,8 +2,6 @@ import logging
 import pika
 import json
 import uuid
-from pathlib import Path
-import os
 
 from ..conf import CONF
 
@@ -121,16 +119,12 @@ def report_user_error(message):
                                                              content_type='application/json',
                                                              delivery_mode=2))
 
-def file_landed(user, filepath):
+def file_landed(user, path):
     '''
-    Sending a message to the local broker with `filepath` was updated
+    Sending a message to the local broker with `path` was updated
     '''
     broker = get_connection('broker')
     channel = broker.channel()
-    # pos = filepath.find('/inbox/')
-    # user = filepath[1 : pos]
-    # path = os.path.relpath(filepath, f"/{user}/inbox/")
-    path = filepath
     message = { 'user': user, 'filepath': path }
     LOG.info(f'Contacting CentralEGA: File {path} just landed for user {user}')
     channel.basic_publish(exchange    = 'lega',
