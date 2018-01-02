@@ -71,7 +71,7 @@ services:
     volumes:
       - ${DATA}/swe1/ega.conf:/etc/ega/conf.ini:ro
       - ${DATA}/swe1/logger.yml:/etc/ega/logger.yml:ro
-      - inbox-swe1:/ega/inbox
+      - inbox_swe1:/ega/inbox
       - ../..:/root/.local/lib/python3.6/site-packages:ro
       - ~/_auth_ega:/root/auth
 
@@ -94,7 +94,7 @@ services:
     devices:
       - /dev/fuse
     volumes:
-      - inbox-fin1:/ega/inbox
+      - inbox_fin1:/ega/inbox
       - ${DATA}/fin1/ega.conf:/etc/ega/conf.ini:ro
       - ${DATA}/fin1/logger.yml:/etc/ega/logger.yml:ro
       - ../..:/root/.local/lib/python3.6/site-packages:ro
@@ -111,9 +111,10 @@ services:
     image: nbisweden/ega-vault
     environment:
       - MQ_INSTANCE=ega-mq-swe1
+      - CEGA_INSTANCE=cega-mq
     volumes:
-       - staging-swe1:/ega/staging
-       - vault-swe1:/ega/vault
+       - staging_swe1:/ega/staging
+       - vault_swe1:/ega/vault
        - ${DATA}/swe1/ega.conf:/etc/ega/conf.ini:ro
        - ${DATA}/swe1/logger.yml:/etc/ega/logger.yml:ro
        - ../..:/root/.local/lib/python3.6/site-packages:ro
@@ -130,11 +131,12 @@ services:
     environment:
       - GPG_TTY=/dev/console
       - MQ_INSTANCE=ega-mq-swe1
+      - CEGA_INSTANCE=cega-mq
       - KEYSERVER_HOST=ega-keys-swe1
       - KEYSERVER_PORT=9010
     volumes:
-       - inbox-swe1:/ega/inbox
-       - staging-swe1:/ega/staging
+       - inbox_swe1:/ega/inbox
+       - staging_swe1:/ega/staging
        - ${DATA}/swe1/ega.conf:/etc/ega/conf.ini:ro
        - ${DATA}/swe1/logger.yml:/etc/ega/logger.yml:ro
        - ${DATA}/swe1/certs/ssl.cert:/etc/ega/ssl.cert:ro
@@ -204,14 +206,15 @@ services:
     hostname: cega-mq
     ports:
       - "15673:15672"
-    image: nbisweden/ega-cega_mq
+    image: nbisweden/ega-cega-mq
     container_name: cega-mq
     volumes:
        - ${DATA}/cega/mq/defs.json:/etc/rabbitmq/defs.json:ro
 
   cega-users:
     env_file: private/cega/env
-    image: nbisweden/ega-cega_users
+    image: nbisweden/ega-cega-users
+    hostname: cega-users
     container_name: cega-users
     ports:
       - "9100:80"
@@ -228,7 +231,7 @@ services:
     container_name: ega-elasticsearch-swe1
     volumes:
       - ${DATA}/swe1/logs/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
-      - elasticsearch-swe1:/usr/share/elasticsearch/data
+      - elasticsearch_swe1:/usr/share/elasticsearch/data
     environment:
       ES_JAVA_OPTS: "-Xmx256m -Xms256m"
 
@@ -256,10 +259,10 @@ services:
 
 # Use the default driver for volume creation
 volumes:
-  inbox-swe1:
-  staging-swe1:
-  vault-swe1:
-  elasticsearch-swe1:
-  inbox-fin1:
+  inbox_swe1:
+  staging_swe1:
+  vault_swe1:
+  elasticsearch_swe1:
+  inbox_fin1:
   # staging_fin1:
   # vault_fin1:

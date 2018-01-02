@@ -27,10 +27,10 @@ cega_resp_pubkey = ${CEGA_ENDPOINT_RESP_PUBKEY}
 ##################
 # NSS & PAM Queries
 ##################
-get_ent = SELECT elixir_id FROM users WHERE elixir_id = $1 LIMIT 1
-add_user = SELECT insert_user($1,$2,$3)
-get_password = SELECT password_hash FROM users WHERE elixir_id = $1 LIMIT 1
-get_account = SELECT elixir_id FROM users WHERE elixir_id = $1 and current_timestamp < last_accessed + expiration
+get_ent = SELECT elixir_id FROM users WHERE elixir_id = \$1 LIMIT 1
+add_user = SELECT insert_user(\$1,\$2,\$3)
+get_password = SELECT password_hash FROM users WHERE elixir_id = \$1 LIMIT 1
+get_account = SELECT elixir_id FROM users WHERE elixir_id = \$1 and current_timestamp < last_accessed + expiration
 
 #prompt = Knock Knock:
 
@@ -78,9 +78,9 @@ cat > /usr/local/bin/fuse_cleanup.sh <<EOF
 
 set -e
 
-for mnt in $1/*
+for mnt in \$1/*
 do
-    { umount $mnt &>/dev/null && rmdir $mnt; } || :
+    { umount \${mnt} &>/dev/null && rmdir \${mnt}; } || :
 done
 EOF
 chmod 750 /usr/local/bin/fuse_cleanup.sh

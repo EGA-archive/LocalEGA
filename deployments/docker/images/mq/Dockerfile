@@ -19,6 +19,7 @@ RUN chown rabbitmq:rabbitmq /etc/rabbitmq/rabbitmq.config && \
 
 ENV INSTANCE=
 ENV CEGA_MQ_PASSWORD=
+ENV CEGA_INSTANCE=
 
 # See inside the entrypoint for the reason
 COPY entrypoint.sh /usr/bin/ega-entrypoint.sh
