@@ -145,7 +145,9 @@ public class Utils {
      */
     public void removeUserInbox(String instance, String user) throws InterruptedException {
         executeWithinContainer(findContainer(getProperty("images.name.inbox"), getProperty("container.prefix.inbox") + instance),
-                String.format("rm -rf %s/%s", getProperty("inbox.folder.path"), user).split(" "));
+                String.format("fusermount -u %s/%s", getProperty("inbox.folder.path"), user).split(" "));
+        executeWithinContainer(findContainer(getProperty("images.name.inbox"), getProperty("container.prefix.inbox") + instance),
+                String.format("rmdir %s/%s", getProperty("inbox.folder.path"), user).split(" "));
     }
 
     /**
@@ -157,7 +159,7 @@ public class Utils {
      */
     public void removeUploadedFileFromInbox(String instance, String user, String fileName) throws InterruptedException {
         executeWithinContainer(findContainer(getProperty("images.name.inbox"), getProperty("container.prefix.inbox") + instance),
-                String.format("rm -rf %s/%s/inbox/%s", getProperty("inbox.folder.path"), user, fileName).split(" "));
+                String.format("rm -rf %s/%s/%s", getProperty("inbox.folder.path"), user, fileName).split(" "));
     }
 
     /**
@@ -181,6 +183,7 @@ public class Utils {
                 withBinds(new Bind(from, dataVolume),
                         new Bind(String.format("%s/%s/gpg", getPrivateFolderPath(), instance), gpgVolume)).
                 withEnv("MQ_INSTANCE=" + getProperty("container.prefix.mq") + instance,
+                        "CEGA_INSTANCE=" + getProperty("container.prefix.cega_mq"),
                         "KEYSERVER_HOST=" + getProperty("container.prefix.keys") + instance,
                         "KEYSERVER_PORT=9010").
                 withName(containerName).

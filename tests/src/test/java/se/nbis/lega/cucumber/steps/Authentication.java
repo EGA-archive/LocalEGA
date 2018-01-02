@@ -144,7 +144,7 @@ public class Authentication implements En {
             File privateKey = context.getPrivateKey();
             ssh.authPublickey(context.getUser(), privateKey.getPath());
 
-            context.setSsh(ssh);
+            //context.setSsh(ssh);
             context.setSftp(ssh.newSFTPClient());
             context.setAuthenticationFailed(false);
         } catch (UserAuthException e) {
@@ -157,7 +157,7 @@ public class Authentication implements En {
     private void disconnect(Context context) {
         try {
             context.getSftp().close();
-            context.getSsh().disconnect();
+            //context.getSsh().disconnect();
         } catch (Exception e) {
             log.error(e.getMessage(), e);
         }
