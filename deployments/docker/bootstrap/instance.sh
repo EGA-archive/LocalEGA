@@ -256,7 +256,7 @@ cat > ${PRIVATE}/${INSTANCE}/cega.env <<EOF
 #
 LEGA_GREETINGS=${LEGA_GREETINGS}
 #
-CEGA_ENDPOINT=http://cega_users/user/%s
+CEGA_ENDPOINT=http://cega-users/user/%s
 CEGA_ENDPOINT_USER=${INSTANCE}
 CEGA_ENDPOINT_PASSWORD=${CEGA_REST_PASSWORD}
 CEGA_ENDPOINT_RESP_PASSWD=.password_hash
@@ -284,7 +284,7 @@ input {
 		codec => json { charset => "UTF-8" }
 	}
 	rabbitmq {
-   		host => "mq_${INSTANCE}"
+   		host => "mq-${INSTANCE}"
 		port => 5672
 		user => "guest"
 		password => "guest"
@@ -323,6 +323,7 @@ echomsg "\t* Local broker to Central EGA broker credentials"
 cat > ${PRIVATE}/${INSTANCE}/mq.env <<EOF
 INSTANCE=${INSTANCE}
 CEGA_MQ_PASSWORD=${CEGA_MQ_PASSWORD}
+CEGA_INSTANCE=cega-mq
 EOF
 
 

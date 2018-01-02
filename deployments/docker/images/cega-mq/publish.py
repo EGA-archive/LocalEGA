@@ -38,7 +38,7 @@ if args.unenc:
 parameters = pika.URLParameters(args.connection)
 connection = pika.BlockingConnection(parameters)
 channel = connection.channel()
-channel.basic_publish(exchange='localega.v1', routing_key='{}.file'.format(args.routing),
+channel.basic_publish(exchange='localega.v1', routing_key='file'.format(args.routing),
                       body=json.dumps(message),
                       properties=pika.BasicProperties(correlation_id=str(uuid.uuid4()), content_type='application/json',delivery_mode=2))
 connection.close()
