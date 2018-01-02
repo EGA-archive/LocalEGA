@@ -9,8 +9,8 @@ import stat
 
 from fuse import FUSE, FuseOSError, Operations
 
-from lega.conf import CONF
-from lega.utils.amqp import file_landed
+from .conf import CONF
+from .utils.amqp import file_landed
 
 LOG = logging.getLogger('inbox')
 
@@ -43,11 +43,11 @@ class LegaFS(Operations):
         full_path = self._real_path(path)
         #if os.path.isdir(full_path):
         g = os.walk(full_path)
-        top, dirs, files = next(g) # Just here. Don't recurse
+        _, dirs, files = next(g) # Just here. Don't recurse
         for name in dirs: yield name
         for name in files: yield name
         g.close() # cleaning
-        
+
     def access(self, path, mode):
         if not os.access(self._real_path(path), mode):
             raise FuseOSError(errno.EACCES)
