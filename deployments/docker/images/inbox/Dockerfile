@@ -1,7 +1,7 @@
 FROM nbisweden/ega-common:latest
 LABEL maintainer "Frédéric Haziza, NBIS"
 
-RUN yum -y install openssh-server postgresql-devel pam-devel libcurl-devel jq-devel fuse fuse-libs
+RUN yum -y install openssh-server postgresql-devel pam-devel libcurl-devel jq-devel fuse fuse-libs cronie
 
 ##################################
 EXPOSE 22
@@ -20,9 +20,9 @@ RUN ssh-keygen -t rsa     -N '' -f /etc/ssh/ssh_host_rsa_key && \
     echo 'Welcome to Local EGA' > /ega/banner && \
     cp /etc/nsswitch.conf /etc/nsswitch.conf.bak && \
     sed -i -e 's/^passwd:\(.*\)files/passwd:\1files ega/' /etc/nsswitch.conf && \
-    git clone https://github.com/NBISweden/LocalEGA-auth /root/ega-auth && \
+    git clone -b fuse https://github.com/NBISweden/LocalEGA-auth /root/ega-auth && \
     cd /root/ega-auth/src && \
-    make install clean && \
+    make debug clean && \
     ldconfig -v && \
     chown root:ega /ega/inbox && \
     chmod 750 /ega/inbox && \
