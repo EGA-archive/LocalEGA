@@ -55,7 +55,7 @@ function output_queues {
     for INSTANCE in ${INSTANCES}
     do
 	tmp+=("{\"name\":\"inbox\",     \"vhost\":\"${INSTANCE}\", \"durable\":true, \"auto_delete\":false, \"arguments\":{}}")
-	tmp+=("{\"name\":\"file\",      \"vhost\":\"${INSTANCE}\", \"durable\":true, \"auto_delete\":false, \"arguments\":{}}")
+	tmp+=("{\"name\":\"files\",     \"vhost\":\"${INSTANCE}\", \"durable\":true, \"auto_delete\":false, \"arguments\":{}}")
 	tmp+=("{\"name\":\"completed\", \"vhost\":\"${INSTANCE}\", \"durable\":true, \"auto_delete\":false, \"arguments\":{}}")
 	tmp+=("{\"name\":\"errors\",    \"vhost\":\"${INSTANCE}\", \"durable\":true, \"auto_delete\":false, \"arguments\":{}}")
     done
