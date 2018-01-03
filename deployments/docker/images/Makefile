@@ -1,3 +1,4 @@
+CHECKOUT=$(shell git rev-parse --abbrev-ref HEAD)
 TAG=$(shell git rev-parse --short HEAD)
 ifdef TRAVIS_COMMIT
 TAG=$(TRAVIS_COMMIT)
@@ -18,15 +19,14 @@ images: common
 	make -j 4 $(EGA_IMAGES)
 
 common $(EGA_IMAGES):
-	docker build --build-arg checkout=$(TAG) \
+	docker build --build-arg checkout=$(CHECKOUT) \
                      --cache-from $(TARGET)-$@:latest \
                      --tag $(TARGET)-$@:$(TAG) \
                      --tag $(TARGET)-$@:latest \
-                     --build-arg checkout=$(TAG) \
                      $@
 
 bootstrap:
-	docker build -f worker/Dockerfile.$@ --build-arg checkout=$(TAG) \
+	docker build -f worker/Dockerfile.$@ --build-arg checkout=$(CHECKOUT) \
                      --cache-from $(TARGET)-$@:latest \
                      --tag $(TARGET)-$@:$(TAG) \
                      --tag $(TARGET)-$@:latest \
