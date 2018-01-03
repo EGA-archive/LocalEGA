@@ -6,6 +6,8 @@ set -e
 [[ -z "${DB_INSTANCE}" ]] && echo 'Environment DB_INSTANCE is empty' 1>&2 && exit 1
 
 EGA_DB_IP=$(getent hosts ${DB_INSTANCE} | awk '{ print $1 }')
+EGA_UID=$(id -u ega)
+EGA_GID=$(id -g ega)
 
 cat > /etc/ega/auth.conf <<EOF
 debug = ok_why_not
@@ -32,8 +34,8 @@ get_account = SELECT elixir_id FROM users WHERE elixir_id = \$1 and current_time
 
 #prompt = Knock Knock:
 
-ega_uid = $(id -u ega)
-ega_gid = $(id -g ega)
+ega_uid = ${EGA_UID}
+ega_gid = ${EGA_GID}
 ega_gecos = EGA User
 ega_shell = /sbin/nologin
 
@@ -42,7 +44,7 @@ ega_shell = /sbin/nologin
 ##################
 ega_fuse_dir = /lega
 ega_fuse_exec = /usr/bin/ega-fs
-ega_fuse_flags = nodev,noexec,uid=1000,gid=1000,suid
+ega_fuse_flags = nodev,noexec,uid=${EGA_UID},gid=${EGA_GID},suid
 
 ega_dir = /ega/inbox
 ega_dir_attrs = 2750 # rwxr-s---
