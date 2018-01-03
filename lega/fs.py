@@ -76,7 +76,7 @@ class LegaFS(Operations):
 
     def rename(self, old, new):
         return os.rename(self._real_path(old), self._real_path(new))
-    
+
     def utimens(self, path, times=None):
         return os.utime(self._real_path(path), times)
 
