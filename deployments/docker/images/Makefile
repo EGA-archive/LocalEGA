@@ -1,4 +1,3 @@
-CHECKOUT=$(shell git rev-parse --abbrev-ref HEAD)
 TAG=$(shell git rev-parse --short HEAD)
 ifdef TRAVIS_COMMIT
 TAG=$(TRAVIS_COMMIT)
@@ -8,15 +7,16 @@ TAG=$(TRAVIS_PULL_REQUEST_SHA)
 endif
 
 TARGET=nbisweden/ega
+CHECKOUT=$(shell git rev-parse --abbrev-ref HEAD)
 
 EGA_IMAGES=mq inbox frontend worker vault keys cega-users cega-mq
 
 .PHONY: all push pull common erase delete clean cleanall bootstrap $(EGA_IMAGES)
 
-all: pull common images bootstrap
+all: pull common images
 
 images: common
-	make -j 4 $(EGA_IMAGES)
+	make -j 4 $(EGA_IMAGES) bootstrap
 
 common $(EGA_IMAGES):
 	docker build --build-arg checkout=$(CHECKOUT) \
