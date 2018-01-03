@@ -92,11 +92,13 @@ class LegaFS(Operations):
         self.pending.add(path)
         return os.open(self._real_path(path), os.O_WRONLY | os.O_CREAT, mode)
 
-    def read(self, path, length, offset, fh):
+    #def read(self, path, length, offset, fh):
+    def read(self, _, length, offset, fh):
         os.lseek(fh, offset, os.SEEK_SET)
         return os.read(fh, length)
 
-    def write(self, path, buf, offset, fh):
+    #def write(self, path, buf, offset, fh):
+    def write(self, _, buf, offset, fh):
         os.lseek(fh, offset, os.SEEK_SET)
         return os.write(fh, buf)
 
@@ -113,10 +115,12 @@ class LegaFS(Operations):
             self.pending.remove(path)
         return os.close(fh)
 
-    def flush(self, path, fh):
+    #def flush(self, path, fh):
+    def flush(self, _, fh):
         return os.fsync(fh)
 
-    def fsync(self, path, fdatasync, fh):
+    #def fsync(self, path, fdatasync, fh):
+    def fsync(self, _, fdatasync, fh):
         return os.fsync(fh)
 
 
