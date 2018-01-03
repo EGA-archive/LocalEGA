@@ -119,16 +119,13 @@ def report_user_error(message):
                                                              content_type='application/json',
                                                              delivery_mode=2))
 
-def file_landed(user, path):
+def publish(message, channel, routing):
     '''
     Sending a message to the local broker with `path` was updated
     '''
-    broker = get_connection('broker')
-    channel = broker.channel()
-    message = { 'user': user, 'filepath': path }
-    LOG.info(f'Contacting CentralEGA: File {path} just landed for user {user}')
+    LOG.debug(f'Sending {message} to lega:{routing}')
     channel.basic_publish(exchange    = 'lega',
-                          routing_key = 'lega.inbox',
+                          routing_key = routing,
                           body        = json.dumps(message),
                           properties  = pika.BasicProperties(correlation_id=str(uuid.uuid4()),
                                                              content_type='application/json',
