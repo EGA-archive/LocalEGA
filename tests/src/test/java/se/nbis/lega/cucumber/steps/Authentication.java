@@ -101,6 +101,8 @@ public class Authentication implements En {
 
         When("^I disconnect from the LocalEGA inbox$", () -> disconnect(context));
 
+        When("^I am disconnected from the LocalEGA inbox$", () -> Assert.assertFalse(isConnected(context)) );
+
         When("^inbox is not created for me$", () -> {
             try {
                 disconnect(context);
@@ -144,7 +146,7 @@ public class Authentication implements En {
             File privateKey = context.getPrivateKey();
             ssh.authPublickey(context.getUser(), privateKey.getPath());
 
-            //context.setSsh(ssh);
+            context.setSsh(ssh);
             context.setSftp(ssh.newSFTPClient());
             context.setAuthenticationFailed(false);
         } catch (UserAuthException e) {
@@ -154,10 +156,14 @@ public class Authentication implements En {
         }
     }
 
+    private boolean isConnected(Context context) {
+        return context.getSsh().isConnected();
+    }
+
     private void disconnect(Context context) {
         try {
             context.getSftp().close();
-            //context.getSsh().disconnect();
+            context.getSsh().disconnect();
         } catch (Exception e) {
             log.error(e.getMessage(), e);
         }
