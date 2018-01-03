@@ -60,7 +60,7 @@ cat > /etc/rabbitmq/defs-cega.json <<EOF
 	       {"value":{"uri":"${CEGA_ADDR}",
 			 "ack-mode":"on-confirm",
 			 "trust-user-id":false,
-			 "queue":"file"},
+			 "queue":"files"},
 		"vhost":"/",
 		"component":"federation-upstream",
 		"name":"CEGA"}],
