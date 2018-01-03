@@ -27,12 +27,14 @@ data "template_file" "cloud_init" {
 
   vars {
     cidr        = "${var.cidr}"
-    conf        = "${base64encode("${file("${var.instance_data}/auth.conf")}")}"
+    conf        = "${base64encode("${file("${var.instance_data}/ega.conf")}")}"
+    auth_conf   = "${base64encode("${file("${var.instance_data}/auth.conf")}")}"
     hosts       = "${base64encode("${file("${path.root}/hosts")}")}"
     hosts_allow = "${base64encode("${file("${path.root}/hosts.allow")}")}"
     sshd_config = "${base64encode("${file("${path.module}/sshd_config")}")}"
     sshd_pam    = "${base64encode("${file("${path.module}/pam.sshd")}")}"
     ega_pam     = "${base64encode("${file("${path.module}/pam.ega")}")}"
+    fuse_cleanup= "${base64encode("${file("${path.module}/fuse_cleanup.sh")}")}"
     ega_ssh_keys= "${base64encode("${file("${var.instance_data}/ega_ssh_keys.sh")}")}"
     ega_mount   = "${base64encode("${file("${path.root}/systemd/ega.mount")}")}"
   }
