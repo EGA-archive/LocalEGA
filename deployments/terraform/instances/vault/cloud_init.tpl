@@ -52,6 +52,8 @@ bootcmd:
 
 runcmd:
   - mkfs -t btrfs -f /dev/vdb
+  - pip3.6 uninstall -y lega
+  - pip3.6 install git+https://github.com/NBISweden/LocalEGA.git@feature/inbox-fuse
   - systemctl start ega-verify ega-vault
   - systemctl enable ega-verify ega-vault
 

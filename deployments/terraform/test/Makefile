@@ -44,7 +44,7 @@ org.md5: org
 
 submit: enc enc.md5 org.md5
 	@echo "${BULLET} Publish message to Central EGA for ingestion ${NOCOLOR}"
-	ssh -l centos ${CEGA_IP} /var/lib/cega/publish --connection $(CEGA_MQ_CONNECTION) swe1 toto enc --unenc $(shell cat org.md5) --enc $(shell cat enc.md5) &>/dev/null
+	ssh -l centos ${CEGA_IP} /var/lib/cega/publish --connection $(CEGA_MQ_CONNECTION) toto enc --unenc $(shell cat org.md5) --enc $(shell cat enc.md5) &>/dev/null
 
 user: toto.yml
 	@echo "${BULLET} Add 'toto' to Central EGA ${NOCOLOR}"
