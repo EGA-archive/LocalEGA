@@ -2,6 +2,10 @@ version: '3.2'
 
 services:
 
+  ############################################
+  # Local EGA - Sweden swe1
+  ############################################
+
   # Local Message broker
   mq-swe1:
     env_file: private/swe1/mq.env
@@ -20,16 +24,6 @@ services:
     volumes:
       - ${DATA}/swe1/db.sql:/docker-entrypoint-initdb.d/ega.sql:ro
       
-
-  # Postgres Database for Finland
-  db-fin1:
-    env_file: private/fin1/db.env
-    hostname: ega-db-fin1
-    container_name: ega-db-fin1
-    image: postgres:latest
-    volumes:
-      - ${DATA}/fin1/db.sql:/docker-entrypoint-initdb.d/ega.sql:ro
-
   # ReST frontend
   frontend-swe1:
     hostname: ega-frontend
@@ -74,30 +68,6 @@ services:
       - inbox_swe1:/ega/inbox
       - ../..:/root/.local/lib/python3.6/site-packages:ro
       - ~/_auth_ega:/root/auth
-
-  # SFTP inbox for Finland
-  inbox-fin1:
-    hostname: ega-inbox
-    depends_on:
-      - db-fin1
-      - cega-users
-    env_file:
-      - private/fin1/db.env
-      - private/fin1/cega.env
-    ports:
-      - "${DOCKER_INBOX_fin1_PORT}:22"
-    container_name: ega-inbox-fin1
-    image: nbisweden/ega-inbox
-    privileged: true
-    cap_add:
-      - ALL
-    devices:
-      - /dev/fuse
-    volumes:
-      - inbox_fin1:/ega/inbox
-      - ${DATA}/fin1/ega.conf:/etc/ega/conf.ini:ro
-      - ${DATA}/fin1/logger.yml:/etc/ega/logger.yml:ro
-      - ../..:/root/.local/lib/python3.6/site-packages:ro
 
   # Vault
   vault-swe1:
@@ -173,59 +143,7 @@ services:
        - ${DATA}/swe1/rsa/ega.pub:/etc/ega/rsa/pub.pem:ro
        - ../..:/root/.local/lib/python3.6/site-packages:ro
 
-  keys-fin1:
-    env_file: private/fin1/gpg.env
-    environment:
-      - GPG_TTY=/dev/console
-      - KEYSERVER_PORT=9010
-    hostname: ega-keys-fin1
-    container_name: ega-keys-fin1
-    image: nbisweden/ega-keys
-    tty: true
-    expose:
-      - "9010"
-      - "9011"
-    volumes:
-       - ${DATA}/fin1/ega.conf:/etc/ega/conf.ini:ro
-       - ${DATA}/fin1/logger.yml:/etc/ega/logger.yml:ro
-       - ${DATA}/fin1/keys.conf:/etc/ega/keys.ini:ro
-       - ${DATA}/fin1/certs/ssl.cert:/etc/ega/ssl.cert:ro
-       - ${DATA}/fin1/certs/ssl.key:/etc/ega/ssl.key:ro
-       - ${DATA}/fin1/gpg/pubring.kbx:/root/.gnupg/pubring.kbx
-       - ${DATA}/fin1/gpg/trustdb.gpg:/root/.gnupg/trustdb.gpg
-       - ${DATA}/fin1/gpg/openpgp-revocs.d:/root/.gnupg/openpgp-revocs.d:ro
-       - ${DATA}/fin1/gpg/private-keys-v1.d:/root/.gnupg/private-keys-v1.d:ro
-       - ${DATA}/fin1/rsa/ega.sec:/etc/ega/rsa/sec.pem:ro
-       - ${DATA}/fin1/rsa/ega.pub:/etc/ega/rsa/pub.pem:ro
-       - ../..:/root/.local/lib/python3.6/site-packages:ro
-
-  ############################################
-  # Faking Central EGA
-  ############################################
-  cega-mq:
-    hostname: cega-mq
-    ports:
-      - "15673:15672"
-    image: nbisweden/ega-cega-mq
-    container_name: cega-mq
-    volumes:
-       - ${DATA}/cega/mq/defs.json:/etc/rabbitmq/defs.json:ro
-
-  cega-users:
-    env_file: private/cega/env
-    image: nbisweden/ega-cega-users
-    hostname: cega-users
-    container_name: cega-users
-    ports:
-      - "9100:80"
-    volumes:
-      - ${DATA}/cega/users:/cega/users:rw
-      - ../..:/root/.local/lib/python3.6/site-packages:ro
-
-  ############################################
   # Logging & Monitoring (ELK: Elasticsearch, Logstash, Kibana).
-  # NB: can't use underscores for containers' names, because of Logstash issue.
-  ############################################
   elasticsearch-swe1:
     image: docker.elastic.co/elasticsearch/elasticsearch-oss:6.0.0
     container_name: ega-elasticsearch-swe1
@@ -257,6 +175,202 @@ services:
       - elasticsearch-swe1
       - logstash-swe1
 
+  ############################################
+  # Local EGA - Finland fin1
+  ############################################
+
+  # Local Message broker
+  mq-fin1:
+    env_file: private/fin1/mq.env
+    hostname: ega-mq
+    ports:
+      - "15673:15672"
+    image: nbisweden/ega-mq
+    container_name: ega-mq-fin1
+
+  # Postgres Database for Sweden
+  db-fin1:
+    env_file: private/fin1/db.env
+    hostname: ega-db-fin1
+    container_name: ega-db-fin1
+    image: postgres:latest
+    volumes:
+      - ${DATA}/fin1/db.sql:/docker-entrypoint-initdb.d/ega.sql:ro
+      
+  # ReST frontend
+  frontend-fin1:
+    hostname: ega-frontend
+    depends_on:
+      - db-fin1
+      - logstash-fin1
+    ports:
+      - "9001:80"
+    expose:
+      - 80
+    container_name: ega-frontend-fin1
+    image: nbisweden/ega-frontend
+    volumes:
+      - ${DATA}/fin1/ega.conf:/etc/ega/conf.ini:ro
+      - ${DATA}/fin1/logger.yml:/etc/ega/logger.yml:ro
+      - ../..:/root/.local/lib/python3.6/site-packages:ro
+
+  # SFTP inbox for Sweden
+  inbox-fin1:
+    hostname: ega-inbox
+    depends_on:
+      - db-fin1
+      - logstash-fin1
+      - elasticsearch-fin1
+      - kibana-fin1
+      - cega-users
+    env_file:
+      - private/fin1/db.env
+      - private/fin1/cega.env
+    ports:
+      - "${DOCKER_INBOX_fin1_PORT}:22"
+    container_name: ega-inbox-fin1
+    image: nbisweden/ega-inbox
+    privileged: true
+    cap_add:
+      - ALL
+    devices:
+      - /dev/fuse
+    volumes:
+      - ${DATA}/fin1/ega.conf:/etc/ega/conf.ini:ro
+      - ${DATA}/fin1/logger.yml:/etc/ega/logger.yml:ro
+      - inbox_fin1:/ega/inbox
+      - ../..:/root/.local/lib/python3.6/site-packages:ro
+      - ~/_auth_ega:/root/auth
+
+  # Vault
+  vault-fin1:
+    depends_on:
+      - db-fin1
+      - mq-fin1
+      - inbox-fin1
+      - logstash-fin1
+    hostname: ega-vault
+    container_name: ega-vault-fin1
+    image: nbisweden/ega-vault
+    environment:
+      - MQ_INSTANCE=ega-mq-fin1
+      - CEGA_INSTANCE=cega-mq
+    volumes:
+       - staging_fin1:/ega/staging
+       - vault_fin1:/ega/vault
+       - ${DATA}/fin1/ega.conf:/etc/ega/conf.ini:ro
+       - ${DATA}/fin1/logger.yml:/etc/ega/logger.yml:ro
+       - ../..:/root/.local/lib/python3.6/site-packages:ro
+
+  # Ingestion Workers
+  ingest-fin1:
+    depends_on:
+      - db-fin1
+      - mq-fin1
+      - keys-fin1
+      - inbox-fin1
+      - logstash-fin1
+    image: nbisweden/ega-worker
+    environment:
+      - GPG_TTY=/dev/console
+      - MQ_INSTANCE=ega-mq-fin1
+      - CEGA_INSTANCE=cega-mq
+      - KEYSERVER_HOST=ega-keys-fin1
+      - KEYSERVER_PORT=9010
+    volumes:
+       - inbox_fin1:/ega/inbox
+       - staging_fin1:/ega/staging
+       - ${DATA}/fin1/ega.conf:/etc/ega/conf.ini:ro
+       - ${DATA}/fin1/logger.yml:/etc/ega/logger.yml:ro
+       - ${DATA}/fin1/certs/ssl.cert:/etc/ega/ssl.cert:ro
+       - ${DATA}/fin1/gpg/pubring.kbx:/root/.gnupg/pubring.kbx:ro
+       - ${DATA}/fin1/gpg/trustdb.gpg:/root/.gnupg/trustdb.gpg
+       - ../..:/root/.local/lib/python3.6/site-packages:ro
+
+  # Key server
+  keys-fin1:
+    env_file: private/fin1/gpg.env
+    depends_on:
+      - logstash-fin1
+    environment:
+      - GPG_TTY=/dev/console
+      - KEYSERVER_PORT=9010
+    hostname: ega-keys-fin1
+    container_name: ega-keys-fin1
+    image: nbisweden/ega-keys
+    tty: true
+    expose:
+      - "9010"
+      - "9011"
+    volumes:
+       - ${DATA}/fin1/ega.conf:/etc/ega/conf.ini:ro
+       - ${DATA}/fin1/logger.yml:/etc/ega/logger.yml:ro
+       - ${DATA}/fin1/keys.conf:/etc/ega/keys.ini:ro
+       - ${DATA}/fin1/certs/ssl.cert:/etc/ega/ssl.cert:ro
+       - ${DATA}/fin1/certs/ssl.key:/etc/ega/ssl.key:ro
+       - ${DATA}/fin1/gpg/pubring.kbx:/root/.gnupg/pubring.kbx
+       - ${DATA}/fin1/gpg/trustdb.gpg:/root/.gnupg/trustdb.gpg
+       - ${DATA}/fin1/gpg/openpgp-revocs.d:/root/.gnupg/openpgp-revocs.d:ro
+       - ${DATA}/fin1/gpg/private-keys-v1.d:/root/.gnupg/private-keys-v1.d:ro
+       - ${DATA}/fin1/rsa/ega.sec:/etc/ega/rsa/sec.pem:ro
+       - ${DATA}/fin1/rsa/ega.pub:/etc/ega/rsa/pub.pem:ro
+       - ../..:/root/.local/lib/python3.6/site-packages:ro
+
+  # Logging & Monitoring (ELK: Elasticsearch, Logstash, Kibana).
+  elasticsearch-fin1:
+    image: docker.elastic.co/elasticsearch/elasticsearch-oss:6.0.0
+    container_name: ega-elasticsearch-fin1
+    volumes:
+      - ${DATA}/fin1/logs/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
+      - elasticsearch_fin1:/usr/share/elasticsearch/data
+    environment:
+      ES_JAVA_OPTS: "-Xmx256m -Xms256m"
+
+  logstash-fin1:
+    image: docker.elastic.co/logstash/logstash-oss:6.0.0
+    container_name: ega-logstash-fin1
+    volumes:
+      - ${DATA}/fin1/logs/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
+      - ${DATA}/fin1/logs/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
+    environment:
+      LS_JAVA_OPTS: "-Xmx256m -Xms256m"
+    depends_on:
+      - elasticsearch-fin1
+
+  kibana-fin1:
+    image: docker.elastic.co/kibana/kibana-oss:6.0.0
+    container_name: ega-kibana-fin1
+    volumes:
+      - ${DATA}/fin1/logs/kibana.yml:/usr/share/kibana/config/kibana.yml:ro
+    ports:
+      - "5602:5601"
+    depends_on:
+      - elasticsearch-fin1
+      - logstash-fin1
+
+  ############################################
+  # Faking Central EGA
+  ############################################
+  cega-mq:
+    hostname: cega-mq
+    ports:
+      - "15670:15672"
+    image: nbisweden/ega-cega-mq
+    container_name: cega-mq
+    volumes:
+       - ${DATA}/cega/mq/defs.json:/etc/rabbitmq/defs.json:ro
+
+  cega-users:
+    env_file: private/cega/env
+    image: nbisweden/ega-cega-users
+    hostname: cega-users
+    container_name: cega-users
+    ports:
+      - "9100:80"
+    volumes:
+      - ${DATA}/cega/users:/cega/users:rw
+      - ../..:/root/.local/lib/python3.6/site-packages:ro
+
 # Use the default driver for volume creation
 volumes:
   inbox_swe1:
@@ -264,5 +378,6 @@ volumes:
   vault_swe1:
   elasticsearch_swe1:
   inbox_fin1:
-  # staging_fin1:
-  # vault_fin1:
+  staging_fin1:
+  vault_fin1:
+  elasticsearch_fin1:
