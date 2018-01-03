@@ -10,7 +10,7 @@ import stat
 from fuse import FUSE, FuseOSError, Operations
 
 from .conf import CONF
-from .utils.amqp import file_landed
+from .utils.amqp import get_connection, publish as file_landed
 
 LOG = logging.getLogger('inbox')
 
@@ -21,10 +21,11 @@ DEFAULT_OPTIONS = ('nothreads', 'allow_other', 'default_permissions', 'nodev', '
 DEFAULT_MODE = 0o750
 
 class LegaFS(Operations):
-    def __init__(self, root, user=None):
+    def __init__(self, root, user, connection):
         self.user = user
         self.root = root #.rstrip('/') # remove trailing /
         self.pending = set()
+        self.channel = connection.channel()
 
     # Helper
     def _real_path(self, path):
@@ -108,7 +109,7 @@ class LegaFS(Operations):
     def release(self, path, fh):
         if path in self.pending:
             LOG.debug(f"File {path} just landed")
-            file_landed(self.user, path)
+            file_landed({ 'user': self.user, 'filepath': path }, self.channel, 'lega.inbox')
             self.pending.remove(path)
         return os.close(fh)
 
@@ -161,13 +162,13 @@ def main():
     gid = int(options.get('gid',0))
     mode = options.pop('mode') # should be there
     rootdir = options.pop('rootdir',None)
+    user = options.pop('user',None)
 
     LOG.debug(f'Mountpoint: {mountpoint} | Root dir: {rootdir}')
     LOG.debug(f'Adding mount options: {options!r}')
 
     assert rootdir, "You did not specify the rootdir in the mount options"
-
-    user = os.path.basename(rootdir if rootdir[-1] != '/' else rootdir[:-1])
+    assert user, "You did not specify the user in the mount options"
 
     LOG.debug(f'EGA User: {user}')
 
@@ -184,15 +185,18 @@ def main():
     os.chmod(mountpoint, mode)
 
     # ....aaand cue music!
+    connection = get_connection('broker')
     try:
-        FUSE(LegaFS(rootdir, user), mountpoint, **options)
+        FUSE(LegaFS(rootdir, user, connection), mountpoint, **options)
     except RuntimeError as e:
         if str(e) == '1': # not empty
             LOG.debug(f'Already mounted')
             sys.exit(0)
         else:
-            LOG.debug(f'RuntimeError {e}')
+            LOG.error(f'RuntimeError {e}')
             sys.exit(2)
+    finally:
+        connection.close()
             
 
 
