@@ -67,7 +67,6 @@ services:
       - ${DATA}/swe1/logger.yml:/etc/ega/logger.yml:ro
       - inbox_swe1:/ega/inbox
       - ../..:/root/.local/lib/python3.6/site-packages:ro
-      - ~/_auth_ega:/root/auth
 
   # Vault
   vault-swe1:
@@ -240,7 +239,6 @@ services:
       - ${DATA}/fin1/logger.yml:/etc/ega/logger.yml:ro
       - inbox_fin1:/ega/inbox
       - ../..:/root/.local/lib/python3.6/site-packages:ro
-      - ~/_auth_ega:/root/auth
 
   # Vault
   vault-fin1:
