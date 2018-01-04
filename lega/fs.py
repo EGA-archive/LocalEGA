@@ -10,7 +10,8 @@ import stat
 from fuse import FUSE, FuseOSError, Operations
 
 from .conf import CONF
-from .utils.amqp import get_connection, publish as file_landed
+from .utils.amqp import get_connection, publish
+from .utils.checksum import calculate
 
 LOG = logging.getLogger('inbox')
 
@@ -31,6 +32,29 @@ class LegaFS(Operations):
     def _real_path(self, path):
         return os.path.join(self.root, path.lstrip('/'))
 
+    def _send_message(self, path, fh):
+        LOG.debug(f"File {path} just landed")
+        real_path = self._real_path(path)
+        st = os.stat(real_path)
+        c = None
+        try:
+            with open(real_path, 'rb') as f:
+                c = calculate(f, 'md5', bsize=8) # fh is int, not a file-boject
+        except OSError as e:
+            LOG.error(f'Unable to calculate checksum: {e!r}')
+
+        msg = {
+            'user': self.user,
+            'filepath': path,
+            'filesize': st.st_size,
+        }
+        if c:
+            msg['checksum']= { 'algorithm': 'md5', 'value': c }
+
+        publish(msg, self.channel, 'lega.inbox')
+        LOG.debug(f"Message sent: {msg}")
+
+        
     # Filesystem methods
     # ==================
 
@@ -107,9 +131,9 @@ class LegaFS(Operations):
             f.truncate(length)
 
     def release(self, path, fh):
+        # Send message first, close file last.
         if path in self.pending:
-            LOG.debug(f"File {path} just landed")
-            file_landed({ 'user': self.user, 'filepath': path }, self.channel, 'lega.inbox')
+            self._send_message(path, fh)
             self.pending.remove(path)
         return os.close(fh)
 
@@ -147,10 +171,12 @@ def parse_options():
     if conf:
         _args.append('--conf')
         _args.append(conf)
+        print('Using conf',conf)
     logger = options.pop('log', None)
     if logger:
         _args.append('--log')
         _args.append(logger)
+        print('Using logger',logger)
     CONF.setup(_args)
 
     return args.mountpoint, options
