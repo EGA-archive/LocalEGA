@@ -105,19 +105,6 @@ def consume(work, from_queue, to_routing):
     finally:
         connection.close()
 
-def report_user_error(message):
-    '''
-    Sending user error to local broker
-    '''
-    LOG.debug(f'Sending user error to LocalEGA error queue: {message}')
-    broker = get_connection('broker')
-    channel = broker.channel()
-    channel.basic_publish(exchange    = 'lega',
-                          routing_key = 'lega.error.user',
-                          body        = json.dumps(message),
-                          properties  = pika.BasicProperties(correlation_id=str(uuid.uuid4()),
-                                                             content_type='application/json',
-                                                             delivery_mode=2))
 
 def publish(message, channel, routing):
     '''

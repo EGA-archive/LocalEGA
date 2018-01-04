@@ -2,10 +2,11 @@
 
 import logging
 import hashlib
+import os
 
 from .exceptions import UnsupportedHashAlgorithm, CompanionNotFound
 
-LOG = logging.getLogger('utils')
+LOG = logging.getLogger('utils-checksum')
 
 # Main map
 _DIGEST = {
@@ -13,31 +14,28 @@ _DIGEST = {
     'sha256': hashlib.sha256,
 }
 
-def instanciate(algo):
+def calculate(f, algo, bsize=8192):
+    '''
+    Computes the checksum of the file-object `f` using the message digest `m`.
+    '''
     try:
-        return (_DIGEST[algo])()
+        m = (_DIGEST[algo])()
+        while True:
+            data = f.read(bsize)
+            if not data:
+                break
+            m.update(data)
+        return m.hexdigest()
     except KeyError:
         raise UnsupportedHashAlgorithm(algo)
-
-
-def compute(f, m, bsize=8192):
-    '''Computes the checksum of the bytes-like `f` using the message digest `m`.'''
-    while True:
-        data = f.read(bsize)
-        if not data:
-            break
-        m.update(data)
-    return m.hexdigest()
 
 def is_valid(filepath, digest, hashAlgo = 'md5'):
     '''Verify the integrity of a file against a hash value'''
 
     assert( isinstance(digest,str) )
 
-    m = instanciate(hashAlgo)
-
     with open(filepath, 'rb') as f: # Open the file in binary mode. No encoding dance.
-        res = compute(f, m)
+        res = calculate(f, hashAlgo)
         LOG.debug('Calculated digest: '+res)
         LOG.debug('  Original digest: '+digest)
         return res == digest
@@ -62,3 +60,4 @@ def get_from_companion(filepath):
 
     else: # no break statement was encountered
         raise CompanionNotFound(filepath)
+
