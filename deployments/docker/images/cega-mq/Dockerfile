@@ -1,4 +1,4 @@
-FROM rabbitmq:management
+FROM rabbitmq:3.6.12-management
 LABEL maintainer "Frédéric Haziza, NBIS"
 
 RUN apt-get update -y && \

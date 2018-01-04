@@ -3,9 +3,7 @@
 set -e
 set -x
 
-[[ -z "${INSTANCE}" ]] && echo 'Environment INSTANCE is empty' 1>&2 && exit 1
-[[ -z "${CEGA_INSTANCE}" ]] && echo 'Environment CEGA_INSTANCE is empty' 1>&2 && exit 1
-[[ -z "${CEGA_MQ_PASSWORD}" ]] && echo 'Environment CEGA_MQ_PASSWORD is empty' 1>&2 && exit 1
+[[ -z "${CEGA_CONNECTION}" ]] && echo 'Environment CEGA_CONNECTION is empty' 1>&2 && exit 1
 
 # Problem of loading the plugins and definitions out-of-orders.
 # Explanation: https://github.com/rabbitmq/rabbitmq-shovel/issues/13
@@ -17,14 +15,12 @@ set -x
 # So we use curl afterwards, to upload the extras definitions
 # See also https://pulse.mozilla.org/api/
 
-CEGA_ADDR="amqp://cega_${INSTANCE}:${CEGA_MQ_PASSWORD}@${CEGA_INSTANCE}:5672/${INSTANCE}"
-
 # For the moment, still using guest:guest
 cat > /etc/rabbitmq/defs-cega.json <<EOF
 {"parameters":[{"value":{"src-uri":"amqp://",
 			 "src-exchange":"lega",
 			 "src-exchange-key":"lega.error.user",
-			 "dest-uri":"${CEGA_ADDR}",
+			 "dest-uri":"${CEGA_CONNECTION}",
 			 "dest-exchange":"localega.v1",
 			 "dest-exchange-key":"errors",
 			 "add-forward-headers":false,
@@ -36,7 +32,7 @@ cat > /etc/rabbitmq/defs-cega.json <<EOF
 	       {"value":{"src-uri":"amqp://",
 			 "src-exchange":"lega",
 			 "src-exchange-key":"lega.completed",
-			 "dest-uri":"${CEGA_ADDR}",
+			 "dest-uri":"${CEGA_CONNECTION}",
 			 "dest-exchange":"localega.v1",
 			 "dest-exchange-key":"completed",
 			 "add-forward-headers":false,
@@ -48,7 +44,7 @@ cat > /etc/rabbitmq/defs-cega.json <<EOF
 	       {"value":{"src-uri":"amqp://",
 			 "src-exchange":"lega",
 			 "src-exchange-key":"lega.inbox",
-			 "dest-uri":"${CEGA_ADDR}",
+			 "dest-uri":"${CEGA_CONNECTION}",
 			 "dest-exchange":"localega.v1",
 			 "dest-exchange-key":"inbox",
 			 "add-forward-headers":false,
@@ -57,7 +53,7 @@ cat > /etc/rabbitmq/defs-cega.json <<EOF
 		"vhost":"/",
 		"component":"shovel",
 		"name":"CEGA-inbox"},
-	       {"value":{"uri":"${CEGA_ADDR}",
+	       {"value":{"uri":"${CEGA_CONNECTION}",
 			 "ack-mode":"on-confirm",
 			 "trust-user-id":false,
 			 "queue":"files"},
