@@ -92,13 +92,11 @@ class LegaFS(Operations):
         self.pending.add(path)
         return os.open(self._real_path(path), os.O_WRONLY | os.O_CREAT, mode)
 
-    #def read(self, path, length, offset, fh):
-    def read(self, _, length, offset, fh):
+    def read(self, path, length, offset, fh):
         os.lseek(fh, offset, os.SEEK_SET)
         return os.read(fh, length)
 
-    #def write(self, path, buf, offset, fh):
-    def write(self, _, buf, offset, fh):
+    def write(self, path, buf, offset, fh):
         os.lseek(fh, offset, os.SEEK_SET)
         return os.write(fh, buf)
 
@@ -115,12 +113,10 @@ class LegaFS(Operations):
             self.pending.remove(path)
         return os.close(fh)
 
-    #def flush(self, path, fh):
-    def flush(self, _, fh):
+    def flush(self, path, fh):
         return os.fsync(fh)
 
-    #def fsync(self, path, fdatasync, fh):
-    def fsync(self, _, fdatasync, fh):
+    def fsync(self, path, fdatasync, fh):
         return os.fsync(fh)
 
 
@@ -129,7 +125,7 @@ def parse_options():
     parser.add_argument('mountpoint', help='mountpoint for the LegaFS filesystem')
     parser.add_argument('-o', metavar='mnt_options', help='mount flags', required=True)
     args = parser.parse_args()
-    
+
     options = dict((opt,True) for opt in DEFAULT_OPTIONS)
     
     for opt in args.o.split(','):
