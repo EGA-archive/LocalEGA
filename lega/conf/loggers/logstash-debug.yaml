@@ -5,41 +5,65 @@ root:
 
 loggers:
   connect:
-    level: INFO
+    level: DEBUG
     handlers: [logstash,console]
   frontend:
-    level: INFO
+    level: DEBUG
     handlers: [logstash,console]
   ingestion:
-    level: INFO
+    level: DEBUG
     handlers: [logstash,console]
   keyserver:
-    level: INFO
+    level: DEBUG
     handlers: [logstash,console]
   vault:
-    level: INFO
+    level: DEBUG
     handlers: [logstash,console]
   verify:
-    level: INFO
+    level: DEBUG
     handlers: [logstash,console]
   socket-utils:
-    level: INFO
+    level: DEBUG
     handlers: [logstash,console]
   inbox:
-    level: INFO
+    level: DEBUG
     handlers: [logstash,console]
   utils:
-    level: INFO
+    level: DEBUG
     handlers: [logstash,console]
   amqp:
-    level: INFO
+    level: DEBUG
     handlers: [logstash,console]
   db:
-    level: INFO
+    level: DEBUG
     handlers: [logstash,console]
   crypto:
-    level: INFO
+    level: DEBUG
     handlers: [logstash,console]
+  asyncio:
+    level: DEBUG
+    handlers: [console]
+  aiopg:
+    level: DEBUG
+    handlers: [console]
+  aiohttp.access:
+    level: DEBUG
+    handlers: [console]
+  aiohttp.client:
+    level: DEBUG
+    handlers: [console]
+  aiohttp.internal:
+    level: DEBUG
+    handlers: [console]
+  aiohttp.server:
+    level: DEBUG
+    handlers: [console]
+  aiohttp.web:
+    level: DEBUG
+    handlers: [console]
+  aiohttp.websocket:
+    level: DEBUG
+    handlers: [console]
 
 
 handlers:
