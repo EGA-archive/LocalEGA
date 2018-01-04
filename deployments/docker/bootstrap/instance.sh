@@ -321,9 +321,7 @@ EOF
 # For the moment, still using guest:guest
 echomsg "\t* Local broker to Central EGA broker credentials"
 cat > ${PRIVATE}/${INSTANCE}/mq.env <<EOF
-INSTANCE=${INSTANCE}
-CEGA_MQ_PASSWORD=${CEGA_MQ_PASSWORD}
-CEGA_INSTANCE=cega-mq
+CEGA_CONNECTION=amqp://cega_${INSTANCE}:${CEGA_MQ_PASSWORD}@cega-mq:5672/${INSTANCE}
 EOF
 
 
