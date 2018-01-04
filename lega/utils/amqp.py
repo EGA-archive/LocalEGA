@@ -32,7 +32,7 @@ def get_connection(domain, blocking=True):
         # heartbeat_interval instead of heartbeat like they say in the doc
         # https://pika.readthedocs.io/en/latest/modules/parameters.html#connectionparameters
         params['heartbeat_interval'] = heartbeat
-        LOG.info(f'Setting hearbeat to {heartbeat}')
+        LOG.debug(f'Setting hearbeat to {heartbeat}')
 
     # SSL configuration
     if CONF.getboolean(domain,'enable_ssl', fallback=False):

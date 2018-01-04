@@ -47,12 +47,12 @@ async def _req(req, host, port, ssl=None, loop=None):
     reader, writer = await asyncio.open_connection(host, port, ssl=ssl, loop=loop)
 
     try:
-        LOG.info(f"Sending request for {req}")
+        LOG.debug(f"Sending request for {req}")
         # What does the client want
         writer.write(req)
         await writer.drain()
 
-        LOG.info("Waiting for answer")
+        LOG.debug("Waiting for answer")
         buf=bytearray()
         while True:
             data = await reader.read(1000)
@@ -60,7 +60,7 @@ async def _req(req, host, port, ssl=None, loop=None):
                 buf.extend(data)
             else:
                 writer.close()
-                LOG.info("Got it")
+                LOG.debug("Got it")
                 return buf
     except Exception as e:
         LOG.error(repr(e))
@@ -184,7 +184,7 @@ def main(args=None):
         LOG.error('No SSL encryption. Exiting...')
         sys.exit(2)
     else:
-        LOG.info('With SSL encryption')
+        LOG.debug('With SSL encryption')
         
     loop = asyncio.get_event_loop()
     try:
