@@ -2,7 +2,6 @@
 
 import logging
 import hashlib
-import os
 
 from .exceptions import UnsupportedHashAlgorithm, CompanionNotFound
 
@@ -14,31 +13,35 @@ _DIGEST = {
     'sha256': hashlib.sha256,
 }
 
-def calculate(f, algo, bsize=8192):
+def calculate(filepath, algo, bsize=8192):
     '''
     Computes the checksum of the file-object `f` using the message digest `m`.
     '''
     try:
         m = (_DIGEST[algo])()
-        while True:
-            data = f.read(bsize)
-            if not data:
-                break
-            m.update(data)
-        return m.hexdigest()
+        with open(filepath, 'rb') as f: # Open the file in binary mode. No encoding dance.
+            while True:
+                data = f.read(bsize)
+                if not data:
+                    break
+                m.update(data)
+            return m.hexdigest()
     except KeyError:
         raise UnsupportedHashAlgorithm(algo)
+    except OSError as e:
+        LOG.error(f'Unable to calculate checksum: {e!r}')
+        return None
+
 
 def is_valid(filepath, digest, hashAlgo = 'md5'):
     '''Verify the integrity of a file against a hash value'''
 
     assert( isinstance(digest,str) )
 
-    with open(filepath, 'rb') as f: # Open the file in binary mode. No encoding dance.
-        res = calculate(f, hashAlgo)
-        LOG.debug('Calculated digest: '+res)
-        LOG.debug('  Original digest: '+digest)
-        return res == digest
+    res = calculate(filepath, hashAlgo)
+    LOG.debug('Calculated digest: '+res)
+    LOG.debug('  Original digest: '+digest)
+    return res is not None and res == digest
 
 
 def get_from_companion(filepath):

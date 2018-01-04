@@ -48,13 +48,7 @@ class LegaFS(Operations):
         LOG.debug(f"File {path} just landed")
         real_path = self._real_path(path)
         st = os.stat(real_path)
-        c = None
-        try:
-            with open(real_path, 'rb') as f:
-                c = calculate(f, 'md5', bsize=8) # fh is int, not a file-boject
-        except OSError as e:
-            LOG.error(f'Unable to calculate checksum: {e!r}')
-
+        c = calculate(real_path, 'md5')
         msg = {
             'user': self.user,
             'filepath': path,
@@ -66,7 +60,7 @@ class LegaFS(Operations):
         publish(msg, self.channel, 'lega.inbox')
         LOG.debug(f"Message sent: {msg}")
 
-        
+
     # Filesystem methods
     # ==================
 
