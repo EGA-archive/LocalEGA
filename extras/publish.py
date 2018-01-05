@@ -34,10 +34,14 @@ if args.enc:
 if args.unenc:
     message['unencrypted_integrity'] = { 'hash': args.unenc, 'algorithm': args.unenc_algo, }
 
+print('Publishing:',message)
+
 parameters = pika.URLParameters(args.connection)
 connection = pika.BlockingConnection(parameters)
 channel = connection.channel()
 channel.basic_publish(exchange='localega.v1', routing_key='files',
                       body=json.dumps(message),
                       properties=pika.BasicProperties(correlation_id=str(uuid.uuid4()), content_type='application/json',delivery_mode=2))
+
 connection.close()
+print('Message published')
