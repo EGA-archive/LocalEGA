@@ -1,14 +1,14 @@
+CHECKOUT=$(shell git rev-parse --abbrev-ref HEAD)
 TAG=$(shell git rev-parse --short HEAD)
 ifdef TRAVIS_COMMIT
 TAG=$(TRAVIS_COMMIT)
+CHECKOUT=$(TAG)
 endif
 ifdef TRAVIS_PULL_REQUEST_SHA
 TAG=$(TRAVIS_PULL_REQUEST_SHA)
 endif
 
 TARGET=nbisweden/ega
-#CHECKOUT=$(shell git rev-parse --abbrev-ref HEAD)
-CHECKOUT=$(TAG)
 
 EGA_IMAGES=mq inbox frontend worker vault keys cega-users
 
