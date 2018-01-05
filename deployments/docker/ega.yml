@@ -353,6 +353,7 @@ services:
     hostname: cega-mq
     ports:
       - "15670:15672"
+      - "5672:5672"
     image: rabbitmq:3.6.14-management
     container_name: cega-mq
     volumes:

@@ -84,7 +84,7 @@ class ReEncryptor(asyncio.SubprocessProtocol):
         self.target_handler = target_h
 
         LOG.info(f'Setup {hashAlgo} digest')
-        self.digest = checksum.instanciate(hashAlgo)
+        self.digest = checksum.instantiate(hashAlgo)
 
         LOG.info(f'Starting the encrypting engine')
         encryption_key, mode, nonce = next(self.engine)

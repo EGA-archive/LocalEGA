@@ -13,12 +13,18 @@ _DIGEST = {
     'sha256': hashlib.sha256,
 }
 
+def instantiate(algo):
+    try:
+        return (_DIGEST[algo])()
+    except KeyError:
+        raise UnsupportedHashAlgorithm(algo)
+
 def calculate(filepath, algo, bsize=8192):
     '''
     Computes the checksum of the file-object `f` using the message digest `m`.
     '''
     try:
-        m = (_DIGEST[algo])()
+        m = instantiate(algo)
         with open(filepath, 'rb') as f: # Open the file in binary mode. No encoding dance.
             while True:
                 data = f.read(bsize)
@@ -26,8 +32,6 @@ def calculate(filepath, algo, bsize=8192):
                     break
                 m.update(data)
             return m.hexdigest()
-    except KeyError:
-        raise UnsupportedHashAlgorithm(algo)
     except OSError as e:
         LOG.error(f'Unable to calculate checksum: {e!r}')
         return None
