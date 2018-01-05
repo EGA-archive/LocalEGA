@@ -49,7 +49,7 @@ Feature: Ingestion
   #   And I connect to the LocalEGA inbox via SFTP using private key
   #   And I have a file encrypted with OpenPGP using a "swe1" key
   #   And I upload encrypted file to the LocalEGA inbox via SFTP
-  #   # And I have CEGA MQ username and password
+  #   And I have CEGA MQ username and password
   #   And inbox is deleted for my user
   #   When I ingest file from the LocalEGA inbox using correct encrypted checksum
   #   Then ingestion failed
