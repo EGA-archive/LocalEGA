@@ -162,7 +162,7 @@ def parse_options():
     args = parser.parse_args()
 
     options = dict((opt,True) for opt in DEFAULT_OPTIONS)
-    
+
     for opt in args.o.split(','):
         try:
             k,v = opt.split('=')

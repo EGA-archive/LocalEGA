@@ -7,8 +7,8 @@ import lombok.NoArgsConstructor;
 @Data
 public class Checksum {
 
-  String hash;
+  private String hash;
 
-  String algorithm;
+  private String algorithm;
 
 }

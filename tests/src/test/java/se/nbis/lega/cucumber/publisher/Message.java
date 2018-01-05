@@ -9,14 +9,14 @@ import lombok.NoArgsConstructor;
 public class Message {
 
   @JsonProperty("elixir_id")
-  String elixirId;
+  private String elixirId;
 
-  String filename;
+  private String filename;
 
   @JsonProperty("encrypted_integrity")
-  Checksum encryptedIntegrity;
+  private Checksum encryptedIntegrity;
 
   @JsonProperty("unencrypted_integrity")
-  Checksum unencryptedIntegrity;
+  private Checksum unencryptedIntegrity;
 
 }
