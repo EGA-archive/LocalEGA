@@ -9,7 +9,7 @@ endif
 TARGET=nbisweden/ega
 CHECKOUT=$(shell git rev-parse --abbrev-ref HEAD)
 
-EGA_IMAGES=mq inbox frontend worker vault keys cega-users cega-mq
+EGA_IMAGES=mq inbox frontend worker vault keys cega-users
 
 .PHONY: all push pull common erase delete clean cleanall bootstrap $(EGA_IMAGES)
 
