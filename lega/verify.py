@@ -43,7 +43,7 @@ def main(args=None):
 
     CONF.setup(args) # re-conf
 
-    consume(work, 'archived', 'lega.completed')
+    consume(work, 'archived', 'completed')
 
 if __name__ == '__main__':
     main()

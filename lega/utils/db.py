@@ -252,7 +252,7 @@ def report_user_error(message):
     LOG.debug(f'Sending user error to LocalEGA error queue: {message}')
     broker = get_connection('broker')
     channel = broker.channel()
-    publish(message, channel, 'lega.error.user')
+    publish(message, channel, 'cega', 'files.error')
 
 
 def catch_error(func):
