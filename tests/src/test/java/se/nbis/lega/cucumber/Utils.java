@@ -14,6 +14,14 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.rabbitmq.client.AMQP;
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.Connection;
+import com.rabbitmq.client.ConnectionFactory;
+import se.nbis.lega.cucumber.publisher.Message;
+import se.nbis.lega.cucumber.publisher.Checksum;
+
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -249,6 +257,46 @@ public class Utils {
         String md5 = DigestUtils.md5Hex(fileInputStream);
         fileInputStream.close();
         return md5;
+    }
+
+    /**
+     * Sends a JSON message to a RabbitMQ instance.
+     *
+     * @param connection The address of the broker.
+     * @return if the message was sent.
+     * @throws IOException In case of broken connection.
+     */
+    public void publishCega(String connection, String user, String filename, String enc, String unenc) throws Exception {
+	
+	Message message = new Message();
+	message.setElixirId(user);
+        message.setFilename(filename);
+
+	Checksum unencrypted = new Checksum();
+	unencrypted.setAlgorithm("md5");
+	unencrypted.setHash(unenc);
+	message.setUnencryptedIntegrity(unencrypted);
+
+	Checksum encrypted = new Checksum();
+	encrypted.setAlgorithm("md5");
+	encrypted.setHash(enc);
+	message.setEncryptedIntegrity(encrypted);
+
+	ConnectionFactory factory = new ConnectionFactory();
+	factory.setUri(connection);
+	
+	Connection connectionFactory = factory.newConnection();
+	Channel channel = connectionFactory.createChannel();
+
+	ObjectMapper objectMapper = new ObjectMapper();
+	AMQP.BasicProperties properties = new AMQP.BasicProperties().builder().deliveryMode(2)
+	    .contentType("application/json").contentEncoding("UTF-8").build();
+	
+	channel.basicPublish("localega.v1", "files", properties,
+			     objectMapper.writeValueAsBytes(message));
+
+	channel.close();
+	connectionFactory.close();
     }
 
 }
