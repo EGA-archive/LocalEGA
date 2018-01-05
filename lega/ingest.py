@@ -202,7 +202,7 @@ def main(args=None):
         sys.exit(1)
     else:
         # upstream link configured in local broker
-        consume(do_work, 'files', 'lega.staged')
+        consume(do_work, 'files', 'staged')
     finally:
         loop.close()
 

@@ -23,7 +23,7 @@ from fuse import FUSE, FuseOSError, Operations
 
 from .conf import CONF
 from .utils.amqp import get_connection, publish
-from .utils.checksum import calculate
+from .utils.checksum import calculate, _DIGEST as algorithms
 
 LOG = logging.getLogger('inbox')
 
@@ -48,16 +48,21 @@ class LegaFS(Operations):
         LOG.debug(f"File {path} just landed")
         real_path = self._real_path(path)
         st = os.stat(real_path)
-        c = calculate(real_path, 'md5')
         msg = {
             'user': self.user,
             'filepath': path,
             'filesize': st.st_size,
         }
-        if c:
-            msg['checksum']= { 'algorithm': 'md5', 'value': c }
 
-        publish(msg, self.channel, 'lega.inbox')
+        if path.endswith( tuple(algorithms.keys()) ):
+            with open(real_path, 'rt', encoding='utf-8') as f:
+                msg['checksum']= f.read()
+            publish(msg, self.channel, 'cega', 'files.inbox.checksum')
+        else:
+            c = calculate(real_path, 'md5')
+            if c:
+                msg['checksum']= { 'algorithm': 'md5', 'value': c }
+            publish(msg, self.channel, 'cega', 'files.inbox')
         LOG.debug(f"Message sent: {msg}")
 
 

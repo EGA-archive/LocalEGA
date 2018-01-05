@@ -50,6 +50,18 @@ def get_connection(domain, blocking=True):
     if blocking:
         return pika.BlockingConnection( pika.ConnectionParameters(**params) )
     return pika.SelectConnection( pika.ConnectionParameters(**params) )
+
+def publish(message, channel, exchange, routing, correlation_id=None):
+    '''
+    Sending a message to the local broker with `path` was updated
+    '''
+    LOG.debug(f'Sending {message} to exchange: {exchange} [routing key: {routing}]')
+    channel.basic_publish(exchange    = exchange,
+                          routing_key = routing,
+                          body        = json.dumps(message),
+                          properties  = pika.BasicProperties(correlation_id=correlation_id or str(uuid.uuid4()),
+                                                             content_type='application/json',
+                                                             delivery_mode=2))
     
 
 def consume(work, from_queue, to_routing):
@@ -85,13 +97,8 @@ def consume(work, from_queue, to_routing):
 
         # Publish the answer
         if answer:
-            LOG.debug(f'Replying to {to_routing} with {answer}')
-            to_channel.basic_publish(exchange    = 'lega',
-                                     routing_key = to_routing,
-                                     body        = json.dumps(answer),
-                                     properties  = pika.BasicProperties( correlation_id = props.correlation_id,
-                                                                         content_type='application/json',
-                                                                         delivery_mode=2 ))
+            publish(answer, to_channel, 'lega', to_routing, correlation_id = props.correlation_id)
+
         # Acknowledgment: Cancel the message resend in case MQ crashes
         LOG.debug(f'Sending ACK for message {message_id} (Correlation ID: {correlation_id})')
         channel.basic_ack(delivery_tag=method_frame.delivery_tag)        
@@ -106,14 +113,3 @@ def consume(work, from_queue, to_routing):
         connection.close()
 
 
-def publish(message, channel, routing):
-    '''
-    Sending a message to the local broker with `path` was updated
-    '''
-    LOG.debug(f'Sending {message} to lega:{routing}')
-    channel.basic_publish(exchange    = 'lega',
-                          routing_key = routing,
-                          body        = json.dumps(message),
-                          properties  = pika.BasicProperties(correlation_id=str(uuid.uuid4()),
-                                                             content_type='application/json',
-                                                             delivery_mode=2))

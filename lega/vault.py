@@ -65,7 +65,7 @@ def main(args=None):
 
     CONF.setup(args) # re-conf
 
-    consume(work, 'staged', 'lega.archived')
+    consume(work, 'staged', 'archived')
 
 if __name__ == '__main__':
     main()
