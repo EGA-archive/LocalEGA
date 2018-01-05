@@ -99,3 +99,12 @@ cat > ${PRIVATE}/cega/mq/defs.json <<EOF
  "bindings":[$(output_bindings)]
 }
 EOF
+
+cat > ${PRIVATE}/cega/mq/rabbitmq.config <<EOF
+%% -*- mode: erlang -*-
+%%
+[{rabbit,[{loopback_users, [ ] },
+	  {disk_free_limit, "1GB"}]},
+ {rabbitmq_management, [ {load_definitions, "/etc/rabbitmq/defs.json"} ]}
+].
+EOF
