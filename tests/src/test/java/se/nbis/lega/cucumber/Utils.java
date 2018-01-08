@@ -154,9 +154,9 @@ public class Utils {
      */
     public void removeUserInbox(String instance, String user) throws InterruptedException {
         executeWithinContainer(findContainer(getProperty("images.name.inbox"), getProperty("container.prefix.inbox") + instance),
-                String.format("fusermount -u %s/%s", getProperty("inbox.folder.path"), user).split(" "));
+                String.format("umount -l %s/%s", getProperty("inbox.fuse.folder.path"), user).split(" "));
         executeWithinContainer(findContainer(getProperty("images.name.inbox"), getProperty("container.prefix.inbox") + instance),
-                String.format("rmdir %s/%s", getProperty("inbox.folder.path"), user).split(" "));
+                String.format("rm -rf %s/%s", getProperty("inbox.real.folder.path"), user).split(" "));
     }
 
     /**
@@ -168,7 +168,7 @@ public class Utils {
      */
     public void removeUploadedFileFromInbox(String instance, String user, String fileName) throws InterruptedException {
         executeWithinContainer(findContainer(getProperty("images.name.inbox"), getProperty("container.prefix.inbox") + instance),
-                String.format("rm -rf %s/%s/%s", getProperty("inbox.folder.path"), user, fileName).split(" "));
+                String.format("rm -rf %s/%s/%s", getProperty("inbox.fuse.folder.path"), user, fileName).split(" "));
     }
 
     /**
