@@ -234,7 +234,6 @@ def main():
             sys.exit(2)
     finally:
         connection.close()
-            
 
 
 if __name__ == '__main__':
