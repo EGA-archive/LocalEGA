@@ -61,7 +61,7 @@ exec 2>${PRIVATE}/.err
 if [[ -f "${SETTINGS}" ]]; then
     source ${SETTINGS}
 else
-    echo "No settings found"
+    echo "No settings found. Use settings.sample to create a settings file" 1>&2
     exit 1
 fi
 
@@ -281,62 +281,46 @@ MQ_USER=lega
 MQ_PASSWORD=${MQ_PASSWORD}
 EOF
 
-CEGA_ADDR="amqp://cega_swe1:${CEGA_MQ_PASSWORD}@cega_mq:5672/swe1"
-
 cat > ${PRIVATE}/mq_cega_defs.json <<EOF
-{"parameters":[{"value":{"src-uri":"amqp://",
-			 "src-exchange":"lega",
-			 "src-exchange-key":"lega.error.user",
-			 "dest-uri":"${CEGA_ADDR}",
-			 "dest-exchange":"localega.v1",
-			 "dest-exchange-key":"errors",
-			 "add-forward-headers":false,
-			 "ack-mode":"on-confirm",
-			 "delete-after":"never"},
-		"vhost":"/",
-		"component":"shovel",
-		"name":"CEGA-errors"},
-	       {"value":{"src-uri":"amqp://",
-			 "src-exchange":"lega",
-			 "src-exchange-key":"lega.completed",
-			 "dest-uri":"${CEGA_ADDR}",
-			 "dest-exchange":"localega.v1",
-			 "dest-exchange-key":"completed",
-			 "add-forward-headers":false,
-			 "ack-mode":"on-confirm",
-			 "delete-after":"never"},
-		"vhost":"/",
-		"component":"shovel",
-		"name":"CEGA-completion"},
-	       {"value":{"src-uri":"amqp://",
-			 "src-exchange":"lega",
-			 "src-exchange-key":"lega.inbox",
-			 "dest-uri":"${CEGA_ADDR}",
-			 "dest-exchange":"localega.v1",
-			 "dest-exchange-key":"inbox",
-			 "add-forward-headers":false,
-			 "ack-mode":"on-confirm",
-			 "delete-after":"never"},
-		"vhost":"/",
-		"component":"shovel",
-		"name":"CEGA-inbox"},
-	       {"value":{"uri":"${CEGA_ADDR}",
+{"parameters":[{"value": {"src-uri": "amqp://",
+			  "src-exchange": "cega",
+			  "src-exchange-key": "#",
+			  "dest-uri": "${CEGA_CONNECTION}",
+			  "dest-exchange": "localega.v1",
+			  "add-forward-headers": false,
+			  "ack-mode": "on-confirm",
+			  "delete-after": "never"},
+            	"vhost": "/",
+		"component": "shovel",
+		"name": "to-CEGA"},
+	       {"value": {"src-uri": "amqp://",
+			   "src-exchange": "lega",
+			   "src-exchange-key": "completed",
+			   "dest-uri": "amqp://",
+			   "dest-exchange": "cega",
+			   "dest-exchange-key": "files.completed",
+			   "add-forward-headers": false,
+			   "ack-mode": "on-confirm",
+			   "delete-after": "never"},
+		"vhost": "/",
+		"component": "shovel",
+		"name": "CEGA-completion"},
+	       {"value":{"uri":"${CEGA_CONNECTION}",
 			 "ack-mode":"on-confirm",
 			 "trust-user-id":false,
 			 "queue":"files"},
 		"vhost":"/",
 		"component":"federation-upstream",
-		"name":"CEGA"}],
- "policies":[{"vhost":"/","name":"CEGA","pattern":"files","apply-to":"queues","definition":{"federation-upstream":"CEGA"},"priority":0}]
+		"name":"from-CEGA"}],
+ "policies":[{"vhost":"/","name":"CEGA","pattern":"files","apply-to":"queues","definition":{"federation-upstream":"from-CEGA"},"priority":0}]
 }
 EOF
 
-echomsg "\t* Kibana user credentials"
-cat > ${PRIVATE}/htpasswd <<EOF
-lega:$(${OPENSSL} passwd -apr1 -salt 8sFt66rZ ${KIBANA_PASSWD})
-EOF
-#echo $'dmytro:$apr1$B/121b5s$753jzM8Bq8O91NXJmo3ey/' >> ${PRIVATE}/htpasswd
+echomsg "\t* Kibana users credentials"
+: > ${PRIVATE}/htpasswd
+for u in ${!KIBANA_USERS[@]}; do echo "${u}:${KIBANA_USERS[$u]}" >> ${PRIVATE}/htpasswd; done
 
+echomsg "\t* Logstash configuration"
 cat > ${PRIVATE}/logstash.conf <<EOF
 input {
 	tcp {
@@ -402,6 +386,7 @@ CEGA_REST_PASSWORD  = ${CEGA_REST_PASSWORD}
 CEGA_MQ_PASSWORD    = ${CEGA_MQ_PASSWORD}
 CEGA_PASSWORD       = ${CEGA_PASSWORD}
 #
+KIBANA_USER         = lega
 KIBANA_PASSWORD     = ${KIBANA_PASSWD}
 EOF
 
