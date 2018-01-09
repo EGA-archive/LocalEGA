@@ -18,6 +18,7 @@ import os
 import logging
 import argparse
 import stat
+from pathlib import Path
 
 from fuse import FUSE, FuseOSError, Operations
 
@@ -40,28 +41,27 @@ class LegaFS(Operations):
         self.pending = set()
         self.channel = connection.channel()
 
-    # Helper
+    # Helpers
     def _real_path(self, path):
         return os.path.join(self.root, path.lstrip('/'))
 
     def _send_message(self, path, fh):
         LOG.debug(f"File {path} just landed")
         real_path = self._real_path(path)
-        st = os.stat(real_path)
         msg = {
             'user': self.user,
             'filepath': path,
-            'filesize': st.st_size,
         }
 
         if path.endswith( tuple(algorithms.keys()) ):
             with open(real_path, 'rt', encoding='utf-8') as f:
-                msg['checksum']= f.read()
-            publish(msg, self.channel, 'cega', 'files.inbox.checksum')
+                msg['content']= f.read()
+            publish(msg, self.channel, 'cega', 'files.inbox.checksums')
         else:
+            msg['filesize'] = os.stat(real_path).st_size
             c = calculate(real_path, 'md5')
             if c:
-                msg['checksum']= { 'algorithm': 'md5', 'value': c }
+                msg['enc_checksum']= { 'algorithm': 'md5', 'value': c }
             publish(msg, self.channel, 'cega', 'files.inbox')
         LOG.debug(f"Message sent: {msg}")
 

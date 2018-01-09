@@ -17,7 +17,7 @@ parser.add_argument('--connection',
                     default='amqp://localhost:5672/%2F')
 
 parser.add_argument('user', help='Elixir ID')
-parser.add_argument('filename', help='Filename in the user inbox')
+parser.add_argument('filepath', help='Filepath in the user inbox')
 
 unenc_group = parser.add_argument_group('unencrypted checksum')
 unenc_group.add_argument('--unenc')
@@ -28,7 +28,7 @@ enc_group.add_argument('--enc_algo', default='md5', help='[Default: md5]')
 
 args = parser.parse_args()
 
-message = { 'elixir_id': args.user, 'filename': args.filename }
+message = { 'elixir_id': args.user, 'filepath': args.filepath }
 if args.enc:
     message['encrypted_integrity'] = { 'hash': args.enc, 'algorithm': args.enc_algo, }
 if args.unenc:

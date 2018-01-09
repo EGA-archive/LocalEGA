@@ -34,9 +34,9 @@ LOG = logging.getLogger('vault')
 def work(data):
     '''Procedure to handle a message'''
 
-    file_id       = data['file_id']
-    user_id       = data['user_id']
-    filepath      = Path(data['filepath'])
+    file_id       = data['internal_data']['file_id']
+    user_id       = data['internal_data']['user_id']
+    filepath      = Path(data['internal_data']['filepath'])
 
     # Create the target name from the file_id
     vault_area = Path( CONF.get('vault','location') )
@@ -56,8 +56,7 @@ def work(data):
     db.finalize_file(file_id, starget, target.stat().st_size)
 
     # Send message to Archived queue
-    #return { 'file_id': file_id } # I could have the details in here. Fetching from DB instead.
-    del data['filepath']
+    data['internal_data'] = file_id # I could have the details in here. Fetching from DB instead.
     data['status'] = { 'state': 'ARCHIVED', 'message': 'File moved to the vault' }
     return data
 
