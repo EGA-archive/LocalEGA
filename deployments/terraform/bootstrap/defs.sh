@@ -51,3 +51,8 @@ function generate_password {
 
 function join_by { local IFS="$1"; shift; echo -n "$*"; }
 
+function error {
+    echo -e "\n===== ERROR =====\n\n$2\n" 1>&2
+    cat ${PRIVATE}/.err
+    exit $1
+}

@@ -3,8 +3,7 @@
 set -e
 set -x
 
-[[ -z "${INSTANCE}" ]] && echo 'Environment INSTANCE is empty' 1>&2 && exit 1
-[[ -z "${CEGA_MQ_PASSWORD}" ]] && echo 'Environment CEGA_MQ_PASSWORD is empty' 1>&2 && exit 1
+[[ -z "${CEGA_CONNECTION}" ]] && echo 'Environment CEGA_CONNECTION is empty' 1>&2 && exit 1
 
 # Problem of loading the plugins and definitions out-of-orders.
 # Explanation: https://github.com/rabbitmq/rabbitmq-shovel/issues/13
@@ -16,40 +15,41 @@ set -x
 # So we use curl afterwards, to upload the extras definitions
 # See also https://pulse.mozilla.org/api/
 
+# dest-exchange-key is not set for the shovel, so the key is re-used.
+
 # For the moment, still using guest:guest
 cat > /etc/rabbitmq/defs-cega.json <<EOF
-{"parameters":[{"value":{"src-uri":"amqp://",
-			 "src-exchange":"lega",
-			 "src-exchange-key":"lega.error.user",
-			 "dest-uri":"amqp://cega_${INSTANCE}:${CEGA_MQ_PASSWORD}@cega_mq:5672/${INSTANCE}",
-			 "dest-exchange":"localega.v1",
-			 "dest-exchange-key":"${INSTANCE}.errors",
-			 "add-forward-headers":false,
-			 "ack-mode":"on-confirm",
-			 "delete-after":"never"},
-		"vhost":"/",
-		"component":"shovel",
-		"name":"CEGA-errors"},
-	       {"value":{"src-uri":"amqp://",
-			 "src-exchange":"lega",
-			 "src-exchange-key":"lega.completed",
-			 "dest-uri":"amqp://cega_${INSTANCE}:${CEGA_MQ_PASSWORD}@cega_mq:5672/${INSTANCE}",
-			 "dest-exchange":"localega.v1",
-			 "dest-exchange-key":"${INSTANCE}.completed",
-			 "add-forward-headers":false,
-			 "ack-mode":"on-confirm",
-			 "delete-after":"never"},
-		"vhost":"/",
-		"component":"shovel",
-		"name":"CEGA-completion"},
-	       {"value":{"uri":"amqp://cega_${INSTANCE}:${CEGA_MQ_PASSWORD}@cega_mq:5672/${INSTANCE}",
+{"parameters":[{"value": {"src-uri": "amqp://",
+			  "src-exchange": "cega",
+			  "src-exchange-key": "#",
+			  "dest-uri": "${CEGA_CONNECTION}",
+			  "dest-exchange": "localega.v1",
+			  "add-forward-headers": false,
+			  "ack-mode": "on-confirm",
+			  "delete-after": "never"},
+            	"vhost": "/",
+		"component": "shovel",
+		"name": "to-CEGA"},
+	       {"value": {"src-uri": "amqp://",
+			   "src-exchange": "lega",
+			   "src-exchange-key": "completed",
+			   "dest-uri": "amqp://",
+			   "dest-exchange": "cega",
+			   "dest-exchange-key": "files.completed",
+			   "add-forward-headers": false,
+			   "ack-mode": "on-confirm",
+			   "delete-after": "never"},
+		"vhost": "/",
+		"component": "shovel",
+		"name": "CEGA-completion"},
+	       {"value":{"uri":"${CEGA_CONNECTION}",
 			 "ack-mode":"on-confirm",
 			 "trust-user-id":false,
-			 "queue":"${INSTANCE}.v1.commands.file"},
+			 "queue":"files"},
 		"vhost":"/",
 		"component":"federation-upstream",
-		"name":"CEGA"}],
- "policies":[{"vhost":"/","name":"CEGA","pattern":"files","apply-to":"queues","definition":{"federation-upstream":"CEGA"},"priority":0}]
+		"name":"from-CEGA"}],
+ "policies":[{"vhost":"/","name":"CEGA","pattern":"files","apply-to":"queues","definition":{"federation-upstream":"from-CEGA"},"priority":0}]
 }
 EOF
 chown rabbitmq:rabbitmq /etc/rabbitmq/defs-cega.json
@@ -69,6 +69,7 @@ chown -R rabbitmq /var/lib/rabbitmq
 	sleep 1
 	$((ROUND--))
     done
+    ((ROUND<0)) && echo "Central EGA connections *_not_* loaded" 2>&1 && exit 1
     echo "Central EGA connections loaded"
 } &
 

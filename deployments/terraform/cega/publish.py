@@ -16,7 +16,6 @@ parser.add_argument('--connection',
                     help="of the form 'amqp://<user>:<password>@<host>:<port>/<vhost>'",
                     default='amqp://localhost:5672/%2F')
 
-parser.add_argument('routing', help='Routing key for the localega.v1 exchange')
 parser.add_argument('user', help='Elixir ID')
 parser.add_argument('filename', help='Filename in the user inbox')
 
@@ -38,7 +37,7 @@ if args.unenc:
 parameters = pika.URLParameters(args.connection)
 connection = pika.BlockingConnection(parameters)
 channel = connection.channel()
-channel.basic_publish(exchange='localega.v1', routing_key='{}.file'.format(args.routing),
+channel.basic_publish(exchange='localega.v1', routing_key='files',
                       body=json.dumps(message),
                       properties=pika.BasicProperties(correlation_id=str(uuid.uuid4()), content_type='application/json',delivery_mode=2))
 connection.close()

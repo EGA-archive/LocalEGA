@@ -28,13 +28,16 @@ LOG = logging.getLogger('verify')
 def work(data):
     '''Verifying that the file in the vault does decrypt properly'''
 
-    file_id = data['file_id']
+    LOG.debug(f'Verifying message: {data}')
+
+    file_id = data.pop('internal_data') # can raise KeyError
     filename, _, org_hash_algo, vault_filename, vault_checksum = db.get_details(file_id)
 
     if not checksum.is_valid(vault_filename, vault_checksum, hashAlgo='sha256'):
         raise exceptions.VaultDecryption(vault_filename)
 
-    return { 'vault_name': vault_filename, 'org_name': filename }
+    data['status'] = { 'state': 'COMPLETED', 'details': file_id }
+    return data
 
 def main(args=None):
 
@@ -43,7 +46,7 @@ def main(args=None):
 
     CONF.setup(args) # re-conf
 
-    consume(work, 'archived', 'lega.completed')
+    consume(work, 'archived', 'completed')
 
 if __name__ == '__main__':
     main()

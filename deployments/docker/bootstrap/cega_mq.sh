@@ -54,9 +54,11 @@ function output_queues {
     declare -a tmp
     for INSTANCE in ${INSTANCES}
     do
-	tmp+=("{\"name\":\"${INSTANCE}.v1.commands.file\",      \"vhost\":\"${INSTANCE}\", \"durable\":true, \"auto_delete\":false, \"arguments\":{}}")
-	tmp+=("{\"name\":\"${INSTANCE}.v1.commands.completed\", \"vhost\":\"${INSTANCE}\", \"durable\":true, \"auto_delete\":false, \"arguments\":{}}")
-	tmp+=("{\"name\":\"${INSTANCE}.v1.commands.errors\",    \"vhost\":\"${INSTANCE}\", \"durable\":true, \"auto_delete\":false, \"arguments\":{}}")
+	tmp+=("{\"name\":\"inbox\",     \"vhost\":\"${INSTANCE}\", \"durable\":true, \"auto_delete\":false, \"arguments\":{}}")
+	tmp+=("{\"name\":\"inbox.checksums\", \"vhost\":\"${INSTANCE}\", \"durable\":true, \"auto_delete\":false, \"arguments\":{}}")
+	tmp+=("{\"name\":\"files\",     \"vhost\":\"${INSTANCE}\", \"durable\":true, \"auto_delete\":false, \"arguments\":{}}")
+	tmp+=("{\"name\":\"completed\", \"vhost\":\"${INSTANCE}\", \"durable\":true, \"auto_delete\":false, \"arguments\":{}}")
+	tmp+=("{\"name\":\"errors\",    \"vhost\":\"${INSTANCE}\", \"durable\":true, \"auto_delete\":false, \"arguments\":{}}")
     done
     join_by $',\n' "${tmp[@]}"
 }
@@ -75,9 +77,11 @@ function output_bindings {
     declare -a tmp
     for INSTANCE in ${INSTANCES}
     do
-	tmp+=("{\"source\":\"localega.v1\",\"vhost\":\"${INSTANCE}\",\"destination_type\":\"queue\",\"arguments\":{},\"destination\":\"${INSTANCE}.v1.commands.file\",\"routing_key\":\"${INSTANCE}.file\"}")
-	tmp+=("{\"source\":\"localega.v1\",\"vhost\":\"${INSTANCE}\",\"destination_type\":\"queue\",\"arguments\":{},\"destination\":\"${INSTANCE}.v1.commands.completed\",\"routing_key\":\"${INSTANCE}.completed\"}")
-	tmp+=("{\"source\":\"localega.v1\",\"vhost\":\"${INSTANCE}\",\"destination_type\":\"queue\",\"arguments\":{},\"destination\":\"${INSTANCE}.v1.commands.errors\",\"routing_key\":\"${INSTANCE}.errors\"}")
+	tmp+=("{\"source\":\"localega.v1\",\"vhost\":\"${INSTANCE}\",\"destination_type\":\"queue\",\"arguments\":{},\"destination\":\"inbox\",\"routing_key\":\"files.inbox\"}")
+	tmp+=("{\"source\":\"localega.v1\",\"vhost\":\"${INSTANCE}\",\"destination_type\":\"queue\",\"arguments\":{},\"destination\":\"inbox.checksums\",\"routing_key\":\"files.inbox.checksums\"}")
+	tmp+=("{\"source\":\"localega.v1\",\"vhost\":\"${INSTANCE}\",\"destination_type\":\"queue\",\"arguments\":{},\"destination\":\"files\",\"routing_key\":\"files\"}")
+	tmp+=("{\"source\":\"localega.v1\",\"vhost\":\"${INSTANCE}\",\"destination_type\":\"queue\",\"arguments\":{},\"destination\":\"completed\",\"routing_key\":\"files.completed\"}")
+	tmp+=("{\"source\":\"localega.v1\",\"vhost\":\"${INSTANCE}\",\"destination_type\":\"queue\",\"arguments\":{},\"destination\":\"errors\",\"routing_key\":\"files.error\"}")
     done
     join_by $',\n' "${tmp[@]}"
 }
@@ -94,4 +98,13 @@ cat > ${PRIVATE}/cega/mq/defs.json <<EOF
  "exchanges":[$(output_exchanges)],
  "bindings":[$(output_bindings)]
 }
+EOF
+
+cat > ${PRIVATE}/cega/mq/rabbitmq.config <<EOF
+%% -*- mode: erlang -*-
+%%
+[{rabbit,[{loopback_users, [ ] },
+	  {disk_free_limit, "1GB"}]},
+ {rabbitmq_management, [ {load_definitions, "/etc/rabbitmq/defs.json"} ]}
+].
 EOF
