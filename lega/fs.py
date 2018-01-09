@@ -61,7 +61,7 @@ class LegaFS(Operations):
             msg['filesize'] = os.stat(real_path).st_size
             c = calculate(real_path, 'md5')
             if c:
-                msg['enc_checksum']= { 'algorithm': 'md5', 'value': c }
+                msg['encrypted_integrity']= { 'algorithm': 'md5', 'checksum': c }
             publish(msg, self.channel, 'cega', 'files.inbox')
         LOG.debug(f"Message sent: {msg}")
 
