@@ -8,10 +8,11 @@ import lombok.NoArgsConstructor;
 @Data
 public class Message {
 
-  @JsonProperty("elixir_id")
-  private String elixirId;
+  @JsonProperty("user")
+  private String user;
 
-  private String filename;
+  @JsonProperty("filepath")
+  private String filepath;
 
   @JsonProperty("encrypted_integrity")
   private Checksum encryptedIntegrity;

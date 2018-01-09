@@ -265,24 +265,24 @@ public class Utils {
      *
      * @param connection The address of the broker.
      * @param user       Username.
-     * @param filename   Filename.
+     * @param filepath   Filepath.
      * @param enc        Encrypted file hash (MD5).
      * @param unenc      Unencrypted file hash (MD5).
      * @throws Exception In case of broken connection.
      */
-    public void publishCEGA(String connection, String user, String filename, String enc, String unenc) throws Exception {
+    public void publishCEGA(String connection, String user, String filepath, String enc, String unenc) throws Exception {
         Message message = new Message();
-        message.setElixirId(user);
-        message.setFilename(filename);
+        message.setUser(user);
+        message.setFilepath(filepath);
 
         Checksum unencrypted = new Checksum();
         unencrypted.setAlgorithm("md5");
-        unencrypted.setHash(unenc);
+        unencrypted.setChecksum(unenc);
         message.setUnencryptedIntegrity(unencrypted);
 
         Checksum encrypted = new Checksum();
         encrypted.setAlgorithm("md5");
-        encrypted.setHash(enc);
+        encrypted.setChecksum(enc);
         message.setEncryptedIntegrity(encrypted);
 
         ConnectionFactory factory = new ConnectionFactory();

@@ -85,7 +85,7 @@ def work(active_master_key, master_pubkey, data):
     LOG.info(f"Processing {filepath}")
 
     # Use user_id, and not elixir_id
-    user_id = sanitize_user_id(data['user_id'])
+    user_id = sanitize_user_id(data['user'])
     
     # Insert in database
     file_id = db.insert_file(filepath, user_id)
