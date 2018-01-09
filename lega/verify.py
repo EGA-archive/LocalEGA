@@ -30,16 +30,14 @@ def work(data):
 
     LOG.debug(f'Verifying message: {data}')
 
-    file_id = data['file_id']
+    file_id = data.pop('internal_data') # can raise KeyError
     filename, _, org_hash_algo, vault_filename, vault_checksum = db.get_details(file_id)
 
     if not checksum.is_valid(vault_filename, vault_checksum, hashAlgo='sha256'):
         raise exceptions.VaultDecryption(vault_filename)
 
-    reply = data['org_data']
-    reply['pointer_id'] = file_id
-    reply['status'] = { 'state': 'COMPLETED', 'message': 'File successfully archived by the LocalEGA instance' }
-    return reply
+    data['status'] = { 'state': 'COMPLETED', 'details': file_id }
+    return data
 
 def main(args=None):
 
