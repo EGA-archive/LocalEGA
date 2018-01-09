@@ -275,7 +275,7 @@ def catch_error(func):
                 set_error(file_id, e, from_user)
                 if from_user: # Send to CEGA
                     data = args[-1] # data is the last argument
-                    del data.pop('internal_data', None) # delete if exists
+                    data.pop('internal_data', None) # delete if exists
                     data['status'] = { 'state': 'ERROR', 'message': repr(e) }
                     LOG.debug(f'Sending user error to LocalEGA error queue: {data}')
                     publish(data, get_connection('broker').channel(), 'cega', 'files.error')
