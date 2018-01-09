@@ -28,11 +28,11 @@ enc_group.add_argument('--enc_algo', default='md5', help='[Default: md5]')
 
 args = parser.parse_args()
 
-message = { 'elixir_id': args.user, 'filepath': args.filepath }
+message = { 'user_id': args.user, 'filepath': args.filepath }
 if args.enc:
-    message['encrypted_integrity'] = { 'hash': args.enc, 'algorithm': args.enc_algo, }
+    message['encrypted_integrity'] = { 'checksum': args.enc, 'algorithm': args.enc_algo, }
 if args.unenc:
-    message['unencrypted_integrity'] = { 'hash': args.unenc, 'algorithm': args.unenc_algo, }
+    message['unencrypted_integrity'] = { 'checksum': args.unenc, 'algorithm': args.unenc_algo, }
 
 print('Publishing:',message)
 

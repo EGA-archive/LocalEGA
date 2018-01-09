@@ -85,8 +85,8 @@ def work(active_master_key, master_pubkey, data):
     LOG.info(f"Processing {filepath}")
 
     # Use user_id, and not elixir_id
-    user_id = sanitize_user_id(data['elixir_id'])
-
+    user_id = sanitize_user_id(data['user_id'])
+    
     # Insert in database
     file_id = db.insert_file(filepath, user_id)
 
@@ -103,12 +103,12 @@ def work(active_master_key, master_pubkey, data):
     # Get the checksums now
 
     try:
-        encrypted_hash = data['encrypted_integrity']['hash']
+        encrypted_hash = data['encrypted_integrity']['checksum']
         encrypted_algo = data['encrypted_integrity']['algorithm']
     except KeyError:
         LOG.info('Finding a companion file')
         encrypted_hash, encrypted_algo = checksum.get_from_companion(inbox_filepath)
-        data['encrypted_integrity'] = {'hash': encrypted_hash,
+        data['encrypted_integrity'] = {'checksum': encrypted_hash,
                                        'algorithm': encrypted_algo }
 
 
@@ -123,13 +123,13 @@ def work(active_master_key, master_pubkey, data):
     LOG.debug(f'Valid {encrypted_algo} checksum for {inbox_filepath}')
 
     try:
-        unencrypted_hash = data['unencrypted_integrity']['hash']
+        unencrypted_hash = data['unencrypted_integrity']['checksum']
         unencrypted_algo = data['unencrypted_integrity']['algorithm']
     except KeyError:
         # Strip the suffix first.
         LOG.info('Finding a companion file')
         unencrypted_hash, unencrypted_algo = checksum.get_from_companion(inbox_filepath.with_suffix(''))
-        data['unencrypted_integrity'] = {'hash': unencrypted_hash,
+        data['unencrypted_integrity'] = {'checksum': unencrypted_hash,
                                          'algorithm': unencrypted_algo }
 
     # Fetch staging area
