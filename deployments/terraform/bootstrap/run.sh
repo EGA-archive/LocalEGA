@@ -61,23 +61,21 @@ exec 2>${PRIVATE}/.err
 if [[ -f "${SETTINGS}" ]]; then
     source ${SETTINGS}
 else
-    echo "No settings found"
-    exit 1
+    error 1 "No settings found. Use settings.sample to create a settings file"
 fi
 
-[[ -x $(readlink ${GPG}) ]] && echo "${GPG} is not executable. Adjust the setting with --gpg" && exit 2
-[[ -x $(readlink ${OPENSSL}) ]] && echo "${OPENSSL} is not executable. Adjust the setting with --openssl" && exit 3
+[[ -x $(readlink ${GPG}) ]] && error 2 "${GPG} is not executable. Adjust the setting with --gpg"
+[[ -x $(readlink ${OPENSSL}) ]] && error 3 "${OPENSSL} is not executable. Adjust the setting with --openssl"
 
-if [ -z "${DB_USER}" -o "${DB_USER}" == "postgres" ]; then
-    echo "Choose a database user (but not 'postgres')"
-    exit 4
-fi
+[ -z "${DB_USER}" -o "${DB_USER}" == "postgres" ] && error 4 "Choose a database user (but not 'postgres')"
 
 CEGA_PRIVATE=${HERE}/../cega/private
-[[ ! -d "${CEGA_PRIVATE}" ]] && echo "You need to bootstrap Central EGA first" && exit 5
+[[ ! -d "${CEGA_PRIVATE}" ]] && error 5 "You need to bootstrap Central EGA first"
 
-# Making sure INBOX_PATH ends with /
-[[ "${INBOX_PATH: -1}" == "/" ]] || INBOX_PATH=${INBOX_PATH}/
+if [ -z "${CEGA_CONNECTION}" ]; then
+    error 6 "CEGA_CONNECTION should be set"
+fi
+
 
 #########################################################################
 # And....cue music
@@ -139,8 +137,8 @@ EOF
 
 CEGA_REST_PASSWORD=$(awk '/swe1_REST_PASSWORD/ {print $3}' ${CEGA_PRIVATE}/env)
 CEGA_MQ_PASSWORD=$(awk '/swe1_MQ_PASSWORD/ {print $3}' ${CEGA_PRIVATE}/.trace)
-[[ -z "${CEGA_REST_PASSWORD}" ]] && echo "Are you sure Central EGA is bootstrapped?" && exit 1
-[[ -z "${CEGA_MQ_PASSWORD}" ]] && echo "Are you sure Central EGA is bootstrapped?" && exit 1
+[[ -z "${CEGA_REST_PASSWORD}" ]] && error 1 "Are you sure Central EGA is bootstrapped?"
+[[ -z "${CEGA_MQ_PASSWORD}" ]] && error 1 "Are you sure Central EGA is bootstrapped?"
 
 echomsg "\t* ega.conf"
 cat > ${PRIVATE}/ega.conf <<EOF
@@ -150,7 +148,7 @@ log = logstash
 [ingestion]
 gpg_cmd = /usr/local/bin/gpg2 --decrypt %(file)s
 
-inbox = ${INBOX_PATH}%(user_id)s/inbox
+inbox = /ega/inbox/%(user_id)s
 
 # Keyserver communication
 keyserver_host = ega_keys
@@ -187,24 +185,37 @@ debug = yes
 ##################
 db_connection = host=ega_db port=5432 dbname=lega user=${DB_USER} password=${DB_PASSWORD} connect_timeout=1 sslmode=disable
 
-enable_rest = yes
-rest_endpoint = http://cega/user/%s
-rest_user = swe1
-rest_password = ${CEGA_REST_PASSWORD}
-rest_resp_passwd = .password_hash
-rest_resp_pubkey = .pubkey
+enable_cega = yes
+cega_endpoint = http://cega/user/%s
+cega_user = swe1
+cega_password = ${CEGA_REST_PASSWORD}
+cega_resp_passwd = .password_hash
+cega_resp_pubkey = .pubkey
 
 ##################
-# NSS Queries
+# NSS & PAM Queries
 ##################
-nss_get_user = SELECT elixir_id,'x',${EGA_USER},${EGA_GROUP},'EGA User','${INBOX_PATH}'|| elixir_id,'/sbin/nologin' FROM users WHERE elixir_id = \$1 LIMIT 1
-nss_add_user = SELECT insert_user(\$1,\$2,\$3)
+get_ent = SELECT elixir_id FROM users WHERE elixir_id = \$1 LIMIT 1
+add_user = SELECT insert_user(\$1,\$2,\$3)
+get_password = SELECT password_hash FROM users WHERE elixir_id = \$1 LIMIT 1
+get_account = SELECT elixir_id FROM users WHERE elixir_id = \$1 and current_timestamp < last_accessed + expiration
+
+#prompt = Knock Knock:
+
+ega_uid = ${EGA_USER}
+ega_gid = ${EGA_GROUP}
+ega_gecos = EGA User
+ega_shell = /sbin/nologin
 
 ##################
-# PAM Queries
+# FUSE mount
 ##################
-pam_auth = SELECT password_hash FROM users WHERE elixir_id = \$1 LIMIT 1
-pam_acct = SELECT elixir_id FROM users WHERE elixir_id = \$1 and current_timestamp < last_accessed + expiration
+ega_fuse_dir = /mnt/lega
+ega_fuse_exec = /usr/bin/ega-fs
+ega_fuse_flags = nodev,noexec,uid=${EGA_USER},gid=${EGA_GROUP},suid
+
+ega_dir = /ega/inbox
+ega_dir_attrs = 2750 # rwxr-s---
 EOF
 
 echomsg "\t* Generating SSH banner"
@@ -272,47 +283,45 @@ MQ_PASSWORD=${MQ_PASSWORD}
 EOF
 
 cat > ${PRIVATE}/mq_cega_defs.json <<EOF
-{"parameters":[{"value":{"src-uri":"amqp://",
-			 "src-exchange":"lega",
-			 "src-exchange-key":"lega.error.user",
-			 "dest-uri":"amqp://cega_swe1:${CEGA_MQ_PASSWORD}@cega_mq:5672/swe1",
-			 "dest-exchange":"localega.v1",
-			 "dest-exchange-key":"swe1.errors",
-			 "add-forward-headers":false,
-			 "ack-mode":"on-confirm",
-			 "delete-after":"never"},
-		"vhost":"/",
-		"component":"shovel",
-		"name":"CEGA-errors"},
-	       {"value":{"src-uri":"amqp://",
-			 "src-exchange":"lega",
-			 "src-exchange-key":"lega.completed",
-			 "dest-uri":"amqp://cega_swe1:${CEGA_MQ_PASSWORD}@cega_mq:5672/swe1",
-			 "dest-exchange":"localega.v1",
-			 "dest-exchange-key":"swe1.completed",
-			 "add-forward-headers":false,
-			 "ack-mode":"on-confirm",
-			 "delete-after":"never"},
-		"vhost":"/",
-		"component":"shovel",
-		"name":"CEGA-completion"},
-	       {"value":{"uri":"amqp://cega_swe1:${CEGA_MQ_PASSWORD}@cega_mq:5672/swe1",
+{"parameters":[{"value": {"src-uri": "amqp://",
+			  "src-exchange": "cega",
+			  "src-exchange-key": "#",
+			  "dest-uri": "${CEGA_CONNECTION}",
+			  "dest-exchange": "localega.v1",
+			  "add-forward-headers": false,
+			  "ack-mode": "on-confirm",
+			  "delete-after": "never"},
+            	"vhost": "/",
+		"component": "shovel",
+		"name": "to-CEGA"},
+	       {"value": {"src-uri": "amqp://",
+			   "src-exchange": "lega",
+			   "src-exchange-key": "completed",
+			   "dest-uri": "amqp://",
+			   "dest-exchange": "cega",
+			   "dest-exchange-key": "files.completed",
+			   "add-forward-headers": false,
+			   "ack-mode": "on-confirm",
+			   "delete-after": "never"},
+		"vhost": "/",
+		"component": "shovel",
+		"name": "CEGA-completion"},
+	       {"value":{"uri":"${CEGA_CONNECTION}",
 			 "ack-mode":"on-confirm",
 			 "trust-user-id":false,
-			 "queue":"swe1.v1.commands.file"},
+			 "queue":"files"},
 		"vhost":"/",
 		"component":"federation-upstream",
-		"name":"CEGA"}],
- "policies":[{"vhost":"/","name":"CEGA","pattern":"files","apply-to":"queues","definition":{"federation-upstream":"CEGA"},"priority":0}]
+		"name":"from-CEGA"}],
+ "policies":[{"vhost":"/","name":"CEGA","pattern":"files","apply-to":"queues","definition":{"federation-upstream":"from-CEGA"},"priority":0}]
 }
 EOF
 
-echomsg "\t* Kibana user credentials"
-cat > ${PRIVATE}/htpasswd <<EOF
-lega:$(${OPENSSL} passwd -apr1 -salt 8sFt66rZ ${KIBANA_PASSWD})
-EOF
-echo $'dmytro:$apr1$B/121b5s$753jzM8Bq8O91NXJmo3ey/' >> ${PRIVATE}/htpasswd
+echomsg "\t* Kibana users credentials"
+: > ${PRIVATE}/htpasswd
+for u in ${!KIBANA_USERS[@]}; do echo "${u}:${KIBANA_USERS[$u]}" >> ${PRIVATE}/htpasswd; done
 
+echomsg "\t* Logstash configuration"
 cat > ${PRIVATE}/logstash.conf <<EOF
 input {
 	tcp {
@@ -378,7 +387,8 @@ CEGA_REST_PASSWORD  = ${CEGA_REST_PASSWORD}
 CEGA_MQ_PASSWORD    = ${CEGA_MQ_PASSWORD}
 CEGA_PASSWORD       = ${CEGA_PASSWORD}
 #
-KIBANA_PASSWORD     = ${KIBANA_PASSWD}
+KIBANA_USER         = lega
+KIBANA_PASSWORD     = ${KIBANA_PASSWORD}
 EOF
 
 task_complete "Bootstrap complete"

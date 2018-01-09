@@ -32,9 +32,6 @@ Subsystem sftp internal-sftp
 # Force sftp and chroot jail (for users in the ega group, but not ega)
 MATCH GROUP ega USER *,!ega
   Banner /ega/banner
-  ChrootDirectory %h
   AuthorizedKeysCommand /usr/local/bin/ega-ssh-keys.sh
   AuthorizedKeysCommandUser ega
   AuthenticationMethods "publickey" "keyboard-interactive:pam"
-  # -d (remote start directory relative user root)
-  ForceCommand internal-sftp -d /inbox

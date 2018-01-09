@@ -10,7 +10,6 @@ DB_PASSWORD=$(generate_password 16)
 DB_TRY=30
 
 MQ_PASSWORD=$(generate_password 16)
-
 CEGA_PASSWORD=$(generate_password 16)
 
 GPG_NAME="EGA Sweden"
@@ -22,8 +21,11 @@ RSA_PASSPHRASE=$(generate_password 16)
 
 LOG_LEVEL=DEBUG
 
-INBOX_PATH=/ega/inbox
 EGA_USER=1001
 EGA_GROUP=1001 # I don't like that solution
 
-KIBANA_PASSWD=$(generate_password 16)
+KIBANA_PASSWORD=$(generate_password 16)
+declare -A KIBANA_USERS=()
+KIBANA_USERS['lega']=$(${OPENSSL} passwd -apr1 -salt 8sFt66rZ ${KIBANA_PASSWORD})
+# Additional users
+KIBANA_USERS['dmytro']=$'$apr1$B/121b5s$753jzM8Bq8O91NXJmo3ey/'

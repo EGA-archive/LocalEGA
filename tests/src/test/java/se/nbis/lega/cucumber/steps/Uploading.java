@@ -61,7 +61,7 @@ public class Uploading implements En {
 
         Then("^the file is uploaded successfully$", () -> {
             try {
-                Assert.assertTrue(context.getSftp().ls("/inbox").stream().map(RemoteResourceInfo::getName).anyMatch(n -> context.getEncryptedFile().getName().equals(n)));
+                Assert.assertTrue(context.getSftp().ls("/").stream().map(RemoteResourceInfo::getName).anyMatch(n -> context.getEncryptedFile().getName().equals(n)));
             } catch (IOException e) {
                 log.error(e.getMessage(), e);
                 Assert.fail(e.getMessage());

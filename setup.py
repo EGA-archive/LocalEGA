@@ -24,6 +24,7 @@ Users are handled throught Central EGA, directly.
           'console_scripts': [
               'ega-frontend = lega.frontend:main',
               'ega-ingest = lega.ingest:main',
+              'ega-fs = lega.fs:main',
               'ega-vault = lega.vault:main',
               'ega-verify = lega.verify:main',
               'ega-monitor = lega.monitor:main',
@@ -41,5 +42,6 @@ Users are handled throught Central EGA, directly.
           'aiopg==0.13.0',
           'colorama==0.3.7',
           'aiohttp-jinja2==0.13.0',
+          'fusepy',
       ],
 )

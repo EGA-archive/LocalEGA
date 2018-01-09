@@ -101,6 +101,8 @@ public class Authentication implements En {
 
         When("^I disconnect from the LocalEGA inbox$", () -> disconnect(context));
 
+        When("^I am disconnected from the LocalEGA inbox$", () -> Assert.assertFalse(isConnected(context)) );
+
         When("^inbox is not created for me$", () -> {
             try {
                 disconnect(context);
@@ -152,6 +154,10 @@ public class Authentication implements En {
         } catch (IOException e) {
             log.error(e.getMessage(), e);
         }
+    }
+
+    private boolean isConnected(Context context) {
+        return context.getSsh().isConnected();
     }
 
     private void disconnect(Context context) {

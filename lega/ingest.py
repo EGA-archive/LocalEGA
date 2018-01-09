@@ -37,7 +37,7 @@ from Cryptodome.PublicKey import RSA
 
 from .conf import CONF
 from .utils import db, exceptions, checksum, sanitize_user_id
-from .utils.amqp import consume
+from .utils.amqp import consume, publish, get_connection
 from .utils.crypto import ingest as crypto_ingest
 from .keyserver import MASTER_PUBKEY, ACTIVE_MASTER_KEY
 
@@ -47,12 +47,12 @@ async def _req(req, host, port, ssl=None, loop=None):
     reader, writer = await asyncio.open_connection(host, port, ssl=ssl, loop=loop)
 
     try:
-        LOG.info(f"Sending request for {req}")
+        LOG.debug(f"Sending request for {req}")
         # What does the client want
         writer.write(req)
         await writer.drain()
 
-        LOG.info("Waiting for answer")
+        LOG.debug("Waiting for answer")
         buf=bytearray()
         while True:
             data = await reader.read(1000)
@@ -60,7 +60,7 @@ async def _req(req, host, port, ssl=None, loop=None):
                 buf.extend(data)
             else:
                 writer.close()
-                LOG.info("Got it")
+                LOG.debug("Got it")
                 return buf
     except Exception as e:
         LOG.error(repr(e))
@@ -74,42 +74,41 @@ def work(active_master_key, master_pubkey, data):
 
     The data is of the form:
     * user id
-    * a filename
+    * a filepath
     * encrypted hash information (with both the hash value and the hash algorithm)
     * unencrypted hash information (with both the hash value and the hash algorithm)
 
     The hash algorithm we support are MD5 and SHA256, for the moment.
     '''
 
-    filename = data['filename']
-    LOG.info(f"Processing {filename}")
+    filepath = data['filepath']
+    LOG.info(f"Processing {filepath}")
 
     # Use user_id, and not elixir_id
-    user_id = sanitize_user_id(data)
-
+    user_id = sanitize_user_id(data['user'])
+    
     # Insert in database
-    file_id = db.insert_file(filename, user_id)
-    data['file_id'] = file_id
+    file_id = db.insert_file(filepath, user_id)
 
     # Find inbox
     inbox = Path( CONF.get('ingestion','inbox',raw=True) % { 'user_id': user_id } )
     LOG.info(f"Inbox area: {inbox}")
 
     # Check if file is in inbox
-    inbox_filepath = inbox / filename
+    inbox_filepath = inbox / filepath
     if not inbox_filepath.exists():
-        raise exceptions.NotFoundInInbox(filename) # return early
+        raise exceptions.NotFoundInInbox(filepath) # return early
 
     # Ok, we have the file in the inbox
     # Get the checksums now
 
     try:
-        encrypted_hash = data['encrypted_integrity']['hash']
+        encrypted_hash = data['encrypted_integrity']['checksum']
         encrypted_algo = data['encrypted_integrity']['algorithm']
     except KeyError:
         LOG.info('Finding a companion file')
         encrypted_hash, encrypted_algo = checksum.get_from_companion(inbox_filepath)
-        data['encrypted_integrity'] = {'hash': encrypted_hash,
+        data['encrypted_integrity'] = {'checksum': encrypted_hash,
                                        'algorithm': encrypted_algo }
 
 
@@ -123,30 +122,37 @@ def work(active_master_key, master_pubkey, data):
         raise exceptions.Checksum(encrypted_algo, f'for {inbox_filepath}')
     LOG.debug(f'Valid {encrypted_algo} checksum for {inbox_filepath}')
 
+    try:
+        unencrypted_hash = data['unencrypted_integrity']['checksum']
+        unencrypted_algo = data['unencrypted_integrity']['algorithm']
+    except KeyError:
+        # Strip the suffix first.
+        LOG.info('Finding a companion file')
+        unencrypted_hash, unencrypted_algo = checksum.get_from_companion(inbox_filepath.with_suffix(''))
+        data['unencrypted_integrity'] = {'checksum': unencrypted_hash,
+                                         'algorithm': unencrypted_algo }
+
     # Fetch staging area
     staging_area = Path( CONF.get('ingestion','staging') )
     LOG.info(f"Staging area: {staging_area}")
     #staging_area.mkdir(parents=True, exist_ok=True) # re-create
         
     # Create a unique name for the staging area
-    #unique_name = str(uuid.uuid4())
     unique_name = str(uuid.uuid5(uuid.NAMESPACE_OID, 'lega'))
     LOG.debug(f'Created an unique filename in the staging area: {unique_name}')
     staging_filepath = staging_area / unique_name
 
-    try:
-        unencrypted_hash = data['unencrypted_integrity']['hash']
-        unencrypted_algo = data['unencrypted_integrity']['algorithm']
-    except KeyError:
-        # Strip the suffix first.
-        LOG.info('Finding a companion file')
-        unencrypted_hash, unencrypted_algo = checksum.get_from_companion(inbox_filepath.with_suffix(''))
-        data['unencrypted_integrity'] = {'hash': unencrypted_hash,
-                                         'algorithm': unencrypted_algo }
-
+    # Save progress in database
     LOG.debug(f'Starting the re-encryption\n\tfrom {inbox_filepath}\n\tto {staging_filepath}')
     db.set_progress(file_id, str(staging_filepath), encrypted_hash, encrypted_algo, unencrypted_hash, unencrypted_algo)
-    
+
+    # Sending a progress message to CentralEGA
+    data['status'] = { 'state': 'PROCESSING', 'details': None }
+    LOG.debug(f'Sending message to CentralEGA: {data}')
+    broker = get_connection('broker')
+    publish(data, broker.channel(), 'cega', 'files.processing')
+
+    # Decrypting
     cmd = CONF.get('ingestion','gpg_cmd',raw=True) % { 'file': str(inbox_filepath) }
     LOG.debug(f'GPG command: {cmd}\n')
     details, staging_checksum = crypto_ingest( cmd,
@@ -158,14 +164,14 @@ def work(active_master_key, master_pubkey, data):
                                                target = staging_filepath)
     db.set_encryption(file_id, details, staging_checksum)
     LOG.debug(f'Re-encryption completed')
-
-    reply = {
-        'file_id' : file_id,
-        'filepath': str(staging_filepath),
+    
+    data['internal_data'] = {
+        'file_id': file_id,
         'user_id': user_id,
+        'filepath': str(staging_filepath),
     }
-    LOG.debug(f"Reply message: {reply!r}")
-    return reply
+    LOG.debug(f"Reply message: {data}")
+    return data
 
 def main(args=None):
     if not args:
@@ -184,7 +190,7 @@ def main(args=None):
         LOG.error('No SSL encryption. Exiting...')
         sys.exit(2)
     else:
-        LOG.info('With SSL encryption')
+        LOG.debug('With SSL encryption')
         
     loop = asyncio.get_event_loop()
     try:
@@ -202,7 +208,7 @@ def main(args=None):
         sys.exit(1)
     else:
         # upstream link configured in local broker
-        consume(do_work, 'files', 'lega.staged')
+        consume(do_work, 'files', 'staged')
     finally:
         loop.close()
 

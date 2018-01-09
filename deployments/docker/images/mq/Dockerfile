@@ -1,4 +1,4 @@
-FROM rabbitmq:management
+FROM rabbitmq:3.6.14-management
 LABEL maintainer "Frédéric Haziza, NBIS"
 
 RUN apt-get update && \
@@ -17,8 +17,7 @@ RUN chown rabbitmq:rabbitmq /etc/rabbitmq/rabbitmq.config && \
     chown rabbitmq:rabbitmq /etc/rabbitmq/defs.json && \
     chmod 640 /etc/rabbitmq/defs.json
 
-ENV INSTANCE=
-ENV CEGA_MQ_PASSWORD=
+ENV CEGA_CONNECTION=
 
 # See inside the entrypoint for the reason
 COPY entrypoint.sh /usr/bin/ega-entrypoint.sh

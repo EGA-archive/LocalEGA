@@ -156,11 +156,13 @@ function output_vhosts {
 }
 
 function output_queues {
-    declare -a tmp=()
-    for INSTANCE in ${INSTANCES[@]}
+    declare -a tmp
+    for INSTANCE in ${INSTANCES}
     do
-	tmp+=("{\"name\":\"${INSTANCE}.v1.commands.file\",      \"vhost\":\"${INSTANCE}\", \"durable\":true, \"auto_delete\":false, \"arguments\":{}}")
-	tmp+=("{\"name\":\"${INSTANCE}.v1.commands.completed\", \"vhost\":\"${INSTANCE}\", \"durable\":true, \"auto_delete\":false, \"arguments\":{}}")
+	tmp+=("{\"name\":\"inbox\",     \"vhost\":\"${INSTANCE}\", \"durable\":true, \"auto_delete\":false, \"arguments\":{}}")
+	tmp+=("{\"name\":\"files\",     \"vhost\":\"${INSTANCE}\", \"durable\":true, \"auto_delete\":false, \"arguments\":{}}")
+	tmp+=("{\"name\":\"completed\", \"vhost\":\"${INSTANCE}\", \"durable\":true, \"auto_delete\":false, \"arguments\":{}}")
+	tmp+=("{\"name\":\"errors\",    \"vhost\":\"${INSTANCE}\", \"durable\":true, \"auto_delete\":false, \"arguments\":{}}")
     done
     join_by $',\n' "${tmp[@]}"
 }
@@ -176,11 +178,13 @@ function output_exchanges {
 
 
 function output_bindings {
-    declare -a tmp=()
-    for INSTANCE in ${INSTANCES[@]}
+    declare -a tmp
+    for INSTANCE in ${INSTANCES}
     do
-	tmp+=("{\"source\":\"localega.v1\",\"vhost\":\"${INSTANCE}\",\"destination_type\":\"queue\",\"arguments\":{},\"destination\":\"${INSTANCE}.v1.commands.file\",\"routing_key\":\"${INSTANCE}.file\"}")
-	tmp+=("{\"source\":\"localega.v1\",\"vhost\":\"${INSTANCE}\",\"destination_type\":\"queue\",\"arguments\":{},\"destination\":\"${INSTANCE}.v1.commands.completed\",\"routing_key\":\"${INSTANCE}.completed\"}")
+	tmp+=("{\"source\":\"localega.v1\",\"vhost\":\"${INSTANCE}\",\"destination_type\":\"queue\",\"arguments\":{},\"destination\":\"inbox\",\"routing_key\":\"inbox\"}")
+	tmp+=("{\"source\":\"localega.v1\",\"vhost\":\"${INSTANCE}\",\"destination_type\":\"queue\",\"arguments\":{},\"destination\":\"files\",\"routing_key\":\"files\"}")
+	tmp+=("{\"source\":\"localega.v1\",\"vhost\":\"${INSTANCE}\",\"destination_type\":\"queue\",\"arguments\":{},\"destination\":\"completed\",\"routing_key\":\"completed\"}")
+	tmp+=("{\"source\":\"localega.v1\",\"vhost\":\"${INSTANCE}\",\"destination_type\":\"queue\",\"arguments\":{},\"destination\":\"errors\",\"routing_key\":\"errors\"}")
     done
     join_by $',\n' "${tmp[@]}"
 }
@@ -202,17 +206,17 @@ cat > ${PRIVATE}/mq_users.sh <<EOF
 #!/usr/bin/env bash
 set -e
 EOF
-for instance in ${!CEGA_MQ_PASSWORD[@]}
+for ins in ${!CEGA_MQ_PASSWORD[@]}
 do
     {
 	echo
 	# Creating VHost
 	#echo "rabbitmqctl add_vhost ${instance}"
 	# Adding user
-	echo "rabbitmqctl add_user cega_${instance} ${CEGA_MQ_PASSWORD[${instance}]}"
-	echo "rabbitmqctl set_user_tags cega_${instance} administrator"
+	echo "rabbitmqctl add_user cega_${ins} ${CEGA_MQ_PASSWORD[${ins}]}"
+	echo "rabbitmqctl set_user_tags cega_${ins} administrator"
 	# Setting permissions
-	echo "rabbitmqctl set_permissions -p ${instance} cega_${instance} \".*\" \".*\" \".*\""
+	echo "rabbitmqctl set_permissions -p ${ins} cega_${ins} \".*\" \".*\" \".*\""
 	echo
     } >> ${PRIVATE}/mq_users.sh
 done
