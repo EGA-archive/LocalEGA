@@ -6,4 +6,3 @@ cega/private
 test/*
 !test/Makefile
 !test/*.png
-bootstrap/settings

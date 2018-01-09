@@ -245,16 +245,6 @@ def finalize_file(file_id, stable_id, filesize):
 ##           Decorator              ##
 ######################################
 
-def report_user_error(message):
-    '''
-    Sending user error to local broker
-    '''
-    LOG.debug(f'Sending user error to LocalEGA error queue: {message}')
-    broker = get_connection('broker')
-    channel = broker.channel()
-    publish(message, channel, 'cega', 'files.error')
-
-
 def catch_error(func):
     '''Decorator to store the raised exception in the database'''
     @wraps(func)
@@ -285,8 +275,11 @@ def catch_error(func):
                 set_error(file_id, e, from_user)
                 if from_user: # Send to CEGA
                     data = args[-1] # data is the last argument
-                    data['error'] = repr(e)
-                    report_user_error(data)
+                    message = data['org_data']
+                    message['status'] = { 'state': 'ERROR', 'message': repr(e) }
+                    LOG.debug(f'Sending user error to LocalEGA error queue: {message}')
+                    broker = get_connection('broker')
+                    publish(message, broker.channel(), 'cega', 'files.error')
             except Exception as e2:
                 LOG.error(f'Exception: {e!r}')
                 print(repr(e), file=sys.stderr)
