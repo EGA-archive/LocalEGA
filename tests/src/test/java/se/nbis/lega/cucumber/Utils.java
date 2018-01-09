@@ -156,7 +156,7 @@ public class Utils {
         executeWithinContainer(findContainer(getProperty("images.name.inbox"), getProperty("container.prefix.inbox") + instance),
                 String.format("umount -l %s/%s", getProperty("inbox.fuse.folder.path"), user).split(" "));
         executeWithinContainer(findContainer(getProperty("images.name.inbox"), getProperty("container.prefix.inbox") + instance),
-                String.format("rm -rf %s/%s", getProperty("inbox.real.folder.path"), user).split(" "));
+                String.format("rmdir %s/%s", getProperty("inbox.real.folder.path"), user).split(" "));
     }
 
     /**
