@@ -275,11 +275,10 @@ def catch_error(func):
                 set_error(file_id, e, from_user)
                 if from_user: # Send to CEGA
                     data = args[-1] # data is the last argument
-                    message = data['org_data']
-                    message['status'] = { 'state': 'ERROR', 'message': repr(e) }
-                    LOG.debug(f'Sending user error to LocalEGA error queue: {message}')
-                    broker = get_connection('broker')
-                    publish(message, broker.channel(), 'cega', 'files.error')
+                    del data.pop('internal_data', None) # delete if exists
+                    data['status'] = { 'state': 'ERROR', 'message': repr(e) }
+                    LOG.debug(f'Sending user error to LocalEGA error queue: {data}')
+                    publish(data, get_connection('broker').channel(), 'cega', 'files.error')
             except Exception as e2:
                 LOG.error(f'Exception: {e!r}')
                 print(repr(e), file=sys.stderr)
