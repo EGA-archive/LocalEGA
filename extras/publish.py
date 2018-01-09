@@ -28,7 +28,7 @@ enc_group.add_argument('--enc_algo', default='md5', help='[Default: md5]')
 
 args = parser.parse_args()
 
-message = { 'user_id': args.user, 'filepath': args.filepath }
+message = { 'user': args.user, 'filepath': args.filepath }
 if args.enc:
     message['encrypted_integrity'] = { 'checksum': args.enc, 'algorithm': args.enc_algo, }
 if args.unenc:
