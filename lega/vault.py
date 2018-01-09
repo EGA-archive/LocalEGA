@@ -56,7 +56,10 @@ def work(data):
     db.finalize_file(file_id, starget, target.stat().st_size)
 
     # Send message to Archived queue
-    return { 'file_id': file_id } # I could have the details in here. Fetching from DB instead.
+    #return { 'file_id': file_id } # I could have the details in here. Fetching from DB instead.
+    del data['filepath']
+    data['status'] = { 'state': 'ARCHIVED', 'message': 'File moved to the vault' }
+    return data
 
 def main(args=None):
 

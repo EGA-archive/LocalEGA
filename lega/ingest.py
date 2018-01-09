@@ -37,7 +37,7 @@ from Cryptodome.PublicKey import RSA
 
 from .conf import CONF
 from .utils import db, exceptions, checksum, sanitize_user_id
-from .utils.amqp import consume
+from .utils.amqp import consume, publish, get_connection
 from .utils.crypto import ingest as crypto_ingest
 from .keyserver import MASTER_PUBKEY, ACTIVE_MASTER_KEY
 
@@ -85,11 +85,10 @@ def work(active_master_key, master_pubkey, data):
     LOG.info(f"Processing {filename}")
 
     # Use user_id, and not elixir_id
-    user_id = sanitize_user_id(data)
+    user_id = sanitize_user_id(data['elixir_id'])
 
     # Insert in database
     file_id = db.insert_file(filename, user_id)
-    data['file_id'] = file_id
 
     # Find inbox
     inbox = Path( CONF.get('ingestion','inbox',raw=True) % { 'user_id': user_id } )
@@ -146,6 +145,13 @@ def work(active_master_key, master_pubkey, data):
 
     LOG.debug(f'Starting the re-encryption\n\tfrom {inbox_filepath}\n\tto {staging_filepath}')
     db.set_progress(file_id, str(staging_filepath), encrypted_hash, encrypted_algo, unencrypted_hash, unencrypted_algo)
+
+    message = data.copy()
+    message['status'] = { 'state': 'PROCESSING', 'message': 'File ingestion under progress' }
+    LOG.debug(f'Sending message to CentralEGA: {message}')
+    broker = get_connection('broker')
+    publish(message, broker.channel(), 'cega', 'files.processing')
+
     
     cmd = CONF.get('ingestion','gpg_cmd',raw=True) % { 'file': str(inbox_filepath) }
     LOG.debug(f'GPG command: {cmd}\n')
@@ -163,6 +169,8 @@ def work(active_master_key, master_pubkey, data):
         'file_id' : file_id,
         'filepath': str(staging_filepath),
         'user_id': user_id,
+        'status': { 'state':'STAGED', 'message': 'File staged' },
+        'org_data': data,
     }
     LOG.debug(f"Reply message: {reply!r}")
     return reply

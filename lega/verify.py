@@ -28,13 +28,18 @@ LOG = logging.getLogger('verify')
 def work(data):
     '''Verifying that the file in the vault does decrypt properly'''
 
+    LOG.debug(f'Verifying message: {data}')
+
     file_id = data['file_id']
     filename, _, org_hash_algo, vault_filename, vault_checksum = db.get_details(file_id)
 
     if not checksum.is_valid(vault_filename, vault_checksum, hashAlgo='sha256'):
         raise exceptions.VaultDecryption(vault_filename)
 
-    return { 'vault_name': vault_filename, 'org_name': filename }
+    reply = data['org_data']
+    reply['pointer_id'] = file_id
+    reply['status'] = { 'state': 'COMPLETED', 'message': 'File successfully archived by the LocalEGA instance' }
+    return reply
 
 def main(args=None):
 

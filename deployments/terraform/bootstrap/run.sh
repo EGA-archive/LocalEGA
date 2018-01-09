@@ -61,20 +61,21 @@ exec 2>${PRIVATE}/.err
 if [[ -f "${SETTINGS}" ]]; then
     source ${SETTINGS}
 else
-    echo "No settings found. Use settings.sample to create a settings file" 1>&2
-    exit 1
+    error 1 "No settings found. Use settings.sample to create a settings file"
 fi
 
-[[ -x $(readlink ${GPG}) ]] && echo "${GPG} is not executable. Adjust the setting with --gpg" && exit 2
-[[ -x $(readlink ${OPENSSL}) ]] && echo "${OPENSSL} is not executable. Adjust the setting with --openssl" && exit 3
+[[ -x $(readlink ${GPG}) ]] && error 2 "${GPG} is not executable. Adjust the setting with --gpg"
+[[ -x $(readlink ${OPENSSL}) ]] && error 3 "${OPENSSL} is not executable. Adjust the setting with --openssl"
 
-if [ -z "${DB_USER}" -o "${DB_USER}" == "postgres" ]; then
-    echo "Choose a database user (but not 'postgres')"
-    exit 4
-fi
+[ -z "${DB_USER}" -o "${DB_USER}" == "postgres" ] && error 4 "Choose a database user (but not 'postgres')"
 
 CEGA_PRIVATE=${HERE}/../cega/private
-[[ ! -d "${CEGA_PRIVATE}" ]] && echo "You need to bootstrap Central EGA first" && exit 5
+[[ ! -d "${CEGA_PRIVATE}" ]] && error 5 "You need to bootstrap Central EGA first"
+
+if [ -z "${CEGA_CONNECTION}" ]; then
+    error 6 "CEGA_CONNECTION should be set"
+fi
+
 
 #########################################################################
 # And....cue music
@@ -136,8 +137,8 @@ EOF
 
 CEGA_REST_PASSWORD=$(awk '/swe1_REST_PASSWORD/ {print $3}' ${CEGA_PRIVATE}/env)
 CEGA_MQ_PASSWORD=$(awk '/swe1_MQ_PASSWORD/ {print $3}' ${CEGA_PRIVATE}/.trace)
-[[ -z "${CEGA_REST_PASSWORD}" ]] && echo "Are you sure Central EGA is bootstrapped?" && exit 1
-[[ -z "${CEGA_MQ_PASSWORD}" ]] && echo "Are you sure Central EGA is bootstrapped?" && exit 1
+[[ -z "${CEGA_REST_PASSWORD}" ]] && error 1 "Are you sure Central EGA is bootstrapped?"
+[[ -z "${CEGA_MQ_PASSWORD}" ]] && error 1 "Are you sure Central EGA is bootstrapped?"
 
 echomsg "\t* ega.conf"
 cat > ${PRIVATE}/ega.conf <<EOF
@@ -387,7 +388,7 @@ CEGA_MQ_PASSWORD    = ${CEGA_MQ_PASSWORD}
 CEGA_PASSWORD       = ${CEGA_PASSWORD}
 #
 KIBANA_USER         = lega
-KIBANA_PASSWORD     = ${KIBANA_PASSWD}
+KIBANA_PASSWORD     = ${KIBANA_PASSWORD}
 EOF
 
 task_complete "Bootstrap complete"

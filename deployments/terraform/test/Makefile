@@ -15,12 +15,23 @@ NOCOLOR=$'          \033[0m
 
 GPG_HOME=$(TERRAFORM_PATH)/private/gpg
 GPG_EMAIL=$(shell awk -F= '/GPG_EMAIL/ {print $$2}' $(TERRAFORM_PATH)/bootstrap/settings)
-CEGA_MQ_PASSWORD=$(shell awk -F' ' '/CEGA_swe1_MQ_PASSWORD/ {print $$3}' $(TERRAFORM_PATH)/cega/private/.trace)
-CEGA_MQ_CONNECTION=amqp://cega_swe1:$(strip $(CEGA_MQ_PASSWORD))@localhost:5672/swe1
+
+PREFIX_PATH=/
+ifdef $(findstring 'hellgate',$(CEGA_CONNECTION))
+PREFIX_PATH=/rabbitmq
+endif
 
 ##############################
 
 all: user upload submit rabbitmqadmin
+
+echo:
+	@echo TERRAFORM_PATH=$(TERRAFORM_PATH)
+	@echo CEGA_IP=$(CEGA_IP)
+	@echo INBOX_IP=$(INBOX_IP)
+	@echo CEGA_MQ_PASSWORD=$(CEGA_MQ_PASSWORD)
+	@echo CEGA_MQ_CONNECTION=$(CEGA_MQ_CONNECTION)
+
 
 org:
 	@echo "${BULLET} Create a file named 'org' ${NOCOLOR}"
@@ -44,7 +55,7 @@ org.md5: org
 
 submit: enc enc.md5 org.md5
 	@echo "${BULLET} Publish message to Central EGA for ingestion ${NOCOLOR}"
-	ssh -l centos ${CEGA_IP} /var/lib/cega/publish --connection $(CEGA_MQ_CONNECTION) toto enc --unenc $(shell cat org.md5) --enc $(shell cat enc.md5) &>/dev/null
+	python ~/_ega/extras/publish.py --connection $(subst cega-mq,localhost,$(CEGA_CONNECTION)) toto enc --unenc $(shell cat org.md5) --enc $(shell cat enc.md5)
 
 user: toto.yml
 	@echo "${BULLET} Add 'toto' to Central EGA ${NOCOLOR}"
@@ -60,13 +71,11 @@ toto.yml:
 clean:
 	rm -rf org enc enc.md5 org.md5 toto.yml
 
-rabbitmqadmin:
-	@ssh -l centos ${CEGA_IP} "curl -sS -OL https://raw.githubusercontent.com/rabbitmq/rabbitmq-management/v3.7.0/bin/$@; chmod +x $@" &>/dev/null
 
 check:
 	@echo "${BULLET} Check the message broker in Central EGA ${NOCOLOR}"
 	@echo "            Listing queues, vhost, name, node, messages on the Message Broker"
-	@ssh -l centos ${CEGA_IP} ./rabbitmqadmin -u cega_swe1 -p ${CEGA_MQ_PASSWORD} list queues vhost name node messages
+	@rabbitmqadmin -U $(subst cega-mq,localhost,$(CEGA_CONNECTION)) --prefix-path $(PREFIX_PATH) list queues vhost name node messages
 
 vault:
 	@echo "${BULLET} Check the vault ${NOCOLOR}"
