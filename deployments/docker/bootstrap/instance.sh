@@ -44,6 +44,7 @@ Passphrase: ${GPG_PASSPHRASE}
 EOF
 
 ${GPG} --homedir ${PRIVATE}/${INSTANCE}/gpg --batch --generate-key ${PRIVATE}/${INSTANCE}/gen_key
+${GPG} --homedir ${PRIVATE}/${INSTANCE}/gpg --armor --export -a "${GPG_NAME}" > ${PRIVATE}/${INSTANCE}/gpg/public.key
 chmod 700 ${PRIVATE}/${INSTANCE}/gpg
 rm -f ${PRIVATE}/${INSTANCE}/gen_key
 ${GPG_CONF} --kill gpg-agent
