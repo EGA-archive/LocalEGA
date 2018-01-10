@@ -54,7 +54,7 @@ services:
       - private/swe1/db.env
       - private/swe1/cega.env
     ports:
-      - "${DOCKER_INBOX_swe1_PORT}:22"
+      - "${DOCKER_INBOX_swe1_PORT}:9000"
     container_name: ega-inbox-swe1
     image: nbisweden/ega-inbox
     privileged: true
@@ -67,6 +67,7 @@ services:
       - ${DATA}/swe1/logger.yml:/etc/ega/logger.yml:ro
       - inbox_swe1:/ega/inbox
       - ../..:/root/.local/lib/python3.6/site-packages:ro
+      - ~/_auth_ega:/root/auth
 
   # Vault
   vault-swe1:
@@ -226,7 +227,7 @@ services:
       - private/fin1/db.env
       - private/fin1/cega.env
     ports:
-      - "${DOCKER_INBOX_fin1_PORT}:22"
+      - "${DOCKER_INBOX_fin1_PORT}:9000"
     container_name: ega-inbox-fin1
     image: nbisweden/ega-inbox
     privileged: true

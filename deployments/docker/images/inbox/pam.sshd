@@ -1,8 +1,0 @@
-#%PAM-1.0
-auth       include      ega
-auth       include      sshd.bak
-account    include      ega
-account    include      sshd.bak
-password   include      sshd.bak
-session    include      ega
-session    include      sshd.bak

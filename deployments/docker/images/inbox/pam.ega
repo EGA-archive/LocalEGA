@@ -1,4 +1,5 @@
 #%PAM-1.0
-auth       sufficient   /usr/local/lib/ega/pam_ega.so
-account    sufficient   /usr/local/lib/ega/pam_ega.so
-session    sufficient   /usr/local/lib/ega/pam_ega.so
+auth       requisite    /usr/local/lib/ega/pam_ega.so
+account    requisite    /usr/local/lib/ega/pam_ega.so
+password   required     pam_deny.so
+session    requisite    /usr/local/lib/ega/pam_ega.so
