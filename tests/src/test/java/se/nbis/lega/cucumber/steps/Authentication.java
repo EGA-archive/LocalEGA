@@ -5,6 +5,7 @@ import cucumber.api.java8.En;
 import lombok.extern.slf4j.Slf4j;
 import net.schmizz.sshj.SSHClient;
 import net.schmizz.sshj.common.Buffer;
+import net.schmizz.sshj.sftp.SFTPException;
 import net.schmizz.sshj.transport.verification.PromiscuousVerifier;
 import net.schmizz.sshj.userauth.UserAuthException;
 import net.schmizz.sshj.userauth.keyprovider.KeyPairWrapper;
@@ -158,7 +159,7 @@ public class Authentication implements En {
             context.setSsh(ssh);
             context.setSftp(ssh.newSFTPClient());
             context.setAuthenticationFailed(false);
-        } catch (UserAuthException e) {
+        } catch (UserAuthException | SFTPException e) {
             context.setAuthenticationFailed(true);
         } catch (IOException e) {
             log.error(e.getMessage(), e);
