@@ -179,7 +179,9 @@ public class Utils {
      * @param to       Folder to mount to.
      * @param commands Command to execute.
      * @return Execution result per command.
+     * @deprecated Very slow, thus not used anymore. Try to avoid usage of this method.
      */
+    @Deprecated
     public List<String> spawnTempWorkerAndExecute(String instance, String from, String to, String... commands) {
         List<String> results = new ArrayList<>();
         String workerImageName = getProperty("images.name.worker");

@@ -4,9 +4,10 @@ import cucumber.api.DataTable;
 import cucumber.api.java8.En;
 import lombok.extern.slf4j.Slf4j;
 import net.schmizz.sshj.SSHClient;
-import net.schmizz.sshj.sftp.SFTPException;
+import net.schmizz.sshj.common.Buffer;
 import net.schmizz.sshj.transport.verification.PromiscuousVerifier;
 import net.schmizz.sshj.userauth.UserAuthException;
+import net.schmizz.sshj.userauth.keyprovider.KeyPairWrapper;
 import org.apache.commons.io.FileUtils;
 import org.junit.Assert;
 import se.nbis.lega.cucumber.Context;
@@ -14,8 +15,12 @@ import se.nbis.lega.cucumber.Utils;
 
 import java.io.File;
 import java.io.IOException;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.util.Arrays;
-import java.util.List;
+import java.util.Base64;
 
 @Slf4j
 public class Authentication implements En {
@@ -31,18 +36,14 @@ public class Authentication implements En {
         Given("^I have an account at Central EGA$", () -> {
             for (String instance : context.getInstances()) {
                 String cegaUsersFolderPath = utils.getPrivateFolderPath() + "/cega/users/" + instance;
-                String dataFolderName = context.getDataFolder().getName();
-                double password = Math.random();
                 String user = context.getUser();
-                String command1 = String.format("openssl genrsa -out /%s/%s.sec -passout pass:%f 2048", dataFolderName, user, password);
-                String command2 = String.format("openssl rsa -in /%s/%s.sec -passin pass:%f -pubout -out /%s/%s.pub", dataFolderName, user, password, dataFolderName, user);
-                String command3 = String.format("ssh-keygen -i -mPKCS8 -f /%s/%s.pub", dataFolderName, user);
-                String command4 = String.format("chmod -R 0777 /%s", dataFolderName);
                 try {
-                    List<String> results = utils.spawnTempWorkerAndExecute(instance, cegaUsersFolderPath, "/" + dataFolderName, command1, command2, command3, command4);
-                    String publicKey = results.get(2);
+                    generateKeypair(context);
+                    byte[] keyBytes = new Buffer.PlainBuffer().putPublicKey(context.getKeyProvider().getPublic()).getCompactData();
+                    String publicKey = Base64.getEncoder().encodeToString(keyBytes);
+                    System.out.println("publicKey = " + publicKey);
                     File userYML = new File(String.format(cegaUsersFolderPath + "/%s.yml", user));
-                    FileUtils.writeLines(userYML, Arrays.asList("---", "pubkey: " + publicKey));
+                    FileUtils.writeLines(userYML, Arrays.asList("---", "pubkey: ssh-rsa " + publicKey));
                 } catch (IOException e) {
                     log.error(e.getMessage(), e);
                 }
@@ -53,12 +54,12 @@ public class Authentication implements En {
 
         Given("^I have correct private key$",
                 () -> {
-                    File privateKey = new File(String.format("%s/cega/users/%s/%s.sec", utils.getPrivateFolderPath(), context.getTargetInstance(), context.getUser()));
-                    context.setPrivateKey(privateKey);
+                    if (context.getKeyProvider() == null) {
+                        generateKeypair(context);
+                    }
                 });
 
-        Given("^I have incorrect private key$",
-                () -> context.setPrivateKey(new File(String.format("%s/cega/users/%s.sec", utils.getPrivateFolderPath(), "john"))));
+        Given("^I have incorrect private key$", () -> generateKeypair(context));
 
         Given("^inbox is deleted for my user$", () -> {
             try {
@@ -102,7 +103,7 @@ public class Authentication implements En {
 
         When("^I disconnect from the LocalEGA inbox$", () -> disconnect(context));
 
-        When("^I am disconnected from the LocalEGA inbox$", () -> Assert.assertFalse(isConnected(context)) );
+        When("^I am disconnected from the LocalEGA inbox$", () -> Assert.assertFalse(isConnected(context)));
 
         When("^inbox is not created for me$", () -> {
             try {
@@ -138,19 +139,27 @@ public class Authentication implements En {
 
     }
 
+    private void generateKeypair(Context context) {
+        try {
+            KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
+            keyPairGenerator.initialize(2048, new SecureRandom());
+            KeyPair keyPair = keyPairGenerator.genKeyPair();
+            context.setKeyProvider(new KeyPairWrapper(keyPair));
+        } catch (NoSuchAlgorithmException e) {
+            log.error(e.getMessage(), e);
+        }
+    }
+
     private void connect(Context context) {
         try {
             SSHClient ssh = new SSHClient();
             ssh.addHostKeyVerifier(new PromiscuousVerifier());
-            ssh.connect("localhost",
-                    Integer.parseInt(context.getUtils().readTraceProperty(context.getTargetInstance(), "DOCKER_INBOX_PORT")));
-            File privateKey = context.getPrivateKey();
-            ssh.authPublickey(context.getUser(), privateKey.getPath());
-
+            ssh.connect("localhost", Integer.parseInt(context.getUtils().readTraceProperty(context.getTargetInstance(), "DOCKER_INBOX_PORT")));
+            ssh.authPublickey(context.getUser(), context.getKeyProvider());
             context.setSsh(ssh);
             context.setSftp(ssh.newSFTPClient());
             context.setAuthenticationFailed(false);
-        } catch (UserAuthException | SFTPException e) {
+        } catch (UserAuthException e) {
             context.setAuthenticationFailed(true);
         } catch (IOException e) {
             log.error(e.getMessage(), e);
