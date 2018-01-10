@@ -31,8 +31,9 @@ RUN ssh-keygen -t rsa     -N '' -f /etc/ssh/ssh_host_rsa_key && \
 ARG checkout=dev
 RUN pip3.6 install git+https://github.com/NBISweden/LocalEGA.git@${checkout}
 
-COPY pam.sshd /etc/pam.d/sshd
-COPY sshd_config /etc/ssh/sshd_config
+COPY pam.ega /etc/pam.d/ega
+COPY sshd_config /etc/ega/sshd_config
+RUN cp /usr/sbin/sshd /usr/sbin/ega
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod 755 /usr/local/bin/entrypoint.sh
 ENTRYPOINT ["entrypoint.sh"]

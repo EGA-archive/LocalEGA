@@ -100,4 +100,4 @@ EOF
 crond -s
 
 echo "Starting the SFTP server"
-exec /usr/sbin/sshd -D -e
+exec /usr/sbin/ega -D -e -f /etc/ega/sshd_config

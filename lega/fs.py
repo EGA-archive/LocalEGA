@@ -207,6 +207,9 @@ def main():
     assert rootdir, "You did not specify the rootdir in the mount options"
     assert user, "You did not specify the user in the mount options"
 
+    if not os.path.exists(rootdir):
+        sys.exit(1)
+
     LOG.info(f'Mounting inbox for EGA User "{user}"')
 
     # Creating the mountpoint if not existing.
