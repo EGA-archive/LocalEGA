@@ -39,16 +39,16 @@ Feature: Authentication
     When I connect to the LocalEGA inbox via SFTP using private key
     Then authentication fails
 
-  # Scenario: U.5 User exists in Central EGA and tries to connect to LocalEGA, but the inbox was not created for him
-  #   Given I have an account at Central EGA
-  #   And I want to work with instance "swe1"
-  #   And I have correct private key
-  #   And I connect to the LocalEGA inbox via SFTP using private key
-  #   And I disconnect from the LocalEGA inbox
-  #   And I am disconnected from the LocalEGA inbox
-  #   And inbox is deleted for my user
-  #   When I connect to the LocalEGA inbox via SFTP using private key
-  #   Then authentication fails
+   Scenario: U.5 User exists in Central EGA and tries to connect to LocalEGA, but the inbox was not created for him
+     Given I have an account at Central EGA
+     And I want to work with instance "swe1"
+     And I have correct private key
+     And I connect to the LocalEGA inbox via SFTP using private key
+     And I disconnect from the LocalEGA inbox
+     And I am disconnected from the LocalEGA inbox
+     And inbox is deleted for my user
+     When I connect to the LocalEGA inbox via SFTP using private key
+     Then authentication fails
 
   Scenario: U.6 User exists in Central EGA and uses correct private key for authentication for the correct instance, but database is down
     Given I have an account at Central EGA
