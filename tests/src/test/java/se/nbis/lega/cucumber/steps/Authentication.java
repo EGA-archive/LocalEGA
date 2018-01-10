@@ -41,7 +41,6 @@ public class Authentication implements En {
                     generateKeypair(context);
                     byte[] keyBytes = new Buffer.PlainBuffer().putPublicKey(context.getKeyProvider().getPublic()).getCompactData();
                     String publicKey = Base64.getEncoder().encodeToString(keyBytes);
-                    System.out.println("publicKey = " + publicKey);
                     File userYML = new File(String.format(cegaUsersFolderPath + "/%s.yml", user));
                     FileUtils.writeLines(userYML, Arrays.asList("---", "pubkey: ssh-rsa " + publicKey));
                 } catch (IOException e) {
