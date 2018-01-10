@@ -45,7 +45,7 @@ EOF
 
 ${GPG} --homedir ${PRIVATE}/${INSTANCE}/gpg --batch --generate-key ${PRIVATE}/${INSTANCE}/gen_key
 ${GPG} --homedir ${PRIVATE}/${INSTANCE}/gpg --armor --export -a "${GPG_NAME}" > ${PRIVATE}/${INSTANCE}/gpg/public.key
-chmod 744 ${PRIVATE}/${INSTANCE}/gpg
+chmod 755 ${PRIVATE}/${INSTANCE}/gpg
 chmod 744 ${PRIVATE}/${INSTANCE}/gpg/public.key
 rm -f ${PRIVATE}/${INSTANCE}/gen_key
 ${GPG_CONF} --kill gpg-agent
