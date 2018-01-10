@@ -4,6 +4,9 @@ import cucumber.api.java8.En;
 import lombok.extern.slf4j.Slf4j;
 import net.schmizz.sshj.sftp.RemoteResourceInfo;
 import org.apache.commons.io.FileUtils;
+import org.bouncycastle.openpgp.PGPException;
+import org.c02e.jpgpj.Encryptor;
+import org.c02e.jpgpj.Key;
 import org.junit.Assert;
 import se.nbis.lega.cucumber.Context;
 import se.nbis.lega.cucumber.Utils;
@@ -11,7 +14,6 @@ import se.nbis.lega.cucumber.Utils;
 import javax.crypto.*;
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Paths;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 
@@ -23,15 +25,16 @@ public class Uploading implements En {
 
         Given("^I have a file encrypted with OpenPGP using a \"([^\"]*)\" key$", (String instance) -> {
             File rawFile = context.getRawFile();
-            String dataFolderName = context.getDataFolder().getName();
+            File encryptedFile = new File(rawFile.getAbsolutePath() + ".enc");
             try {
-                String encryptionCommand = "gpg2 -r " + utils.readTraceProperty(instance, "GPG_EMAIL") + " -e -o /data/" + rawFile.getName() + ".enc /data/" + rawFile.getName();
-                utils.spawnTempWorkerAndExecute(instance, Paths.get(dataFolderName).toAbsolutePath().toString(), "/" + dataFolderName, encryptionCommand);
-            } catch (IOException e) {
+                Encryptor encryptor = new Encryptor(new Key(new File(String.format("%s/%s/gpg/public.key", utils.getPrivateFolderPath(), instance))));
+                encryptor.setSigningAlgorithm(null);
+                encryptor.encrypt(rawFile, encryptedFile);
+            } catch (IOException | PGPException e) {
                 log.error(e.getMessage(), e);
                 Assert.fail(e.getMessage());
             }
-            context.setEncryptedFile(new File(rawFile.getAbsolutePath() + ".enc"));
+            context.setEncryptedFile(encryptedFile);
         });
 
         Given("^I have a file encrypted not with OpenPGP$", () -> {
@@ -46,7 +49,7 @@ public class Uploading implements En {
                 FileUtils.writeByteArrayToFile(encryptedFile, encryptedContents);
                 context.setEncryptedFile(encryptedFile);
             } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | IllegalBlockSizeException | BadPaddingException | IOException e) {
-                e.printStackTrace();
+                log.error(e.getMessage(), e);
             }
         });
 
