@@ -6,7 +6,6 @@ echomsg "Generating fake Central EGA users"
 [[ -x $(readlink ${OPENSSL}) ]] && echo "${OPENSSL} is not executable. Adjust the setting with --openssl" && exit 3
 
 mkdir -p ${PRIVATE}/cega/users
-chmod 755 ${PRIVATE}/cega/users
 
 EGA_USER_PASSWORD_JOHN=$(generate_password 16)
 EGA_USER_PASSWORD_JANE=$(generate_password 16)
@@ -43,6 +42,7 @@ password_hash: $(${OPENSSL} passwd -1 ${EGA_USER_PASSWORD_TAYLOR})
 EOF
 
 mkdir -p ${PRIVATE}/cega/users/{swe1,fin1}
+chmod 755 ${PRIVATE}/cega/users/{swe1,fin1}
 # They all have access to SWE1
 ( # In a subshell
     cd ${PRIVATE}/cega/users/swe1
