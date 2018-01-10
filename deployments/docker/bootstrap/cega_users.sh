@@ -42,6 +42,7 @@ password_hash: $(${OPENSSL} passwd -1 ${EGA_USER_PASSWORD_TAYLOR})
 EOF
 
 mkdir -p ${PRIVATE}/cega/users/{swe1,fin1}
+chmod 777 ${PRIVATE}/cega/users/{swe1,fin1}
 # They all have access to SWE1
 ( # In a subshell
     cd ${PRIVATE}/cega/users/swe1
