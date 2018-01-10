@@ -1,3 +1,4 @@
+Port 9000
 Protocol 2
 HostKey /etc/ssh/ssh_host_rsa_key
 HostKey /etc/ssh/ssh_host_ecdsa_key
@@ -5,8 +6,8 @@ HostKey /etc/ssh/ssh_host_ed25519_key
 SyslogFacility AUTHPRIV
 # Authentication
 UsePAM yes
+AuthenticationMethods "publickey" "keyboard-interactive:pam"
 PubkeyAuthentication yes
-AuthorizedKeysFile .ssh/authorized_keys
 PasswordAuthentication no
 ChallengeResponseAuthentication yes
 KerberosAuthentication no
@@ -15,8 +16,9 @@ GSSAPICleanupCredentials no
 # Faster connection
 UseDNS no
 # Limited access
-AllowGroups ega root
-PermitRootLogin yes
+DenyGroups *,!ega
+DenyUsers root ega
+PermitRootLogin no
 X11Forwarding no
 AllowTcpForwarding no
 PermitTunnel no
@@ -25,13 +27,7 @@ AcceptEnv LANG LC_CTYPE LC_NUMERIC LC_TIME LC_COLLATE LC_MONETARY LC_MESSAGES
 AcceptEnv LC_PAPER LC_NAME LC_ADDRESS LC_TELEPHONE LC_MEASUREMENT
 AcceptEnv LC_IDENTIFICATION LC_ALL LANGUAGE
 AcceptEnv XMODIFIERS
-# ===========================
-# Force sftp and chroot jail
-# ===========================
 Subsystem sftp internal-sftp
-# Force sftp and chroot jail (for users in the ega group, but not ega)
-MATCH GROUP ega USER *,!ega
-  Banner /ega/banner
-  AuthorizedKeysCommand /usr/local/bin/ega_ssh_keys.sh
-  AuthorizedKeysCommandUser ega
-  AuthenticationMethods "publickey" "keyboard-interactive:pam"
+Banner /ega/banner
+AuthorizedKeysCommand /usr/local/bin/ega_ssh_keys.sh
+AuthorizedKeysCommandUser ega
