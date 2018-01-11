@@ -184,7 +184,7 @@ def ingest(gpg_cmd,
             _err = exceptions.GPGDecryption(gpg_result, gpg_error, enc_file)
             LOG.error(str(_err))
         if not correct_digest and not _err:
-            _err = exceptions.Checksum(hash_algo,f'for decrypted content of {enc_file}')
+            _err = exceptions.Checksum(hash_algo, file=enc_file, decrypted=True)
             LOG.error(str(_err))
 
     if _err is not None:

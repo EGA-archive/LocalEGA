@@ -90,6 +90,13 @@ def work(active_master_key, master_pubkey, data):
     # Insert in database
     file_id = db.insert_file(filepath, user_id)
 
+    # early record
+    internal_data = {
+        'file_id': file_id,
+        'user_id': user_id,
+    }
+    data['internal_data'] = internal_data
+
     # Find inbox
     inbox = Path( CONF.get('ingestion','inbox',raw=True) % { 'user_id': user_id } )
     LOG.info(f"Inbox area: {inbox}")
@@ -119,7 +126,7 @@ def work(active_master_key, master_pubkey, data):
     LOG.debug(f"Verifying the {encrypted_algo} checksum of encrypted file: {inbox_filepath}")
     if not checksum.is_valid(inbox_filepath, encrypted_hash, hashAlgo = encrypted_algo):
         LOG.error(f"Invalid {encrypted_algo} checksum for {inbox_filepath}")
-        raise exceptions.Checksum(encrypted_algo, f'for {inbox_filepath}')
+        raise exceptions.Checksum(encrypted_algo, file=inbox_filepath, decrypted=False)
     LOG.debug(f'Valid {encrypted_algo} checksum for {inbox_filepath}')
 
     try:
@@ -165,11 +172,7 @@ def work(active_master_key, master_pubkey, data):
     db.set_encryption(file_id, details, staging_checksum)
     LOG.debug(f'Re-encryption completed')
     
-    data['internal_data'] = {
-        'file_id': file_id,
-        'user_id': user_id,
-        'filepath': str(staging_filepath),
-    }
+    internal_data['filepath'] = str(staging_filepath)
     LOG.debug(f"Reply message: {data}")
     return data
 

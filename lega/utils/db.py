@@ -266,22 +266,22 @@ def catch_error(func):
 
             #fname = os.path.split(frame.f_code.co_filename)[1]
             fname = frame.f_code.co_filename
-            LOG.debug(f'Exception: {exc_type} in {fname} on line: {lineno}')
+            LOG.error(f'Exception: {exc_type} in {fname} on line: {lineno}')
+            LOG.error(repr(e)) # repr = Technical
+            from_user = isinstance(e,FromUser)
 
             try:
-                data = args[-1]
-                file_id = data['file_id'] # I should have it
-                from_user = isinstance(e,FromUser)
+                data = args[-1] # data is the last argument
+                internal_data = data.pop('internal_data', None) # delete if exists
+                file_id = internal_data['file_id'] # raise KeyError if missing
                 set_error(file_id, e, from_user)
                 if from_user: # Send to CEGA
-                    data = args[-1] # data is the last argument
-                    data.pop('internal_data', None) # delete if exists
-                    data['status'] = { 'state': 'ERROR', 'message': repr(e) }
-                    LOG.debug(f'Sending user error to LocalEGA error queue: {data}')
+                    data['status'] = { 'state': 'ERROR', 'message': str(e) } # str = Informal
+                    LOG.info(f'Sending user error to local broker: {data}')
                     publish(data, get_connection('broker').channel(), 'cega', 'files.error')
             except Exception as e2:
-                LOG.error(f'Exception: {e!r}')
-                print(repr(e), file=sys.stderr)
+                LOG.error(f'While treating {e}, we caught {e2!r}')
+                print(repr(e), 'caused', repr(e2), file=sys.stderr)
             return None
     return wrapper
 
