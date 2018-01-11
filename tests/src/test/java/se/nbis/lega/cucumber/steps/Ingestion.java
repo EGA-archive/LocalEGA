@@ -59,7 +59,7 @@ public class Ingestion implements En {
                 String vaultFileName = output.split(System.getProperty("line.separator"))[2].trim();
                 String cat = utils.executeWithinContainer(utils.findContainer(utils.getProperty("images.name.vault"),
                         utils.getProperty("container.prefix.vault") + context.getTargetInstance()), "cat", vaultFileName);
-                Assertions.assertThat(cat).startsWith("bytearray(b'1')|256|8|b'CTR'");
+                Assertions.assertThat(cat).startsWith("1|256|8|CTR");
             } catch (IOException | InterruptedException e) {
                 log.error(e.getMessage(), e);
                 Assert.fail(e.getMessage());

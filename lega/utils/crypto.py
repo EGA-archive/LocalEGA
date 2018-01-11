@@ -89,18 +89,19 @@ class ReEncryptor(asyncio.SubprocessProtocol):
         LOG.info(f'Starting the encrypting engine')
         encryption_key, mode, nonce = next(self.engine)
 
-        self.header = make_header(active_key, len(encryption_key), len(nonce), mode.encode())
+        self.header = make_header(active_key, len(encryption_key), len(nonce), mode)
+        header_b = self.header.encode()
         
-        LOG.info(f'Writing header to file: {self.header} (and enc key + nonce)')
-        header_b = (self.header + '\n').encode()
-        
+        LOG.info(f'Writing header {self.header} to file, followed by encrypting key and nonce')
         self.target_handler.write(header_b)
+        self.target_handler.write(b'\n')
         self.target_handler.write(encryption_key)
         self.target_handler.write(nonce)
         
         LOG.info('Setup target digest')
         self.target_digest = sha256()
         self.target_digest.update(header_b)
+        self.target_digest.update(b'\n')
         self.target_digest.update(encryption_key)
         self.target_digest.update(nonce)
         
@@ -195,17 +196,3 @@ def ingest(gpg_cmd,
         LOG.info(f'File encrypted')
         assert Path(target).exists()
         return (reencrypt_protocol.header, reencrypt_protocol.target_digest.hexdigest())
-
-# def from_header(h):
-#     '''Convert the given line into differents values, doing the opposite job as `make_header`'''
-#     header = bytearray()
-#     while True:
-#         b = h.read(1)
-#         if b in (b'\n', b''):
-#             break
-#         header.extend(b)
-
-#     LOG.debug(f'Found header: {header!r}')
-#     key_nr, enc_key_size, nonce_size, aes_mode, *rest = header.split(b'|')
-#     assert( not rest )
-#     return (int(key_nr),int(enc_key_size),int(nonce_size), aes_mode.decode())
