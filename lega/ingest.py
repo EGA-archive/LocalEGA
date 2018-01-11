@@ -202,7 +202,7 @@ def main(args=None):
         # Might raise exception
         active_master_key = loop.run_until_complete(_req(ACTIVE_MASTER_KEY, host, port, ssl=ssl_ctx, loop=loop))
         master_pubkey = loop.run_until_complete(_req(MASTER_PUBKEY, host, port, ssl=ssl_ctx, loop=loop))
-        do_work = partial(work, active_master_key, master_pubkey.decode())
+        do_work = partial(work, int(active_master_key.decode()), master_pubkey.decode())
         
     except Exception as e:
         LOG.error(repr(e))
