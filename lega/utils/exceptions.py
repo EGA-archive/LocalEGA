@@ -3,15 +3,17 @@
 
 # Errors for the users
 class FromUser(Exception):
-    def __repr__(self):
-        return str(self)
-    def __str__(self):
+    def __str__(self): # Informal description
         return 'Incorrect user input'
+    def __repr__(self): # Technical description
+        return str(self)
 
 class NotFoundInInbox(FromUser):
     def __init__(self, filename):
         self.filename = filename
     def __str__(self):
+        return f'File not found in inbox'
+    def __repr__(self):
         return f'Inbox missing file: {self.filename}'
 
 class UnsupportedHashAlgorithm(FromUser):
@@ -24,6 +26,8 @@ class CompanionNotFound(FromUser):
     def __init__(self, name):
         self.name = name
     def __str__(self):
+        return f'Companion file not found in inbox'
+    def __repr__(self):
         return f'Companion file not found for {self.name}'
         
 class GPGDecryption(FromUser):
@@ -32,15 +36,19 @@ class GPGDecryption(FromUser):
         self.error = errormsg
         self.filename = filename
     def __str__(self):
-        return f'Error {self.retcode}: Decrypting {self.filename} failed ({self.error})'
+        return f'Decryption error'
+    def __repr__(self):
+        return f'Decryption error ({self.retcode}): {self.error}'
 
 class Checksum(FromUser):
-    def __init__(self, algo, msg):
+    def __init__(self, algo, file=None, decrypted=False):
         self.algo = algo
-        self.msg = msg
+        self.decrypted = decrypted
+        self.file = file
     def __str__(self):
-        return f'Invalid {self.algo} checksum {self.msg}'
-
+        return 'Invalid {} checksum for the {} file'.format(self.algo, 'original' if self.decrypted else 'encrypted')
+    def __repr__(self):
+        return 'Invalid {} checksum for the {} file: {}'.format(self.algo, 'original' if self.decrypted else 'encrypted', self.file)
 
 # Any other exception is caught by us
 class MessageError(Exception):
@@ -51,6 +59,8 @@ class VaultDecryption(Exception):
     def __init__(self, filename):
         self.filename = filename
     def __str__(self):
+        return f'Decrypting archived file failed'
+    def __repr__(self):
         return f'Decrypting {self.filename} from the vault failed'
 
 class AlreadyProcessed(Warning):
@@ -66,10 +76,3 @@ class AlreadyProcessed(Warning):
                 f'\t* name: {self.filename}\n'
                 f'\t* submission id: {submission_id})\n'
                 f'\t* Encrypted checksum: {enc_checksum_hash} (algorithm: {enc_checksum_algorithm}')
-
-
-class InboxCreationError(Exception):
-    def __init__(self, msg):
-        self.msg = msg
-    def __str__(self):
-        return f'Inbox creation failed: {self.msg}'
