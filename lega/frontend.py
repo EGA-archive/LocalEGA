@@ -139,7 +139,6 @@ def main(args=None):
     server.router.add_get( '/'              , index        , name='root'         )
     server.router.add_get( '/file'          , status_file  , name='status_file'  )
     server.router.add_get( '/user/{name}'   , status_user  , name='status_user'  )
-    server.router.add_delete( '/user/{name}', flush_user   , name='flush_user'   )
 
     # Registering some initialization and cleanup routines
     LOG.info('Setting up callbacks')

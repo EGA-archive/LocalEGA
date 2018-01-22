@@ -5,12 +5,12 @@ Feature: Authentication
     Given I am a user of LocalEGA instances:
       | swe1 |
 
-  Scenario: U.0 User population in LocalEGA DB from Central EGA
+  Scenario: U.0 User population in LocalEGA Cache from Central EGA
     Given I have an account at Central EGA
     And I want to work with instance "swe1"
     And I have correct private key
     When I connect to the LocalEGA inbox via SFTP using private key
-    Then I am in the local database
+    Then I am in the local cache
 
   Scenario: U.1 User doesn't exist in Central EGA, but tries to authenticate against LocalEGA inbox
     Given I want to work with instance "swe1"
@@ -30,7 +30,7 @@ Feature: Authentication
     And I want to work with instance "swe1"
     And I have correct private key
     When my account expires
-    Then I am not in the local database
+    Then I am not in the local cache
 
   Scenario: U.4 User exists in Central EGA, but uses incorrect private key for authentication
     Given I have an account at Central EGA
@@ -49,14 +49,6 @@ Feature: Authentication
      And inbox is deleted for my user
      When I connect to the LocalEGA inbox via SFTP using private key
      Then authentication fails
-
-  Scenario: U.6 User exists in Central EGA and uses correct private key for authentication for the correct instance, but database is down
-    Given I have an account at Central EGA
-    And I want to work with instance "swe1"
-    And I have correct private key
-    And the database connectivity is broken
-    When I connect to the LocalEGA inbox via SFTP using private key
-    Then authentication fails
 
   Scenario: U.7 User exists in Central EGA and uses correct private key for authentication for the correct instance
     Given I have an account at Central EGA
