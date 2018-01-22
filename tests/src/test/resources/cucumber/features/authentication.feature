@@ -25,13 +25,6 @@ Feature: Authentication
     When I connect to the LocalEGA inbox via SFTP using private key
     Then authentication fails
 
-  Scenario: U.3 User exists in Central EGA, but his account has expired
-    Given I have an account at Central EGA
-    And I want to work with instance "swe1"
-    And I have correct private key
-    When my account expires
-    Then I am not in the local cache
-
   Scenario: U.4 User exists in Central EGA, but uses incorrect private key for authentication
     Given I have an account at Central EGA
     And I want to work with instance "swe1"
