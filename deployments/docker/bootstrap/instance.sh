@@ -53,8 +53,8 @@ ${GPG_CONF} --kill gpg-agent
 #########################################################################
 
 echomsg "\t* the RSA public and private key"
-${OPENSSL} genrsa -out ${PRIVATE}/${INSTANCE}/rsa/ega.sec -passout pass:${RSA_PASSPHRASE} 2048
-${OPENSSL} rsa -in ${PRIVATE}/${INSTANCE}/rsa/ega.sec -passin pass:${RSA_PASSPHRASE} -pubout -out ${PRIVATE}/${INSTANCE}/rsa/ega.pub
+${OPENSSL} genpkey -algorithm RSA -out ${PRIVATE}/${INSTANCE}/rsa/ega.sec -pkeyopt rsa_keygen_bits:2048
+${OPENSSL} rsa -pubout -in ${PRIVATE}/${INSTANCE}/rsa/ega.sec -out ${PRIVATE}/${INSTANCE}/rsa/ega.pub
 
 #########################################################################
 
@@ -71,7 +71,6 @@ active_master_key = 1
 [master.key.1]
 seckey = /etc/ega/rsa/sec.pem
 pubkey = /etc/ega/rsa/pub.pem
-passphrase = ${RSA_PASSPHRASE}
 EOF
 
 echomsg "\t* ega.conf"
@@ -341,7 +340,6 @@ GPG_PASSPHRASE            = ${GPG_PASSPHRASE}
 GPG_NAME                  = ${GPG_NAME}
 GPG_COMMENT               = ${GPG_COMMENT}
 GPG_EMAIL                 = ${GPG_EMAIL}
-RSA_PASSPHRASE            = ${RSA_PASSPHRASE}
 SSL_SUBJ                  = ${SSL_SUBJ}
 #
 DB_USER                   = ${DB_USER}

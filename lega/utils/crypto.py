@@ -19,6 +19,7 @@ from hashlib import sha256
 from Cryptodome.PublicKey import RSA
 from Cryptodome.Random import get_random_bytes
 from Cryptodome.Cipher import AES, PKCS1_OAEP
+from Cryptodome.Hash import SHA256
 
 from . import exceptions, checksum, get_file_content
 
@@ -54,8 +55,8 @@ def encrypt_engine(key,passphrase=None):
     aes = AES.new(key=session_key, mode=AES.MODE_CTR)
 
     LOG.info('Creating RSA cypher')
-    rsa_key = RSA.import_key(key, passphrase = passphrase)
-    rsa = PKCS1_OAEP.new(rsa_key)
+    rsa_key = RSA.import_key(key)
+    rsa = PKCS1_OAEP.new(rsa_key, hashAlgo = SHA256)
 
     encryption_key = rsa.encrypt(session_key)
     LOG.debug(f'\tencryption key = {encryption_key}')
