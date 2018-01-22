@@ -105,27 +105,10 @@ public class Authentication implements En {
             }
         });
 
-        Then("^I am in the local cache$", () -> {
-            try {
-                Assert.assertTrue(utils.isUserExistInCache(context.getTargetInstance(), context.getUser()));
-            } catch (IOException | InterruptedException e) {
-                log.error(e.getMessage(), e);
-                Assert.fail(e.getMessage());
-            }
-        });
-
-        Then("^I am not in the local cache$", () -> {
-            try {
-                Assert.assertFalse(utils.isUserExistInCache(context.getTargetInstance(), context.getUser()));
-            } catch (IOException | InterruptedException e) {
-                log.error(e.getMessage(), e);
-                Assert.fail(e.getMessage());
-            }
-        });
-
         Then("^I'm logged in successfully$", () -> Assert.assertFalse(context.isAuthenticationFailed()));
 
         Then("^authentication fails$", () -> Assert.assertTrue(context.isAuthenticationFailed()));
+
 
     }
 

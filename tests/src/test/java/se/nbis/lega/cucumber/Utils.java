@@ -120,21 +120,6 @@ public class Utils {
     }
 
     /**
-     * Checks if the user exists in the local database cache.
-     *
-     * @param instance LocalEGA site.
-     * @param user     Username.
-     * @return <code>true</code> if user exists, <code>false</code> otherwise.
-     * @throws IOException          In case of output error.
-     * @throws InterruptedException In case the query execution is interrupted.
-     */
-    public boolean isUserExistInCache(String instance, String user) throws IOException, InterruptedException {
-        String output = executeWithinContainer(findContainer(getProperty("images.name.inbox"), getProperty("container.prefix.inbox") + instance),
-					       String.format("[[ -d %s/%s ]] && echo -n found", getProperty("inbox.cache.path"), user).split(" "));
-        return "found".equals(output);
-    }
-
-    /**
      * Removes the user from the local database.
      *
      * @param instance LocalEGA site.

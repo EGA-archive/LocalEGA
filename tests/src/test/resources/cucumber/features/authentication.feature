@@ -5,12 +5,12 @@ Feature: Authentication
     Given I am a user of LocalEGA instances:
       | swe1 |
 
-  Scenario: U.0 User population in LocalEGA Cache from Central EGA
+  Scenario: U.0 User exists in Central EGA and uses correct private key for authentication for the correct instance
     Given I have an account at Central EGA
     And I want to work with instance "swe1"
     And I have correct private key
     When I connect to the LocalEGA inbox via SFTP using private key
-    Then I am in the local cache
+    Then I'm logged in successfully
 
   Scenario: U.1 User doesn't exist in Central EGA, but tries to authenticate against LocalEGA inbox
     Given I want to work with instance "swe1"
@@ -25,14 +25,14 @@ Feature: Authentication
     When I connect to the LocalEGA inbox via SFTP using private key
     Then authentication fails
 
-  Scenario: U.4 User exists in Central EGA, but uses incorrect private key for authentication
+  Scenario: U.3 User exists in Central EGA, but uses incorrect private key for authentication
     Given I have an account at Central EGA
     And I want to work with instance "swe1"
     And I have incorrect private key
     When I connect to the LocalEGA inbox via SFTP using private key
     Then authentication fails
 
-   Scenario: U.5 User exists in Central EGA and tries to connect to LocalEGA, but the inbox was not created for him
+   Scenario: U.4 User exists in Central EGA and tries to connect to LocalEGA, but the inbox was not created for him
      Given I have an account at Central EGA
      And I want to work with instance "swe1"
      And I have correct private key
@@ -43,9 +43,3 @@ Feature: Authentication
      When I connect to the LocalEGA inbox via SFTP using private key
      Then authentication fails
 
-  Scenario: U.7 User exists in Central EGA and uses correct private key for authentication for the correct instance
-    Given I have an account at Central EGA
-    And I want to work with instance "swe1"
-    And I have correct private key
-    When I connect to the LocalEGA inbox via SFTP using private key
-    Then I'm logged in successfully
