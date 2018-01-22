@@ -129,7 +129,7 @@ public class Utils {
      * @throws InterruptedException In case the query execution is interrupted.
      */
     public boolean isUserExistInCache(String instance, String user) throws IOException, InterruptedException {
-        String output = executeWithinContainer(findContainer(getProperty("images.name.inbox"), getProperty("container.prefix.db") + instance),
+        String output = executeWithinContainer(findContainer(getProperty("images.name.inbox"), getProperty("container.prefix.inbox") + instance),
 					       String.format("[[ -d %s/%s ]] && echo -n found", getProperty("inbox.cache.path"), user).split(" "));
         return "found".equals(output);
     }
@@ -143,7 +143,7 @@ public class Utils {
      * @throws InterruptedException In case the query execution is interrupted.
      */
     public void removeUserFromCache(String instance, String user) throws IOException, InterruptedException {
-        executeWithinContainer(findContainer(getProperty("images.name.inbox"), getProperty("container.prefix.db") + instance),
+        executeWithinContainer(findContainer(getProperty("images.name.inbox"), getProperty("container.prefix.inbox") + instance),
 			       String.format("rm -rf %s/%s", getProperty("inbox.cache.path"), user).split(" "));
     }
 
