@@ -7,8 +7,7 @@ before_install:
   - |
         cd deployments/docker/images
         # make pull
-        make common
-        make -j 4 images
+        make images
         cd ..
         make bootstrap
 
