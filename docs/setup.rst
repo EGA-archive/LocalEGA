@@ -9,7 +9,23 @@ The sources for LocalEGA can be downloaded and installed from the `NBIS Github r
 
     $ pip install git+https://github.com/NBISweden/LocalEGA.git
 
-The preferred method is however to use one of our deployment strategy: either on `Docker`_ or on `OpenStack cloud`_. 
+The preferred method is however to use one of our deployment strategy:
+either on `Docker`_ or on `OpenStack cloud`_.
+
+For the LocalEGA inboxes:
+
+.. code-block:: console
+
+    $ git clone https://github.com/NBISweden/LocalEGA-auth.git ~/repo
+    $ cd ~repo
+    $ make install
+    $ ldconfig -v
+
+You can also display more output information by compiling with ``make
+debug1``, ``make debug2`` or ``make debug3``, instead of ``make
+install``. The latter does not display any information, ``debug1``
+displays the headlines, ``debug2`` displays even more, while
+``debug3`` is the full verbose output.
 
 Configuration
 =============
