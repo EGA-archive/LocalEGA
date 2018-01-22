@@ -134,11 +134,6 @@ async def get_user_info(conn, username):
         await cur.execute(query, {'username': username})
         return await cur.fetchone()
 
-async def flush_user(conn, name):
-    with (await conn.cursor()) as cur:
-        await cur.execute('SELECT flush_user(%(name)s);', { 'name': name })
-        return await cur.fetchone()
-
 ######################################
 ##         "Classic" code           ##
 ######################################

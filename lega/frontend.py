@@ -16,7 +16,6 @@ We provide:
 | [LocalEGA-URL]/                   | GET        | Frontpage                              |
 | [LocalEGA-URL]/file?user=&name=   | GET        | Information on a file for a given user |
 | [LocalEGA-URL]/user/<name>        | GET        | JSON array of all files information    |
-| [LocalEGA-URL]/user/<name>        | DELETE     | Revoking inbox access                  |
 |-----------------------------------|------------|----------------------------------------|
 
 :author: Frédéric Haziza
@@ -74,16 +73,6 @@ async def index(request):
     The template is `index.html` in the configured template folder.
     '''
     return { 'country': 'Sweden', 'text' : '<p>There should be some info here.</p>' }
-
-@only_central_ega
-async def flush_user(request):
-    '''Flush an EGA user from the database'''
-    name = request.match_info['name']
-    LOG.info(f'Flushing user {name} from the database')
-    res = await db.flush_user(request.app['db'], name)
-    if not res:
-        raise web.HTTPBadRequest(text=f'An error occured for user {name}\n')
-    return web.Response(text=f'Success')
 
 @only_central_ega
 async def status_file(request):
