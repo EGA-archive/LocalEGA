@@ -18,8 +18,7 @@ PGP_PUBKEY        = b'2'
 PGP_PASSPHRASE    = b'3'
 MASTER_SECKEY     = b'4'
 MASTER_PUBKEY     = b'5'
-MASTER_PASSPHRASE = b'6'
-ACTIVE_MASTER_KEY = b'7'
+ACTIVE_MASTER_KEY = b'6'
 
 # For the match, we turn that off
 ssl.match_hostname = lambda cert, hostname: True
@@ -81,7 +80,6 @@ def main(args=None):
     active_master_key = KEYS.getint('DEFAULT','active_master_key')
     master_seckey = get_file_content(KEYS.get(f'master.key.{active_master_key}','seckey'))
     master_pubkey = get_file_content(KEYS.get(f'master.key.{active_master_key}','pubkey'))
-    master_passphrase = (KEYS.get(f'master.key.{active_master_key}','passphrase')).encode()
 
     secrets = {
         # PGP_SECKEY        : pgp_seckey,
@@ -89,7 +87,6 @@ def main(args=None):
         # PGP_PASSPHRASE    : pgp_passphrase,
         MASTER_SECKEY     : master_seckey,
         MASTER_PUBKEY     : master_pubkey,
-        MASTER_PASSPHRASE : master_passphrase,
         ACTIVE_MASTER_KEY : str(active_master_key).encode(),
     }
 
