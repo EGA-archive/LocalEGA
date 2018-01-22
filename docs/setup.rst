@@ -9,7 +9,7 @@ The sources for LocalEGA can be downloaded and installed from the `NBIS Github r
 
     $ pip install git+https://github.com/NBISweden/LocalEGA.git
 
-The preferred method is however to use one of our deployment strategy: either on `docker`_ or on `Openstack cloud`_. 
+The preferred method is however to use one of our deployment strategy: either on `Docker`_ or on `OpenStack cloud`_. 
 
 Configuration
 =============
@@ -17,10 +17,11 @@ Configuration
 A few files are required in order to connect the different components.
 
 The main configurations are set by default, and it is possible to
-overwrite any of them. All Python components can be indeed started
+overwrite any of them. All Python components can indeed be started
 using the ``--conf <file>`` switch to specify the configuration file.
 
 The settings are loaded, in order:
+
 * from the package's ``defaults.ini``
 * from the file ``/etc/ega/conf.ini`` (if it exists)
 * and finally from the file specified as the ``--conf`` argument.
@@ -56,8 +57,8 @@ Bootstrap
 =========
 
 In order to simplify the setup of LocalEGA's components, we have
-developped a few bootstrap scripts (one for the `docker`_ deployment
-and one for the `Openstack cloud`_ deployment).
+developped a few bootstrap scripts (one for the `Docker`_ deployment
+and one for the `OpenStack cloud`_ deployment).
 
 Those script create random passwords, configuration files, GnuPG keys,
 RSA keys and connect the different components togehter.
@@ -68,6 +69,6 @@ file there.
 
 
 .. _NBIS Github repo: https://github.com/NBISweden/LocalEGA
-.. _docker: https://github.com/NBISweden/LocalEGA/tree/dev/deployments/docker
-.. _Openstack cloud: https://github.com/NBISweden/LocalEGA/tree/dev/deployments/terraform
+.. _Docker: https://github.com/NBISweden/LocalEGA/tree/dev/deployments/docker
+.. _OpenStack cloud: https://github.com/NBISweden/LocalEGA/tree/dev/deployments/terraform
 .. _available: https://github.com/NBISweden/LocalEGA/tree/dev/lega/conf/loggers

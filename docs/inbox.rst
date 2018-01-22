@@ -5,20 +5,19 @@ Inbox login system
 
 Central EGA contains a database of users, with IDs and passwords.
 
-We have developped an NSS+PAM solution to allow user
-authentication via either a password or an RSA key against the
-CentralEGA database itself. The user is chrooted into their home
-folder.
+We have developed an NSS+PAM solution to allow user authentication via
+either a password or an RSA key against the CentralEGA database
+itself. The user is chroot'ed into their home folder.
 
 The solution uses CentralEGA's user IDs but can also be extended to
 use Elixir IDs (of which we strip the @elixir-europe.org suffix).
 
 
 The procedure is as follows. The inbox is started without any created
-user. When a user wants log into the inbox (actually, only sftp
+user. When a user wants to log into the inbox (actually, only sftp
 uploads are allowed), the NSS module looks up the username in a local
 cache, and, if not found, queries the CentralEGA database. Upon
-return, we stores the user credentials in the local cache and create
+return, we store the user credentials in the local cache and create
 the user's home directory. The user now gets logged in if the password
 or public key authentication succeeds. Upon subsequent login attempts,
 only the local cache is queried, until the user's credentials
@@ -128,13 +127,13 @@ source code has its own `repository
 <https://github.com/NBISweden/LocalEGA-auth>`_. A makefile is provided
 to compile and install the necessary shared libraries.
 
-We copied the ``/sbin/sshd`` into an ``/sbin/ega`` binary and configured
-the *ega* service by adding a file into the ``/etc/pam.d`` directory. In
-this case, name the file ``/etc/pam.d/ega``.
+We copied the ``/sbin/sshd`` into an ``/sbin/ega`` binary and
+configured the *ega* service by adding a file into the ``/etc/pam.d``
+directory. In this case, the name of the file is ``/etc/pam.d/ega``.
 
 .. literalinclude:: /../deployments/docker/images/inbox/pam.ega
 
-The *ega* service is configured as ``sshd`` would. We only use the
+The *ega* service is configured just like ``sshd`` is. We only use the
 ``-c`` switch to specify where the configuration file is. The service
 runs for the moment on port 9000.
 
@@ -148,9 +147,9 @@ whether the user has a valid ssh public key. If it is not the case,
 the user is prompted to input a password. Central EGA stores password
 hashes using the `BLOWFISH
 <https://en.wikipedia.org/wiki/Blowfish_(cipher)>`_ hashing
-algorithm. LocalEGA supports also the usual ``MD5``, ``SHA256`` and
-``SHA512`` available on most Linux distribution (They are part of the
-C library).
+algorithm. LocalEGA also supports the usual ``md5``, ``sha256`` and
+``sha512`` algorithms available on most Linux distribution (They are
+part of the C library).
 
 Updating a user password is not allowed (ie therefore the ``password``
 *type* is configure to deny every access).
@@ -167,9 +166,11 @@ the session closes, ``setcred`` is bound to fail. However, it
 succeeded on the original login, and it will again on the subsequent
 logins. That way, if a user logs again, within a cache TTL delay, we
 do not re-query the CentralEGA database. After the TTL has elapsed, we
-shall query anew the CentralEGA database, eventually receiving new
-credentials for that user. Note that it is unlikely that a user will
-keep logging in and out, while its password and/or ssh key have been
-reset. If so, we can implement a flush mechanism, given to CentralEGA,
-if necessary.
+do query anew the CentralEGA database, eventually receiving new
+credentials for that user.
+
+Note that it is unlikely that a user will keep logging in and out,
+while its password and/or ssh key have been reset. If so, we can
+implement a flush mechanism, given to CentralEGA, if necessary (not
+complicated, and ... not a priority).
 
