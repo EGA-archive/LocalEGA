@@ -68,6 +68,9 @@ ibana. Logstash receives the logs. Elasticsearch stores them and make
 them searchable. Kibana contacts the Elasticsearch service to display
 the logs in a web interface.
 
+.. image:: /static/Kibana.png
+   :target: _static/Kibana.png
+   :alt: Kibana
 
 Bootstrap
 =========
