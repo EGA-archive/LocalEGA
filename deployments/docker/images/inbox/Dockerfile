@@ -1,7 +1,8 @@
 FROM nbisweden/ega-common:latest
 LABEL maintainer "Frédéric Haziza, NBIS"
 
-RUN yum -y install openssh-server pam-devel libcurl-devel jq-devel fuse fuse-libs cronie
+RUN yum -y install openssh-server pam-devel libcurl-devel jq-devel fuse fuse-libs cronie && \
+    yum clean all
 
 ##################################
 EXPOSE 9000
