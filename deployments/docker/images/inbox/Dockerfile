@@ -4,7 +4,7 @@ LABEL maintainer "Frédéric Haziza, NBIS"
 RUN yum -y install openssh-server pam-devel libcurl-devel jq-devel fuse fuse-libs cronie
 
 ##################################
-EXPOSE 22
+EXPOSE 9000
 VOLUME /ega/inbox
 ENV DB_INSTANCE=
 
