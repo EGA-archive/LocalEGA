@@ -4,25 +4,31 @@ Connection CEGA |connect| LEGA
 ==============================
 
 All Local EGA instances are connected to Central EGA using
-`RabbitMQ`_. The latter is the **only** component with the necessary
-credentials to connect to Central EGA.
+`RabbitMQ`_, a message broker, that allows application components to
+send and receive messages. Messages are queued, not lost, and resend
+on network failure or connection problems. Naturally, this is configurable.
+
+The RabbitMQ message brokers of each LocalEGA are the **only**
+components with the necessary credentials to connect to Central
+EGA. The other LocalEGA components can not.
+
+We call ``CegaMQ`` and ``LegaMQ``, the RabbitMQ message brokers of,
+respectively, Central EGA and Local EGA.
 
 .. note:: We have fixed the RabbitMQ version to ``3.6.14``.
 
 
-CentralEGA declares a ``vhost`` per LocalEGA instance. It also
-creates the credentials to connect to that ``vhost`` in the form
-of a *username/password* pair. The connection uses the AMQP(S)
-protocol (The S adds TLS encryption to the traffic).
+``CegaMQ`` declares a ``vhost`` for each LocalEGA instance. It also
+creates the credentials to connect to that ``vhost`` in the form of a
+*username/password* pair. The connection uses the AMQP(S) protocol
+(The S adds TLS encryption to the traffic).
 
-LocalEGA uses then a connection string with the following syntax:
+``LegaMQ`` then uses a connection string with the following syntax:
 
 .. code-block:: console
 		
    amqp[s]://<user>:<password>@<cega-host>:<port>/<vhost>
 
-We call ``CegaMQ`` and ``LegaMQ``, the RabbitMQ message brokers of,
-respectively, Central EGA and Local EGA.
 
 ``CegaMQ`` contains an exchange named ``localega.v1``. ``v1`` is used for
 versioning and is internal to CentralEGA. The queues connected to that
@@ -101,9 +107,10 @@ EGA. They can be added later on, if necessary.
 .. _supported checksum algorithm: md5
 
 Adding a new Local EGA instance
-===============================
+-------------------------------
 
-Central EGA must only prepare a user/password pair along with a ``vhost`` in their RabbitMQ.
+Central EGA only has to prepare a user/password pair along with a
+``vhost`` in their RabbitMQ.
 
 When Central EGA has communicated these details to the given Local EGA
 instance, the latter can contact Central EGA using the federated queue
