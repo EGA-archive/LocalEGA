@@ -1,4 +1,4 @@
-FROM centos:latest
+FROM centos:7.4.1708
 LABEL maintainer "Frédéric Haziza, NBIS"
 
 RUN yum -y install https://centos7.iuscommunity.org/ius-release.rpm && \
