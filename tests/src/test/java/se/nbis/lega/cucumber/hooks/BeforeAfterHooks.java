@@ -39,16 +39,11 @@ public class BeforeAfterHooks implements En {
         Utils utils = context.getUtils();
         String targetInstance = context.getTargetInstance();
 
-        // fix database connectivity
-        utils.executeWithinContainer(utils.findContainer(utils.getProperty("images.name.inbox"),
-                utils.getProperty("container.prefix.inbox") + context.getTargetInstance()),
-                "sed -i s/dbname=wrong/dbname=lega/g /etc/ega/auth.conf".split(" "));
-
         FileUtils.deleteDirectory(context.getDataFolder());
         File cegaUsersFolder = new File(utils.getPrivateFolderPath() + "/cega/users/" + targetInstance);
         String user = context.getUser();
         Arrays.stream(cegaUsersFolder.listFiles((dir, name) -> name.startsWith(user))).forEach(File::delete);
-        utils.removeUserFromDB(targetInstance, user);
+        utils.removeUserFromCache(targetInstance, user);
         utils.removeUserInbox(targetInstance, user);
     }
 

@@ -77,16 +77,6 @@ public class Authentication implements En {
             }
         });
 
-        Given("^the database connectivity is broken$", () -> {
-            try {
-                utils.executeWithinContainer(utils.findContainer(utils.getProperty("images.name.inbox"),
-                        utils.getProperty("container.prefix.inbox") + context.getTargetInstance()),
-                        "sed -i s/dbname=lega/dbname=wrong/g /etc/ega/auth.conf".split(" "));
-            } catch (InterruptedException e) {
-                log.error(e.getMessage(), e);
-            }
-        });
-
         When("^my account expires$", () -> {
             connect(context);
             disconnect(context);
@@ -115,18 +105,18 @@ public class Authentication implements En {
             }
         });
 
-        Then("^I am in the local database$", () -> {
+        Then("^I am in the local cache$", () -> {
             try {
-                Assert.assertTrue(utils.isUserExistInDB(context.getTargetInstance(), context.getUser()));
+                Assert.assertTrue(utils.isUserExistInCache(context.getTargetInstance(), context.getUser()));
             } catch (IOException | InterruptedException e) {
                 log.error(e.getMessage(), e);
                 Assert.fail(e.getMessage());
             }
         });
 
-        Then("^I am not in the local database$", () -> {
+        Then("^I am not in the local cache$", () -> {
             try {
-                Assert.assertFalse(utils.isUserExistInDB(context.getTargetInstance(), context.getUser()));
+                Assert.assertFalse(utils.isUserExistInCache(context.getTargetInstance(), context.getUser()));
             } catch (IOException | InterruptedException e) {
                 log.error(e.getMessage(), e);
                 Assert.fail(e.getMessage());
