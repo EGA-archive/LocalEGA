@@ -77,18 +77,6 @@ public class Authentication implements En {
             }
         });
 
-        When("^my account expires$", () -> {
-            connect(context);
-            disconnect(context);
-            try {
-                Thread.sleep(1000);
-                utils.executeDBQuery(context.getTargetInstance(),
-                        String.format("update users set expiration = '1 second' where elixir_id = '%s'", context.getUser()));
-            } catch (IOException | InterruptedException e) {
-                log.error(e.getMessage(), e);
-            }
-        });
-
         When("^I connect to the LocalEGA inbox via SFTP using private key$", () -> connect(context));
 
         When("^I disconnect from the LocalEGA inbox$", () -> disconnect(context));
