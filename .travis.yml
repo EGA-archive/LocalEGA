@@ -6,9 +6,9 @@ services:
 before_install:
   - |
         cd deployments/docker/images
-        make pull common
+        # make pull
+        make common
         make -j 4 images
-        make bootstrap
         cd ..
         make bootstrap
 
