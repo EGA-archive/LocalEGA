@@ -29,5 +29,5 @@ AcceptEnv LC_IDENTIFICATION LC_ALL LANGUAGE
 AcceptEnv XMODIFIERS
 Subsystem sftp internal-sftp
 Banner /ega/banner
-AuthorizedKeysCommand /usr/local/bin/ega_ssh_keys.sh
-AuthorizedKeysCommandUser ega
+AuthorizedKeysCommand /usr/local/bin/ega_ssh_keys
+AuthorizedKeysCommandUser root

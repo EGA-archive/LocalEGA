@@ -1,7 +1,8 @@
 FROM nbisweden/ega-common:latest
 LABEL maintainer "Frédéric Haziza, NBIS"
 
-RUN yum -y install vim-common zlib-devel bzip2-devel
+RUN yum -y install vim-common zlib-devel bzip2-devel && \
+    yum clean all
 
 # Copy the RPMS from git
 RUN for f in libgpg-error-1.27 libgcrypt-1.8.1 libassuan-2.4.3 libksba-1.3.5 npth-1.5 ncurses-6.0 pinentry-1.0.0 gnupg-2.2.2; \

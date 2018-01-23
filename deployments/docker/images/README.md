@@ -21,7 +21,7 @@ A typical build goes as follows:
 
 # Results
 
-`rabbitmq:management`, `postgres:latest`, `centos:latest` are pulled from the main docker hub.
+`rabbitmq:management`, `postgres:latest`, `centos:7.4.1708` are pulled from the main docker hub.
 
 The following images are created locally:
 
