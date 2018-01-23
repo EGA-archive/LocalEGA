@@ -92,7 +92,7 @@ Procedure
      * a ``User story``
      * ... or several.
 
-   Do :bolditalic:`not` ask us to merge it into ``master``. We will use the ``dev`` branch.
+   N.B: Pull requests are done to the ``dev`` branch. PRs to ``master`` are rejected.
 
 #. Selecting a review goes as follows: Pick one *main* reviewer.  It
    is usually one that you had discussions with, and is somehow 
@@ -113,8 +113,8 @@ Procedure
    your code, etc...) In that case, a reviewer will request changes
    and describe them in the comment section of the PR.
 
-   You then update your branch with new commits and ping the reviewer
-   on the slack channel. (Yes, we respond better there).
+   You then update your branch with new commits. We will see the PR
+   changes faster if you ping the reviewer in the slack channel.
 
    Note that the comments *in the PR* are not used to discuss the
    *how* and *why* of that issue. These discussions are not about the
@@ -138,10 +138,10 @@ Did you find a bug?
 
 * Ensure that the bug was not already reported by `searching under Issues`_.
 
-* Do :bolditalic:`not` file it as a plain GitHub issue (we use the issue
-  system for our internal tasks (see Zenhub)).  If you're unable to
-  find an (open) issue addressing the problem, `open a new one`_.  Be sure to
-  prefix the issue title with **[BUG]** and to include:
+* Do :bolditalic:`not` file it as a plain GitHub issue (we use the
+  issue system for our internal tasks (see Zenhub)).  If you're unable
+  to find an (open) issue addressing the problem, `open a new one`_.
+  Be sure to prefix the issue title with **[BUG]** and to include:
 
   - a *clear* description,
   - as much relevant information as possible, and 

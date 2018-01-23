@@ -92,7 +92,7 @@ html_title = 'NBIS Local EGA'
 
 html_theme = 'sphinx_rtd_theme'
 html_theme_options = {
-    'collapse_navigation': False,
+    'collapse_navigation': True,
     'sticky_navigation': True,
     #'navigation_depth': 4,
     'display_version': True,

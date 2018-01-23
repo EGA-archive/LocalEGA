@@ -15,7 +15,7 @@ EGA. The other LocalEGA components can not.
 We call ``CegaMQ`` and ``LegaMQ``, the RabbitMQ message brokers of,
 respectively, Central EGA and Local EGA.
 
-.. note:: We have fixed the RabbitMQ version to ``3.6.14``.
+.. note:: We pinned the RabbitMQ version to ``3.6.14``.
 
 
 ``CegaMQ`` declares a ``vhost`` for each LocalEGA instance. It also
