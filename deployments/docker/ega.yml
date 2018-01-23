@@ -23,22 +23,6 @@ services:
     image: postgres:latest
     volumes:
       - ${DATA}/swe1/db.sql:/docker-entrypoint-initdb.d/ega.sql:ro
-      
-  # ReST frontend
-  frontend-swe1:
-    hostname: ega-frontend
-    depends_on:
-      - db-swe1
-    ports:
-      - "9000:80"
-    expose:
-      - 80
-    container_name: ega-frontend-swe1
-    image: nbisweden/ega-frontend
-    volumes:
-      - ${DATA}/swe1/ega.conf:/etc/ega/conf.ini:ro
-      - ${DATA}/swe1/logger.yml:/etc/ega/logger.yml:ro
-      - ../..:/root/.local/lib/python3.6/site-packages:ro
 
   # SFTP inbox for Sweden
   inbox-swe1:
@@ -188,22 +172,6 @@ services:
     volumes:
       - ${DATA}/fin1/db.sql:/docker-entrypoint-initdb.d/ega.sql:ro
       
-  # ReST frontend
-  frontend-fin1:
-    hostname: ega-frontend
-    depends_on:
-      - db-fin1
-    ports:
-      - "9001:80"
-    expose:
-      - 80
-    container_name: ega-frontend-fin1
-    image: nbisweden/ega-frontend
-    volumes:
-      - ${DATA}/fin1/ega.conf:/etc/ega/conf.ini:ro
-      - ${DATA}/fin1/logger.yml:/etc/ega/logger.yml:ro
-      - ../..:/root/.local/lib/python3.6/site-packages:ro
-
   # SFTP inbox for Sweden
   inbox-fin1:
     hostname: ega-inbox
