@@ -93,14 +93,6 @@ host = ega-db-${INSTANCE}
 username = ${DB_USER}
 password = ${DB_PASSWORD}
 try = ${DB_TRY}
-
-[frontend]
-host = ega-frontend-${INSTANCE}
-cega_password = ${CEGA_PASSWORD}
-
-[outgestion]
-# Keyserver communication
-keyserver_host = ega-keys-${INSTANCE}
 EOF
 
 echomsg "\t* SFTP Inbox port"
@@ -142,9 +134,6 @@ root:
 
 loggers:
   connect:
-    level: ${_LOG_LEVEL}
-    handlers: [logstash,console]
-  frontend:
     level: ${_LOG_LEVEL}
     handlers: [logstash,console]
   ingestion:
