@@ -1,0 +1,46 @@
+<table id="ega">
+  <thead>
+    <tr>
+      <th>Service</th>
+      <th>Description</th>
+      <th>Status</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>db</td>
+      <td>A Postgres database with appropriate schema</td>
+      <td><i class="fas fa-battery-full ega-stable"></i></td>
+    </tr>
+    <tr>
+      <td>mq</td>
+      <td>A RabbitMQ message broker with appropriate accounts, exchanges, queues and bindings</td>
+      <td><i class="fas fa-battery-full ega-stable"></i></td>
+    </tr>
+    <tr>
+      <td>inbox</td>
+      <td>SFTP server, acting as a dropbox, where user credentials are in the Central EGA</td>
+      <td><i class="fas fa-battery-full ega-stable"></i></td>
+    </tr>
+    <tr>
+      <td>keyserver</td>
+      <td>Handles the encryption/decryption keys</td>
+      <td><i class="fas fa-battery-half ega-dev"></i></td>
+    </tr>
+    <tr>
+      <td>workers</td>
+      <td>Connect to the keyserver (via SSL) and do the actual re-encryption task</td>
+      <td><i class="fas fa-battery-half ega-dev"></i></td>
+    </tr>
+    <tr>
+      <td>vault</td>
+      <td>Moves files from the staging area to the vault storage, including a verification step afterwards.</td>
+      <td><i class="fas fa-battery-full ega-stable"></i></td>
+    </tr>
+    <tr>
+      <td>frontend</td>
+      <td>For internal usage only (Possibly used for user documentation later).</td>
+      <td><i class="fas fa-battery-half ega-dev"></i></td>
+    </tr>
+  </tbody>
+</table>

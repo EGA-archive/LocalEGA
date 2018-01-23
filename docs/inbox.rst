@@ -164,9 +164,9 @@ service. The latter is usually called before a session is open, and
 after a session is closed. Since we are in a chrooted environment when
 the session closes, ``setcred`` is bound to fail. However, it
 succeeded on the original login, and it will again on the subsequent
-logins. That way, if a user logs again, within a cache TTL delay, we
-do not re-query the CentralEGA database. After the TTL has elapsed, we
-do query anew the CentralEGA database, eventually receiving new
+logins. That way, if a user logs in again, within a cache TTL delay,
+we do not re-query the CentralEGA database. After the TTL has elapsed,
+we do query anew the CentralEGA database, eventually receiving new
 credentials for that user.
 
 Note that it is unlikely that a user will keep logging in and out,
