@@ -10,34 +10,23 @@ EGA_UID=$(id -u ega)
 EGA_GID=$(id -g ega)
 
 cat > /etc/ega/auth.conf <<EOF
-debug = ok_why_not
-
-##################
-# Databases
-##################
-db_connection = host=${EGA_DB_IP} port=5432 dbname=lega user=${POSTGRES_USER} password=${POSTGRES_PASSWORD} connect_timeout=1 sslmode=disable
-
 enable_cega = yes
 cega_endpoint = ${CEGA_ENDPOINT}
-cega_user = ${CEGA_ENDPOINT_USER}
-cega_password = ${CEGA_ENDPOINT_PASSWORD}
-cega_resp_passwd = ${CEGA_ENDPOINT_RESP_PASSWD}
-cega_resp_pubkey = ${CEGA_ENDPOINT_RESP_PUBKEY}
+cega_creds = ${CEGA_ENDPOINT_CREDS}
+cega_json_passwd = ${CEGA_ENDPOINT_JSON_PASSWD}
+cega_json_pubkey = ${CEGA_ENDPOINT_JSON_PUBKEY}
 
 ##################
-# NSS & PAM Queries
+# NSS & PAM
 ##################
-get_ent = SELECT elixir_id FROM users WHERE elixir_id = \$1 LIMIT 1
-add_user = SELECT insert_user(\$1,\$2,\$3)
-get_password = SELECT password_hash FROM users WHERE elixir_id = \$1 LIMIT 1
-get_account = SELECT elixir_id FROM users WHERE elixir_id = \$1 and current_timestamp < last_accessed + expiration
-
-#prompt = Knock Knock:
-
+# prompt = Knock Knock:
 ega_uid = ${EGA_UID}
 ega_gid = ${EGA_GID}
-ega_gecos = EGA User
-ega_shell = /sbin/nologin
+# ega_gecos = EGA User
+# ega_shell = /sbin/nologin
+
+ega_dir = /ega/inbox
+ega_dir_attrs = 2750 # rwxr-s---
 
 ##################
 # FUSE mount
@@ -46,21 +35,13 @@ ega_fuse_dir = /lega
 ega_fuse_exec = /usr/bin/ega-fs
 ega_fuse_flags = nodev,noexec,uid=${EGA_UID},gid=${EGA_GID},suid
 
-ega_dir = /ega/inbox
-ega_dir_attrs = 2750 # rwxr-s---
 EOF
 
-cat > /usr/local/bin/ega_ssh_keys.sh <<EOF
-#!/bin/bash
-
-eid=\${1%%@*} # strip what's after the @ symbol
-
-query="SELECT pubkey from users where elixir_id = '\${eid}' LIMIT 1"
-
-PGPASSWORD=${POSTGRES_PASSWORD} psql -tqA -U ${POSTGRES_USER} -h ${DB_INSTANCE} -d lega -c "\${query}"
-EOF
-chmod 750 /usr/local/bin/ega_ssh_keys.sh
-chgrp ega /usr/local/bin/ega_ssh_keys.sh
+# for the ramfs cache
+mkdir -p /ega/cache
+sed -i -e '/ega/ d' /etc/fstab
+echo "ramfs /ega/cache ramfs   size=200m 0 0" >> /etc/fstab
+mount /ega/cache
 
 # Greetings per site
 [[ -z "${LEGA_GREETINGS}" ]] || echo ${LEGA_GREETING} > /ega/banner

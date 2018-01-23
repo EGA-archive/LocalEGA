@@ -120,20 +120,6 @@ public class Utils {
     }
 
     /**
-     * Checks if the user exists in the local database.
-     *
-     * @param instance LocalEGA site.
-     * @param user     Username.
-     * @return <code>true</code> if user exists, <code>false</code> otherwise.
-     * @throws IOException          In case of output error.
-     * @throws InterruptedException In case the query execution is interrupted.
-     */
-    public boolean isUserExistInDB(String instance, String user) throws IOException, InterruptedException {
-        String output = executeDBQuery(instance, String.format("select count(*) from users where elixir_id = '%s'", user));
-        return "1".equals(output.split(System.getProperty("line.separator"))[2].trim());
-    }
-
-    /**
      * Removes the user from the local database.
      *
      * @param instance LocalEGA site.
@@ -141,8 +127,9 @@ public class Utils {
      * @throws IOException          In case of output error.
      * @throws InterruptedException In case the query execution is interrupted.
      */
-    public void removeUserFromDB(String instance, String user) throws IOException, InterruptedException {
-        executeDBQuery(instance, String.format("delete from users where elixir_id = '%s'", user));
+    public void removeUserFromCache(String instance, String user) throws IOException, InterruptedException {
+        executeWithinContainer(findContainer(getProperty("images.name.inbox"), getProperty("container.prefix.inbox") + instance),
+			       String.format("rm -rf %s/%s", getProperty("inbox.cache.path"), user).split(" "));
     }
 
     /**

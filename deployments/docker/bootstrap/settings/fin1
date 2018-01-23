@@ -17,8 +17,6 @@ DB_TRY=30
 GPG_NAME="EGA Finland"
 GPG_COMMENT="@CSC"
 GPG_EMAIL="ega@csc.fi"
-
 GPG_PASSPHRASE=$(generate_password 16)
-RSA_PASSPHRASE=$(generate_password 16)
 
 LOG_LEVEL=INFO
