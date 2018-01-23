@@ -6,15 +6,15 @@ services:
 before_install:
   - |
         cd deployments/docker/images
-        make pull common
-        make -j 4 images
-        make bootstrap
+        # make pull
+        make images
         cd ..
         make bootstrap
 
 install:
   - docker-compose up -d
   - docker-compose ps
+  - sleep 120
 
 script:
   - cd ../../tests

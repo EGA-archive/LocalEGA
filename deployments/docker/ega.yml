@@ -29,7 +29,6 @@ services:
     hostname: ega-frontend
     depends_on:
       - db-swe1
-      - logstash-swe1
     ports:
       - "9000:80"
     expose:
@@ -45,10 +44,7 @@ services:
   inbox-swe1:
     hostname: ega-inbox
     depends_on:
-      - db-swe1
-      - logstash-swe1
-      - elasticsearch-swe1
-      - kibana-swe1
+      - mq-swe1
       - cega-users
     env_file:
       - private/swe1/db.env
@@ -75,7 +71,6 @@ services:
       - db-swe1
       - mq-swe1
       - inbox-swe1
-      - logstash-swe1
     hostname: ega-vault
     container_name: ega-vault-swe1
     image: nbisweden/ega-vault
@@ -95,8 +90,6 @@ services:
       - db-swe1
       - mq-swe1
       - keys-swe1
-      - inbox-swe1
-      - logstash-swe1
     image: nbisweden/ega-worker
     environment:
       - GPG_TTY=/dev/console
@@ -117,8 +110,6 @@ services:
   # Key server
   keys-swe1:
     env_file: private/swe1/gpg.env
-    depends_on:
-      - logstash-swe1
     environment:
       - GPG_TTY=/dev/console
       - KEYSERVER_PORT=9010
@@ -202,7 +193,6 @@ services:
     hostname: ega-frontend
     depends_on:
       - db-fin1
-      - logstash-fin1
     ports:
       - "9001:80"
     expose:
@@ -218,10 +208,7 @@ services:
   inbox-fin1:
     hostname: ega-inbox
     depends_on:
-      - db-fin1
-      - logstash-fin1
-      - elasticsearch-fin1
-      - kibana-fin1
+      - mq-fin1
       - cega-users
     env_file:
       - private/fin1/db.env
@@ -247,7 +234,6 @@ services:
       - db-fin1
       - mq-fin1
       - inbox-fin1
-      - logstash-fin1
     hostname: ega-vault
     container_name: ega-vault-fin1
     image: nbisweden/ega-vault
@@ -267,8 +253,6 @@ services:
       - db-fin1
       - mq-fin1
       - keys-fin1
-      - inbox-fin1
-      - logstash-fin1
     image: nbisweden/ega-worker
     environment:
       - GPG_TTY=/dev/console
@@ -289,8 +273,6 @@ services:
   # Key server
   keys-fin1:
     env_file: private/fin1/gpg.env
-    depends_on:
-      - logstash-fin1
     environment:
       - GPG_TTY=/dev/console
       - KEYSERVER_PORT=9010

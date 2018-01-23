@@ -77,28 +77,6 @@ public class Authentication implements En {
             }
         });
 
-        Given("^the database connectivity is broken$", () -> {
-            try {
-                utils.executeWithinContainer(utils.findContainer(utils.getProperty("images.name.inbox"),
-                        utils.getProperty("container.prefix.inbox") + context.getTargetInstance()),
-                        "sed -i s/dbname=lega/dbname=wrong/g /etc/ega/auth.conf".split(" "));
-            } catch (InterruptedException e) {
-                log.error(e.getMessage(), e);
-            }
-        });
-
-        When("^my account expires$", () -> {
-            connect(context);
-            disconnect(context);
-            try {
-                Thread.sleep(1000);
-                utils.executeDBQuery(context.getTargetInstance(),
-                        String.format("update users set expiration = '1 second' where elixir_id = '%s'", context.getUser()));
-            } catch (IOException | InterruptedException e) {
-                log.error(e.getMessage(), e);
-            }
-        });
-
         When("^I connect to the LocalEGA inbox via SFTP using private key$", () -> connect(context));
 
         When("^I disconnect from the LocalEGA inbox$", () -> disconnect(context));
@@ -115,27 +93,10 @@ public class Authentication implements En {
             }
         });
 
-        Then("^I am in the local database$", () -> {
-            try {
-                Assert.assertTrue(utils.isUserExistInDB(context.getTargetInstance(), context.getUser()));
-            } catch (IOException | InterruptedException e) {
-                log.error(e.getMessage(), e);
-                Assert.fail(e.getMessage());
-            }
-        });
-
-        Then("^I am not in the local database$", () -> {
-            try {
-                Assert.assertFalse(utils.isUserExistInDB(context.getTargetInstance(), context.getUser()));
-            } catch (IOException | InterruptedException e) {
-                log.error(e.getMessage(), e);
-                Assert.fail(e.getMessage());
-            }
-        });
-
         Then("^I'm logged in successfully$", () -> Assert.assertFalse(context.isAuthenticationFailed()));
 
         Then("^authentication fails$", () -> Assert.assertTrue(context.isAuthenticationFailed()));
+
 
     }
 
