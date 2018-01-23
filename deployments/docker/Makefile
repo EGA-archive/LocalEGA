@@ -1,12 +1,12 @@
 ARGS=
 
-.PHONY: help private
+.PHONY: help bootstrap private
 
 help:
 	@echo "Usage: make <target>\n"
 	@echo "where <target> is: 'bootstrap', 'up', 'all-up', 'ps', 'down', or 'clean'\n"
 
-bootstrap:
+private bootstrap:
 	@docker run --rm -it -v ${PWD}:/ega -v ${PWD}/../../extras/db.sql:/tmp/db.sql nbisweden/ega-bootstrap ${ARGS}
 
 up:
