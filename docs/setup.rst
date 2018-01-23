@@ -52,21 +52,26 @@ Logging
 
 A similar mechanism is used to overwrite the default logging settings.
 
-The ``--log <file>`` argument is used to configuration where the logs go.
-Without it, we look at the ``DEFAULT/log_conf`` key/value pair from the loaded configuration.
-If the latter doesn't exist, there is no logging capabilities.
+The ``--log <file>`` argument is used to configuration where the logs
+go.  Without it, we look at the ``DEFAULT/log_conf`` key/value pair
+from the loaded configuration.  If the latter doesn't exist, there is
+no logging capabilities.
 
-The ``<file>`` argument can either be a file path in ``INI`` or ``YAML``
-format, or *keyword*. In the latter case, the logging mechanism will search for a log file, using that keyword, in the default loggers.
+The ``<file>`` argument can either be a file path in ``INI`` or
+``YAML`` format, or a *keyword*. In the latter case, the logging
+mechanism will search for a log file, using that keyword, in the
+`default loggers
+<https://github.com/NBISweden/LocalEGA/tree/dev/lega/conf/loggers>`_. Currently,
+``default``, ``debug``, ``syslog``, ``logstash`` and
+``logstash-debug`` are available.
 
-Currently, ``default``, ``debug``, ``syslog``, ``logstash`` and
-``logstash-debug`` are `available`_.
-
-Using the logstash logger, We leverage the famous *ELK* stack. *ELK*
-stands for **E**\ lasticsearch, **L**\ ogstash and **K**\
-ibana. Logstash receives the logs. Elasticsearch stores them and make
-them searchable. Kibana contacts the Elasticsearch service to display
-the logs in a web interface.
+Using the `logstash logger
+<https://github.com/NBISweden/LocalEGA/blob/dev/lega/conf/loggers/logstash-debug.yaml>`_,
+We leverage the famous *ELK* stack. *ELK* stands for **E**\
+lasticsearch, **L**\ ogstash and **K**\ ibana. Logstash receives the
+logs. Elasticsearch stores them and make them searchable. Kibana
+contacts the Elasticsearch service to display the logs in a web
+interface.
 
 .. image:: /static/Kibana.png
    :target: _static/Kibana.png
@@ -90,4 +95,3 @@ file there.
 .. _NBIS Github repo: https://github.com/NBISweden/LocalEGA
 .. _Docker: https://github.com/NBISweden/LocalEGA/tree/dev/deployments/docker
 .. _OpenStack cloud: https://github.com/NBISweden/LocalEGA/tree/dev/deployments/terraform
-.. _available: https://github.com/NBISweden/LocalEGA/tree/dev/lega/conf/loggers
