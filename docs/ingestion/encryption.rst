@@ -7,9 +7,9 @@ own requirements.
 
 In the current implementation, after checksuming an uploaded file, the
 re-encryption procedure goes as follows. For an ingested file ``F``,
-from the user ``U``\ 's inbox, ``F`` is decrypted, as a stream, using
-the LocalEGA's GPG private key, and the result is checksumed. While
-the checksum is calculated, the stream chunk are re-encrypted using
+from a user's inbox, ``F`` is decrypted, as a stream, using the
+LocalEGA's GPG private key, and the result is checksumed. While the
+checksum is calculated, the stream chunks are re-encrypted using
 AES-256 in CTR mode.
 
 A random session key (of 256 bits) is generated to seed the AES
