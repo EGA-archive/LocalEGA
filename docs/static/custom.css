@@ -1,6 +1,5 @@
 .bolditalic { font-weight: bold; font-style:italic; }
-.inline-baseline { position: relative; bottom:-0.75ex; }
 
-/* div.note { float: right; width:200px; margin: 0 0 0 10px; padding: 10px; position:relative; } */
-
-/* div.note > .first { position:absolute; top:0; left:0; transform:translate(-50%, -50%) rotate(-30deg); font-size:1em; background: black; color:white; margin:0; } */
+/* footer * { display:none; } */
+/* footer > hr, */
+/* footer > div { display: block; } */
