@@ -4,7 +4,6 @@ LABEL maintainer "Frédéric Haziza, NBIS"
 ARG DEV_PACKAGES=
 
 RUN yum -y install https://centos7.iuscommunity.org/ius-release.rpm && \
-    yum -y update && \
     yum -y install git gcc make bzip2 python36u python36u-pip ${DEV_PACKAGES} && \
     yum clean all && rm -rf /var/cache/yum
 

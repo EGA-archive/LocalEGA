@@ -1,7 +1,7 @@
 FROM nbisweden/ega-common:latest
 LABEL maintainer "Frédéric Haziza, NBIS"
 
-RUN yum -y install vim-common zlib-devel bzip2-devel curl && \
+RUN yum -y install vim-common zlib-devel bzip2-devel curl nc && \
     yum clean all && rm -rf /var/cache/yum
 
 # Copy the RPMS from git
