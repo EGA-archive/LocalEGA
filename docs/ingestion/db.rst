@@ -7,7 +7,7 @@ schema is as follows.
 
 .. literalinclude:: /../extras/db.sql
    :language: sql
-   :lines: 5-7,94-111,130-136
+   :lines: 5-7,13-30,49-55
 
 We do not use any Object-Relational Model (ORM, such as
 SQLAlchemy). Instead, we simply implemented, in SQL, a few functions

@@ -6,7 +6,9 @@ RUN mkdir /cega
 VOLUME /cega/users
 EXPOSE 80
 
-RUN pip3.6 install aiohttp aiohttp-jinja2
+ARG PIP_EGA_PACKAGES=
+
+RUN pip3.6 install PyYaml ${PIP_EGA_PACKAGES}
 
 COPY users.html /cega/users.html
 

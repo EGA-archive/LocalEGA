@@ -158,47 +158,6 @@ public class Utils {
                 String.format("rm %s/%s/%s", getProperty("inbox.fuse.folder.path"), user, fileName).split(" "));
     }
 
-    /**
-     * Spawns worker container, mounts data folder there and executes a command.
-     *
-     * @param instance LocalEGA site.
-     * @param from     Folder to mount from.
-     * @param to       Folder to mount to.
-     * @param commands Command to execute.
-     * @return Execution result per command.
-     * @deprecated Very slow, thus not used anymore. Try to avoid usage of this method.
-     */
-    @Deprecated
-    public List<String> spawnTempWorkerAndExecute(String instance, String from, String to, String... commands) {
-        List<String> results = new ArrayList<>();
-        String workerImageName = getProperty("images.name.worker");
-        String containerName = UUID.randomUUID().toString();
-        Volume dataVolume = new Volume(to);
-        Volume gpgVolume = new Volume(getProperty("gnupg.folder.path"));
-        CreateContainerResponse createContainerResponse = dockerClient.
-                createContainerCmd(workerImageName).
-                withVolumes(dataVolume, gpgVolume).
-                withBinds(new Bind(from, dataVolume),
-                        new Bind(String.format("%s/%s/gpg", getPrivateFolderPath(), instance), gpgVolume)).
-                withEnv("MQ_INSTANCE=" + getProperty("container.prefix.mq") + instance,
-                        "CEGA_INSTANCE=" + getProperty("container.prefix.cega_mq"),
-                        "KEYSERVER_HOST=" + getProperty("container.prefix.keys") + instance,
-                        "KEYSERVER_PORT=9010").
-                withName(containerName).
-                exec();
-        dockerClient.startContainerCmd(createContainerResponse.getId()).exec();
-        try {
-            Container tempWorker = findContainer(workerImageName, containerName);
-            for (String command : commands) {
-                results.add(executeWithinContainer(tempWorker, command.split(" ")));
-            }
-        } catch (InterruptedException e) {
-            log.error(e.getMessage(), e);
-        } finally {
-            dockerClient.removeContainerCmd(createContainerResponse.getId()).withForce(true).exec();
-        }
-        return results;
-    }
 
     /**
      * Reads property from the trace file.
