@@ -103,38 +103,6 @@ def _do_exit():
     sys.exit(1)
 
 ######################################
-##           Async code             ##
-######################################
-@retry_loop(on_failure=_do_exit)
-async def create_pool(loop):
-    '''\
-    Async function to create a pool of connection to the database.
-    Used by the frontend.
-    '''
-    db_args = fetch_args(CONF)
-    return await aiopg.create_pool(**db_args, loop=loop, echo=True)
-
-async def get_file_info(conn, filename, username):
-    assert filename, 'Eh? No filename?'
-    assert username, 'Eh? No username?'
-    try:
-        with (await conn.cursor()) as cur:
-            query = 'SELECT file_info(%(filename)s, %(username)s);'
-            await cur.execute(query, {'filename': filename, 'username':username})
-            return await cur.fetchone()
-    except psycopg2.InternalError as pgerr:
-        LOG.debug(f'File Info for {filename} (User: {username}): {pgerr!r}')
-        return None
-
-
-async def get_user_info(conn, username):
-    assert username, 'Eh? No username?'
-    with (await conn.cursor()) as cur:
-        query = 'SELECT userfiles_info(%(username)s);'
-        await cur.execute(query, {'username': username})
-        return await cur.fetchone()
-
-######################################
 ##         "Classic" code           ##
 ######################################
 def cache_connection(func):

@@ -42,7 +42,7 @@ specified (mostly those for which we can invent a value!).
 
 A sample configuration file can be found on the `LocalEGA-auth
 repository
-<https://github.com/NBISweden/LocalEGA-auth/blob/no-db/auth.conf.sample>`_,
+<https://github.com/NBISweden/LocalEGA-auth/blob/master/auth.conf.sample>`_,
 eg:
 
 .. code-block:: none
