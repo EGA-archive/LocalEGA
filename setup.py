@@ -35,13 +35,13 @@ Users are handled throught Central EGA, directly.
           ]
       },
       platforms = 'any',
-      install_requires=[
-          'pika==0.11.0',
-          'aiohttp==2.3.8',
-          'pycryptodomex==3.4.7',
-          'aiopg==0.13.0',
-          'colorama==0.3.7',
-          'aiohttp-jinja2==0.13.0',
-          'fusepy',
-      ],
+      # install_requires=[
+      #     'pika==0.11.0',
+      #     'aiohttp==2.3.8',
+      #     'pycryptodomex==3.4.7',
+      #     'aiopg==0.13.0',
+      #     'colorama==0.3.7',
+      #     'aiohttp-jinja2==0.13.0',
+      #     'fusepy',
+      # ],
 )
