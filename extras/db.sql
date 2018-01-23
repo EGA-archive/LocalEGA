@@ -135,11 +135,6 @@ CREATE TABLE errors (
 	occured_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT clock_timestamp()
 );
 
--- The reencryption field is used to store how the original unencrypted file was re-encrypted.
--- We gpg-decrypt the encrypted file and pipe the output to the re-encryptor.
--- The key size, the algorithm and the selected master key is recorded in the re-encrypted file (first line)
--- and in the database.
-
 CREATE FUNCTION insert_error(file_id    errors.file_id%TYPE,
                              msg        errors.msg%TYPE,
                              from_user  errors.from_user%TYPE)
