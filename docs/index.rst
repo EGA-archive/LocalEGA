@@ -9,23 +9,23 @@ NBIS - Local EGA
 
 The Local EGA project is divided into several microservices.
 
-+-----------+--------------------------------------------------------------------------------------------------+
-| Service   | Description                                                                                      |
-+===========+==================================================================================================+
-| db        | A Postgres database with appropriate schema                                                      |
-+-----------+--------------------------------------------------------------------------------------------------+
-| mq        | A RabbitMQ message broker with appropriate accounts, exchanges, queues and bindings              |
-+-----------+--------------------------------------------------------------------------------------------------+
-| inbox     | SFTP server, acting as a dropbox, where user credentials are in the db component                 |
-+-----------+--------------------------------------------------------------------------------------------------+
-| keyserver | Handles the encryption/decryption keys                                                           |
-+-----------+--------------------------------------------------------------------------------------------------+
-| workers   | Connect to the keys component (via SSL) and do the actual re-encryption work                     |
-+-----------+--------------------------------------------------------------------------------------------------+
-| vault     | Stores the files from the staging area to the vault. It includes a verification step afterwards. |
-+-----------+--------------------------------------------------------------------------------------------------+
-| frontend  | Documentation for the users                                                                      |
-+-----------+--------------------------------------------------------------------------------------------------+
++-----------+---------------------------------------------------------------------------------------------------+
+| Service   | Description                                                                                       |
++===========+===================================================================================================+
+| db        | A Postgres database with appropriate schema                                                       |
++-----------+---------------------------------------------------------------------------------------------------+
+| mq        | A RabbitMQ message broker with appropriate accounts, exchanges, queues and bindings               |
++-----------+---------------------------------------------------------------------------------------------------+
+| inbox     | SFTP server, acting as a dropbox, where user credentials are in the Central EGA                   |
++-----------+---------------------------------------------------------------------------------------------------+
+| keyserver | Handles the encryption/decryption keys                                                            |
++-----------+---------------------------------------------------------------------------------------------------+
+| workers   | Connect to the keyserver (via SSL) and do the actual re-encryption work                           |
++-----------+---------------------------------------------------------------------------------------------------+
+| vault     | Moves files from the staging area to the vault storage, including a verification step afterwards. |
++-----------+---------------------------------------------------------------------------------------------------+
+| frontend  | At the moment, for internal usage only. Possibly used for User documentation later.               |
++-----------+---------------------------------------------------------------------------------------------------+
 
 
 
