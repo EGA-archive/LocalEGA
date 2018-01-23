@@ -2,12 +2,15 @@ FROM nbisweden/ega-common:latest
 LABEL maintainer "Frédéric Haziza, NBIS"
 
 RUN yum -y install openssh-server pam-devel libcurl-devel jq-devel fuse fuse-libs cronie && \
-    yum clean all
+    yum clean all && rm -rf /var/cache/yum
 
 ##################################
 EXPOSE 9000
 VOLUME /ega/inbox
 ENV DB_INSTANCE=
+
+ARG PIP_EGA_PACKAGES=
+RUN pip3.6 install PyYaml ${PIP_EGA_PACKAGES}
 
 ##################################
 # Regenerate keys (no passphrase)
@@ -28,9 +31,6 @@ RUN ssh-keygen -t rsa     -N '' -f /etc/ssh/ssh_host_rsa_key && \
     chown root:ega /ega/inbox && \
     chmod 750 /ega/inbox && \
     chmod g+s /ega/inbox
-
-ARG checkout=dev
-RUN pip3.6 install git+https://github.com/NBISweden/LocalEGA.git@${checkout}
 
 COPY pam.ega /etc/pam.d/ega
 COPY sshd_config /etc/ega/sshd_config

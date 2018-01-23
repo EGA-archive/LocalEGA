@@ -1,3 +1,9 @@
+
+# Add those packages to the containers, in case DEV is defined
+ifdef DEV
+DEV_PACKAGES="nss-tools nc nmap tcpdump lsof strace bash-completion bash-completion-extras"
+endif
+
 CHECKOUT=$(shell git rev-parse --abbrev-ref HEAD)
 TAG=$(shell git rev-parse --short HEAD)
 ifdef TRAVIS_COMMIT
@@ -10,34 +16,46 @@ endif
 
 TARGET=nbisweden/ega
 
-EGA_IMAGES=mq inbox frontend worker vault keys cega-users
+EGA_IMAGES=mq inbox worker vault keys cega-users bootstrap
 
-.PHONY: all push pull common erase delete clean cleanall bootstrap $(EGA_IMAGES)
+.PHONY: all push pull common erase delete clean cleanall $(EGA_IMAGES)
 
-all: pull common images
+all: images
 
 images: common
-	make -j 4 $(EGA_IMAGES) bootstrap
+	@make -j 4 $(EGA_IMAGES)
 
-common $(EGA_IMAGES):
+common:
 	docker build --build-arg checkout=$(CHECKOUT) \
+                     --build-arg DEV_PACKAGES="$(DEV_PACKAGES)" \
                      --cache-from $(TARGET)-$@:latest \
                      --tag $(TARGET)-$@:$(TAG) \
                      --tag $(TARGET)-$@:latest \
                      $@
 
-bootstrap:
-	docker build -f worker/Dockerfile.$@ --build-arg checkout=$(CHECKOUT) \
+
+inbox:      PIP_EGA_PACKAGES=pika==0.11.0 fusepy
+worker:     PIP_EGA_PACKAGES=pika==0.11.0 pycryptodomex==3.4.7 aiopg==0.13.0
+#keys:       PIP_EGA_PACKAGES=
+vault:      PIP_EGA_PACKAGES=pika==0.11.0 aiopg==0.13.0
+bootstrap:  PIP_EGA_PACKAGES=pika==0.11.0 pycryptodomex==3.4.7 aiopg==0.13.0
+cega-users: PIP_EGA_PACKAGES=aiohttp==2.3.8 aiohttp-jinja2==0.13.0
+
+
+
+$(EGA_IMAGES):
+	docker build --build-arg checkout=$(CHECKOUT) \
+                     --build-arg PIP_EGA_PACKAGES="$(PIP_EGA_PACKAGES)" \
                      --cache-from $(TARGET)-$@:latest \
                      --tag $(TARGET)-$@:$(TAG) \
                      --tag $(TARGET)-$@:latest \
-                     worker
+                     $@
 
 pull:
-	for image in common bootstrap $(EGA_IMAGES); do docker pull $(TARGET)-$$image:latest; done
+	for image in $(EGA_IMAGES); do docker pull $(TARGET)-$$image:latest; done
 
 push:
-	for image in common bootstrap $(EGA_IMAGES); do docker push $(TARGET)-$$image:latest; done
+	for image in $(EGA_IMAGES); do docker push $(TARGET)-$$image:latest; done
 
 clean:
 	@docker images $(TARGET)-* -f "dangling=true" -q | uniq | while read n; do docker rmi -f $$n; done
