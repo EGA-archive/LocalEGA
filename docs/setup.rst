@@ -67,7 +67,7 @@ mechanism will search for a log file, using that keyword, in the
 
 Using the `logstash logger
 <https://github.com/NBISweden/LocalEGA/blob/dev/lega/conf/loggers/logstash-debug.yaml>`_,
-We leverage the famous *ELK* stack. *ELK* stands for **E**\
+we leverage the famous *ELK* stack, which stands for **E**\
 lasticsearch, **L**\ ogstash and **K**\ ibana. Logstash receives the
 logs. Elasticsearch stores them and make them searchable. Kibana
 contacts the Elasticsearch service to display the logs in a web
