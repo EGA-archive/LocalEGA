@@ -1,8 +1,8 @@
 FROM nbisweden/ega-common:latest
 LABEL maintainer "Frédéric Haziza, NBIS"
 
-RUN yum -y install vim-common zlib-devel bzip2-devel && \
-    yum clean all
+RUN yum -y install vim-common zlib-devel bzip2-devel curl nc && \
+    yum clean all && rm -rf /var/cache/yum
 
 # Copy the RPMS from git
 RUN for f in libgpg-error-1.27 libgcrypt-1.8.1 libassuan-2.4.3 libksba-1.3.5 npth-1.5 ncurses-6.0 pinentry-1.0.0 gnupg-2.2.2; \
@@ -18,8 +18,9 @@ RUN echo "/usr/local/lib" > /etc/ld.so.conf.d/gpg2.conf && \
 VOLUME /ega/inbox
 VOLUME /ega/staging
 
-ARG checkout=dev
-RUN pip3.6 install git+https://github.com/NBISweden/LocalEGA.git@${checkout}
+ARG PIP_EGA_PACKAGES=
+
+RUN pip3.6 install PyYaml ${PIP_EGA_PACKAGES}
 
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod 755 /usr/local/bin/entrypoint.sh
