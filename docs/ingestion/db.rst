@@ -23,9 +23,6 @@ in order to insert or manipulate the database entry.
                          msg        errors.msg%TYPE,
                          from_user  errors.from_user%TYPE) RETURNS void
 
-   FUNCTION file_info(fname TEXT, eid TEXT) RETURNS JSON
-    
-   FUNCTION userfiles_info(eid TEXT) RETURNS JSON
 
 Look at :doc:`the SQL definitions </../extras/db.sql>` if you are also
 interested in the database triggers.
