@@ -4,7 +4,7 @@ or ``LocalEGA``.  When two or more Local EGA instances are involved,
 we will use ``LEGA<i>`` for Local EGA instance ``<i>``.
 
 ================
-NBIS - Local EGA
+Local EGA
 ================
 
 The Local EGA project is divided into several microservices.
