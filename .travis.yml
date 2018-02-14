@@ -4,6 +4,8 @@ services:
   - docker
 
 before_install:
+  # https://elk-docker.readthedocs.io/#es-not-starting-max-map-count
+  - sudo sysctl -w vm.max_map_count=262144
   - |
         cd deployments/docker
         # make -C images pull # Not used at the moment, cuz we don't manage to build from cache
@@ -11,10 +13,14 @@ before_install:
         make bootstrap
 
 install:
+  - docker network create central_fake
   - docker-compose up -d ${DOCKER_CONTAINERS}
   - docker-compose ps
 
 script:
+  # https://docs.travis-ci.com/user/database-setup/#ElasticSearch
+  # takes a few settings to start and that delays stuff a bit; remove if no ELK stack is done
+  - sleep 20
   - cd ../../tests
   - mvn test -B
 
