@@ -57,10 +57,8 @@ exec 2>${PRIVATE}/.err
 
 cat > ${DOT_ENV} <<EOF
 COMPOSE_PROJECT_NAME=ega
-DATA=./private
 EOF
 echo -n "COMPOSE_FILE=" >> ${DOT_ENV} # no newline
-# Do not use ${PRIVATE}: Wrong path if run in container
 
 cat >> ${PRIVATE}/cega/env <<EOF
 LEGA_INSTANCES=${INSTANCES// /,}

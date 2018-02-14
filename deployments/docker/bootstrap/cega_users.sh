@@ -92,8 +92,8 @@ services:
     image: rabbitmq:3.6.14-management
     container_name: cega-mq
     volumes:
-       - \${DATA}/cega/mq/defs.json:/etc/rabbitmq/defs.json:ro
-       - \${DATA}/cega/mq/rabbitmq.config:/etc/rabbitmq/rabbitmq.config:ro
+       - ./mq/defs.json:/etc/rabbitmq/defs.json:ro
+       - ./mq/rabbitmq.config:/etc/rabbitmq/rabbitmq.config:ro
     restart: on-failure:3
     networks:
       - cega
@@ -106,7 +106,7 @@ services:
     ports:
       - "9100:80"
     volumes:
-      - \${DATA}/cega/users:/cega/users:rw
+      - ./users:/cega/users:rw
       # - ../..:/root/.local/lib/python3.6/site-packages:ro
     restart: on-failure:3
     networks:
