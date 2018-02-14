@@ -4,6 +4,8 @@
 
 First [create the EGA docker images](images) beforehand, with `make -C images`.
 
+This command will also create a docker network `central_fake` used by CEGA, network that is external to localEGA-fin and localEGA-swe.
+
 You can then [generate the private data](bootstrap), with either:
 
 	make bootstrap
@@ -21,8 +23,6 @@ The passwords are in `private/<instance>/.trace` and the errors (if
 any) are in `private/.err`.
 
 # Running
-
-Before running the bootstrap run `docker network create central_fake` as it is an external network and it is not automatically created.
 
 	docker-compose up -d
 
