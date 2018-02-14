@@ -16,7 +16,6 @@ we consider that the vault has properly stored the file.
 
 import sys
 import logging
-import os
 
 from .conf import CONF
 from .utils import checksum, db, exceptions

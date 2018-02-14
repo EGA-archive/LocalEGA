@@ -11,7 +11,6 @@ Usefull to forward gpg requests to a remote GPG-agent.
 
 '''
 
-import sys
 import os
 from syslog import syslog, LOG_DEBUG, LOG_INFO, LOG_WARNING
 import argparse
