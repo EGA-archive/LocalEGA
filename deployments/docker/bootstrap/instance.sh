@@ -95,10 +95,10 @@ password = ${DB_PASSWORD}
 try = ${DB_TRY}
 EOF
 
-echomsg "\t* SFTP Inbox port"
-cat >> ${DOT_ENV} <<EOF
-DOCKER_INBOX_${INSTANCE}_PORT=${DOCKER_INBOX_PORT}
-EOF
+# echomsg "\t* SFTP Inbox port"
+# cat >> ${DOT_ENV} <<EOF
+# DOCKER_PORT_inbox_${INSTANCE}=${DOCKER_PORT_inbox}
+# EOF
 
 echomsg "\t* db.sql"
 # cat > ${PRIVATE}/${INSTANCE}/db.sql <<EOF
@@ -313,6 +313,222 @@ cat > ${PRIVATE}/${INSTANCE}/mq.env <<EOF
 CEGA_CONNECTION=amqp://cega_${INSTANCE}:${CEGA_MQ_PASSWORD}@cega-mq:5672/${INSTANCE}
 EOF
 
+#########################################################################
+# Creating the docker-compose file
+#########################################################################
+cat >> ${PRIVATE}/${INSTANCE}/ega.yml <<EOF
+version: '3.2'
+
+networks:
+  lega_${INSTANCE}:
+    # user overlay in swarm mode
+    # default is bridge
+    driver: bridge
+  cega:
+    external: true
+
+services:
+
+  ############################################
+  # Local EGA instance ${INSTANCE}
+  ############################################
+
+  # Local Message broker
+  mq-${INSTANCE}:
+    env_file: private/${INSTANCE}/mq.env
+    hostname: ega-mq-${INSTANCE}
+    ports:
+      - "${DOCKER_PORT_mq}:15672"
+    image: nbisweden/ega-mq
+    container_name: ega-mq-${INSTANCE}
+    restart: on-failure:3
+    # Required external link
+    external_links:
+      - cega-mq:cega-mq
+    networks:
+      - lega_${INSTANCE}
+      - cega
+
+  # Postgres Database
+  db-${INSTANCE}:
+    env_file: private/${INSTANCE}/db.env
+    hostname: ega-db-${INSTANCE}
+    container_name: ega-db-${INSTANCE}
+    image: postgres:latest
+    volumes:
+      - \${DATA}/${INSTANCE}/db.sql:/docker-entrypoint-initdb.d/ega.sql:ro
+    restart: on-failure:3
+    networks:
+      - lega_${INSTANCE}
+
+  # SFTP inbox
+  inbox-${INSTANCE}:
+    hostname: ega-inbox
+    depends_on:
+      - mq-${INSTANCE}
+    # Required external link
+    external_links:
+      - cega-users:cega-users
+    env_file:
+      - private/${INSTANCE}/db.env
+      - private/${INSTANCE}/cega.env
+    ports:
+      - "${DOCKER_PORT_inbox}:9000"
+    container_name: ega-inbox-${INSTANCE}
+    image: nbisweden/ega-inbox
+    # privileged, cap_add and devices cannot be used by docker Swarm
+    privileged: true
+    cap_add:
+      - ALL
+    devices:
+      - /dev/fuse
+    volumes:
+      - \${DATA}/${INSTANCE}/ega.conf:/etc/ega/conf.ini:ro
+      - \${DATA}/${INSTANCE}/logger.yml:/etc/ega/logger.yml:ro
+      - inbox_${INSTANCE}:/ega/inbox
+      # - ../..:/root/.local/lib/python3.6/site-packages:ro
+      # - ~/_auth_ega:/root/auth
+    restart: on-failure:3
+    networks:
+      - lega_${INSTANCE}
+      - cega
+
+  # Vault
+  vault-${INSTANCE}:
+    depends_on:
+      - db-${INSTANCE}
+      - mq-${INSTANCE}
+      - inbox-${INSTANCE}
+    hostname: ega-vault
+    container_name: ega-vault-${INSTANCE}
+    image: nbisweden/ega-vault
+    # Required external link
+    external_links:
+      - cega-mq:cega-mq
+    environment:
+      - MQ_INSTANCE=ega-mq-${INSTANCE}
+      - CEGA_INSTANCE=cega-mq
+    volumes:
+       - staging_${INSTANCE}:/ega/staging
+       - vault_${INSTANCE}:/ega/vault
+       - \${DATA}/${INSTANCE}/ega.conf:/etc/ega/conf.ini:ro
+       - \${DATA}/${INSTANCE}/logger.yml:/etc/ega/logger.yml:ro
+       # - ../..:/root/.local/lib/python3.6/site-packages:ro
+    restart: on-failure:3
+    networks:
+      - lega_${INSTANCE}
+      - cega
+
+  # Ingestion Workers
+  ingest-${INSTANCE}:
+    depends_on:
+      - db-${INSTANCE}
+      - mq-${INSTANCE}
+      - keys-${INSTANCE}
+    image: nbisweden/ega-worker
+    # Required external link
+    external_links:
+      - cega-mq:cega-mq
+    environment:
+      - GPG_TTY=/dev/console
+      - MQ_INSTANCE=ega-mq-${INSTANCE}
+      - CEGA_INSTANCE=cega-mq
+      - KEYSERVER_HOST=ega-keys-${INSTANCE}
+      - KEYSERVER_PORT=9010
+    volumes:
+       - inbox_${INSTANCE}:/ega/inbox
+       - staging_${INSTANCE}:/ega/staging
+       - \${DATA}/${INSTANCE}/ega.conf:/etc/ega/conf.ini:ro
+       - \${DATA}/${INSTANCE}/logger.yml:/etc/ega/logger.yml:ro
+       - \${DATA}/${INSTANCE}/certs/ssl.cert:/etc/ega/ssl.cert:ro
+       - \${DATA}/${INSTANCE}/gpg/pubring.kbx:/root/.gnupg/pubring.kbx:ro
+       - \${DATA}/${INSTANCE}/gpg/trustdb.gpg:/root/.gnupg/trustdb.gpg
+       # - ../..:/root/.local/lib/python3.6/site-packages:ro
+    restart: on-failure:3
+    networks:
+      - lega_${INSTANCE}
+      - cega
+
+  # Key server
+  keys-${INSTANCE}:
+    env_file: private/${INSTANCE}/gpg.env
+    environment:
+      - GPG_TTY=/dev/console
+      - KEYSERVER_PORT=9010
+    hostname: ega-keys-${INSTANCE}
+    container_name: ega-keys-${INSTANCE}
+    image: nbisweden/ega-keys
+    tty: true
+    expose:
+      - "9010"
+      - "9011"
+    volumes:
+       - \${DATA}/${INSTANCE}/ega.conf:/etc/ega/conf.ini:ro
+       - \${DATA}/${INSTANCE}/logger.yml:/etc/ega/logger.yml:ro
+       - \${DATA}/${INSTANCE}/keys.conf:/etc/ega/keys.ini:ro
+       - \${DATA}/${INSTANCE}/certs/ssl.cert:/etc/ega/ssl.cert:ro
+       - \${DATA}/${INSTANCE}/certs/ssl.key:/etc/ega/ssl.key:ro
+       - \${DATA}/${INSTANCE}/gpg/pubring.kbx:/root/.gnupg/pubring.kbx
+       - \${DATA}/${INSTANCE}/gpg/trustdb.gpg:/root/.gnupg/trustdb.gpg
+       - \${DATA}/${INSTANCE}/gpg/openpgp-revocs.d:/root/.gnupg/openpgp-revocs.d:ro
+       - \${DATA}/${INSTANCE}/gpg/private-keys-v1.d:/root/.gnupg/private-keys-v1.d:ro
+       - \${DATA}/${INSTANCE}/rsa/ega.sec:/etc/ega/rsa/sec.pem:ro
+       - \${DATA}/${INSTANCE}/rsa/ega.pub:/etc/ega/rsa/pub.pem:ro
+       # - ../..:/root/.local/lib/python3.6/site-packages:ro
+    restart: on-failure:3
+    networks:
+      - lega_${INSTANCE}
+
+  # Logging & Monitoring (ELK: Elasticsearch, Logstash, Kibana).
+  elasticsearch-${INSTANCE}:
+    image: docker.elastic.co/elasticsearch/elasticsearch-oss:6.0.0
+    container_name: ega-elasticsearch-${INSTANCE}
+    volumes:
+      - \${DATA}/${INSTANCE}/logs/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
+      - elasticsearch_${INSTANCE}:/usr/share/elasticsearch/data
+    environment:
+      ES_JAVA_OPTS: "-Xmx256m -Xms256m"
+    restart: on-failure:3
+    networks:
+      - lega_${INSTANCE}
+
+  logstash-${INSTANCE}:
+    image: docker.elastic.co/logstash/logstash-oss:6.0.0
+    container_name: ega-logstash-${INSTANCE}
+    volumes:
+      - \${DATA}/${INSTANCE}/logs/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
+      - \${DATA}/${INSTANCE}/logs/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
+    environment:
+      LS_JAVA_OPTS: "-Xmx256m -Xms256m"
+    depends_on:
+      - elasticsearch-${INSTANCE}
+    restart: on-failure:3
+    networks:
+      - lega_${INSTANCE}
+
+  kibana-${INSTANCE}:
+    image: docker.elastic.co/kibana/kibana-oss:6.0.0
+    container_name: ega-kibana-${INSTANCE}
+    volumes:
+      - \${DATA}/${INSTANCE}/logs/kibana.yml:/usr/share/kibana/config/kibana.yml:ro
+    ports:
+      - "${DOCKER_PORT_kibana}:5601"
+    depends_on:
+      - elasticsearch-${INSTANCE}
+      - logstash-${INSTANCE}
+    restart: on-failure:3
+    networks:
+      - lega_${INSTANCE}
+
+# Use the default driver for volume creation
+volumes:
+  inbox_${INSTANCE}:
+  staging_${INSTANCE}:
+  vault_${INSTANCE}:
+  elasticsearch_${INSTANCE}:
+EOF
+
+echo -n ":private/${INSTANCE}/ega.yml" >> ${DOT_ENV} # no newline
 
 #########################################################################
 # Keeping a trace of if
@@ -341,5 +557,7 @@ CEGA_MQ_USER              = cega_${INSTANCE}
 CEGA_MQ_PASSWORD          = ${CEGA_MQ_PASSWORD}
 CEGA_REST_PASSWORD        = ${CEGA_REST_PASSWORD}
 #
-DOCKER_INBOX_PORT         = ${DOCKER_INBOX_PORT}
+DOCKER_PORT_inbox         = ${DOCKER_PORT_inbox}
+DOCKER_PORT_mq            = ${DOCKER_PORT_mq}
+DOCKER_PORT_kibana        = ${DOCKER_PORT_kibana}
 EOF
