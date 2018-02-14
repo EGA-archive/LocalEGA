@@ -17,6 +17,7 @@ endif
 TARGET=nbisweden/ega
 
 EGA_IMAGES=mq inbox worker vault keys cega-users bootstrap
+CEGA_NETWORK=central_fake
 
 .PHONY: all push pull common erase delete clean cleanall $(EGA_IMAGES)
 
@@ -24,6 +25,7 @@ all: images
 
 images: common
 	@make -j 4 $(EGA_IMAGES)
+	@docker network create $(CEGA_NETWORK)
 
 common:
 	docker build --build-arg checkout=$(CHECKOUT) \
@@ -62,6 +64,7 @@ clean:
 
 cleanall:
 	@docker images -f "dangling=true" -q | uniq | while read n; do docker rmi -f $$n; done
+	@docker network rm $(CEGA_NETWORK)
 
 delete:
 	@docker images $(TARGET)-* --format "{{.Repository}} {{.Tag}}" | awk '{ if ($$2 != "$(TAG)" && $$2 != "latest") print $$1":"$$2; }' | uniq | while read n; do docker rmi $$n; done

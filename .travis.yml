@@ -13,13 +13,12 @@ before_install:
         make bootstrap
 
 install:
-  - docker network create central_fake
   - docker-compose up -d ${DOCKER_CONTAINERS}
   - docker-compose ps
 
 script:
   # https://docs.travis-ci.com/user/database-setup/#ElasticSearch
-  # takes a few settings to start and that delays stuff a bit; remove if no ELK stack is done
+  # takes a few settings to start and that delays stuff a bit; remove if no ELK stack is used
   - sleep 20
   - cd ../../tests
   - mvn test -B
