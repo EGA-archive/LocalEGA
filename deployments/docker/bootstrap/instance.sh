@@ -335,7 +335,7 @@ services:
 
   # Local Message broker
   mq-${INSTANCE}:
-    env_file: private/${INSTANCE}/mq.env
+    env_file: mq.env
     hostname: ega-mq-${INSTANCE}
     ports:
       - "${DOCKER_PORT_mq}:15672"
@@ -351,12 +351,12 @@ services:
 
   # Postgres Database
   db-${INSTANCE}:
-    env_file: private/${INSTANCE}/db.env
+    env_file: db.env
     hostname: ega-db-${INSTANCE}
     container_name: ega-db-${INSTANCE}
     image: postgres:latest
     volumes:
-      - \${DATA}/${INSTANCE}/db.sql:/docker-entrypoint-initdb.d/ega.sql:ro
+      - ./db.sql:/docker-entrypoint-initdb.d/ega.sql:ro
     restart: on-failure:3
     networks:
       - lega_${INSTANCE}
@@ -370,8 +370,8 @@ services:
     external_links:
       - cega-users:cega-users
     env_file:
-      - private/${INSTANCE}/db.env
-      - private/${INSTANCE}/cega.env
+      - db.env
+      - cega.env
     ports:
       - "${DOCKER_PORT_inbox}:9000"
     container_name: ega-inbox-${INSTANCE}
@@ -383,8 +383,8 @@ services:
     devices:
       - /dev/fuse
     volumes:
-      - \${DATA}/${INSTANCE}/ega.conf:/etc/ega/conf.ini:ro
-      - \${DATA}/${INSTANCE}/logger.yml:/etc/ega/logger.yml:ro
+      - ./ega.conf:/etc/ega/conf.ini:ro
+      - ./logger.yml:/etc/ega/logger.yml:ro
       - inbox_${INSTANCE}:/ega/inbox
       # - ../..:/root/.local/lib/python3.6/site-packages:ro
       # - ~/_auth_ega:/root/auth
@@ -411,8 +411,8 @@ services:
     volumes:
        - staging_${INSTANCE}:/ega/staging
        - vault_${INSTANCE}:/ega/vault
-       - \${DATA}/${INSTANCE}/ega.conf:/etc/ega/conf.ini:ro
-       - \${DATA}/${INSTANCE}/logger.yml:/etc/ega/logger.yml:ro
+       - ./ega.conf:/etc/ega/conf.ini:ro
+       - ./logger.yml:/etc/ega/logger.yml:ro
        # - ../..:/root/.local/lib/python3.6/site-packages:ro
     restart: on-failure:3
     networks:
@@ -438,11 +438,11 @@ services:
     volumes:
        - inbox_${INSTANCE}:/ega/inbox
        - staging_${INSTANCE}:/ega/staging
-       - \${DATA}/${INSTANCE}/ega.conf:/etc/ega/conf.ini:ro
-       - \${DATA}/${INSTANCE}/logger.yml:/etc/ega/logger.yml:ro
-       - \${DATA}/${INSTANCE}/certs/ssl.cert:/etc/ega/ssl.cert:ro
-       - \${DATA}/${INSTANCE}/gpg/pubring.kbx:/root/.gnupg/pubring.kbx:ro
-       - \${DATA}/${INSTANCE}/gpg/trustdb.gpg:/root/.gnupg/trustdb.gpg
+       - ./ega.conf:/etc/ega/conf.ini:ro
+       - ./logger.yml:/etc/ega/logger.yml:ro
+       - ./certs/ssl.cert:/etc/ega/ssl.cert:ro
+       - ./gpg/pubring.kbx:/root/.gnupg/pubring.kbx:ro
+       - ./gpg/trustdb.gpg:/root/.gnupg/trustdb.gpg
        # - ../..:/root/.local/lib/python3.6/site-packages:ro
     restart: on-failure:3
     networks:
@@ -451,7 +451,7 @@ services:
 
   # Key server
   keys-${INSTANCE}:
-    env_file: private/${INSTANCE}/gpg.env
+    env_file: gpg.env
     environment:
       - GPG_TTY=/dev/console
       - KEYSERVER_PORT=9010
@@ -463,17 +463,17 @@ services:
       - "9010"
       - "9011"
     volumes:
-       - \${DATA}/${INSTANCE}/ega.conf:/etc/ega/conf.ini:ro
-       - \${DATA}/${INSTANCE}/logger.yml:/etc/ega/logger.yml:ro
-       - \${DATA}/${INSTANCE}/keys.conf:/etc/ega/keys.ini:ro
-       - \${DATA}/${INSTANCE}/certs/ssl.cert:/etc/ega/ssl.cert:ro
-       - \${DATA}/${INSTANCE}/certs/ssl.key:/etc/ega/ssl.key:ro
-       - \${DATA}/${INSTANCE}/gpg/pubring.kbx:/root/.gnupg/pubring.kbx
-       - \${DATA}/${INSTANCE}/gpg/trustdb.gpg:/root/.gnupg/trustdb.gpg
-       - \${DATA}/${INSTANCE}/gpg/openpgp-revocs.d:/root/.gnupg/openpgp-revocs.d:ro
-       - \${DATA}/${INSTANCE}/gpg/private-keys-v1.d:/root/.gnupg/private-keys-v1.d:ro
-       - \${DATA}/${INSTANCE}/rsa/ega.sec:/etc/ega/rsa/sec.pem:ro
-       - \${DATA}/${INSTANCE}/rsa/ega.pub:/etc/ega/rsa/pub.pem:ro
+       - ./ega.conf:/etc/ega/conf.ini:ro
+       - ./logger.yml:/etc/ega/logger.yml:ro
+       - ./keys.conf:/etc/ega/keys.ini:ro
+       - ./certs/ssl.cert:/etc/ega/ssl.cert:ro
+       - ./certs/ssl.key:/etc/ega/ssl.key:ro
+       - ./gpg/pubring.kbx:/root/.gnupg/pubring.kbx
+       - ./gpg/trustdb.gpg:/root/.gnupg/trustdb.gpg
+       - ./gpg/openpgp-revocs.d:/root/.gnupg/openpgp-revocs.d:ro
+       - ./gpg/private-keys-v1.d:/root/.gnupg/private-keys-v1.d:ro
+       - ./rsa/ega.sec:/etc/ega/rsa/sec.pem:ro
+       - ./rsa/ega.pub:/etc/ega/rsa/pub.pem:ro
        # - ../..:/root/.local/lib/python3.6/site-packages:ro
     restart: on-failure:3
     networks:
@@ -484,7 +484,7 @@ services:
     image: docker.elastic.co/elasticsearch/elasticsearch-oss:6.0.0
     container_name: ega-elasticsearch-${INSTANCE}
     volumes:
-      - \${DATA}/${INSTANCE}/logs/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
+      - ./logs/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
       - elasticsearch_${INSTANCE}:/usr/share/elasticsearch/data
     environment:
       ES_JAVA_OPTS: "-Xmx256m -Xms256m"
@@ -496,8 +496,8 @@ services:
     image: docker.elastic.co/logstash/logstash-oss:6.0.0
     container_name: ega-logstash-${INSTANCE}
     volumes:
-      - \${DATA}/${INSTANCE}/logs/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
-      - \${DATA}/${INSTANCE}/logs/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
+      - ./logs/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
+      - ./logs/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
     environment:
       LS_JAVA_OPTS: "-Xmx256m -Xms256m"
     depends_on:
@@ -510,7 +510,7 @@ services:
     image: docker.elastic.co/kibana/kibana-oss:6.0.0
     container_name: ega-kibana-${INSTANCE}
     volumes:
-      - \${DATA}/${INSTANCE}/logs/kibana.yml:/usr/share/kibana/config/kibana.yml:ro
+      - ./logs/kibana.yml:/usr/share/kibana/config/kibana.yml:ro
     ports:
       - "${DOCKER_PORT_kibana}:5601"
     depends_on:

@@ -13,11 +13,12 @@ network:
 	@docker network inspect cega &>/dev/null || docker network create cega &>/dev/null
 
 up:network
-	@docker-compose up -d mq-swe1 db-swe1 inbox-swe1 vault-swe1 ingest-swe1 keys-swe1 inbox-fin1 cega-mq cega-users
-
+	@docker-compose -f private/cega/ega.yml up -d cega-mq cega-users
+	@docker-compose -f private/swe1/ega.yml up -d mq-swe1 db-swe1 inbox-swe1 vault-swe1 ingest-swe1 keys-swe1
+	@docker-compose -f private/fin1/ega.yml up -d mq-fin1 inbox-fin1
 
 all-up:
-	@docker-compose up -d
+	@docker-compose -f private/cega/ega.yml -f private/swe1/ega.yml -f private/fin1/ega.yml up -d
 
 ps:
 	@docker-compose ps
