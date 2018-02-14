@@ -22,8 +22,10 @@ any) are in `private/.err`.
 
 # Running
 
+Before running the bootstrap run `docker network create central_fake` as it is an external network and it is not automatically created.
+
 	docker-compose up -d
-	
+
 Use `docker-compose up -d --scale ingest_swe1=3` instead, if you want to
 start 3 ingestion workers.
 

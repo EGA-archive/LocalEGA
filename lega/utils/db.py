@@ -13,9 +13,7 @@ import traceback
 from functools import wraps
 import logging
 from enum import Enum
-import aiopg
 import psycopg2
-import traceback
 from socket import gethostname
 from time import sleep
 import asyncio

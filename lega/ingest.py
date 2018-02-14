@@ -24,16 +24,13 @@ When a message is consumed, it must be of the form:
 '''
 
 import sys
-import os
 import logging
 from pathlib import Path
-import shutil
 import uuid
 import ssl
 from functools import partial
 import asyncio
 
-from Cryptodome.PublicKey import RSA
 
 from .conf import CONF
 from .utils import db, exceptions, checksum, sanitize_user_id
