@@ -1,6 +1,6 @@
 ARGS=
 
-.PHONY: help bootstrap private
+.PHONY: help bootstrap private network up all-up down clean ps
 
 help:
 	@echo "Usage: make <target>\n"
@@ -9,7 +9,10 @@ help:
 private bootstrap:
 	@docker run --rm -it -v ${PWD}:/ega -v ${PWD}/../../extras/db.sql:/tmp/db.sql nbisweden/ega-bootstrap ${ARGS}
 
-up:
+network:
+	@docker network inspect cega &>/dev/null || docker network create cega &>/dev/null
+
+up:network
 	@docker-compose up -d mq-swe1 db-swe1 inbox-swe1 vault-swe1 ingest-swe1 keys-swe1 inbox-fin1 cega-mq cega-users
 
 
@@ -24,5 +27,5 @@ down: #.env
 
 clean:
 	rm -rf .env private
-
+	-docker network rm cega &>/dev/null
 
