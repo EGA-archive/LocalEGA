@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 set -e
 
-DOCKER_INBOX_PORT=2222
+DOCKER_PORT_inbox=2222
+DOCKER_PORT_mq=15672
+DOCKER_PORT_kibana=5601
 
 LEGA_GREETINGS="Welcome to Local EGA Sweden @ NBIS"
 CEGA_MQ_PASSWORD=$(generate_password 16)

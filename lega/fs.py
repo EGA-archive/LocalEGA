@@ -18,7 +18,6 @@ import os
 import logging
 import argparse
 import stat
-from pathlib import Path
 
 from fuse import FUSE, FuseOSError, Operations
 
