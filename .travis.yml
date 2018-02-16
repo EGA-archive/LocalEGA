@@ -11,6 +11,7 @@ before_install:
         # make -C images pull # Not used at the moment, cuz we don't manage to build from cache
         make -C images images
         make bootstrap
+        make network
 
 install:
   - docker-compose up -d ${DOCKER_CONTAINERS}
