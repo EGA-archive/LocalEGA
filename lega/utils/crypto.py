@@ -21,7 +21,7 @@ from Cryptodome.Random import get_random_bytes
 from Cryptodome.Cipher import AES, PKCS1_OAEP
 from Cryptodome.Hash import SHA256
 
-from . import exceptions, checksum, get_file_content
+from . import exceptions, checksum
 
 LOG = logging.getLogger('crypto')
 

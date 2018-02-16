@@ -35,10 +35,10 @@ common:
 
 
 inbox:      PIP_EGA_PACKAGES=pika==0.11.0 fusepy
-worker:     PIP_EGA_PACKAGES=pika==0.11.0 pycryptodomex==3.4.7 aiopg==0.13.0
+worker:     PIP_EGA_PACKAGES=pika==0.11.0 pycryptodomex==3.4.7 psycopg2==2.7.3.2
 #keys:       PIP_EGA_PACKAGES=
-vault:      PIP_EGA_PACKAGES=pika==0.11.0 aiopg==0.13.0
-bootstrap:  PIP_EGA_PACKAGES=pika==0.11.0 pycryptodomex==3.4.7 aiopg==0.13.0
+vault:      PIP_EGA_PACKAGES=pika==0.11.0 psycopg2==2.7.3.2
+bootstrap:  PIP_EGA_PACKAGES=pika==0.11.0 pycryptodomex==3.4.7 psycopg2==2.7.3.2
 cega-users: PIP_EGA_PACKAGES=aiohttp==2.3.8 aiohttp-jinja2==0.13.0
 
 

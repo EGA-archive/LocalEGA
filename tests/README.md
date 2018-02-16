@@ -81,6 +81,7 @@ Execution
 -------------
 
 Test-suite is executed using Maven: `mvn clean test` from within the `tests` folder. Note that you obviously need to have LocalEGA up and running locally in order to execute the tests.
+Also `export CEGA_CONNECTION="amqp://{default_user}:{default_password}@localhost:5672/swe1"` needs to be set.
 
 #### Example
 
