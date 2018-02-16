@@ -316,7 +316,7 @@ EOF
 #########################################################################
 # Creating the docker-compose file
 #########################################################################
-cat >> ${PRIVATE}/${INSTANCE}/ega.yml <<EOF
+cat >> ${PRIVATE}/ega_${INSTANCE}.yml <<EOF
 version: '3.2'
 
 networks:
@@ -335,7 +335,7 @@ services:
 
   # Local Message broker
   mq-${INSTANCE}:
-    env_file: mq.env
+    env_file: ${INSTANCE}/mq.env
     hostname: ega-mq-${INSTANCE}
     ports:
       - "${DOCKER_PORT_mq}:15672"
@@ -351,12 +351,12 @@ services:
 
   # Postgres Database
   db-${INSTANCE}:
-    env_file: db.env
+    env_file: ${INSTANCE}/db.env
     hostname: ega-db-${INSTANCE}
     container_name: ega-db-${INSTANCE}
     image: postgres:latest
     volumes:
-      - ./db.sql:/docker-entrypoint-initdb.d/ega.sql:ro
+      - ./${INSTANCE}/db.sql:/docker-entrypoint-initdb.d/ega.sql:ro
     restart: on-failure:3
     networks:
       - lega_${INSTANCE}
@@ -370,8 +370,8 @@ services:
     external_links:
       - cega-users:cega-users
     env_file:
-      - db.env
-      - cega.env
+      - ${INSTANCE}/db.env
+      - ${INSTANCE}/cega.env
     ports:
       - "${DOCKER_PORT_inbox}:9000"
     container_name: ega-inbox-${INSTANCE}
@@ -383,8 +383,8 @@ services:
     devices:
       - /dev/fuse
     volumes:
-      - ./ega.conf:/etc/ega/conf.ini:ro
-      - ./logger.yml:/etc/ega/logger.yml:ro
+      - ./${INSTANCE}/ega.conf:/etc/ega/conf.ini:ro
+      - ./${INSTANCE}/logger.yml:/etc/ega/logger.yml:ro
       - inbox_${INSTANCE}:/ega/inbox
       # - ../..:/root/.local/lib/python3.6/site-packages:ro
       # - ~/_auth_ega:/root/auth
@@ -411,8 +411,8 @@ services:
     volumes:
        - staging_${INSTANCE}:/ega/staging
        - vault_${INSTANCE}:/ega/vault
-       - ./ega.conf:/etc/ega/conf.ini:ro
-       - ./logger.yml:/etc/ega/logger.yml:ro
+       - ./${INSTANCE}/ega.conf:/etc/ega/conf.ini:ro
+       - ./${INSTANCE}/logger.yml:/etc/ega/logger.yml:ro
        # - ../..:/root/.local/lib/python3.6/site-packages:ro
     restart: on-failure:3
     networks:
@@ -438,11 +438,11 @@ services:
     volumes:
        - inbox_${INSTANCE}:/ega/inbox
        - staging_${INSTANCE}:/ega/staging
-       - ./ega.conf:/etc/ega/conf.ini:ro
-       - ./logger.yml:/etc/ega/logger.yml:ro
-       - ./certs/ssl.cert:/etc/ega/ssl.cert:ro
-       - ./gpg/pubring.kbx:/root/.gnupg/pubring.kbx:ro
-       - ./gpg/trustdb.gpg:/root/.gnupg/trustdb.gpg
+       - ./${INSTANCE}/ega.conf:/etc/ega/conf.ini:ro
+       - ./${INSTANCE}/logger.yml:/etc/ega/logger.yml:ro
+       - ./${INSTANCE}/certs/ssl.cert:/etc/ega/ssl.cert:ro
+       - ./${INSTANCE}/gpg/pubring.kbx:/root/.gnupg/pubring.kbx:ro
+       - ./${INSTANCE}/gpg/trustdb.gpg:/root/.gnupg/trustdb.gpg
        # - ../..:/root/.local/lib/python3.6/site-packages:ro
     restart: on-failure:3
     networks:
@@ -451,7 +451,7 @@ services:
 
   # Key server
   keys-${INSTANCE}:
-    env_file: gpg.env
+    env_file: ${INSTANCE}/gpg.env
     environment:
       - GPG_TTY=/dev/console
       - KEYSERVER_PORT=9010
@@ -463,17 +463,17 @@ services:
       - "9010"
       - "9011"
     volumes:
-       - ./ega.conf:/etc/ega/conf.ini:ro
-       - ./logger.yml:/etc/ega/logger.yml:ro
-       - ./keys.conf:/etc/ega/keys.ini:ro
-       - ./certs/ssl.cert:/etc/ega/ssl.cert:ro
-       - ./certs/ssl.key:/etc/ega/ssl.key:ro
-       - ./gpg/pubring.kbx:/root/.gnupg/pubring.kbx
-       - ./gpg/trustdb.gpg:/root/.gnupg/trustdb.gpg
-       - ./gpg/openpgp-revocs.d:/root/.gnupg/openpgp-revocs.d:ro
-       - ./gpg/private-keys-v1.d:/root/.gnupg/private-keys-v1.d:ro
-       - ./rsa/ega.sec:/etc/ega/rsa/sec.pem:ro
-       - ./rsa/ega.pub:/etc/ega/rsa/pub.pem:ro
+       - ./${INSTANCE}/ega.conf:/etc/ega/conf.ini:ro
+       - ./${INSTANCE}/logger.yml:/etc/ega/logger.yml:ro
+       - ./${INSTANCE}/keys.conf:/etc/ega/keys.ini:ro
+       - ./${INSTANCE}/certs/ssl.cert:/etc/ega/ssl.cert:ro
+       - ./${INSTANCE}/certs/ssl.key:/etc/ega/ssl.key:ro
+       - ./${INSTANCE}/gpg/pubring.kbx:/root/.gnupg/pubring.kbx
+       - ./${INSTANCE}/gpg/trustdb.gpg:/root/.gnupg/trustdb.gpg
+       - ./${INSTANCE}/gpg/openpgp-revocs.d:/root/.gnupg/openpgp-revocs.d:ro
+       - ./${INSTANCE}/gpg/private-keys-v1.d:/root/.gnupg/private-keys-v1.d:ro
+       - ./${INSTANCE}/rsa/ega.sec:/etc/ega/rsa/sec.pem:ro
+       - ./${INSTANCE}/rsa/ega.pub:/etc/ega/rsa/pub.pem:ro
        # - ../..:/root/.local/lib/python3.6/site-packages:ro
     restart: on-failure:3
     networks:
@@ -484,7 +484,7 @@ services:
     image: docker.elastic.co/elasticsearch/elasticsearch-oss:6.0.0
     container_name: ega-elasticsearch-${INSTANCE}
     volumes:
-      - ./logs/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
+      - ./${INSTANCE}/logs/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
       - elasticsearch_${INSTANCE}:/usr/share/elasticsearch/data
     environment:
       ES_JAVA_OPTS: "-Xmx256m -Xms256m"
@@ -496,8 +496,8 @@ services:
     image: docker.elastic.co/logstash/logstash-oss:6.0.0
     container_name: ega-logstash-${INSTANCE}
     volumes:
-      - ./logs/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
-      - ./logs/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
+      - ./${INSTANCE}/logs/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
+      - ./${INSTANCE}/logs/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
     environment:
       LS_JAVA_OPTS: "-Xmx256m -Xms256m"
     depends_on:
@@ -510,7 +510,7 @@ services:
     image: docker.elastic.co/kibana/kibana-oss:6.0.0
     container_name: ega-kibana-${INSTANCE}
     volumes:
-      - ./logs/kibana.yml:/usr/share/kibana/config/kibana.yml:ro
+      - ./${INSTANCE}/logs/kibana.yml:/usr/share/kibana/config/kibana.yml:ro
     ports:
       - "${DOCKER_PORT_kibana}:5601"
     depends_on:
@@ -528,7 +528,7 @@ volumes:
   elasticsearch_${INSTANCE}:
 EOF
 
-echo -n ":private/${INSTANCE}/ega.yml" >> ${DOT_ENV} # no newline
+echo -n ":private/ega_${INSTANCE}.yml" >> ${DOT_ENV} # no newline
 
 #########################################################################
 # Keeping a trace of if
