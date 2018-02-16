@@ -115,7 +115,7 @@ public class Authentication implements En {
         try {
             SSHClient ssh = new SSHClient();
             ssh.addHostKeyVerifier(new PromiscuousVerifier());
-            ssh.connect("localhost", Integer.parseInt(context.getUtils().readTraceProperty(context.getTargetInstance(), "DOCKER_INBOX_PORT")));
+            ssh.connect("localhost", Integer.parseInt(context.getUtils().readTraceProperty(context.getTargetInstance(), "DOCKER_PORT_inbox")));
             ssh.authPublickey(context.getUser(), context.getKeyProvider());
             context.setSsh(ssh);
             context.setSftp(ssh.newSFTPClient());

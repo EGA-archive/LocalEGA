@@ -69,3 +69,49 @@ EGA_USER_PUBKEY_JANE      = ./private/cega/users/jane.pub
 EGA_USER_PASSWORD_TAYLOR  = ${EGA_USER_PASSWORD_TAYLOR}
 # =============================
 EOF
+
+cat > ${PRIVATE}/cega.yml <<EOF
+version: '3.2'
+
+networks:
+    # user overlay in swarm mode
+    # default is bridge
+  cega:
+    driver: bridge
+
+services:
+
+  ############################################
+  # Faking Central EGA
+  ############################################
+  cega-mq:
+    hostname: cega-mq
+    ports:
+      - "15670:15672"
+      - "5672:5672"
+    image: rabbitmq:3.6.14-management
+    container_name: cega-mq
+    volumes:
+       - ./cega/mq/defs.json:/etc/rabbitmq/defs.json:ro
+       - ./cega/mq/rabbitmq.config:/etc/rabbitmq/rabbitmq.config:ro
+    restart: on-failure:3
+    networks:
+      - cega
+
+  cega-users:
+    env_file: cega/env
+    image: nbisweden/ega-cega-users
+    hostname: cega-users
+    container_name: cega-users
+    ports:
+      - "9100:80"
+    volumes:
+      - ./cega/users:/cega/users:rw
+      # - ../..:/root/.local/lib/python3.6/site-packages:ro
+    restart: on-failure:3
+    networks:
+      - cega
+EOF
+
+# For the compose file
+echo -n "private/cega.yml" >> ${DOT_ENV} # no newline
