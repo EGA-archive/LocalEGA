@@ -4,7 +4,7 @@
 
 First [create the EGA docker images](images) beforehand, with `make -C images`.
 
-This command will also create a docker network `central_fake` used by CEGA, network that is external to localEGA-fin and localEGA-swe.
+This command will also create a docker network `cega` used by CEGA, network that is external to localEGA-fin and localEGA-swe.
 
 You can then [generate the private data](bootstrap), with either:
 

@@ -70,7 +70,7 @@ EGA_USER_PASSWORD_TAYLOR  = ${EGA_USER_PASSWORD_TAYLOR}
 # =============================
 EOF
 
-cat > ${PRIVATE}/cega/ega.yml <<EOF
+cat > ${PRIVATE}/cega.yml <<EOF
 version: '3.2'
 
 networks:
@@ -92,21 +92,21 @@ services:
     image: rabbitmq:3.6.14-management
     container_name: cega-mq
     volumes:
-       - ./mq/defs.json:/etc/rabbitmq/defs.json:ro
-       - ./mq/rabbitmq.config:/etc/rabbitmq/rabbitmq.config:ro
+       - ./cega/mq/defs.json:/etc/rabbitmq/defs.json:ro
+       - ./cega/mq/rabbitmq.config:/etc/rabbitmq/rabbitmq.config:ro
     restart: on-failure:3
     networks:
       - cega
 
   cega-users:
-    env_file: env
+    env_file: cega/env
     image: nbisweden/ega-cega-users
     hostname: cega-users
     container_name: cega-users
     ports:
       - "9100:80"
     volumes:
-      - ./users:/cega/users:rw
+      - ./cega/users:/cega/users:rw
       # - ../..:/root/.local/lib/python3.6/site-packages:ro
     restart: on-failure:3
     networks:
@@ -114,4 +114,4 @@ services:
 EOF
 
 # For the compose file
-echo -n "private/cega/ega.yml" >> ${DOT_ENV} # no newline
+echo -n "private/cega.yml" >> ${DOT_ENV} # no newline
