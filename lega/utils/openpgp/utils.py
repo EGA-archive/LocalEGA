@@ -1,8 +1,22 @@
 import binascii
 import re
 from base64 import b64decode
+import hashlib
+from math import ceil
+import io
+import logging
+
+LOG = logging.getLogger('openpgp')
+
+from cryptography.exceptions import UnsupportedAlgorithm
+#from cryptography.hazmat.primitives import constant_time
+import hmac
+from cryptography.hazmat.primitives.ciphers import Cipher, modes
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives.asymmetric import rsa, dsa, padding
 
 from ..exceptions import PGPError
+from .constants import lookup_sym_algorithm
 
 def read_1(data):
     '''Pull one byte from data and return as an integer.'''
@@ -51,27 +65,23 @@ def new_tag_length(data):
     # one-octet
     if b1 < 192:
         length = b1
-        length_bytes = 1
 
     # two-octet
     elif b1 < 224:
         b2 = read_1(data)
         length = ((b1 - 192) << 8) + b2 + 192
-        length_bytes = 2
 
     # five-octet
     elif b1 == 255:
         length = read_4(data)
-        length_bytes = 5
 
     # Partial Body Length header, one octet long
     else:
         # partial length, 224 <= l < 255
         length = 1 << (b1 & 0x1f)
         partial = True
-        length_bytes = 1
 
-    return (length, partial, length_bytes)
+    return (length, partial)
 
 def old_tag_length(data, length_type):
     if length_type == 0:
@@ -81,20 +91,22 @@ def old_tag_length(data, length_type):
     elif length_type == 2:
         data_length = read_4(data)
     elif length_type == 3:
-        #data_length = len(data.read()) # until the end
-        raise PGPError("Undertermined length - SHOULD NOT be used")
+        data_length = None
+        # pos = data.tell()
+        # data_length = len(data.read()) # until the end
+        # data.seek(pos, io.SEEK_CUR) # roll back
+        #raise PGPError("Undertermined length - SHOULD NOT be used")
 
     return data_length, False # partial is False
 
-
 def get_mpi(data):
-    '''Gets a multi-precision integer as per RFC-4880.
-    Returns the MPI and the new offset.
+    '''Get a multi-precision integer.
     See: http://tools.ietf.org/html/rfc4880#section-3.2'''
-    mpi_len = read_2(data)
-    to_process = (mpi_len + 7) // 8
+    mpi_len = read_2(data) # length in bits
+    to_process = (mpi_len + 7) // 8 # length in bytes
     b = data.read(to_process)
-    return int.from_bytes(b, "big")
+    #print("MPI bits:",mpi_len,"to_process", to_process)
+    return b
 
 def get_int_bytes(data):
     '''Get the big-endian byte form of an integer or MPI.'''
@@ -103,7 +115,7 @@ def get_int_bytes(data):
     hexval = hexval.zfill(new_len)
     return binascii.unhexlify(hexval.encode('ascii'))
 
-def get_key_id(data):
+def bin2hex(data):
     return binascii.hexlify(data).upper() 
 
 # 256 values corresponding to each possible byte
@@ -199,4 +211,128 @@ def unarmor(data):
         raise PGPError(str(ex))
 
     return hashes, headers, body, crc
+
+
+# See 3.7.1.3
+def derive_key(passphrase, keylen, s2k_type, hash_algo, salt, count):
+    
+    hash_algo = hash_algo.lower()
+    
+    _h = hashlib.new(hash_algo)
+    # keylen in bytes, hash digest size in bytes too
+    n_hash = ceil(keylen / _h.digest_size)
+
+    h = [_h] # first one
+    for i in range(1, n_hash):
+        __h = h[-1].copy()
+        __h.update(b'\x00')
+        h.append(__h)
+
+    # Simple S2K or salted(+iterated) S2K
+    _salt = salt if s2k_type in (1,3) else b''
+
+    _seed = _salt + passphrase # bytes
+    _lseed = len(_seed)
+
+    n_bytes = count if s2k_type == 3 else _lseed
+
+    if n_bytes < _lseed:
+        n_bytes = _lseed
+
+    _repeat, _extra = divmod(n_bytes, _lseed)
+
+    for _h in h:
+        for i in range(_repeat): # (s+p) + (s+p) + (s+p) + ...
+            _h.update(_seed)
+
+        if _extra:
+            _h.update(_seed[:_extra]) # + a little bit: enough cover n_bytes bytes
+
+    return b''.join(_h.digest() for _h in h)[:keylen]
+
+def make_rsa_key(n, e, d, p, q, u):
+    backend = default_backend()
+    pub = rsa.RSAPublicNumbers(e, n)
+    dmp1 = rsa.rsa_crt_dmp1(d, p)
+    dmq1 = rsa.rsa_crt_dmq1(d, q)
+    iqmp = rsa.rsa_crt_iqmp(p, q)
+    return rsa.RSAPrivateNumbers(p, q, d, dmp1, dmq1, iqmp, pub).private_key(backend), padding.PKCS1v15()
+
+def make_dsa_key(y, g, p, q, x):
+    backend = default_backend()
+    params = dsa.DSAParameterNumbers(p,q,g)
+    pn = dsa.DSAPublicNumbers(y, params)
+    return dsa.DSAPrivateNumbers(x, pn).private_key(backend)
+
+def make_elg_key(y, g, p, q, x):
+    raise PGPError("Not Implemented")
+
+def validate_private_data(data, s2k_usage):
+
+    if s2k_usage == 254:
+        # if the usage byte is 254, key material is followed by a 20-octet sha-1 hash of the rest
+        # of the key material block
+        assert( len(data) > 20 )
+        checksum = hashlib.new('sha1', data[:-20]).digest()
+        #if not hmac.compare_digest(bytes(data[-20:]), bytes(checksum)):
+        if data[-20:] != checksum:
+            raise PGPError("Decryption: Passphrase was incorrect! (pb with sha1)")
+    
+    elif s2k_usage in (0, 255):
+        if get_int2(data[-2:]) != (sum(data[:-2]) % 65536):
+            raise PGPError("Decryption: Passphrase was incorrect! (pb with 2-octets checksum)")
+    else: # all other values
+        # 2-octets checksum
+        # Am I understand it 5.5.3 correctly? It looks like I can collapse with the previous condition.
+        # so why did they formulate it that way?
+        if get_int2(data[-2:]) != (sum(data[:-2]) % 65536):
+            raise PGPError("Decryption: Passphrase was incorrect! (pb with 2-octets checksum)")
+    
+def _decrypt(data, key, alg, iv):
+    try:
+        decryptor = Cipher(alg(key), modes.CFB(iv), backend=default_backend()).decryptor()
+    except UnsupportedAlgorithm as ex:  # pragma: no cover
+        raise PGPError(ex)
+    return bytes(decryptor.update(data) + decryptor.finalize())
+
+def _decrypt_and_check(data, key, alg, mdc=False):
+    iv_len = alg.block_size // 8
+    iv = (0).to_bytes(iv_len, byteorder='big')
+
+    LOG.debug(f"data length: {len(data)}")
+    LOG.debug(f"data: {bin2hex(data)}")
+
+    # from Crypto.Cipher import AES
+    # cipher = AES.new(key, AES.MODE_CFB, iv=iv)
+    # cleardata = bytes(cipher.decrypt(data))
+    try:
+        decryptor = Cipher(alg(key), modes.CFB(iv), backend=default_backend()).decryptor()
+    except UnsupportedAlgorithm as ex:  # pragma: no cover
+        raise PGPError(ex)
+
+    cleardata = bytearray(decryptor.update(data) + decryptor.finalize())
+
+    LOG.debug(f"clear data length: {len(cleardata)}", )
+    LOG.debug(f"clear data: {bin2hex(cleardata)}")
+
+    prefix = cleardata[:iv_len+2]
+    LOG.debug(f"prefix: {bin2hex(prefix)}")
+
+    LOG.debug(f"MDC: {bin2hex(cleardata[-22:])}")
+
+    if not (hmac.compare_digest(bytes(prefix[-4]), bytes(prefix[-2])) and hmac.compare_digest(bytes(prefix[-3]), bytes(prefix[-1]))):
+        raise PGPError("Decryption failed: prefix not repeated")
+
+    if mdc:
+        h = hashlib.new('sha1')
+        h.update(cleardata[:-20])
+        _expected_mdcbytes = b'\xD3\x14'+ h.digest() # including prefix, and MDC tag+length
+        if not hmac.compare_digest(bytes(cleardata[-22:]), _expected_mdcbytes): #constant_time.bytes_eq(_checksum, _mdcbytes):
+            LOG.debug(f"_expected_mdcbytes: bin2hex(_expected_mdcbytes)")
+            LOG.debug(f"              real: {bin2hex(cleardata[-22:])}")
+            raise PGPError("MDC Decryption failed")
+        
+    res = bytes(cleardata[iv_len+2:-22]) # Don't strip the MDC
+    LOG.debug(f"RES {bin2hex(res)}")
+    return res
 
