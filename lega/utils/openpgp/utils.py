@@ -5,6 +5,8 @@ import hashlib
 from math import ceil
 import io
 import logging
+import zlib
+import bz2
 
 LOG = logging.getLogger('openpgp')
 
@@ -116,7 +118,7 @@ def get_int_bytes(data):
     return binascii.unhexlify(hexval.encode('ascii'))
 
 def bin2hex(data):
-    return binascii.hexlify(data).upper() 
+    return bytearray(data).hex() 
 
 # 256 values corresponding to each possible byte
 CRC24_TABLE = (
@@ -262,10 +264,10 @@ def make_dsa_key(y, g, p, q, x):
     backend = default_backend()
     params = dsa.DSAParameterNumbers(p,q,g)
     pn = dsa.DSAPublicNumbers(y, params)
-    return dsa.DSAPrivateNumbers(x, pn).private_key(backend)
+    return dsa.DSAPrivateNumbers(x, pn).private_key(backend), None
 
 def make_elg_key(y, g, p, q, x):
-    raise PGPError("Not Implemented")
+    raise NotImplementedError()
 
 def validate_private_data(data, s2k_usage):
 
@@ -288,51 +290,34 @@ def validate_private_data(data, s2k_usage):
         if get_int2(data[-2:]) != (sum(data[:-2]) % 65536):
             raise PGPError("Decryption: Passphrase was incorrect! (pb with 2-octets checksum)")
     
-def _decrypt(data, key, alg, iv):
+def make_decryptor(key, alg, iv):
     try:
-        decryptor = Cipher(alg(key), modes.CFB(iv), backend=default_backend()).decryptor()
-    except UnsupportedAlgorithm as ex:  # pragma: no cover
-        raise PGPError(ex)
-    return bytes(decryptor.update(data) + decryptor.finalize())
-
-def _decrypt_and_check(data, key, alg, mdc=False):
-    iv_len = alg.block_size // 8
-    iv = (0).to_bytes(iv_len, byteorder='big')
-
-    LOG.debug(f"data length: {len(data)}")
-    LOG.debug(f"data: {bin2hex(data)}")
-
-    # from Crypto.Cipher import AES
-    # cipher = AES.new(key, AES.MODE_CFB, iv=iv)
-    # cleardata = bytes(cipher.decrypt(data))
-    try:
-        decryptor = Cipher(alg(key), modes.CFB(iv), backend=default_backend()).decryptor()
-    except UnsupportedAlgorithm as ex:  # pragma: no cover
+        return Cipher(alg(key), modes.CFB(iv), backend=default_backend()).decryptor()
+    except UnsupportedAlgorithm as ex:
         raise PGPError(ex)
 
-    cleardata = bytearray(decryptor.update(data) + decryptor.finalize())
+class Passthrough():
+    def decompress(data):
+        return data
+    def flush():
+        return b''
 
-    LOG.debug(f"clear data length: {len(cleardata)}", )
-    LOG.debug(f"clear data: {bin2hex(cleardata)}")
-
-    prefix = cleardata[:iv_len+2]
-    LOG.debug(f"prefix: {bin2hex(prefix)}")
-
-    LOG.debug(f"MDC: {bin2hex(cleardata[-22:])}")
-
-    if not (hmac.compare_digest(bytes(prefix[-4]), bytes(prefix[-2])) and hmac.compare_digest(bytes(prefix[-3]), bytes(prefix[-1]))):
-        raise PGPError("Decryption failed: prefix not repeated")
-
-    if mdc:
-        h = hashlib.new('sha1')
-        h.update(cleardata[:-20])
-        _expected_mdcbytes = b'\xD3\x14'+ h.digest() # including prefix, and MDC tag+length
-        if not hmac.compare_digest(bytes(cleardata[-22:]), _expected_mdcbytes): #constant_time.bytes_eq(_checksum, _mdcbytes):
-            LOG.debug(f"_expected_mdcbytes: bin2hex(_expected_mdcbytes)")
-            LOG.debug(f"              real: {bin2hex(cleardata[-22:])}")
-            raise PGPError("MDC Decryption failed")
+def decompress(algo, data):
+    if algo == 0: # Uncompressed
+        engine = Passthrough()
         
-    res = bytes(cleardata[iv_len+2:-22]) # Don't strip the MDC
-    LOG.debug(f"RES {bin2hex(res)}")
-    return res
+    elif algo == 1: # Zip deflate
+        engine = zlib.decompressobj(-15)
+        
+    elif algo == 2: # Zip deflate with zlib header
+        engine = zlib.decompressobj()
+        
+    elif algo == 3: # Bzip2
+        engine = bz2.decompressobj()
+    else:
+        raise NotImplementedError()
 
+    return (engine.decompress(data) + engine.flush())
+
+def compare_bytes(a,b):
+    return hmac.compare_digest(a,b)
