@@ -3,52 +3,30 @@ import io
 import argparse
 import logging
 
-from .packet import parse
-from .utils import unarmor, crc24
+from .packet import iter_packets
+from .utils import unarmor as do_unarmor, crc24
 from ..exceptions import PGPError
 
 from ...conf import CONF
 
 LOG = logging.getLogger('openpgp')
 
-def parsefile(f,fout):
+def unarmor(f):
     # Read the first bytes
     if f.read(5) != b'-----': # is not armored
         f.seek(0,0) # rewind
         data = f
     else: # is armored.
         f.seek(0,0) # rewind
-        _, _, data, crc = unarmor(bytearray(f.read())) # Yup, fully loading everything in memory
+        _, _, data, crc = do_unarmor(bytearray(f.read())) # Yup, fully loading everything in memory
         # verify it if we could find it
         if crc and crc != crc24(data):
             raise PGPError(f"Invalid CRC")
         data = io.BytesIO(data)
-
-    while True:
-        packet = parse(data, fout)
-        if packet is None:
-            break
-        yield packet
+    return data
 
 def main(args=None):
 
-    if not args:
-        args = sys.argv[1:]
-
-    # parser = argparse.ArgumentParser()
-    # parser.add_argument('-d', action='store_true', default=False)
-    # # parser.add_argument('filename')
-    # # parser.add_argument('seckey')
-    # # parser.add_argument('passphrase')
-
-    # args = parser.parse_args()
-
-    #CONF.setup(args)
-    CONF.setup(['--log',None])
-
-    filename = "/Users/daz/_ega/deployments/docker/test/spoof.gpg"
-    seckey = "/Users/daz/_ega/deployments/docker/test/pgp.sec"
-    passphrase = "Unguessable".encode()
 
     # import pgpy
     # key, _ = pgpy.PGPKey.from_file(seckey)
@@ -60,39 +38,61 @@ def main(args=None):
     #     print("message decrypted")
 
     # filename = "/Users/daz/_ega/deployments/docker/test/test.gpg"
-    # seckey = "/Users/daz/_ega/deployments/docker/private/swe1/gpg/ega.sec"
-    # passphrase = "I0jhU1FKoAU76HuN".encode()
+    seckey = "/Users/daz/_ega/deployments/docker/private/swe1/gpg/ega.sec"
+    passphrase = "I0jhU1FKoAU76HuN".encode()
 
-    private_packet = None
+    if not args:
+        args = sys.argv[1:]
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--keyserver', default='http://localhost:9010')
+    parser.add_argument('-o','--output', default=None)
+    parser.add_argument('filename')
+    args = parser.parse_args()
+
+    CONF.setup(['--log','openpgp'])
+
+    outfile, has_outfile = None, False
+    try:
+
+        outfile, has_outfile = (open(args.output, 'wb'), True) if args.output else (sys.stdout.buffer, False)
+
+        #seckey = "/Users/daz/_ega/deployments/docker/test/pgp.sec"
+        #passphrase = "I0jhU1FKoAU76HuN".encode()
+
+        private_key = private_padding = None
     
-    LOG.info(f"###### Opening sec key: {seckey}")
-    with open(seckey, 'rb') as infile, open(filename + '.org', 'wb') as outfile:
-        for packet in parsefile(infile, outfile):
-            LOG.info(packet)
-            if packet.tag == 5:
-                private_packet = packet
-                LOG.info("###### Unlocking key with passphrase")
-                private_packet.unlock(passphrase)
+        LOG.info(f"###### Opening sec key: {seckey}")
+        with open(seckey, 'rb') as infile:
+            for packet in iter_packets(unarmor(infile)):
+                LOG.info(str(packet))
+                if packet.tag == 5:
+                    LOG.info("###### Unlocking key with passphrase")
+                    private_key, private_padding = packet.unlock(passphrase)
+                else:
+                    packet.skip()
 
 
-    LOG.info(f"###### Encrypted file: {filename}")
-    with open(filename, 'rb') as infile, open(filename + '.org', 'wb') as outfile:
-        data_packet = None
-        for packet in parsefile(infile, outfile):
-            LOG.info(packet)
-            if packet.tag == 1:
-                session_packet = packet
+        LOG.info(f"###### Encrypted file: {args.filename}")
+        with open(args.filename, 'rb') as infile:
+            name = cipher = session_key = None
+            for packet in iter_packets(infile):
+                LOG.info(str(packet))
+                if packet.tag == 1:
+                    LOG.info("###### Decrypting session key")
+                    name, cipher, session_key = packet.decrypt_session_key(private_key, private_padding)
 
-            if packet.tag == 18:
-                data_packet = packet
+                elif packet.tag == 18:
+                    LOG.info(f"###### Decrypting message using {name}")
+                    assert( session_key and cipher )
+                    packet.register(session_key, cipher)
+                    packet.process(outfile.write)
+                else:
+                    packet.skip()
 
-        LOG.info("###### Decrypting session key")
-        name, cipher, session_key = session_packet.decrypt_session_key(private_packet)
-        LOG.info(f"###### Decrypting message using {name}")
-        assert( data_packet and session_key and cipher )
-
-        data_packet.decrypt_message(infile, session_key, cipher)
-        
+    finally:
+        if has_outfile:
+            outfile.close()
 
 if __name__ == '__main__':
     #import cProfile
