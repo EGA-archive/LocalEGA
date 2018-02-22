@@ -4,10 +4,7 @@ root:
   handlers: [noHandler]
 
 loggers:
-  connect:
-    level: DEBUG
-    handlers: [debugFile,console]
-  frontend:
+  openpgp:
     level: DEBUG
     handlers: [debugFile,console]
   ingestion:
@@ -20,9 +17,6 @@ loggers:
     level: DEBUG
     handlers: [debugFile,console]
   verify:
-    level: DEBUG
-    handlers: [debugFile,console]
-  socket-utils:
     level: DEBUG
     handlers: [debugFile,console]
   inbox:
@@ -41,9 +35,6 @@ loggers:
     level: DEBUG
     handlers: [debugFile,console]
   asyncio:
-    level: DEBUG
-    handlers: [debugFile]
-  aiopg:
     level: DEBUG
     handlers: [debugFile]
   aiohttp.access:
@@ -73,7 +64,7 @@ handlers:
   console:
     class: logging.StreamHandler
     formatter: simple
-    stream: ext://sys.stdout
+    stream: ext://sys.stderr
   debugFile:
     class: logging.FileHandler
     formatter: lega
