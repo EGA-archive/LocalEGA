@@ -5,9 +5,7 @@ import io
 import binascii
 import logging
 
-from cryptography.hazmat.primitives.asymmetric import padding
-
-from ..exceptions import PGPError
+from ..utils.exceptions import PGPError
 from .constants import lookup_pub_algorithm, lookup_sym_algorithm, lookup_hash_algorithm, lookup_s2k, lookup_tag
 from .utils import read_1, read_2, read_4, new_tag_length, old_tag_length, get_mpi, get_int_bytes, bin2hex, unarmor, crc24, derive_key, make_decryptor, decompress, make_rsa_key, make_dsa_key, make_elg_key, validate_private_data
 
@@ -58,12 +56,12 @@ def iter_packets(data):
             break
         yield packet
 
-def parse(data, cb):
+def parse(data):
     packet = parse_one(data)
     if packet is None:
         return
-    packet.process(cb)
-    parse(data, cb) # tail-recursive. But probably not optimized in Python
+    packet.process()
+    parse(data) # tail-recursive. But probably not optimized in Python
 
 
 class Packet(object):
@@ -406,18 +404,18 @@ class SymEncryptedDataPacket(Packet):
         self.cleardata = io.BytesIO() # Buffer
 
     # See 5.13 (page 50)
-    def process(self, cb):
+    def process(self):
         self.version = read_1(self.data)
         assert( self.version == 1 )
 
         self.decrypt(self.data.read(self.length - 1), not self.partial)
 
-        # parse(cleardata, cb) # parse chunk
+        # parse(cleardata) # parse chunk
         partial = self.partial
         while partial:
             data_length, partial = new_tag_length(self.data)
             self.decrypt(self.data.read(data_length), not partial)
-            # parse(cleardata, cb) # parse chunk
+            # parse(cleardata) # parse chunk
 
         if self.mdc:
             self.check_mdc()
@@ -429,7 +427,7 @@ class SymEncryptedDataPacket(Packet):
         tmp = self.cleardata.read()
         print('TMP',bin2hex(tmp))
 
-        parse(self.cleardata, cb) # parse chunk
+        parse(self.cleardata) # parse chunk
         self.cleardata.close()
 
     def decrypt(self, indata, final):
@@ -469,17 +467,17 @@ class SymEncryptedDataPacket(Packet):
 
 class CompressedDataPacket(Packet):
 
-    def process(self, cb):
+    def process(self):
         assert( not self.partial )
         algo = read_1(self.data)
         LOG.debug(f'Compression Algo: {algo}')
         decompressed_data = decompress(algo, self.data.read())
-        parse(io.BytesIO(decompressed_data), cb)
+        parse(io.BytesIO(decompressed_data))
         LOG.debug(f'DONE {self!s}')
         
 class LiteralDataPacket(Packet):
 
-    def process(self, cb):
+    def process(self):
         self.data_format = self.data.read(1)
         LOG.debug(f'data format: {self.data_format.decode()}')
 
@@ -502,12 +500,12 @@ class LiteralDataPacket(Packet):
         d = self.data.read(self.length-6-filename_length)
         partial = self.partial
         LOG.debug(f'partial {partial} - {len(d)} bytes')
-        cb(d)
+        print(d)
         while partial:
             data_length, partial = new_tag_length(self.data)
             d = self.data.read(data_length)
             LOG.debug(f'partial {partial} - {len(d)} bytes')
-            cb(d)
+            print(d)
         LOG.debug(f'DONE {self!s}')
 
     def __repr__(self):
