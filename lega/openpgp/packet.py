@@ -7,7 +7,7 @@ import logging
 
 from ..utils.exceptions import PGPError
 from .constants import lookup_pub_algorithm, lookup_sym_algorithm, lookup_hash_algorithm, lookup_s2k, lookup_tag
-from .utils import read_1, read_2, read_4, new_tag_length, old_tag_length, get_mpi, get_int_bytes, bin2hex, unarmor, crc24, derive_key, make_decryptor, decompress, make_rsa_key, make_dsa_key, make_elg_key, validate_private_data
+from .utils import read_1, read_2, read_4, new_tag_length, old_tag_length, get_mpi, bin2hex, derive_key, make_decryptor, decompress, make_rsa_key, make_dsa_key, make_elg_key, validate_private_data
 
 LOG = logging.getLogger('openpgp')
 
@@ -56,12 +56,12 @@ def iter_packets(data):
             break
         yield packet
 
-def parse(data):
+def parse(data, cb):
     packet = parse_one(data)
     if packet is None:
         return
-    packet.process()
-    parse(data) # tail-recursive. But probably not optimized in Python
+    packet.process(cb)
+    parse(data,cb) # tail-recursive. But probably not optimized in Python
 
 
 class Packet(object):
@@ -76,7 +76,6 @@ class Packet(object):
         self.partial = partial
         self.data = data # open file
         LOG.debug(f'================= PARSING A NEW PACKET: {self!s}')
-        LOG.debug(f'data type: {type(data)}')
 
     def skip(self):
         self.data.seek(self.start_pos, io.SEEK_SET) # go to start of data
@@ -402,35 +401,40 @@ class SymEncryptedDataPacket(Packet):
         if self.mdc:
             self.hasher = hashlib.new('sha1')
         self.cleardata = io.BytesIO() # Buffer
+        # LOG.debug(f'SESSION KEY {bin2hex(session_key)}')
+        # LOG.debug(f'IV {bin2hex(iv)}')
+        # LOG.debug(f'IV length {len(iv)}')
+        # LOG.debug(f'ALGO {cipher}')
 
     # See 5.13 (page 50)
-    def process(self):
+    def process(self, cb):
         self.version = read_1(self.data)
         assert( self.version == 1 )
 
         self.decrypt(self.data.read(self.length - 1), not self.partial)
 
-        # parse(cleardata) # parse chunk
+        # parse(cleardata,cb) # parse chunk
         partial = self.partial
+        LOG.debug(f'More data to pull? {partial}')
         while partial:
             data_length, partial = new_tag_length(self.data)
             self.decrypt(self.data.read(data_length), not partial)
-            # parse(cleardata) # parse chunk
+            # parse(cleardata,cb) # parse chunk
 
         if self.mdc:
             self.check_mdc()
-            print('MDC',bin2hex(self.mdc_value))
+            LOG.debug(f'MDC: {bin2hex(self.mdc_value)}')
 
-        LOG.debug(f'Loading all the cleardata')
-        tmp = self.cleardata.getvalue()
-        print('TMP',bin2hex(tmp))
-        tmp = self.cleardata.read()
-        print('TMP',bin2hex(tmp))
+        # move back to prefix+2 position
+        self.cleardata.seek(self.prefix_size,io.SEEK_SET)
 
-        parse(self.cleardata) # parse chunk
+        #LOG.debug(f'DATA: {bin2hex(self.cleardata.read())}')
+
+        parse(self.cleardata,cb) # parse chunk
         self.cleardata.close()
 
     def decrypt(self, indata, final):
+        #LOG.debug(f'encrypted data: {bin2hex(indata)}')
         decrypted_data = self.engine.update(indata)
         #LOG.debug(f'decrypted data: {bin2hex(decrypted_data)}')
 
@@ -439,7 +443,7 @@ class SymEncryptedDataPacket(Packet):
             self.mdc_value = decrypted_data[-22:]
             decrypted_data = decrypted_data[:-20]
             #LOG.debug(f'finalized decrypted data: {bin2hex(decrypted_data)}')
-
+            
         if self.mdc:
             self.hasher.update(decrypted_data)
 
@@ -447,7 +451,7 @@ class SymEncryptedDataPacket(Packet):
         # if final:
         #     self.cleardata.write(self.mdc_value)
         #     self.cleardata.seek(-len(self.mdc_value), io.SEEK_CUR)
-        self.cleardata.seek(-len(decrypted_data), io.SEEK_CUR)
+        #self.cleardata.seek(-len(decrypted_data), io.SEEK_CUR)
 
         # Handle prefix
         if self.prefix_diff > 0:
@@ -459,6 +463,7 @@ class SymEncryptedDataPacket(Packet):
 
     def check_mdc(self):
         digest = b'\xD3\x14' + self.hasher.digest() # including prefix, and MDC tag+length
+        LOG.debug(f'digest: {bin2hex(digest)}')
         if self.mdc_value != digest:
             LOG.debug(f'Checking MDC: {bin2hex(self.mdc_value)}')
             LOG.debug(f'      digest: {bin2hex(digest)}')
@@ -467,17 +472,17 @@ class SymEncryptedDataPacket(Packet):
 
 class CompressedDataPacket(Packet):
 
-    def process(self):
+    def process(self, cb):
         assert( not self.partial )
         algo = read_1(self.data)
         LOG.debug(f'Compression Algo: {algo}')
         decompressed_data = decompress(algo, self.data.read())
-        parse(io.BytesIO(decompressed_data))
+        parse(io.BytesIO(decompressed_data), cb)
         LOG.debug(f'DONE {self!s}')
         
 class LiteralDataPacket(Packet):
 
-    def process(self):
+    def process(self, cb):
         self.data_format = self.data.read(1)
         LOG.debug(f'data format: {self.data_format.decode()}')
 
@@ -500,12 +505,12 @@ class LiteralDataPacket(Packet):
         d = self.data.read(self.length-6-filename_length)
         partial = self.partial
         LOG.debug(f'partial {partial} - {len(d)} bytes')
-        print(d)
+        cb(d)
         while partial:
             data_length, partial = new_tag_length(self.data)
             d = self.data.read(data_length)
             LOG.debug(f'partial {partial} - {len(d)} bytes')
-            print(d)
+            cb(d)
         LOG.debug(f'DONE {self!s}')
 
     def __repr__(self):
