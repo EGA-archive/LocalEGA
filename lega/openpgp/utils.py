@@ -17,7 +17,7 @@ from cryptography.hazmat.primitives.ciphers import Cipher, modes
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import rsa, dsa, padding
 
-from ..exceptions import PGPError
+from ..utils.exceptions import PGPError
 from .constants import lookup_sym_algorithm
 
 def read_1(data):
@@ -176,7 +176,7 @@ def crc24(data):
         crc = (crc_table[tbl_idx] ^ (crc << 8)) & 0x00ffffff
     return crc
 
-def unarmor(data):
+def do_unarmor(data):
     # Stolen from https://github.com/SecurityInnovation/PGPy/blob/master/pgpy/types.py
     __armor_regex = re.compile(
         r"""# This capture group is optional because it will only be present in signed cleartext messages
@@ -213,6 +213,20 @@ def unarmor(data):
         raise PGPError(str(ex))
 
     return hashes, headers, body, crc
+
+def unarmor(f):
+    # Read the first bytes
+    if f.read(5) != b'-----': # is not armored
+        f.seek(0,0) # rewind
+        data = f
+    else: # is armored.
+        f.seek(0,0) # rewind
+        _, _, data, crc = do_unarmor(bytearray(f.read())) # Yup, fully loading everything in memory
+        # verify it if we could find it
+        if crc and crc != crc24(data):
+            raise PGPError(f"Invalid CRC")
+        data = io.BytesIO(data)
+    return data
 
 
 # See 3.7.1.3
