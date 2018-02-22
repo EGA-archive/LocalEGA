@@ -5,3 +5,4 @@ colorama==0.3.7
 aiohttp-jinja2==0.13.0
 fusepy
 sphinx_rtd_theme
+cryptography==2.1.3
