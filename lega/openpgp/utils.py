@@ -310,13 +310,50 @@ def make_decryptor(key, alg, iv):
     except UnsupportedAlgorithm as ex:
         raise PGPError(ex)
 
+def decryptor(key, alg):
+    block_size = alg.block_size // 8
+    iv = (0).to_bytes(block_size, byteorder='big')
+    engine = make_decryptor(key,alg,iv)
+
+    LOG.debug(f'KEY {bin2hex(key)}')
+    LOG.debug(f'IV {bin2hex(iv)}')
+    LOG.debug(f'ALGO {alg}')
+
+    leftover = b''
+        
+    indata, data_size, final = yield (block_size + 2)
+    while True:
+        LOG.debug(f'(org) encrypted data ({len(indata)} bytes) | {bin2hex(indata)}')
+        indata = leftover + indata
+        data_size += len(leftover)
+        if not final:
+            r = data_size % block_size
+            LOG.debug(f'leftover: {r}')
+            if r == 0:
+                leftover = b''
+            else:
+                leftover = indata[-r:]
+                indata = indata[:-r]
+        else:
+            leftover = b''
+            
+        LOG.debug(f'(new) encrypted data ({len(indata)} bytes) | {bin2hex(indata)}')
+        LOG.debug(f'(new)       leftover ({len(leftover)} bytes) | {bin2hex(leftover)}')
+        decrypted_data = engine.update(indata)
+
+        if final:
+            decrypted_data += engine.finalize()
+            
+        LOG.debug(f'decrypted data: {bin2hex(decrypted_data)}')
+        indata, data_size, final = yield decrypted_data
+
 class Passthrough():
     def decompress(data):
         return data
     def flush():
         return b''
 
-def decompress(algo, data):
+def decompressor(algo):
     if algo == 0: # Uncompressed
         engine = Passthrough()
         
@@ -331,7 +368,7 @@ def decompress(algo, data):
     else:
         raise NotImplementedError()
 
-    return (engine.decompress(data) + engine.flush())
+    return engine
 
 def compare_bytes(a,b):
     return hmac.compare_digest(a,b)
