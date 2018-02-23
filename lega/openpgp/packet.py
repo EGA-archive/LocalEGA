@@ -1,13 +1,14 @@
 from datetime import datetime, timedelta
 import hashlib
 from math import ceil, log
+import sys
 import io
 import binascii
 import logging
 
 from ..utils.exceptions import PGPError
 from .constants import lookup_pub_algorithm, lookup_sym_algorithm, lookup_hash_algorithm, lookup_s2k, lookup_tag
-from .utils import read_1, read_2, read_4, new_tag_length, old_tag_length, get_mpi, bin2hex, derive_key, make_decryptor, decompress, make_rsa_key, make_dsa_key, make_elg_key, validate_private_data
+from .utils import read_1, read_2, read_4, new_tag_length, old_tag_length, get_mpi, bin2hex, derive_key, decryptor, make_decryptor, decompressor, make_rsa_key, make_dsa_key, make_elg_key, validate_private_data
 
 LOG = logging.getLogger('openpgp')
 
@@ -56,12 +57,12 @@ def iter_packets(data):
             break
         yield packet
 
-def parse(data, cb):
+def parse(data):
     packet = parse_one(data)
     if packet is None:
         return
-    packet.process(cb)
-    parse(data,cb) # tail-recursive. But probably not optimized in Python
+    packet.process()
+    parse(data) # tail-recursive. But probably not optimized in Python
 
 
 class Packet(object):
@@ -278,8 +279,8 @@ class SecretKeyPacket(PublicKeyPacket):
         LOG.debug(f"derived passphrase key: {bin2hex(passphrase_key)} ({len(passphrase_key)} bytes)")
 
         assert(len(passphrase_key) == key_len)
-        decryptor = make_decryptor(passphrase_key, cipher, self.s2k_iv)
-        clear_private_data = bytes(decryptor.update(self.private_data) + decryptor.finalize())
+        engine = make_decryptor(passphrase_key, cipher, self.s2k_iv)
+        clear_private_data = bytes(engine.update(self.private_data) + engine.finalize())
         
         validate_private_data(clear_private_data, self.s2k_usage)
         LOG.info('Passphrase correct')
@@ -386,80 +387,87 @@ class PublicKeyEncryptedSessionKeyPacket(Packet):
 
 class SymEncryptedDataPacket(Packet):
     
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args,**kwargs)
+        self.cleardata = io.BytesIO()
+        self.leftover = b''
+
     def __repr__(self):
         s = super().__repr__()
         return f"{s} | version {self.version}"
     
     def register(self, session_key, cipher):
-        self.block_size = cipher.block_size // 8
-        iv = (0).to_bytes(self.block_size, byteorder='big')
-        self.engine = make_decryptor(session_key, cipher, iv)
-        self.prefix_size = self.block_size + 2
-        self.prefix_diff = self.prefix_size
+        self.engine = decryptor(session_key, cipher)
+        self.prefix_size = next(self.engine) # start it
+        self.prefix_found = False
         self.prefix = b''
         self.mdc = (self.tag == 18)
         if self.mdc:
             self.hasher = hashlib.new('sha1')
-        self.cleardata = io.BytesIO() # Buffer
-        # LOG.debug(f'SESSION KEY {bin2hex(session_key)}')
-        # LOG.debug(f'IV {bin2hex(iv)}')
-        # LOG.debug(f'IV length {len(iv)}')
-        # LOG.debug(f'ALGO {cipher}')
+        self.prefix_count = 0
 
     # See 5.13 (page 50)
-    def process(self, cb):
+    def process(self):
         self.version = read_1(self.data)
         assert( self.version == 1 )
 
-        self.decrypt(self.data.read(self.length - 1), not self.partial)
+        ed = (self.data.read(self.length - 1), self.length - 1, not self.partial)
+        decrypted_data = self.engine.send( ed )
+        self.process_decrypted_data(decrypted_data, not self.partial)
+        #parse(self.cleardata)
 
-        # parse(cleardata,cb) # parse chunk
         partial = self.partial
         LOG.debug(f'More data to pull? {partial}')
         while partial:
             data_length, partial = new_tag_length(self.data)
-            self.decrypt(self.data.read(data_length), not partial)
-            # parse(cleardata,cb) # parse chunk
+            ed = (self.data.read(data_length), data_length, not partial)
+            decrypted_data = self.engine.send( ed )
+            self.process_decrypted_data(decrypted_data, not partial)
+            #parse(self.cleardata)
 
         if self.mdc:
             self.check_mdc()
             LOG.debug(f'MDC: {bin2hex(self.mdc_value)}')
 
-        # move back to prefix+2 position
-        self.cleardata.seek(self.prefix_size,io.SEEK_SET)
-
-        #LOG.debug(f'DATA: {bin2hex(self.cleardata.read())}')
-
-        parse(self.cleardata,cb) # parse chunk
+        self.cleardata.seek(self.prefix_size, io.SEEK_SET)
+        parse(self.cleardata)
         self.cleardata.close()
 
-    def decrypt(self, indata, final):
-        #LOG.debug(f'encrypted data: {bin2hex(indata)}')
-        decrypted_data = self.engine.update(indata)
-        #LOG.debug(f'decrypted data: {bin2hex(decrypted_data)}')
+    def process_decrypted_data(self, data, final):
+
+        if not self.prefix_found:
+            self.prefix_count += len(data)
 
         if final:
-            decrypted_data += self.engine.finalize()
-            self.mdc_value = decrypted_data[-22:]
-            decrypted_data = decrypted_data[:-20]
+            if self.mdc:
+                assert(self.prefix_count >= (22 + self.prefix_size))
+                self.mdc_value = data[-22:]
+                data = data[:-20]
             #LOG.debug(f'finalized decrypted data: {bin2hex(decrypted_data)}')
             
         if self.mdc:
-            self.hasher.update(decrypted_data)
+            self.hasher.update(data)
 
-        self.cleardata.write(decrypted_data)
-        # if final:
-        #     self.cleardata.write(self.mdc_value)
-        #     self.cleardata.seek(-len(self.mdc_value), io.SEEK_CUR)
-        #self.cleardata.seek(-len(decrypted_data), io.SEEK_CUR)
+        # Where were we
+        pos = self.cleardata.tell()
+        LOG.debug(f'we were at pos {pos}')
+        self.cleardata.seek(0,io.SEEK_END) # go to end
+        self.cleardata.write(data) # append data but not MDC
 
         # Handle prefix
-        if self.prefix_diff > 0:
-            self.prefix += self.cleardata.read(self.prefix_diff)
+        if not self.prefix_found and self.prefix_count > self.prefix_size:
+            self.cleardata.seek(0,io.SEEK_SET) # go to beginning
+            self.prefix = self.cleardata.read(self.prefix_size)
             LOG.debug(f'PREFIX: {bin2hex(self.prefix)}')
-            self.prefix_diff = self.prefix_size - len(self.prefix)
-            if (self.prefix_diff == 0) and (self.prefix[-4:-2] != self.prefix[-2:]):
+            if self.prefix[-4:-2] != self.prefix[-2:]:
                 raise PGPError("Prefix Repetition error")
+            self.prefix_found = True
+            pos = self.prefix_size
+
+        # Go back where we were
+        LOG.debug(f'moving back to pos {pos}')
+        self.cleardata.seek(pos,io.SEEK_SET)
+        #self.engine.close() # close it
 
     def check_mdc(self):
         digest = b'\xD3\x14' + self.hasher.digest() # including prefix, and MDC tag+length
@@ -472,17 +480,26 @@ class SymEncryptedDataPacket(Packet):
 
 class CompressedDataPacket(Packet):
 
-    def process(self, cb):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args,**kwargs)
+        self.buf = io.BytesIO()
+
+    def process(self):
         assert( not self.partial )
         algo = read_1(self.data)
         LOG.debug(f'Compression Algo: {algo}')
-        decompressed_data = decompress(algo, self.data.read())
-        parse(io.BytesIO(decompressed_data), cb)
+        engine = decompressor(algo)
+        LOG.debug(f'Compressed Body length: {self.length}')
+        decompressed_data = engine.decompress(self.data.read())
+        pos = self.buf.tell()
+        self.buf.write(decompressed_data)
+        self.buf.seek(pos, io.SEEK_SET) # go back
+        parse(self.buf)
         LOG.debug(f'DONE {self!s}')
         
 class LiteralDataPacket(Packet):
 
-    def process(self, cb):
+    def process(self):
         self.data_format = self.data.read(1)
         LOG.debug(f'data format: {self.data_format.decode()}')
 
@@ -505,12 +522,12 @@ class LiteralDataPacket(Packet):
         d = self.data.read(self.length-6-filename_length)
         partial = self.partial
         LOG.debug(f'partial {partial} - {len(d)} bytes')
-        cb(d)
+        sys.stdout.buffer.write(d) # binary data
         while partial:
             data_length, partial = new_tag_length(self.data)
             d = self.data.read(data_length)
             LOG.debug(f'partial {partial} - {len(d)} bytes')
-            cb(d)
+            sys.stdout.buffer.write(d) # binary data
         LOG.debug(f'DONE {self!s}')
 
     def __repr__(self):
