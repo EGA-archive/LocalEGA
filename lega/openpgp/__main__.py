@@ -55,7 +55,7 @@ def main(args=None):
                 LOG.info(f"###### Decrypting message using {name}")
                 assert( session_key and cipher )
                 packet.register(session_key, cipher)
-                packet.process(sys.stdout.buffer.write)
+                packet.process()
             else:
                 packet.skip()
 
