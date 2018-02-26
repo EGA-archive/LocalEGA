@@ -4,10 +4,7 @@ root:
   handlers: [noHandler]
 
 loggers:
-  connect:
-    level: INFO
-    handlers: [syslog,mainFile]
-  frontend:
+  openpgp:
     level: INFO
     handlers: [syslog,mainFile]
   keyserver:
