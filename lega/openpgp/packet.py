@@ -1,14 +1,15 @@
-from datetime import datetime, timedelta
-import hashlib
-from math import ceil, log
+# -*- coding: utf-8 -*-
+
 import sys
 import io
-import binascii
 import logging
+from datetime import datetime, timedelta
+import hashlib
 
 from ..utils.exceptions import PGPError
 from .constants import lookup_pub_algorithm, lookup_sym_algorithm, lookup_hash_algorithm, lookup_s2k, lookup_tag
-from .utils import read_1, read_2, read_4, new_tag_length, old_tag_length, get_mpi, bin2hex, derive_key, decryptor, make_decryptor, decompressor, make_rsa_key, make_dsa_key, make_elg_key, validate_private_data
+from .utils import read_1, read_2, read_4, new_tag_length, old_tag_length, get_mpi, derive_key, decryptor, make_decryptor, decompressor, make_rsa_key, make_dsa_key, make_elg_key, validate_private_data
+from .iobuf import IOBuf
 
 LOG = logging.getLogger('openpgp')
 
@@ -23,13 +24,13 @@ def parse_one(data):
     if not b:
         return None
 
-    LOG.debug(f"First byte: 0x{bin2hex(b)} {ord(b):08b} ({ord(b)})")
+    LOG.debug(f"First byte: {b.hex()} {ord(b):08b} ({ord(b)})")
     b = ord(b)
 
     # 7th bit of the first byte must be a 1
     if not bool(b & 0x80):
         rest = data.read()
-        LOG.debug(f'REST ({len(rest)} bytes): {bin2hex(rest)}')
+        LOG.debug(f'REST ({len(rest)} bytes): {rest.hex()}')
         raise PGPError("incorrect packet header")
 
     # the header is in new format if bit 6 is set
@@ -57,13 +58,25 @@ def iter_packets(data):
             break
         yield packet
 
-def parse(data):
-    packet = parse_one(data)
+def process(stream):
+    LOG.debug('main processing initialized')
+    yield
+    packet = parse_one(stream)
     if packet is None:
+        LOG.debug('No more packet')
         return
-    packet.process()
-    parse(data) # tail-recursive. But probably not optimized in Python
-
+    try:
+        LOG.debug(f'FOUND A PACKET: {packet!s}')
+        engine = packet.process()
+        LOG.debug(f'CREATING generator for {packet!s}')
+        while True:
+            LOG.debug(f'advancing internal generator')
+            next(engine)
+            LOG.debug(f'stopping processor and return control above')
+            yield
+    except StopIteration:
+        LOG.debug(f'DONE with packet: {packet!s}')
+    process(stream) # tail-recursive
 
 class Packet(object):
     '''The base packet object containing various fields pulled from the packet
@@ -76,7 +89,7 @@ class Packet(object):
         self.start_pos = start_pos
         self.partial = partial
         self.data = data # open file
-        LOG.debug(f'================= PARSING A NEW PACKET: {self!s}')
+        #LOG.debug(f'================= PARSING A NEW PACKET: {self!s}')
 
     def skip(self):
         self.data.seek(self.start_pos, io.SEEK_SET) # go to start of data
@@ -88,7 +101,7 @@ class Packet(object):
             self.data.seek(data_length, io.SEEK_CUR) # skip data
 
     def process(self, *args): # Overloaded in subclasses
-        self.skip()
+        raise NotImplementedError("Should not be used here")
 
     def parse(self): # Overloaded in subclasses
         self.skip()
@@ -129,8 +142,6 @@ class PublicKeyPacket(Packet):
             # n, e
             self.n = get_mpi(self.data)
             self.e = get_mpi(self.data)
-            # the length of the modulus in bits
-            #self.modulus_bitlen = ceil(log(int.from_bytes(self.n,'big'), 2))
         elif self.raw_pub_algorithm == 17:
             self.pub_algorithm_type = "dsa"
             # p, q, g, y
@@ -165,7 +176,7 @@ class PublicKeyPacket(Packet):
 
         s2 = "Unkown"
         if self.pub_algorithm_type == "rsa":
-            s2 = f"RSA\n\t\t* n {bin2hex(self.n)}\n\t\t* e {bin2hex(self.e)}"
+            s2 = f"RSA\n\t\t* n {self.n:X}\n\t\t* e {self.e:X}"
         elif self.pub_algorithm_type == "dsa":
             s2 = f"DSA\n\t\t* p {self.p}\n\t\t* q {self.q}\n\t\t* g {self.g}\n\t\t* y {self.y}"
         elif self.pub_algorithm_type == "elg":
@@ -273,10 +284,10 @@ class SecretKeyPacket(PublicKeyPacket):
         # Ready to unlock the private parts
         name, key_len, cipher = lookup_sym_algorithm(self.cipher_id)
         iv_len = cipher.block_size // 8
-        LOG.debug(f"Unlocking seckey: {name} (keylen: {key_len} bytes) | IV {bin2hex(self.s2k_iv)} ({iv_len} bytes)")
+        LOG.debug(f"Unlocking seckey: {name} (keylen: {key_len} bytes) | IV {self.s2k_iv.hex()} ({iv_len} bytes)")
         assert( len(self.s2k_iv) == iv_len )
         passphrase_key = derive_key(passphrase, key_len, self.s2k_type, self.s2k_hash, self.s2k_salt, self.s2k_count)
-        LOG.debug(f"derived passphrase key: {bin2hex(passphrase_key)} ({len(passphrase_key)} bytes)")
+        LOG.debug(f"derived passphrase key: {passphrase_key.hex()} ({len(passphrase_key)} bytes)")
 
         assert(len(passphrase_key) == key_len)
         engine = make_decryptor(passphrase_key, cipher, self.s2k_iv)
@@ -328,11 +339,11 @@ class SecretKeyPacket(PublicKeyPacket):
                         usage=self.s2k_usage,
                         type=lookup_s2k(self.s2k_type)[0],
                         hash=self.s2k_hash,
-                        salt=bin2hex(self.s2k_salt),
+                        salt=self.s2k_salt.hex(),
                         count=self.s2k_count,
                         coded_count=self.s2k_coded_count)
 
-        return f"{s} \n\t| {s2} \n\t| IV {bin2hex(self.s2k_iv)}"
+        return f"{s} \n\t| {s2} \n\t| IV {self.s2k_iv.hex()}"
 
 
 class UserIDPacket(Packet):
@@ -361,7 +372,7 @@ class PublicKeyEncryptedSessionKeyPacket(Packet):
         if session_key_version != 3:
             raise PGPError(f"Unsupported encrypted session key packet, version {session_key_version}")
 
-        self.key_id = bin2hex(self.data.read(8))
+        self.key_id = self.data.read(8).hex()
         self.raw_pub_algorithm = read_1(self.data)
         # Remainder is the encrypted key
         self.encrypted_data = get_mpi(self.data)
@@ -375,7 +386,7 @@ class PublicKeyEncryptedSessionKeyPacket(Packet):
         name, keylen, symalg = lookup_sym_algorithm(symalg_id)
         symkey = session_data.read(keylen)
 
-        LOG.debug(f"{name} | {keylen} | Session key: {bin2hex(symkey)}")
+        LOG.debug(f"{name} | {keylen} | Session key: {symkey.hex()}")
         assert( keylen == len(symkey) )
         checksum = read_2(session_data)
 
@@ -387,94 +398,94 @@ class PublicKeyEncryptedSessionKeyPacket(Packet):
 
 class SymEncryptedDataPacket(Packet):
     
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args,**kwargs)
-        self.cleardata = io.BytesIO()
-        self.leftover = b''
-
     def __repr__(self):
         s = super().__repr__()
         return f"{s} | version {self.version}"
     
-    def register(self, session_key, cipher):
+    # See 5.13 (page 50)
+    def process(self, session_key, cipher):
+
+        # Initialization
         self.engine = decryptor(session_key, cipher)
         self.prefix_size = next(self.engine) # start it
         self.prefix_found = False
         self.prefix = b''
-        self.mdc = (self.tag == 18)
-        if self.mdc:
-            self.hasher = hashlib.new('sha1')
         self.prefix_count = 0
+        self.mdc = (self.tag == 18)
+        self.hasher = hashlib.sha1() if self.mdc else None
 
-    # See 5.13 (page 50)
-    def process(self):
+        # Start parsing the byte sequence
         self.version = read_1(self.data)
         assert( self.version == 1 )
 
-        ed = (self.data.read(self.length - 1), self.length - 1, not self.partial)
-        decrypted_data = self.engine.send( ed )
-        self.process_decrypted_data(decrypted_data, not self.partial)
-        #parse(self.cleardata)
+        data_length, partial = self.length - 1, self.partial
+        stream = IOBuf()
+        try:
+            processor = process(stream)
+            next(processor) # start it
 
-        partial = self.partial
-        LOG.debug(f'More data to pull? {partial}')
-        while partial:
-            data_length, partial = new_tag_length(self.data)
-            ed = (self.data.read(data_length), data_length, not partial)
-            decrypted_data = self.engine.send( ed )
-            self.process_decrypted_data(decrypted_data, not partial)
-            #parse(self.cleardata)
+            while True:
+                LOG.debug(f'Reading data: {data_length} bytes - partial {partial}')
 
+                ed = (self.data.read(data_length), data_length, not partial)
+                assert( len(ed[0]) == ed[1] )
+                decrypted_data = self.engine.send( ed )
+                decrypted_data = self._handle_decrypted_data(decrypted_data, not partial)
+
+                stream.write(decrypted_data)
+                next(processor)
+
+                if partial:
+                    data_length, partial = new_tag_length(self.data)
+                else:
+                    break
+
+            next(processor) # Finally
+
+        except StopIteration:
+            assert( stream.get_size() == 0 )
+            LOG.debug(f'processing finished')
+                
         if self.mdc:
             self.check_mdc()
-            LOG.debug(f'MDC: {bin2hex(self.mdc_value)}')
+            LOG.debug(f'MDC: {self.mdc_value.hex()}')
 
-        self.cleardata.seek(self.prefix_size, io.SEEK_SET)
-        parse(self.cleardata)
-        self.cleardata.close()
+        LOG.debug(f'DONE {self!s}')
 
-    def process_decrypted_data(self, data, final):
+
+    def _handle_decrypted_data(self, data, final):
 
         if not self.prefix_found:
             self.prefix_count += len(data)
 
-        if final:
-            if self.mdc:
-                assert(self.prefix_count >= (22 + self.prefix_size))
-                self.mdc_value = data[-22:]
-                data = data[:-20]
-            #LOG.debug(f'finalized decrypted data: {bin2hex(decrypted_data)}')
+        LOG.debug(f'Final or not? {final}')
+
+        if self.mdc and final:
+            assert(self.prefix_count >= (22 + self.prefix_size))
+            self.mdc_value = data[-22:]
+            data = data[:-20]
             
         if self.mdc:
             self.hasher.update(data)
 
-        # Where were we
-        pos = self.cleardata.tell()
-        LOG.debug(f'we were at pos {pos}')
-        self.cleardata.seek(0,io.SEEK_END) # go to end
-        self.cleardata.write(data) # append data but not MDC
-
         # Handle prefix
         if not self.prefix_found and self.prefix_count > self.prefix_size:
-            self.cleardata.seek(0,io.SEEK_SET) # go to beginning
-            self.prefix = self.cleardata.read(self.prefix_size)
-            LOG.debug(f'PREFIX: {bin2hex(self.prefix)}')
+            self.prefix = data[:self.prefix_size]
+            LOG.debug(f'PREFIX: {self.prefix.hex()}')
             if self.prefix[-4:-2] != self.prefix[-2:]:
                 raise PGPError("Prefix Repetition error")
             self.prefix_found = True
-            pos = self.prefix_size
+            data = data[self.prefix_size:]
 
-        # Go back where we were
-        LOG.debug(f'moving back to pos {pos}')
-        self.cleardata.seek(pos,io.SEEK_SET)
-        #self.engine.close() # close it
+        return data
 
+        
     def check_mdc(self):
         digest = b'\xD3\x14' + self.hasher.digest() # including prefix, and MDC tag+length
-        LOG.debug(f'digest: {bin2hex(digest)}')
+        LOG.debug(f'digest: {digest.hex()}')
         if self.mdc_value != digest:
-            LOG.debug(f'Checking MDC: {bin2hex(self.mdc_value)}')
-            LOG.debug(f'      digest: {bin2hex(digest)}')
+            LOG.debug(f'Checking MDC: {self.mdc_value.hex()}')
+            LOG.debug(f'      digest: {digest.hex()}')
             raise PGPError("MDC Decryption failed")
             
 
@@ -489,45 +500,103 @@ class CompressedDataPacket(Packet):
         algo = read_1(self.data)
         LOG.debug(f'Compression Algo: {algo}')
         engine = decompressor(algo)
-        LOG.debug(f'Compressed Body length: {self.length}')
-        decompressed_data = engine.decompress(self.data.read())
-        pos = self.buf.tell()
-        self.buf.write(decompressed_data)
-        self.buf.seek(pos, io.SEEK_SET) # go back
-        parse(self.buf)
-        LOG.debug(f'DONE {self!s}')
+        
+        data_length = self.length - 1 if self.length else None
+        partial = self.partial
+
+        if not data_length:
+            LOG.debug('Undertermined length')
+            
+        stream = IOBuf()
+        try:
+            processor = process(stream)
+            next(processor) # start it
+
+            while True:
+                data = self.data.read(data_length)
+                LOG.debug(f'Compressed Body length: {data_length} - partial {partial}')
+                if data is None:
+                    LOG.debug(f'Not enough data')
+                    yield # wait
+                else:
+                    LOG.debug(f'Got some data: {len(data)}')
+                    decompressed_data = engine.decompress(data)
+                    LOG.debug(f'DECompressed data: {len(decompressed_data)}')
+                    
+                    stream.write(decompressed_data)
+                    next(processor)
+                    
+                    if partial:
+                        LOG.debug(f'More data to pull? {partial}')
+                        data_length, partial = new_tag_length(self.data)
+                    else:
+                        break
+
+            decompressed_data = engine.flush()
+            LOG.debug(f'DECompressed data (flushed): {len(decompressed_data)}')
+            stream.write(decompressed_data)
+            next(processor) # Finally
+
+        except StopIteration:
+            assert( stream.get_size() == 0 )
+            LOG.debug(f'Internal processor completed | Stream size: {stream.get_size()}')
+        finally:
+            LOG.debug(f'DONE {self!s}')
         
 class LiteralDataPacket(Packet):
 
     def process(self):
-        self.data_format = self.data.read(1)
-        LOG.debug(f'data format: {self.data_format.decode()}')
+        LOG.debug(f'Processing LITERAL {self!s}')
+        while True:
+            self.data_format = self.data.read(1)
+            if self.data_format is None:
+                yield # wait
+            else:
+                LOG.debug(f'data format: {self.data_format.decode()}')
+                break
 
-        filename_length = read_1(self.data)
-        if filename_length == 0:
-            # then sensitive file
-            filename = None
-        else:
-            filename = self.data.read(filename_length)
-            # if filename == '_CONSOLE':
-            #     filename = None
+        while True:
+            filename_length = read_1(self.data)
+            if filename_length is None:
+                yield # wait
+            else:
+                if filename_length == 0:
+                    # then sensitive file
+                    filename = None
+                else:
+                    filename = self.data.read(filename_length)
+                    # if filename == '_CONSOLE':
+                    #     filename = None
+                break
 
         if filename:
             LOG.debug(f'filename: {filename}')
 
-        self.raw_date = read_4(self.data)
-        self.date = datetime.utcfromtimestamp(self.raw_date)
-        LOG.debug(f'date: {self.date}')
-        
-        d = self.data.read(self.length-6-filename_length)
-        partial = self.partial
-        LOG.debug(f'partial {partial} - {len(d)} bytes')
-        sys.stdout.buffer.write(d) # binary data
-        while partial:
-            data_length, partial = new_tag_length(self.data)
-            d = self.data.read(data_length)
-            LOG.debug(f'partial {partial} - {len(d)} bytes')
-            sys.stdout.buffer.write(d) # binary data
+        while True:
+            self.raw_date = read_4(self.data)
+            if self.raw_date is None:
+                yield
+            else:
+                self.date = datetime.utcfromtimestamp(self.raw_date)
+                LOG.debug(f'date: {self.date}')
+                break
+
+        LOG.debug(f'Literal packet length {self.length} | partial {self.partial}')
+        data_length, partial = self.length-6-filename_length, self.partial
+        while True:
+            data = self.data.read(data_length)
+            LOG.debug(f'Literal length: {data_length} - partial {partial}')
+            if data is None:
+                LOG.debug(f'Not enough data')
+                yield # wait
+            else:
+                LOG.debug(f'Got some data: {len(data)}')
+                sys.stdout.buffer.write(data) # binary data
+                if partial:
+                    data_length, partial = new_tag_length(self.data)
+                else:
+                    break
+
         LOG.debug(f'DONE {self!s}')
 
     def __repr__(self):
