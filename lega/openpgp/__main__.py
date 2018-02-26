@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
 import sys
 import logging
 
@@ -54,8 +57,7 @@ def main(args=None):
             elif packet.tag == 18:
                 LOG.info(f"###### Decrypting message using {name}")
                 assert( session_key and cipher )
-                packet.register(session_key, cipher)
-                packet.process()
+                packet.process(session_key, cipher)
             else:
                 packet.skip()
 

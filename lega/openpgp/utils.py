@@ -110,16 +110,6 @@ def get_mpi(data):
     #print("MPI bits:",mpi_len,"to_process", to_process)
     return b
 
-def get_int_bytes(data):
-    '''Get the big-endian byte form of an integer or MPI.'''
-    hexval = '%X' % data
-    new_len = (len(hexval) + 1) // 2 * 2
-    hexval = hexval.zfill(new_len)
-    return binascii.unhexlify(hexval.encode('ascii'))
-
-def bin2hex(data):
-    return bytearray(data).hex() 
-
 # 256 values corresponding to each possible byte
 CRC24_TABLE = (
     0x000000, 0x864cfb, 0x8ad50d, 0x0c99f6, 0x93e6e1, 0x15aa1a, 0x1933ec,
@@ -315,20 +305,20 @@ def decryptor(key, alg):
     iv = (0).to_bytes(block_size, byteorder='big')
     engine = make_decryptor(key,alg,iv)
 
-    LOG.debug(f'KEY {bin2hex(key)}')
-    LOG.debug(f'IV {bin2hex(iv)}')
+    LOG.debug(f'KEY {key.hex()}')
+    LOG.debug(f'IV {iv.hex()}')
     LOG.debug(f'ALGO {alg}')
 
     leftover = b''
         
     indata, data_size, final = yield (block_size + 2)
     while True:
-        LOG.debug(f'(org) encrypted data ({len(indata)} bytes) | {bin2hex(indata)}')
-        indata = leftover + indata
-        data_size += len(leftover)
-        if not final:
+        #LOG.debug(f'(org) encrypted data ({len(indata)} bytes) | {indata.hex()}')
+        if leftover: # prepend
+            indata = leftover + indata 
+            data_size += len(leftover)
+        if not final: # re-slice it
             r = data_size % block_size
-            LOG.debug(f'leftover: {r}')
             if r == 0:
                 leftover = b''
             else:
@@ -337,14 +327,14 @@ def decryptor(key, alg):
         else:
             leftover = b''
             
-        LOG.debug(f'(new) encrypted data ({len(indata)} bytes) | {bin2hex(indata)}')
-        LOG.debug(f'(new)       leftover ({len(leftover)} bytes) | {bin2hex(leftover)}')
+        #LOG.debug(f'(new) encrypted data ({len(indata)} bytes) | {indata.hex()}')
+        #LOG.debug(f'(new)       leftover ({len(leftover)} bytes) | {leftover.hex()}')
         decrypted_data = engine.update(indata)
 
         if final:
             decrypted_data += engine.finalize()
             
-        LOG.debug(f'decrypted data: {bin2hex(decrypted_data)}')
+        #LOG.debug(f'decrypted data: {decrypted_data.hex()}')
         indata, data_size, final = yield decrypted_data
 
 class Passthrough():
