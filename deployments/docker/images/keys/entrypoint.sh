@@ -2,8 +2,19 @@
 
 set -e
 
+the_trap () {
+  [[ -z "$INSTANCE" ]] && INST="anonymous" || INST=$INSTANCE
+  if [[ -z "$2" ]]; then
+    curl -d '{"instance":"'"$INST"'", "service":"lega-keyserver", "status": "'"$1"'"}' -H "Content-Type: application/json" -X POST http://${MONITOR}:5039/status &>/dev/null
+  else
+    curl -d '{"instance":"'"$INST"'", "service":"lega-keyserver", "status": "'"$1"'", "exitStatus" : "'"$2"'"}' -H "Content-Type: application/json" -X POST http://${MONITOR}:5039/status &>/dev/null
+  fi
+}
+
 # KEYSERVER_PORT env must be defined
-[[ -z "$KEYSERVER_PORT" ]] && echo 'Environment KEYSERVER_PORT is empty' 1>&2 && exit 1
+[[ -z "$KEYSERVER_PORT" ]] && echo 'Environment KEYSERVER_PORT is empty' 1>&2 && the_trap 'stopped' 1 && exit 1
+
+the_trap 'started'
 
 GPG=/usr/local/bin/gpg2
 GPG_AGENT=/usr/local/bin/gpg-agent
@@ -24,5 +35,12 @@ unset GPG_PASSPHRASE
 echo "Starting the gpg-agent proxy"
 ega-socket-proxy "0.0.0.0:${KEYSERVER_PORT}" /root/.gnupg/S.gpg-agent --certfile /etc/ega/ssl.cert --keyfile /etc/ega/ssl.key &
 
-echo "Starting the key management server"
-exec ega-keyserver --keys /etc/ega/keys.ini
+keyserver () {
+  echo "Starting the key management server"
+  ega-keyserver --keys /etc/ega/keys.ini
+}
+
+trap 'the_trap "stopped" $?' TERM INT
+keyserver &
+PID=$!
+wait $PID

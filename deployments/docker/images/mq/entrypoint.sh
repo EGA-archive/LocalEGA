@@ -3,7 +3,19 @@
 set -e
 set -x
 
-[[ -z "${CEGA_CONNECTION}" ]] && echo 'Environment CEGA_CONNECTION is empty' 1>&2 && exit 1
+the_trap () {
+  [[ -z "$INSTANCE" ]] && INST="anonymous" || INST=$INSTANCE
+  if [[ -z "$2" ]]; then
+    curl -d '{"instance":"'"$INST"'", "service":"lega-mq", "status": "'"$1"'"}' -H "Content-Type: application/json" -X POST http://${MONITOR}:5039/status &>/dev/null
+  else
+    curl -d '{"instance":"'"$INST"'", "service":"lega-mq", "status": "'"$1"'", "exitStatus" : "'"$2"'"}' -H "Content-Type: application/json" -X POST http://${MONITOR}:5039/status &>/dev/null
+  fi
+}
+
+
+[[ -z "${CEGA_CONNECTION}" ]] && echo 'Environment CEGA_CONNECTION is empty' 1>&2 && the_trap 'stopped' 1 && exit 1
+
+the_trap 'started'
 
 # Problem of loading the plugins and definitions out-of-orders.
 # Explanation: https://github.com/rabbitmq/rabbitmq-shovel/issues/13
@@ -60,7 +72,7 @@ chown -R rabbitmq /var/lib/rabbitmq
 
 { # Spawn off
     sleep 5 # Small delay first
-    
+
     # Wait until the server is ready (on the management port)
     until nc -z 127.0.0.1 15672; do sleep 1; done
     ROUND=30
@@ -73,4 +85,9 @@ chown -R rabbitmq /var/lib/rabbitmq
     echo "Central EGA connections loaded"
 } &
 
-exec "$@" # ie CMD rabbitmq-server
+# exec "$@" # ie CMD rabbitmq-server
+
+trap 'the_trap "stopped" $?' TERM INIT
+rabbitmq-server &
+PID=$!
+wait $PID

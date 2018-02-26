@@ -286,13 +286,13 @@ output {
 	        elasticsearch {
 			      hosts => ["ega-elasticsearch-${INSTANCE}:9200"]
 		}
-		
+
 	} else {
 		file {
 			path => ["logs/error-%{+YYYY-MM-dd}.log"]
 		}
 		# output to console for debugging purposes
-		stdout { 
+		stdout {
 			codec => rubydebug
 		}
 	}
@@ -333,6 +333,15 @@ services:
   # Local EGA instance ${INSTANCE}
   ############################################
 
+  # Monitoring service
+  monitor-${INSTANCE}:
+    hostname: monitor
+    image: test/app
+    ports:
+      - "5039:5039"
+    networks:
+      - lega_${INSTANCE}
+
   # Local Message broker
   mq-${INSTANCE}:
     env_file: ${INSTANCE}/mq.env
@@ -341,6 +350,9 @@ services:
       - "${DOCKER_PORT_mq}:15672"
     image: nbisweden/ega-mq
     container_name: ega-mq-${INSTANCE}
+    environment:
+      - MONITOR=monitor-${INSTANCE}
+      - INSTANCE=${INSTANCE}
     restart: on-failure:3
     # Required external link
     external_links:
@@ -357,6 +369,9 @@ services:
     image: postgres:latest
     volumes:
       - ./${INSTANCE}/db.sql:/docker-entrypoint-initdb.d/ega.sql:ro
+    environment:
+      - MONITOR=monitor-${INSTANCE}
+      - INSTANCE=${INSTANCE}
     restart: on-failure:3
     networks:
       - lega_${INSTANCE}
@@ -388,6 +403,9 @@ services:
       - inbox_${INSTANCE}:/ega/inbox
       # - ../..:/root/.local/lib/python3.6/site-packages:ro
       # - ~/_auth_ega:/root/auth
+    environment:
+      - MONITOR=monitor-${INSTANCE}
+      - INSTANCE=${INSTANCE}
     restart: on-failure:3
     networks:
       - lega_${INSTANCE}
@@ -406,6 +424,8 @@ services:
     external_links:
       - cega-mq:cega-mq
     environment:
+      - MONITOR=monitor-${INSTANCE}
+      - INSTANCE=${INSTANCE}
       - MQ_INSTANCE=ega-mq-${INSTANCE}
       - CEGA_INSTANCE=cega-mq
     volumes:
@@ -430,6 +450,8 @@ services:
     external_links:
       - cega-mq:cega-mq
     environment:
+      - MONITOR=monitor-${INSTANCE}
+      - INSTANCE=${INSTANCE}
       - GPG_TTY=/dev/console
       - MQ_INSTANCE=ega-mq-${INSTANCE}
       - CEGA_INSTANCE=cega-mq
@@ -475,6 +497,9 @@ services:
        - ./${INSTANCE}/rsa/ega.sec:/etc/ega/rsa/sec.pem:ro
        - ./${INSTANCE}/rsa/ega.pub:/etc/ega/rsa/pub.pem:ro
        # - ../..:/root/.local/lib/python3.6/site-packages:ro
+   environment:
+     - MONITOR=monitor-${INSTANCE}
+     - INSTANCE=${INSTANCE}
     restart: on-failure:3
     networks:
       - lega_${INSTANCE}

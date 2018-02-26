@@ -2,8 +2,19 @@
 
 set -e
 
+the_trap () {
+  [[ -z "$INSTANCE" ]] && INST="anonymous" || INST=$INSTANCE
+  if [[ -z "$2" ]]; then
+    curl -d '{"instance":"'"$INST"'", "service":"lega-inbox", "status": "'"$1"'"}' -H "Content-Type: application/json" -X POST http://${MONITOR}:5039/status &>/dev/null
+  else
+    curl -d '{"instance":"'"$INST"'", "service":"lega-inbox", "status": "'"$1"'", "exitStatus" : "'"$2"'"}' -H "Content-Type: application/json" -X POST http://${MONITOR}:5039/status &>/dev/null
+  fi
+}
+
 # DB_INSTANCE env must be defined
-[[ -z "${DB_INSTANCE}" ]] && echo 'Environment DB_INSTANCE is empty' 1>&2 && exit 1
+[[ -z "${DB_INSTANCE}" ]] && echo 'Environment DB_INSTANCE is empty' 1>&2 && the_trap 'stopped' 1 && exit 1
+
+the_trap 'started'
 
 EGA_DB_IP=$(getent hosts ${DB_INSTANCE} | awk '{ print $1 }')
 EGA_UID=$(id -u ega)
@@ -80,5 +91,12 @@ cat > /etc/crontab <<EOF
 EOF
 crond -s
 
-echo "Starting the SFTP server"
-exec /usr/sbin/ega -D -e -f /etc/ega/sshd_config
+sftp_server () {
+  echo "Starting the SFTP server"
+  /usr/sbin/ega -D -e -f /etc/ega/sshd_config
+}
+
+trap 'the_trap "stopped" $?' TERM INT EXIT
+sftp_server &
+PID=$!
+wait $PID

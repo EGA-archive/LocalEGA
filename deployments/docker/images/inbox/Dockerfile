@@ -38,4 +38,3 @@ RUN cp /usr/sbin/sshd /usr/sbin/ega
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod 755 /usr/local/bin/entrypoint.sh
 ENTRYPOINT ["entrypoint.sh"]
-

@@ -20,10 +20,11 @@ RUN mkdir -p /root/.gnupg && \
 
 ARG PIP_EGA_PACKAGES=
 
-RUN pip3.6 install PyYaml ${PIP_EGA_PACKAGES}
+RUN pip3.6 install PyYaml dumb-init ${PIP_EGA_PACKAGES}
 
 COPY gpg-agent.conf /root/.gnupg/gpg-agent.conf
 
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 ENV KEYSERVER_PORT=
-ENTRYPOINT ["entrypoint.sh"]
+ENTRYPOINT ["/usr/bin/dumb-init", "--"]
+CMD ["entrypoint.sh"]

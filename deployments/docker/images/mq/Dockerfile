@@ -23,4 +23,4 @@ ENV CEGA_CONNECTION=
 COPY entrypoint.sh /usr/bin/ega-entrypoint.sh
 RUN chmod +x /usr/bin/ega-entrypoint.sh
 ENTRYPOINT ["/usr/bin/ega-entrypoint.sh"]
-CMD ["rabbitmq-server"]
+# CMD ["rabbitmq-server"]
