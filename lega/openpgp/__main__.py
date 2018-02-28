@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3 -u
 # -*- coding: utf-8 -*-
 
 import sys
@@ -6,6 +6,7 @@ import logging
 
 from ..conf import CONF
 from .packet import iter_packets
+from .utils import make_key
 
 LOG = logging.getLogger('openpgp')
 
@@ -16,17 +17,14 @@ def main(args=None):
     #
     seckey = "/Users/daz/_ega/deployments/docker/private/swe1/gpg/ega.sec"
     passphrase = "I0jhU1FKoAU76HuN".encode()
-
-    private_key = private_padding = None
-
+    private_key_material = None
     LOG.info(f"###### Opening sec key: {seckey}")
     with open(seckey, 'rb') as infile:
         from .utils import unarmor
         for packet in iter_packets(unarmor(infile)):
             #LOG.info(str(packet))
             if packet.tag == 5:
-                #LOG.info("###### Unlocking key with passphrase")
-                private_key, private_padding = packet.unlock(passphrase)
+                private_key_material = packet.unlock(passphrase)
             else:
                 packet.skip()
     #
@@ -51,8 +49,11 @@ def main(args=None):
                 # Note: decrypt_session_key knows the key ID.
                 #       It will be updated to contact the keyserver
                 #       and retrieve the private_key/private_padding
-                # keyserver = CONF.get('ingestion','keyserver')
-                # key_id = packet.get_key_id()
+                # keyserver_url = CONF.get('ingestion','keyserver')
+                # res = urllib.request.urlopen(keyserver_url, data=packet.get_key_id())
+                # key_alg, *key_material = res.read()
+                key_alg, *key_material = private_key_material
+                private_key, private_padding = make_key(key_alg, *key_material)
                 name, cipher, session_key = packet.decrypt_session_key(private_key, private_padding)
 
             elif packet.tag == 18:
@@ -60,7 +61,6 @@ def main(args=None):
                 assert( session_key and cipher )
                 for data in packet.process(session_key, cipher):
                     sys.stdout.buffer.write(data)
-                    #sys.stdout.buffer.flush()
             else:
                 packet.skip()
 
