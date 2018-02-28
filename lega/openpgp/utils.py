@@ -7,8 +7,7 @@ import io
 import logging
 import zlib
 import bz2
-
-LOG = logging.getLogger('openpgp')
+from itertools import chain
 
 from cryptography.exceptions import UnsupportedAlgorithm
 #from cryptography.hazmat.primitives import constant_time
@@ -17,12 +16,16 @@ from cryptography.hazmat.primitives.ciphers import Cipher, modes
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import rsa, dsa, padding
 
+LOG = logging.getLogger('openpgp')
+
 from ..utils.exceptions import PGPError
 from .constants import lookup_sym_algorithm
 
-def read_1(data):
+def read_1(data, buf=None):
     '''Pull one byte from data and return as an integer.'''
     b1 = data.read(1)
+    if buf:
+        buf.write(b1)
     return None if b1 in (None, b'') else ord(b1)
 
 def get_int2(b):
@@ -33,7 +36,7 @@ def get_int4(b):
     assert( len(b) > 3 )
     return (b[0] << 24) + (b[1] << 16) + (b[2] << 8) + b[3]
 
-def read_2(data):
+def read_2(data, buf=None):
     '''Pull two bytes from data at offset and return as an integer.'''
 
     b = bytearray(2)
@@ -41,16 +44,20 @@ def read_2(data):
     if _b is None or _b < 2:
         raise PGPError('Not enough bytes')
 
+    if buf:
+        buf.write(b) # or bytes(b)
     return get_int2(b)
 
 
-def read_4(data):
+def read_4(data, buf=None):
     '''Pull four bytes from data at offset and return as an integer.'''
     b = bytearray(4)
     _b = data.readinto(b)
     if _b is None or _b < 4:
         raise PGPError('Not enough bytes')
 
+    if buf:
+        buf.write(b) # or bytes(b)
     return get_int4(b)
 
 
@@ -101,13 +108,15 @@ def old_tag_length(data, length_type):
 
     return data_length, False # partial is False
 
-def get_mpi(data):
+def get_mpi(data, buf=None):
     '''Get a multi-precision integer.
     See: http://tools.ietf.org/html/rfc4880#section-3.2'''
-    mpi_len = read_2(data) # length in bits
+    mpi_len = read_2(data,buf=buf) # length in bits
     to_process = (mpi_len + 7) // 8 # length in bytes
     b = data.read(to_process)
     #print("MPI bits:",mpi_len,"to_process", to_process)
+    if buf:
+        buf.write(b)
     return b
 
 # 256 values corresponding to each possible byte
@@ -273,16 +282,67 @@ def make_dsa_key(y, g, p, q, x):
 def make_elg_key(y, g, p, q, x):
     raise NotImplementedError()
 
-def make_key(alg, *material):
-    args = (int.from_bytes(n, "big") for n in material)
-    if alg == "rsa":
+def parse_public_key_material(data, buf=None):
+    raw_pub_algorithm = read_1(data, buf=buf)
+    if raw_pub_algorithm in (1, 2, 3):
+        # n, e
+        n = get_mpi(data, buf=buf)
+        e = get_mpi(data, buf=buf)
+        return (raw_pub_algorithm, "rsa", n, e)
+    elif raw_pub_algorithm == 17:
+        # p, q, g, y
+        p = get_mpi(data, buf=buf)
+        q = get_mpi(data, buf=buf)
+        g = get_mpi(data, buf=buf)
+        y = get_mpi(data, buf=buf)
+        return (raw_pub_algorithm, "dsa", p, q, g, y)
+    elif raw_pub_algorithm in (16, 20):
+        # p, g, y
+        p = get_mpi(data, buf=buf)
+        q = get_mpi(data, buf=buf)
+        y = get_mpi(data, buf=buf)
+        return (raw_pub_algorithm, "elg", p, g, y)
+    elif 100 <= raw_pub_algorithm <= 110:
+        # Private/Experimental algorithms, just move on
+        return (raw_pub_algorithm, "experimental")
+    raise PGPError(f"Unsupported public key algorithm {raw_pub_algorithm}")
+
+def parse_private_key_material(raw_pub_algorithm, data, buf=None):
+    if raw_pub_algorithm in (1, 2, 3):
+        # d, p, q, u
+        d = get_mpi(data, buf=buf)
+        p = get_mpi(data, buf=buf)
+        q = get_mpi(data, buf=buf)
+        assert( p < q )
+        u = get_mpi(data, buf=buf)
+        return (d, p, q, u)
+    elif raw_pub_algorithm == 17:
+        # x
+        x = get_mpi(data, buf=buf)
+        return x
+    elif raw_pub_algorithm in (16, 20):
+        # x
+        x = get_mpi(data, buf=buf)
+        return x
+    elif 100 <= raw_pub_algorithm <= 110:
+        # Private/Experimental algorithms, just move on
+        raise PGPError(f"Experimental private key part: {raw_pub_algorithm}")
+    raise PGPError(f"Unsupported public key algorithm {raw_pub_algorithm}")
+
+def make_key(pub_stream, priv_stream):
+    raw_alg, key_type, *public_key_material = parse_public_key_material(io.BytesIO(pub_stream))
+    private_key_material = parse_private_key_material(raw_alg, io.BytesIO(priv_stream))
+
+    args = (int.from_bytes(n, "big") for n in chain(public_key_material, private_key_material))
+    if key_type == "rsa":
         return make_rsa_key(*args)
-    elif alg == "dsa":
+    if key_type == "dsa":
         return make_dsa_key(*args)
-    elif alg == "elg":
+    if key_type == "elg":
         return make_elg_key(*args)
-    else:
-        raise ValueError(f'Unsupported asymmetric algorithm: "{alg}"')
+
+    assert False, "should not come here"
+    return None
 
 def validate_private_data(data, s2k_usage):
 
