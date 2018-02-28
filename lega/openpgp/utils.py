@@ -273,6 +273,17 @@ def make_dsa_key(y, g, p, q, x):
 def make_elg_key(y, g, p, q, x):
     raise NotImplementedError()
 
+def make_key(alg, *material):
+    args = (int.from_bytes(n, "big") for n in material)
+    if alg == "rsa":
+        return make_rsa_key(*args)
+    elif alg == "dsa":
+        return make_dsa_key(*args)
+    elif alg == "elg":
+        return make_elg_key(*args)
+    else:
+        raise ValueError(f'Unsupported asymmetric algorithm: "{alg}"')
+
 def validate_private_data(data, s2k_usage):
 
     if s2k_usage == 254:
