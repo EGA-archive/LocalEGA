@@ -59,25 +59,29 @@ def iter_packets(data):
         yield packet
 
 def process(stream):
-    LOG.debug('main processing initialized')
-    yield
+    LOG.debug(f'Starting a stream processor')
+    is_final_chunk = yield
+    LOG.debug(f'Advancing the stream processor | is_final_chunk {is_final_chunk}')
     packet = parse_one(stream)
     if packet is None:
         LOG.debug('No more packet')
         return
     try:
-        LOG.debug(f'FOUND A PACKET: {packet!s}')
+        LOG.debug(f'FOUND a {packet.name}')
         engine = packet.process()
-        LOG.debug(f'CREATING generator for {packet!s}')
+        LOG.debug(f'Created internal engine for the {packet.name}')
+        next(engine) # start it
+        LOG.debug(f'engine started | is_final_chunk: {is_final_chunk} | {packet.name}')
         while True:
-            LOG.debug(f'advancing internal generator')
-            next(engine)
-            LOG.debug(f'stopping processor and return control above')
-            yield
+            LOG.debug(f'advancing internal engine | {is_final_chunk}')
+            is_final_chunk = yield engine.send(is_final_chunk)
     except StopIteration:
-        LOG.debug(f'DONE with packet: {packet!s}')
+        LOG.debug(f'DONE processing packet: {packet!s}')
+    #assert( stream.get_size() == 0 )
+    LOG.debug(f'Recursing')
     process(stream) # tail-recursive
 
+    
 class Packet(object):
     '''The base packet object containing various fields pulled from the packet
     header as well as a slice of the packet data.'''
@@ -89,19 +93,18 @@ class Packet(object):
         self.start_pos = start_pos
         self.partial = partial
         self.data = data # open file
-        #LOG.debug(f'================= PARSING A NEW PACKET: {self!s}')
+        self.name = lookup_tag(self.tag)
 
     def skip(self):
         self.data.seek(self.start_pos, io.SEEK_SET) # go to start of data
         self.data.seek(self.length, io.SEEK_CUR) # skip data
         partial = self.partial
+        LOG.debug(f'data length {self.length} - partial {self.partial} | {self.name}')
         while partial:
             data_length, partial = new_tag_length(self.data)
+            LOG.debug(f'data length {data_length} - partial {partial} | {self.name}')
             self.length += data_length
             self.data.seek(data_length, io.SEEK_CUR) # skip data
-
-    def process(self, *args): # Overloaded in subclasses
-        raise NotImplementedError("Should not be used here")
 
     def parse(self): # Overloaded in subclasses
         self.skip()
@@ -111,14 +114,14 @@ class Packet(object):
                                                                      self.tag,
                                                                      self.length,
                                                                      self.org_pos, self.start_pos,
-                                                                     lookup_tag(self.tag))
+                                                                     self.name)
 
     def __repr__(self):
         return "#{} | tag {:2} | {} bytes | pos {} ({}) | {}".format("new" if self.new_format else "old",
                                                                      self.tag,
                                                                      self.length,
                                                                      self.org_pos, self.start_pos,
-                                                                     lookup_tag(self.tag))
+                                                                     self.name)
 
 
 class PublicKeyPacket(Packet):
@@ -418,40 +421,32 @@ class SymEncryptedDataPacket(Packet):
         self.version = read_1(self.data)
         assert( self.version == 1 )
 
-        data_length, partial = self.length - 1, self.partial
         stream = IOBuf()
-        try:
-            processor = process(stream)
-            next(processor) # start it
+        consumer = process(stream)
+        next(consumer) # start it
 
-            while True:
-                LOG.debug(f'Reading data: {data_length} bytes - partial {partial}')
+        data_length, partial = self.length - 1, self.partial
+        while True:
+            # Produce data
+            LOG.debug(f'Reading data to decrypt: {data_length} bytes - partial {partial}')
+            ed = (self.data.read(data_length), data_length, not partial)
+            assert( len(ed[0]) == ed[1] )
+            decrypted_data = self.engine.send( ed )
+            decrypted_data = self._handle_decrypted_data(decrypted_data, not partial)
 
-                ed = (self.data.read(data_length), data_length, not partial)
-                assert( len(ed[0]) == ed[1] )
-                decrypted_data = self.engine.send( ed )
-                decrypted_data = self._handle_decrypted_data(decrypted_data, not partial)
+            stream.write(decrypted_data)
+            yield consumer.send(not partial)
+            if partial:
+                data_length, partial = new_tag_length(self.data)
+            else:
+                break
 
-                stream.write(decrypted_data)
-                next(processor)
-
-                if partial:
-                    data_length, partial = new_tag_length(self.data)
-                else:
-                    break
-
-            next(processor) # Finally
-
-        except StopIteration:
-            assert( stream.get_size() == 0 )
-            LOG.debug(f'processing finished')
-                
         if self.mdc:
             self.check_mdc()
             LOG.debug(f'MDC: {self.mdc_value.hex()}')
 
-        LOG.debug(f'DONE {self!s}')
-
+        del stream
+        LOG.debug(f'decryption finished')
 
     def _handle_decrypted_data(self, data, final):
 
@@ -479,7 +474,7 @@ class SymEncryptedDataPacket(Packet):
 
         return data
 
-        
+
     def check_mdc(self):
         digest = b'\xD3\x14' + self.hasher.digest() # including prefix, and MDC tag+length
         LOG.debug(f'digest: {digest.hex()}')
@@ -491,113 +486,111 @@ class SymEncryptedDataPacket(Packet):
 
 class CompressedDataPacket(Packet):
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args,**kwargs)
-        self.buf = io.BytesIO()
-
     def process(self):
-        assert( not self.partial )
+
+        LOG.debug('Initializing Decompressor')
+        is_final_chunk = yield
+
         algo = read_1(self.data)
         LOG.debug(f'Compression Algo: {algo}')
         engine = decompressor(algo)
-        
-        data_length = self.length - 1 if self.length else None
-        partial = self.partial
 
-        if not data_length:
-            LOG.debug('Undertermined length')
-            
         stream = IOBuf()
-        try:
-            processor = process(stream)
-            next(processor) # start it
+        consumer = process(stream)
+        next(consumer) # start it
 
-            while True:
+        data_length, partial = (self.length - 1 if self.length else None), self.partial
+
+        while True:
+            if data_length is None:
+                LOG.debug('Undertermined length')
+                assert( not partial )
+
+                LOG.debug(f'Reading data to decompress | buffer size {self.data.get_size()}')
                 data = self.data.read(data_length)
-                LOG.debug(f'Compressed Body length: {data_length} - partial {partial}')
-                if data is None:
-                    LOG.debug(f'Not enough data')
-                    yield # wait
-                else:
-                    LOG.debug(f'Got some data: {len(data)}')
-                    decompressed_data = engine.decompress(data)
-                    LOG.debug(f'DECompressed data: {len(decompressed_data)}')
-                    
-                    stream.write(decompressed_data)
-                    next(processor)
-                    
-                    if partial:
-                        LOG.debug(f'More data to pull? {partial}')
-                        data_length, partial = new_tag_length(self.data)
-                    else:
-                        break
 
-            decompressed_data = engine.flush()
-            LOG.debug(f'DECompressed data (flushed): {len(decompressed_data)}')
-            stream.write(decompressed_data)
-            next(processor) # Finally
+                LOG.debug(f'Got some data to decompress: {len(data)}')
+                decompressed_data = engine.decompress(data)
+                LOG.debug(f'Decompressed data: {len(decompressed_data)}')
+                
+                if is_final_chunk:
+                    LOG.debug(f'Not more coming: Flushing the decompressor')
+                    decompressed_data += engine.flush()
+                    
+                stream.write(decompressed_data)
 
-        except StopIteration:
-            assert( stream.get_size() == 0 )
-            LOG.debug(f'Internal processor completed | Stream size: {stream.get_size()}')
-        finally:
-            LOG.debug(f'DONE {self!s}')
-        
+                next_is_final_chunk = yield consumer.send(is_final_chunk)
+                if is_final_chunk:
+                    LOG.debug(f'no more coming: finito | {self.name}')
+                    break
+                is_final_chunk = next_is_final_chunk
+
+            else:
+                raise NotImplemented("TODO")
+
+        del stream
+        LOG.debug(f'decompression finished')
+
+
 class LiteralDataPacket(Packet):
 
     def process(self):
-        LOG.debug(f'Processing LITERAL {self!s}')
-        while True:
-            self.data_format = self.data.read(1)
-            if self.data_format is None:
-                yield # wait
-            else:
-                LOG.debug(f'data format: {self.data_format.decode()}')
-                break
 
-        while True:
-            filename_length = read_1(self.data)
-            if filename_length is None:
-                yield # wait
-            else:
-                if filename_length == 0:
-                    # then sensitive file
-                    filename = None
-                else:
-                    filename = self.data.read(filename_length)
-                    # if filename == '_CONSOLE':
-                    #     filename = None
-                break
+        LOG.debug(f'Processing {self.name}')
+        is_final_chunk = yield # ready to work
+
+        # TODO: Handle the case where there is not enough data.
+        # ie the buffer contains less than filename+6 bytes
+        assert( self.data.get_size() > 6 )
+
+        self.data_format = self.data.read(1)
+        LOG.debug(f'data format: {self.data_format.decode()}')
+
+        filename_length = read_1(self.data)
+        if filename_length == 0:
+            # then sensitive file
+            filename = None
+        else:
+            filename = self.data.read(filename_length)
+            assert( len(filename) == filename_length )
+            # if filename == '_CONSOLE':
+            #     filename = None
 
         if filename:
             LOG.debug(f'filename: {filename}')
 
-        while True:
-            self.raw_date = read_4(self.data)
-            if self.raw_date is None:
-                yield
-            else:
-                self.date = datetime.utcfromtimestamp(self.raw_date)
-                LOG.debug(f'date: {self.date}')
-                break
+        self.raw_date = read_4(self.data)
+        self.date = datetime.utcfromtimestamp(self.raw_date)
+        LOG.debug(f'date: {self.date}')
 
         LOG.debug(f'Literal packet length {self.length} | partial {self.partial}')
-        data_length, partial = self.length-6-filename_length, self.partial
+        data_length, partial = (self.length-6-filename_length if self.length else None), self.partial
+
+        if data_length is None:
+            LOG.debug(f'Undetermined length')
+            assert( not partial )
+
         while True:
             data = self.data.read(data_length)
             LOG.debug(f'Literal length: {data_length} - partial {partial}')
-            if data is None:
-                LOG.debug(f'Not enough data')
-                yield # wait
-            else:
-                LOG.debug(f'Got some data: {len(data)}')
-                sys.stdout.buffer.write(data) # binary data
-                if partial:
-                    data_length, partial = new_tag_length(self.data)
-                else:
-                    break
 
-        LOG.debug(f'DONE {self!s}')
+            data_length = data_length - len(data) if data_length else 0
+            if data_length:
+                LOG.debug(f'The body of that packet is not yet complete | Need {data_length} left | {self.name}')
+                assert( not is_final_chunk )
+
+            LOG.debug(f'Got some literal data: {len(data)}')
+            next_is_final_chunk = yield data
+
+            if partial:
+                new_data_length, new_partial = new_tag_length(self.data)
+                data_length += new_data_length
+            else:
+                if is_final_chunk:
+                    break
+                is_final_chunk = next_is_final_chunk
+
+        LOG.debug(f'DONE with {self.name}')
 
     def __repr__(self):
         s = super().__repr__()
