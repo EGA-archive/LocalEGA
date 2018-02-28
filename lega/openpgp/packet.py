@@ -8,7 +8,13 @@ import hashlib
 
 from ..utils.exceptions import PGPError
 from .constants import lookup_pub_algorithm, lookup_sym_algorithm, lookup_hash_algorithm, lookup_s2k, lookup_tag
-from .utils import read_1, read_2, read_4, new_tag_length, old_tag_length, get_mpi, derive_key, decryptor, make_decryptor, decompressor, make_rsa_key, make_dsa_key, make_elg_key, validate_private_data
+from .utils import (read_1, read_2, read_4,
+                    new_tag_length, old_tag_length,
+                    get_mpi, parse_public_key_material, parse_private_key_material,
+                    derive_key,
+                    decryptor, make_decryptor,
+                    decompressor,
+                    validate_private_data)
 from .iobuf import IOBuf
 
 LOG = logging.getLogger('openpgp')
@@ -147,31 +153,9 @@ class PublicKeyPacket(Packet):
         self.creation_time = datetime.utcfromtimestamp(self.raw_creation_time)
         # No validity, moved to Signature
 
-        # Parse the key material
-        self.raw_pub_algorithm = read_1(self.data)
-        if self.raw_pub_algorithm in (1, 2, 3):
-            self.pub_algorithm_type = "rsa"
-            # n, e
-            self.n = get_mpi(self.data)
-            self.e = get_mpi(self.data)
-        elif self.raw_pub_algorithm == 17:
-            self.pub_algorithm_type = "dsa"
-            # p, q, g, y
-            self.p = get_mpi(self.data)
-            self.q = get_mpi(self.data)
-            self.g = get_mpi(self.data)
-            self.y = get_mpi(self.data)
-        elif self.raw_pub_algorithm in (16, 20):
-            self.pub_algorithm_type = "elg"
-            # p, g, y
-            self.p = get_mpi(self.data)
-            self.q = get_mpi(self.data)
-            self.y = get_mpi(self.data)
-        elif 100 <= self.raw_pub_algorithm <= 110:
-            # Private/Experimental algorithms, just move on
-            pass
-        else:
-            raise PGPError(f"Unsupported public key algorithm {self.raw_pub_algorithm}")
+        # Parse the key material and remember it in buffer self.public_part. Used by private_packet.unlock()
+        self.public_part = io.BytesIO()
+        self.raw_pub_algorithm, self.pub_algorithm_type, *material = parse_public_key_material(self.data, buf=self.public_part)
 
         # Hashing only the public part (differs from self.length for private key packets)
         size = self.data.tell() - self.start_pos
@@ -182,19 +166,9 @@ class PublicKeyPacket(Packet):
         self.fingerprint = sha1.hexdigest().upper()
         self.key_id = self.fingerprint[-16:] # lower 64 bits
 
-
     def __repr__(self):
         s = super().__repr__()
-
-        s2 = "Unkown"
-        if self.pub_algorithm_type == "rsa":
-            s2 = f"RSA\n\t\t* n {self.n:X}\n\t\t* e {self.e:X}"
-        elif self.pub_algorithm_type == "dsa":
-            s2 = f"DSA\n\t\t* p {self.p}\n\t\t* q {self.q}\n\t\t* g {self.g}\n\t\t* y {self.y}"
-        elif self.pub_algorithm_type == "elg":
-            s2 = f"ELG\n\t\t* p {self.p}\n\t\t* g {self.g}\n\t\t* y {self.y}"
-
-        return f"{s}\n\t| {self.creation_time} \n\t| KeyID {self.key_id} (ver 4)({lookup_pub_algorithm(self.raw_pub_algorithm)[0]})\n\t| {s2}"
+        return f"{s}\n\t| {self.creation_time} \n\t| KeyID {self.key_id} (ver 4)({lookup_pub_algorithm(self.raw_pub_algorithm)[0]})\n\t| {self.pub_algorithm_type.upper()} key"
 
 
 class SecretKeyPacket(PublicKeyPacket):
@@ -234,29 +208,6 @@ class SecretKeyPacket(PublicKeyPacket):
         else:
             raise PGPError(f"Unsupported public key algorithm {self.s2k_type}")
 
-    def parse_private_key_material(self, data):
-        if self.raw_pub_algorithm in (1, 2, 3):
-            self.pub_algorithm_type = "rsa"
-            # d, p, q, u
-            self.d = get_mpi(data)
-            self.p = get_mpi(data)
-            self.q = get_mpi(data)
-            #assert( self.p < self.q )
-            self.u = get_mpi(data)
-        elif self.raw_pub_algorithm == 17:
-            self.pub_algorithm_type = "dsa"
-            # x
-            self.x = get_mpi(data)
-        elif self.raw_pub_algorithm in (16, 20):
-            self.pub_algorithm_type = "elg"
-            # x
-            self.x = get_mpi(data)
-        elif 100 <= self.raw_pub_algorithm <= 110:
-            # Private/Experimental algorithms, just move on
-            pass
-        else:
-            raise PGPError(f"Unsupported public key algorithm {self.raw_pub_algorithm}")
-
     def unlock(self, passphrase):
         assert( not self.partial )
 
@@ -269,7 +220,7 @@ class SecretKeyPacket(PublicKeyPacket):
         if self.s2k_usage == 0:
             # key data not encrypted
             self.s2k_hash = lookup_hash_algorithm("MD5")
-            self.parse_private_key_material(self.data)
+            parse_private_key_material(self.raw_pub_algorithm, self.data) # just consume
             self.checksum = read_2(self.data)
         elif self.s2k_usage in (254, 255):
             # string-to-key specifier
@@ -307,18 +258,7 @@ class SecretKeyPacket(PublicKeyPacket):
         
         validate_private_data(clear_private_data, self.s2k_usage)
         LOG.info('Passphrase correct')
-        session_data = io.BytesIO(clear_private_data)
-        self.parse_private_key_material(session_data)
-
-        # Return the decrypted key material, including public and private parts
-        if self.pub_algorithm_type == "rsa":
-            return (self.pub_algorithm_type, self.n, self.e, self.d, self.p, self.q, self.u)
-        elif self.pub_algorithm_type == "dsa":
-            return (self.pub_algorithm_type, self.y, self.g, self.p, self.q, self.x)
-        elif self.pub_algorithm_type == "elg":
-            return (self.pub_algorithm_type, self.p, self.g, self.y, self.x)
-        else:
-            raise PGPError('Unsupported asymmetric algorithm')
+        return (self.public_part.getvalue(), clear_private_data)
 
     def __repr__(self):
         s = super().__repr__()
