@@ -13,11 +13,9 @@ class IOBuf(object):
         self._bufsize = 0
 
     def read(self, size=None):
-        if size is None:
-            size = self._bufsize
 
-        if self._bufsize < size:
-            return None # not enough data
+        if size is None or self._bufsize < size:
+            size = self._bufsize
 
         data = self._buf[:size]
         self._bufsize -= size

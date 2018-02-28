@@ -44,6 +44,7 @@ def main(args=None):
     with open(filename, 'rb') as infile:
         name = cipher = session_key = None
         for packet in iter_packets(infile):
+            #packet.skip()
             LOG.info(str(packet))
             if packet.tag == 1:
                 LOG.info("###### Decrypting session key")
@@ -57,7 +58,9 @@ def main(args=None):
             elif packet.tag == 18:
                 LOG.info(f"###### Decrypting message using {name}")
                 assert( session_key and cipher )
-                packet.process(session_key, cipher)
+                for data in packet.process(session_key, cipher):
+                    sys.stdout.buffer.write(data)
+                    #sys.stdout.buffer.flush()
             else:
                 packet.skip()
 
