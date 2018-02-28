@@ -283,6 +283,10 @@ def make_elg_key(y, g, p, q, x):
     raise NotImplementedError()
 
 def parse_public_key_material(data, buf=None):
+    '''Given a data stream, this function returns the public key material.
+    
+    When buf is not None, the raw bytes are also transfered from data to buf.
+    '''
     raw_pub_algorithm = read_1(data, buf=buf)
     if raw_pub_algorithm in (1, 2, 3):
         # n, e
@@ -308,6 +312,7 @@ def parse_public_key_material(data, buf=None):
     raise PGPError(f"Unsupported public key algorithm {raw_pub_algorithm}")
 
 def parse_private_key_material(raw_pub_algorithm, data, buf=None):
+    '''Given an algorithm, this function returns the private key material from a decrypted stream'''
     if raw_pub_algorithm in (1, 2, 3):
         # d, p, q, u
         d = get_mpi(data, buf=buf)
@@ -330,6 +335,8 @@ def parse_private_key_material(raw_pub_algorithm, data, buf=None):
     raise PGPError(f"Unsupported public key algorithm {raw_pub_algorithm}")
 
 def make_key(pub_stream, priv_stream):
+    '''Given the public and private part, as byte sequences, this function
+       parses them and return a key object'''
     raw_alg, key_type, *public_key_material = parse_public_key_material(io.BytesIO(pub_stream))
     private_key_material = parse_private_key_material(raw_alg, io.BytesIO(priv_stream))
 
