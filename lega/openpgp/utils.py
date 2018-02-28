@@ -312,6 +312,8 @@ def make_decryptor(key, alg, iv):
         raise PGPError(ex)
 
 def decryptor(key, alg):
+    '''It is a black box sitting and waiting for input data to be
+       decrypted, given the `alg` algorithm.'''
     block_size = alg.block_size // 8
     iv = (0).to_bytes(block_size, byteorder='big')
     engine = make_decryptor(key,alg,iv)
