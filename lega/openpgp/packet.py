@@ -58,28 +58,37 @@ def iter_packets(data):
             break
         yield packet
 
-def process(stream):
+def consume():
+    '''Main generator to parse and process a stream of data.
+
+    The one advancing it sends the generator a pair of data and a
+    boolean to tell if it is the last chunk.
+    '''
     LOG.debug(f'Starting a stream processor')
-    is_final_chunk = yield
-    LOG.debug(f'Advancing the stream processor | is_final_chunk {is_final_chunk}')
-    packet = parse_one(stream)
-    if packet is None:
-        LOG.debug('No more packet')
-        return
-    try:
-        LOG.debug(f'FOUND a {packet.name}')
-        engine = packet.process()
-        LOG.debug(f'Created internal engine for the {packet.name}')
-        next(engine) # start it
-        LOG.debug(f'engine started | is_final_chunk: {is_final_chunk} | {packet.name}')
-        while True:
-            LOG.debug(f'advancing internal engine | {is_final_chunk}')
-            is_final_chunk = yield engine.send(is_final_chunk)
-    except StopIteration:
-        LOG.debug(f'DONE processing packet: {packet!s}')
-    #assert( stream.get_size() == 0 )
-    LOG.debug(f'Recursing')
-    process(stream) # tail-recursive
+    stream = IOBuf()
+    data, is_final_chunk = yield # wait
+    while True:
+        stream.write(data)
+        LOG.debug(f'Advancing the stream processor | is_final_chunk {is_final_chunk}')
+        packet = parse_one(stream)
+        if packet is None:
+            LOG.debug('No more packet')
+            del stream
+            return
+        try:
+            LOG.debug(f'FOUND a {packet.name}')
+            engine = packet.process()
+            LOG.debug(f'Created internal engine for the {packet.name}')
+            next(engine) # start it
+            LOG.debug(f'engine started | is_final_chunk: {is_final_chunk} | {packet.name}')
+            data, is_final_chunk = yield engine.send(is_final_chunk)
+            while True:
+                stream.write(data)
+                data, is_final_chunk = yield engine.send(is_final_chunk)
+        except StopIteration:
+            LOG.debug(f'DONE processing packet: {packet.name}')
+        #assert( stream.get_size() == 0 )
+        # recurse
 
     
 class Packet(object):
@@ -232,7 +241,7 @@ class SecretKeyPacket(PublicKeyPacket):
             self.d = get_mpi(data)
             self.p = get_mpi(data)
             self.q = get_mpi(data)
-            assert( self.p < self.q )
+            #assert( self.p < self.q )
             self.u = get_mpi(data)
         elif self.raw_pub_algorithm == 17:
             self.pub_algorithm_type = "dsa"
@@ -393,7 +402,15 @@ class SymEncryptedDataPacket(Packet):
     
     # See 5.13 (page 50)
     def process(self, session_key, cipher):
+        '''Generator producing the literal data stepwise, as a bytes object,
+           by reading the encrypted data chunk by chunk.
 
+        For example, move it forward to completion as:
+        >>> for literal_data in packet.process(session_key, cipher):
+        >>>         sys.stdout.buffer.write(literal_data)
+
+        '''
+        
         # Initialization
         self.engine = decryptor(session_key, cipher)
         self.prefix_size = next(self.engine) # start it
@@ -402,15 +419,14 @@ class SymEncryptedDataPacket(Packet):
         self.prefix_count = 0
         self.mdc = (self.tag == 18)
         self.hasher = hashlib.sha1() if self.mdc else None
+        consumer = consume()
+        next(consumer) # start it
 
-        # Start parsing the byte sequence
+        # Skip over the compulsary version byte
         self.version = read_1(self.data)
         assert( self.version == 1 )
 
-        stream = IOBuf()
-        consumer = process(stream)
-        next(consumer) # start it
-
+        # Do-until.
         data_length, partial = self.length - 1, self.partial
         while True:
             # Produce data
@@ -420,26 +436,31 @@ class SymEncryptedDataPacket(Packet):
             decrypted_data = self.engine.send( ed )
             decrypted_data = self._handle_decrypted_data(decrypted_data, not partial)
 
-            stream.write(decrypted_data)
-            yield consumer.send(not partial)
+            # Consume and return data
+            yield consumer.send( (decrypted_data, not partial) )
+
+            # More coming?
             if partial:
                 data_length, partial = new_tag_length(self.data)
             else:
                 break
 
+        # Finally, MDC control
         if self.mdc:
-            self.check_mdc()
-            LOG.debug(f'MDC: {self.mdc_value.hex()}')
+            digest = b'\xD3\x14' + self.hasher.digest() # including prefix, and MDC tag+length
+            LOG.debug(f'digest: {digest.hex().upper()}')
+            LOG.debug(f'   MDC: {self.mdc_value.hex().upper()}')
+            if self.mdc_value != digest:
+                raise PGPError("MDC Decryption failed")
 
-        del stream
         LOG.debug(f'decryption finished')
 
     def _handle_decrypted_data(self, data, final):
+        '''Strip the prefix and MDC value when they arrive,
+           and send the data to the hasher.'''
 
         if not self.prefix_found:
             self.prefix_count += len(data)
-
-        LOG.debug(f'Final or not? {final}')
 
         if self.mdc and final:
             assert(self.prefix_count >= (22 + self.prefix_size))
@@ -460,19 +481,17 @@ class SymEncryptedDataPacket(Packet):
 
         return data
 
-
-    def check_mdc(self):
-        digest = b'\xD3\x14' + self.hasher.digest() # including prefix, and MDC tag+length
-        LOG.debug(f'digest: {digest.hex()}')
-        if self.mdc_value != digest:
-            LOG.debug(f'Checking MDC: {self.mdc_value.hex()}')
-            LOG.debug(f'      digest: {digest.hex()}')
-            raise PGPError("MDC Decryption failed")
-            
-
 class CompressedDataPacket(Packet):
 
     def process(self):
+        '''Generator producing the literal data stepwise, as a bytes object,
+           by decompressing data chunk by chunk.
+
+           It is usually not started alone. Instead, the process()
+           generator above will initialize it and move it forward.  It
+           is then used as a internal and specialized version for the
+           main process() generator.
+        '''
 
         LOG.debug('Initializing Decompressor')
         is_final_chunk = yield
@@ -481,40 +500,36 @@ class CompressedDataPacket(Packet):
         LOG.debug(f'Compression Algo: {algo}')
         engine = decompressor(algo)
 
-        stream = IOBuf()
-        consumer = process(stream)
+        consumer = consume()
         next(consumer) # start it
 
         data_length, partial = (self.length - 1 if self.length else None), self.partial
 
         while True:
-            if data_length is None:
-                LOG.debug('Undertermined length')
-                assert( not partial )
-
-                LOG.debug(f'Reading data to decompress | buffer size {self.data.get_size()}')
-                data = self.data.read(data_length)
-
-                LOG.debug(f'Got some data to decompress: {len(data)}')
-                decompressed_data = engine.decompress(data)
-                LOG.debug(f'Decompressed data: {len(decompressed_data)}')
-                
-                if is_final_chunk:
-                    LOG.debug(f'Not more coming: Flushing the decompressor')
-                    decompressed_data += engine.flush()
-                    
-                stream.write(decompressed_data)
-
-                next_is_final_chunk = yield consumer.send(is_final_chunk)
-                if is_final_chunk:
-                    LOG.debug(f'no more coming: finito | {self.name}')
-                    break
-                is_final_chunk = next_is_final_chunk
-
-            else:
+            if data_length is not None:
                 raise NotImplemented("TODO")
 
-        del stream
+            # Undertermined length
+            LOG.debug('Undertermined length')
+            assert( not partial )
+
+            LOG.debug(f'Reading data to decompress | buffer size {self.data.get_size()}')
+            data = self.data.read(data_length)
+
+            LOG.debug(f'Got some data to decompress: {len(data)}')
+            decompressed_data = engine.decompress(data)
+            LOG.debug(f'Decompressed data: {len(decompressed_data)}')
+                
+            if is_final_chunk:
+                LOG.debug(f'Not more coming: Flushing the decompressor')
+                decompressed_data += engine.flush()
+                    
+            next_is_final_chunk = yield consumer.send( (decompressed_data,is_final_chunk) )
+            if is_final_chunk:
+                LOG.debug(f'no more coming: finito | {self.name}')
+                break
+            is_final_chunk = next_is_final_chunk
+
         LOG.debug(f'decompression finished')
 
 
