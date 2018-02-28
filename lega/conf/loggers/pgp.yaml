@@ -5,7 +5,7 @@ root:
 
 loggers:
   openpgp:
-    level: DEBUG
+    level: CRITICAL
     handlers: [console]
 
 handlers:
