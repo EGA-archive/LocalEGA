@@ -301,29 +301,15 @@ class SecretKeyPacket(PublicKeyPacket):
         session_data = io.BytesIO(clear_private_data)
         self.parse_private_key_material(session_data)
 
-        # Creating a private key object
+        # Return the decrypted key material, including public and private parts
         if self.pub_algorithm_type == "rsa":
-            self.key, self.padding = make_rsa_key(int.from_bytes(self.n, "big"),
-                                                  int.from_bytes(self.e, "big"),
-                                                  int.from_bytes(self.d, "big"),
-                                                  int.from_bytes(self.p, "big"),
-                                                  int.from_bytes(self.q, "big"),
-                                                  int.from_bytes(self.u, "big"))
+            return (self.pub_algorithm_type, self.n, self.e, self.d, self.p, self.q, self.u)
         elif self.pub_algorithm_type == "dsa":
-            self.key, self.padding = make_dsa_key(int.from_bytes(self.y, "big"),
-                                                  int.from_bytes(self.g, "big"),
-                                                  int.from_bytes(self.p, "big"),
-                                                  int.from_bytes(self.q, "big"),
-                                                  int.from_bytes(self.x, "big"))
-            
+            return (self.pub_algorithm_type, self.y, self.g, self.p, self.q, self.x)
         elif self.pub_algorithm_type == "elg":
-            self.key, self.padding = make_elg_key(int.from_bytes(self.p, "big"),
-                                                  int.from_bytes(self.g, "big"),
-                                                  int.from_bytes(self.y, "big"),
-                                                  int.from_bytes(self.x, "big"))
+            return (self.pub_algorithm_type, self.p, self.g, self.y, self.x)
         else:
             raise PGPError('Unsupported asymmetric algorithm')
-        return (self.key, self.padding)
 
     def __repr__(self):
         s = super().__repr__()
