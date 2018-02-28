@@ -4,100 +4,110 @@ import sys
 import asyncio
 from aiohttp import web
 import logging
-import aiocache
 import time
+import datetime
 from pathlib import Path
+from collections import OrderedDict
 import ssl
 
 from .openpgp.utils import unarmor
 from .openpgp.packet import iter_packets
-from .utils.exceptions import PGPError
 from .conf import CONF, KeysConfiguration
-
-from aiocache.plugins import TimingPlugin
-from aiocache.serializers import JsonSerializer
 
 LOG = logging.getLogger('keyserver')
 routes = web.RouteTableDef()
-cache = aiocache.SimpleMemoryCache(plugins=[TimingPlugin()],
-                                   serializer=JsonSerializer())
 
 ACTIVE_KEYS = {}
+# For the match, we turn that off
+ssl.match_hostname = lambda cert, hostname: True
+
+
+class Cache:
+    """In memory cache."""
+
+    def __init__(self, max_size=10, timeout=None):
+        """Initialise cache."""
+        self._store = OrderedDict()
+        self._max_size = max_size
+        self._timeout = timeout
+
+    def set(self, key, value, timeout=None):
+        """Assign in the store to the the key the value and timeout."""
+        self._check_limit()
+        if not timeout:
+            timeout = self._timeout
+        else:
+            timeout = self._parse_date_time(timeout)
+        self._store[key] = (value, timeout)
+
+    def get(self, key):
+        """Retrieve value based on key."""
+        data = self._store.get(key)
+        if not data:
+            return None
+        value, expire = data
+        if expire and time.time() > expire:
+            del self._store[key]
+            return None
+        return value
+
+    def _parse_date_time(self, date_time):
+        """We allow timeout to be specified by date and time.
+
+        Example of set time and date 30/MAR/18 08:00:00 .
+        """
+        return time.mktime(datetime.datetime.strptime(date_time, "%d/%b/%y %H:%M:%S").timetuple())
+
+    def _check_limit(self):
+        """Check if current cache size exceeds maximum cache size and pop the oldest item in this case."""
+        if len(self._store) >= self._max_size:
+            self._store.popitem(last=False)
+
+    def clear(self):
+        """Clear all cache."""
+        self._store = OrderedDict()
+
+
+# All the cache goes here
+cache = Cache()
 
 
 class PrivateKey:
     """The Private Key loading and retrieving parts."""
 
-    def __init__(self, secret_key, passphrase):
+    def __init__(self, secret_path, passphrase):
         """Intialise PrivateKey."""
-        self.secret_key = secret_key
+        self.secret_path = secret_path
         self.passphrase = passphrase.encode()
         self.key_id = None
         self.fingerprint = None
 
-    def retrieve_tuple(self, alg_type, private_nb):
-        """Depending on the algorithm type return the tuple dict."""
-        # This could also be a namedtuple
-        tupled = set()
-        if alg_type == "rsa":
-            tupled = {'n': private_nb.public_numbers.n,
-                      'e': private_nb.public_numbers.e,
-                      'd': private_nb.d,
-                      'p': private_nb.p,
-                      'q': private_nb.q}
-        elif alg_type == "dsa":
-            tupled = {'y': private_nb.public_numbers.y,
-                      'g': private_nb.public_numbers.parameter_numbers.g,
-                      'p': private_nb.public_numbers.parameter_numbers.p,
-                      'q': private_nb.public_numbers.parameter_numbers.q,
-                      'x': private_nb.x}
-        elif alg_type == "elg":
-            tupled = {'p': private_nb.public_numbers.parameter_numbers.p,
-                      'g': private_nb.public_numbers.parameter_numbers.g,
-                      'y': private_nb.public_numbers.y,
-                      'x': private_nb.x}
-        else:
-            raise PGPError('Unsupported asymmetric algorithm')
-
-        return tupled
-
     def load_key(self):
         """Load key and return tuble for reconstruction."""
-        _tupled = {}
-        with open(self.secret_key, 'rb') as infile:
+        _public_key_material = None
+        _private_key_material = None
+        with open(self.secret_path, 'rb') as infile:
             for packet in iter_packets(unarmor(infile)):
                 LOG.info(str(packet))
                 if packet.tag == 5:
-                    _private_key, _private_padding = packet.unlock(self.passphrase)
-                    # Don't really need the fingerprint, but we can use it to make it flexible
-                    # to allow to retrieve the secret key either key_id or fingerprint
-                    self.fingerprint = packet.fingerprint
+                    _public_key_material, _private_key_material = packet.unlock(self.passphrase)
                     self.key_id = packet.key_id
-                    _tupled = self.retrieve_tuple(packet.pub_algorithm_type, _private_key.private_numbers())
                 else:
                     packet.skip()
 
-        return {'keyID': self.key_id, 'fingerprint': self.fingerprint, 'tuple': _tupled}
+        # TO DO return a _tuple, fingerprint
+        return (self.key_id, (_public_key_material, _private_key_material))
 
 
-async def keystore(key_list, expiration=None):
-    """A cache in-memory as a keystore. An expiration can be set in seconds."""
+async def keystore(key_list):
+    """Start a cache "keystore" with default active keys."""
     start_time = time.time()
-    objects = [PrivateKey(key_list[i][0], key_list[i][1]) for i in key_list]
+    objects = [(PrivateKey(key_list[i][0], key_list[i][1]), key_list[i][3]) for i in key_list]
     for obj in objects:
-        obj.load_key()
-        await cache.set(obj.key_id, obj.load_key(), ttl=expiration)
+        key_id, values = obj[0].load_key()
+        cache.set(key_id, values, timeout=obj[1])
 
     LOG.info(f"Keystore loaded keys in: {(time.time() - start_time)} seconds ---")
-
-
-def fingerprint_2key(requested_id):
-    """Check if the key is a fingerprint or a regular key id."""
-    if len(requested_id) > 16:
-        key_id = requested_id[-16:]
-    else:
-        key_id = requested_id
-    return key_id
 
 
 @routes.get('/retrieve/{requested_id}')
@@ -105,10 +115,9 @@ async def retrieve_key(request):
     """Retrieve tuple to reconstruced unlocked key."""
     requested_id = request.match_info['requested_id']
     start_time = time.time()
-    key_id = fingerprint_2key(requested_id)
-    id_exists = await cache.exists(key_id)
-    if id_exists:
-        value = await cache.get(key_id)
+    key_id = requested_id[-16:]
+    value = cache.get(key_id)
+    if value:
         LOG.info(f"Retrived private key with id {key_id} in: {(time.time() - start_time)} seconds ---")
         return web.json_response(value)
     else:
@@ -116,20 +125,8 @@ async def retrieve_key(request):
         return web.HTTPNotFound()
 
 
-# REQUIRES AUTH
-# WIP
-@routes.get('/admin/unlock')
-async def unlock_key(request):
-    """Unlock key as it is about to expire."""
-    await keystore(ACTIVE_KEYS, 86400)
-    return web.HTTPCreated()
-
-
-# Cache Profiling
-# @routes.get('/admin/statistics')
-# async def get_statistics(request):
-#     """Return profiling statistics of the cache."""
-#     return web.json_response(cache.profiling)
+# @routes.get('/admin/unlock/{key_id}')
+# async def unlock_key(request):
 
 
 def main(args=None):
@@ -145,31 +142,30 @@ def main(args=None):
     LOG.debug(f'Certfile: {ssl_certfile}')
     LOG.debug(f'Keyfile: {ssl_keyfile}')
 
-    ssl_ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-    ssl_ctx.load_cert_chain(ssl_certfile, ssl_keyfile)
+    sslcontext = ssl.SSLContext(ssl.PROTOCOL_TLS)
+    sslcontext.load_cert_chain(ssl_certfile, ssl_keyfile)
 
-    if not ssl_ctx:
+    if not sslcontext:
         LOG.error('No SSL encryption. Exiting...')
     else:
-        ssl_ctx = None
+        sslcontext = None
         LOG.info('With SSL encryption')
 
     for i, key in enumerate(KEYS.get('KEYS', 'active').split(",")):
-        ls = [KEYS.get(key, 'PATH'), KEYS.get(key, 'PASSPHRASE')]
+        ls = [KEYS.get(key, 'PATH'), KEYS.get(key, 'PASSPHRASE'), KEYS.get(key, 'EXPIRE')]
         ACTIVE_KEYS[i] = tuple(ls)
 
     host = CONF.get('keyserver', 'host')
     port = CONF.getint('keyserver', 'port')
     loop = asyncio.get_event_loop()
 
-    # The keystore is good for 24h.
-    loop.run_until_complete(keystore(ACTIVE_KEYS, 86400))
+    loop.run_until_complete(keystore(ACTIVE_KEYS))
 
     keyserver = web.Application(loop=loop)
     keyserver.router.add_routes(routes)
 
     LOG.info("Start keyserver")
-    web.run_app(keyserver, host=host, port=port, shutdown_timeout=0, loop=loop, ssl_context=ssl_ctx)
+    web.run_app(keyserver, host=host, port=port, shutdown_timeout=0, loop=loop, ssl_context=sslcontext)
 
 
 if __name__ == '__main__':
