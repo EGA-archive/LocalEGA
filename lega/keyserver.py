@@ -7,7 +7,6 @@ import logging
 import time
 import datetime
 from pathlib import Path
-from collections import OrderedDict
 import ssl
 
 from .openpgp.utils import unarmor
@@ -18,41 +17,40 @@ LOG = logging.getLogger('keyserver')
 routes = web.RouteTableDef()
 
 ACTIVE_KEYS = {}
-# For the match, we turn that off
-ssl.match_hostname = lambda cert, hostname: True
 
 
 class Cache:
     """In memory cache."""
 
-    def __init__(self, max_size=10, timeout=None):
+    def __init__(self, max_size=10, ttl=None):
         """Initialise cache."""
-        self._store = OrderedDict()
+        self._store = dict()
         self._max_size = max_size
-        self._timeout = timeout
+        self._ttl = ttl
 
-    def set(self, key, value, timeout=None):
-        """Assign in the store to the the key the value and timeout."""
+    def set(self, key, value, ttl=None):
+        """Assign in the store to the the key the value and ttl."""
         self._check_limit()
-        if not timeout:
-            timeout = self._timeout
+        if not ttl:
+            ttl = self._ttl
         else:
-            timeout = self._parse_date_time(timeout)
-        self._store[key] = (value, timeout)
+            ttl = self._parse_date_time(ttl)
+        self._store[key] = (value, ttl)
 
     def get(self, key):
         """Retrieve value based on key."""
         data = self._store.get(key)
         if not data:
             return None
-        value, expire = data
-        if expire and time.time() > expire:
-            del self._store[key]
-            return None
-        return value
+        else:
+            value, expire = data
+            if expire and time.time() > expire:
+                del self._store[key]
+                return None
+            return value
 
     def _parse_date_time(self, date_time):
-        """We allow timeout to be specified by date and time.
+        """We allow ttl to be specified by date and time.
 
         Example of set time and date 30/MAR/18 08:00:00 .
         """
@@ -65,7 +63,7 @@ class Cache:
 
     def clear(self):
         """Clear all cache."""
-        self._store = OrderedDict()
+        self._store = dict()
 
 
 # All the cache goes here
@@ -102,31 +100,45 @@ class PrivateKey:
 async def keystore(key_list):
     """Start a cache "keystore" with default active keys."""
     start_time = time.time()
-    objects = [(PrivateKey(key_list[i][0], key_list[i][1]), key_list[i][3]) for i in key_list]
+    objects = [(PrivateKey(key_list[i][0], key_list[i][1]), key_list[i][2]) for i in key_list]
     for obj in objects:
         key_id, values = obj[0].load_key()
-        cache.set(key_id, values, timeout=obj[1])
+        cache.set(key_id, values, ttl=obj[1])
 
     LOG.info(f"Keystore loaded keys in: {(time.time() - start_time)} seconds ---")
+
+
+# For know one must know the path of the Key to re(activate) it
+async def activate_key(key_info):
+    """(Re)Activate a key."""
+    obj_key = PrivateKey(key_info['path'], key_info['passphrase'])
+    key_id, values = obj_key.load_key()
+    cache.set(key_id, values, ttl=key_info['ttl'])
 
 
 @routes.get('/retrieve/{requested_id}')
 async def retrieve_key(request):
     """Retrieve tuple to reconstruced unlocked key."""
     requested_id = request.match_info['requested_id']
-    start_time = time.time()
     key_id = requested_id[-16:]
     value = cache.get(key_id)
     if value:
-        LOG.info(f"Retrived private key with id {key_id} in: {(time.time() - start_time)} seconds ---")
-        return web.json_response(value)
+        # JSON cannot work with bytes thus the string
+        return web.json_response({"public": str(value[0]), "private": str(value[1])})
     else:
-        LOG.warn("Requested key {requested_id} not found.")
+        LOG.warn(f"Requested key {requested_id} not found.")
         return web.HTTPNotFound()
 
 
-# @routes.get('/admin/unlock/{key_id}')
-# async def unlock_key(request):
+@routes.post('/admin/unlock')
+async def unlock_key(request):
+    """Unlock a key via request."""
+    key_info = await request.json()
+    if all(k in key_info for k in("path", "passphrase", "ttl")):
+        await activate_key(key_info)
+        return web.HTTPAccepted()
+    else:
+        return web.HTTPBadRequest()
 
 
 def main(args=None):
@@ -142,14 +154,10 @@ def main(args=None):
     LOG.debug(f'Certfile: {ssl_certfile}')
     LOG.debug(f'Keyfile: {ssl_keyfile}')
 
-    sslcontext = ssl.SSLContext(ssl.PROTOCOL_TLS)
+    # sslcontext = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
+    sslcontext = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+    sslcontext.check_hostname = False
     sslcontext.load_cert_chain(ssl_certfile, ssl_keyfile)
-
-    if not sslcontext:
-        LOG.error('No SSL encryption. Exiting...')
-    else:
-        sslcontext = None
-        LOG.info('With SSL encryption')
 
     for i, key in enumerate(KEYS.get('KEYS', 'active').split(",")):
         ls = [KEYS.get(key, 'PATH'), KEYS.get(key, 'PASSPHRASE'), KEYS.get(key, 'EXPIRE')]
@@ -165,7 +173,7 @@ def main(args=None):
     keyserver.router.add_routes(routes)
 
     LOG.info("Start keyserver")
-    web.run_app(keyserver, host=host, port=port, shutdown_timeout=0, loop=loop, ssl_context=sslcontext)
+    web.run_app(keyserver, host=host, port=port, shutdown_timeout=0, ssl_context=sslcontext)
 
 
 if __name__ == '__main__':
