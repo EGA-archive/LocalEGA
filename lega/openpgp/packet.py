@@ -297,13 +297,12 @@ class UserIDPacket(Packet):
         return f"{s} | {self.info}"
 
 class PublicKeyEncryptedSessionKeyPacket(Packet):
-    key = None
 
     def __repr__(self):
         s = super().__repr__()
         return f"{s} | keyID {self.key_id} ({lookup_pub_algorithm(self.raw_pub_algorithm)[0]})"
 
-    def decrypt_session_key(self, private_key, private_padding):
+    def decrypt_session_key(self, call_keyserver):
         assert( not self.partial )
         pos_start = self.data.tell()
         session_key_version = read_1(self.data)
@@ -314,6 +313,8 @@ class PublicKeyEncryptedSessionKeyPacket(Packet):
         self.raw_pub_algorithm = read_1(self.data)
         # Remainder is the encrypted key
         self.encrypted_data = get_mpi(self.data)
+
+        private_key, private_padding = call_keyserver(self.key_id)
 
         key_args = (private_padding, ) if private_padding else ()
         try:
