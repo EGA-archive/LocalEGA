@@ -1,29 +1,28 @@
-FROM nbisweden/ega-common:latest
-LABEL maintainer "Frédéric Haziza, NBIS"
+FROM python:3.6-alpine3.7
 
-RUN yum -y install vim-common zlib-devel bzip2-devel && \
-    yum clean all && rm -rf /var/cache/yum
+RUN apk add --update \
+    && apk add --no-cache build-base \
+    && apk add --no-cache libffi-dev openssl-dev \
+    && apk add --no-cache linux-headers \
+    && apk add --no-cache bash \
+    && apk add --no-cache git \
+&& rm -rf /var/cache/apk/*
 
-# Copy the RPMS from git
-RUN for f in libgpg-error-1.27 libgcrypt-1.8.1 libassuan-2.4.3 libksba-1.3.5 npth-1.5 ncurses-6.0 pinentry-1.0.0 gnupg-2.2.2; \
-    do curl -OL https://github.com/NBISweden/LocalEGA/raw/dev/extras/rpmbuild/RPMS/x86_64/${f}-1.el7.centos.x86_64.rpm; \
-       rpm -i ${f}-1.el7.centos.x86_64.rpm; \
-       rm ${f}-1.el7.centos.x86_64.rpm; \
-    done
-
-RUN echo "/usr/local/lib" > /etc/ld.so.conf.d/gpg2.conf && \
-    echo "/usr/local/lib64" >> /etc/ld.so.conf.d/gpg2.conf && \
-    ldconfig -v
-
-RUN mkdir -p /root/.gnupg && \
-    chmod 700 /root/.gnupg
-
+ENV KEYSERVER_PORT=
 ARG PIP_EGA_PACKAGES=
 
-RUN pip3.6 install PyYaml ${PIP_EGA_PACKAGES}
+RUN pip install PyYaml aiohttp cryptography ${PIP_EGA_PACKAGES}
 
-COPY gpg-agent.conf /root/.gnupg/gpg-agent.conf
+RUN mkdir -p /keyserver \
+    && chmod +x /keyserver
 
-COPY entrypoint.sh /usr/local/bin/entrypoint.sh
-ENV KEYSERVER_PORT=
-ENTRYPOINT ["entrypoint.sh"]
+RUN cd /keyserver \
+    && git clone git://github.com/NBISweden/LocalEGA.git . \
+    && git checkout feature/pgp-keyserver \
+    && pip install -e ./
+
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+ENTRYPOINT ["dumb-init", "--"]
+ENTRYPOINT ["/entrypoint.sh"]
