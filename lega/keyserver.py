@@ -114,13 +114,13 @@ class PGPPrivateKey:
                 LOG.info(str(packet))
                 if packet.tag == 5:
                     _public_key_material, _private_key_material = packet.unlock(self.passphrase)
-                    _public_lenght = struct.pack('>I', len(_public_key_material))
-                    _private_lenght = struct.pack('>I', len(_private_key_material))
+                    _public_length = struct.pack('>I', len(_public_key_material))
+                    _private_length = struct.pack('>I', len(_private_key_material))
                     self.key_id = packet.key_id
                 else:
                     packet.skip()
 
-        return (self.key_id, (_public_lenght + _public_key_material, _private_lenght+_private_key_material))
+        return (self.key_id, (_public_length, _public_key_material, _private_length, _private_key_material))
 
 
 class ReEncryptionKey:
@@ -134,7 +134,7 @@ class ReEncryptionKey:
         """Load key and return tuble for reconstruction."""
         with open(self.secret_path, 'rb') as infile:
             data = infile.read()
-            return data.decode()
+            return data
 
 
 # For now, one must know the path of the Key to re(activate) it
@@ -160,11 +160,11 @@ async def retrieve_pgp_key(request):
     key_id = requested_id[-16:]
     value = _pgp_cache.get(key_id)
     if value:
-        response_body = value[0]+value[1]
         if request_type == 'application/json':
-            return web.json_response({'public': value[0].hex(), 'private': value[1].hex()})
-        if request_type == 'text/hexa':
-            return web.Response(body=response_body.hex(), content_type='text/hexa')
+            return web.json_response({'public': value[1].hex(), 'private': value[3].hex()})
+        response_body = b''.join(value)
+        if request_type == 'text/hex':
+            return web.Response(body=response_body.hex(), content_type='text/hex')
         else:
             return web.Response(body=response_body, content_type='application/octed-stream')
     else:
@@ -180,7 +180,8 @@ async def retrieve_pgp_key_private(request):
     key_id = requested_id[-16:]
     value = _pgp_cache.get(key_id)
     if value:
-        return web.Response(content=value[1].hex())
+        private_key = b''.join((value[2], value[3]))
+        return web.Response(body=private_key.hex())
     else:
         LOG.warn(f"Requested PGP key {requested_id} not found.")
         return web.HTTPNotFound()
@@ -194,7 +195,8 @@ async def retrieve_pgp_key_public(request):
     key_id = requested_id[-16:]
     value = _pgp_cache.get(key_id)
     if value:
-        return web.Response(content=value[0].hex())
+        public_key = b''.join((value[0], value[1]))
+        return web.Response(body=public_key.hex())
     else:
         LOG.warn(f"Requested PGP key {requested_id} not found.")
         return web.HTTPNotFound()
