@@ -241,11 +241,11 @@ async def load_keys_conf(KEYS):
     pgp_key = {"type": "pgp",
                "path": KEYS.get(active_pgp_key, 'private'),
                "passphrase": KEYS.get(active_pgp_key, 'passphrase'),
-               "ttl": KEYS.get('PGP', 'EXPIRE') if KEYS.has_option('PGP', 'EXPIRE') else None}
+               "ttl": KEYS.get('PGP', 'EXPIRE', fallback=None)}
 
     rsa_key = {"type": "rsa",
                "path": KEYS.get(active_rsa_key, 'PATH'),
-               "ttl": KEYS.get('REENCRYPTION_KEYS', 'EXPIRE') if KEYS.has_option('REENCRYPTION_KEYS', 'EXPIRE') else None}
+               "ttl": KEYS.get('REENCRYPTION_KEYS', 'EXPIRE', fallback=None)}
 
     await activate_key(pgp_key)
     await activate_key(rsa_key)
