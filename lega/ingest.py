@@ -12,9 +12,7 @@ It simply consumes message from the message queue configured in the [worker] sec
 
 It defaults to the `tasks` queue.
 
-It is possible to start several workers, of course!
-However, they should have the gpg-agent socket location in their environment (when using GnuPG 2.0 or less).
-In GnuPG 2.1, it is not necessary (Just point the `homedir` to the right place).
+It is possible to start several workers.
 
 When a message is consumed, it must be of the form:
 * filepath
