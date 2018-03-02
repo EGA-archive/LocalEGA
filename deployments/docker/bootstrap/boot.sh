@@ -12,15 +12,11 @@ SETTINGS=${HERE}/settings
 VERBOSE=no
 FORCE=yes
 OPENSSL=openssl
-GPG=gpg2
-GPG_CONF=gpgconf
 
 function usage {
     echo "Usage: $0 [options]"
     echo -e "\nOptions are:"
     echo -e "\t--openssl <value> \tPath to the Openssl executable [Default: ${OPENSSL}]"
-    echo -e "\t--gpg <value>     \tPath to the GnuPG executable [Default: ${GPG}]"
-    echo -e "\t--gpgconf <value> \tPath to the GnuPG conf executable [Default: ${GPG_CONF}]"
     echo ""
     echo -e "\t--verbose, -v     \tShow verbose output"
     echo -e "\t--polite, -p      \tDo not force the re-creation of the subfolders. Ask instead"
@@ -35,8 +31,6 @@ while [[ $# -gt 0 ]]; do
         --help|-h) usage; exit 0;;
         --verbose|-v) VERBOSE=yes;;
         --polite|-p) FORCE=no;;
-	--gpg) GPG=$2; shift;;
-	--gpgconf) GPG_CONF=$2; shift;;
         --openssl) OPENSSL=$2; shift;;
 	--) shift; break;;
         *) echo "$0: error - unrecognized option $1" 1>&2; usage; exit 1;;    esac

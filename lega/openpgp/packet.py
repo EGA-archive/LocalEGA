@@ -6,9 +6,9 @@ import logging
 from datetime import datetime, timedelta
 import hashlib
 
-from ..utils.exceptions import PGPError
 from .constants import lookup_pub_algorithm, lookup_sym_algorithm, lookup_hash_algorithm, lookup_s2k, lookup_tag
-from .utils import (read_1, read_2, read_4,
+from .utils import (PGPError,
+                    read_1, read_2, read_4,
                     new_tag_length, old_tag_length,
                     get_mpi, parse_public_key_material, parse_private_key_material,
                     derive_key,
@@ -316,22 +316,25 @@ class PublicKeyEncryptedSessionKeyPacket(Packet):
         self.encrypted_data = get_mpi(self.data)
 
         key_args = (private_padding, ) if private_padding else ()
-        session_data = private_key.decrypt(self.encrypted_data, *key_args)
+        try:
+            session_data = private_key.decrypt(self.encrypted_data, *key_args)
                 
-        session_data = io.BytesIO(session_data)
-        symalg_id = read_1(session_data)
+            session_data = io.BytesIO(session_data)
+            symalg_id = read_1(session_data)
 
-        name, keylen, symalg = lookup_sym_algorithm(symalg_id)
-        symkey = session_data.read(keylen)
+            name, keylen, symalg = lookup_sym_algorithm(symalg_id)
+            symkey = session_data.read(keylen)
 
-        LOG.debug(f"{name} | {keylen} | Session key: {symkey.hex()}")
-        assert( keylen == len(symkey) )
-        checksum = read_2(session_data)
+            LOG.debug(f"{name} | {keylen} | Session key: {symkey.hex()}")
+            assert( keylen == len(symkey) )
+            checksum = read_2(session_data)
+            
+            if not sum(symkey) % 65536 == checksum:
+                raise PGPError(f"{name} decryption failed")
 
-        if not sum(symkey) % 65536 == checksum:
-            raise PGPError(f"{name} decryption failed")
-
-        return (name, symalg, symkey)
+            return (name, symalg, symkey)
+        except ValueError as e:
+            raise PGPError(str(e))
 
 
 class SymEncryptedDataPacket(Packet):
