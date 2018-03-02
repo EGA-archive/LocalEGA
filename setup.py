@@ -18,11 +18,10 @@ Users are handled throught Central EGA, directly.
 ''',
       packages=['lega', 'lega/utils', 'lega/conf'],
       include_package_data=False,
-      package_data={ 'lega': ['conf/loggers/*.yaml', 'conf/defaults.ini', 'conf/templates/*.html'] },
+      package_data={ 'lega': ['conf/loggers/*.yaml', 'conf/defaults.ini'] },
       zip_safe=False,
       entry_points={
           'console_scripts': [
-              'ega-frontend = lega.frontend:main',
               'ega-ingest = lega.ingest:main',
               'ega-fs = lega.fs:main',
               'ega-vault = lega.vault:main',
