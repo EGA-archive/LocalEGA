@@ -170,6 +170,7 @@ def main(args=None):
 
         # Server connection closed
         assert( master_key )
+        LOG.info(f"Master Key ID: {master_key['id']}")
         do_work = partial(work, master_key['id'], bytes.fromhex(master_key['public']))
         
         # upstream link configured in local broker
