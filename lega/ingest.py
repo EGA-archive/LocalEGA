@@ -157,7 +157,7 @@ def work(active_master_key, master_pubkey, data):
     publish(data, broker.channel(), 'cega', 'files.processing')
 
     # Decrypting
-    cmd = CONF.get('ingestion','gpg_cmd',raw=True) % { 'file': str(inbox_filepath) }
+    cmd = CONF.get('ingestion','decrypt_cmd',raw=True) % { 'file': str(inbox_filepath) }
     LOG.debug(f'GPG command: {cmd}\n')
     details, staging_checksum = crypto_ingest( cmd,
                                                str(inbox_filepath),

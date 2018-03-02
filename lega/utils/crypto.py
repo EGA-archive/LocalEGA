@@ -137,7 +137,7 @@ class ReEncryptor(asyncio.SubprocessProtocol):
         self.target_digest.update(cipherchunk)
 
 
-def ingest(gpg_cmd,
+def ingest(decrypt_cmd,
            enc_file,
            org_hash, hash_algo,
            active_key, master_key,
@@ -155,7 +155,7 @@ def ingest(gpg_cmd,
     assert( isinstance(org_hash,str) )
 
     _err = None
-    cmd = gpg_cmd.split(None) # whitespace split
+    cmd = decrypt_cmd.split(None) # whitespace split
 
     with open(target, 'wb') as target_h:
 
