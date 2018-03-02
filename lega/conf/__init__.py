@@ -141,9 +141,8 @@ CONF = Configuration()
 
 
 class KeysConfiguration(configparser.ConfigParser):
-    log_conf = None
 
-    def __init__(self,args=None, encoding='utf-8'):
+    def __init__(self, args=None, encoding='utf-8'):
         '''Loads a configuration file from `args`'''
         super().__init__()
         # Finding the --keys file. Raise Error otherwise
