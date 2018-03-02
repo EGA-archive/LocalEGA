@@ -163,6 +163,7 @@ async def retrieve_pgp_key(request):
     Then, 4 bytes for the length of the private part, followed by the private part."""
     requested_id = request.match_info['requested_id']
     request_type = request.content_type
+    LOG.debug(f'Requested PGP key with ID {requested_id} | {request_type}')
     key_id = requested_id[-16:]
     value = _pgp_cache.get(key_id)
     if value:
@@ -182,6 +183,7 @@ async def retrieve_pgp_key(request):
 async def retrieve_pgp_key_private(request):
     """Retrieve private part to reconstruced unlocked key."""
     requested_id = request.match_info['requested_id']
+    LOG.debug(f'Requested PGP (private) key with ID {requested_id} | {request_type}')
     key_id = requested_id[-16:]
     value = _pgp_cache.get(key_id)
     if value:
@@ -195,6 +197,7 @@ async def retrieve_pgp_key_private(request):
 async def retrieve_pgp_key_public(request):
     """Retrieve public to reconstruced unlocked key."""
     requested_id = request.match_info['requested_id']
+    LOG.debug(f'Requested PGP (public) key with ID {requested_id} | {request_type}')
     key_id = requested_id[-16:]
     value = _pgp_cache.get(key_id)
     if value:
@@ -208,6 +211,7 @@ async def retrieve_pgp_key_public(request):
 async def retrieve_reencryt_key(request):
     """Retrieve RSA reencryption key."""
     key_id = _rsa_cache.get("active_rsa_key")
+    LOG.debug(f'Requested RSA key with ID {key_id}')
     value = _rsa_cache.get(key_id)
     if value:
         return web.json_response({ 'id': key_id,
@@ -221,6 +225,7 @@ async def retrieve_reencryt_key(request):
 async def unlock_key(request):
     """Unlock a key via request."""
     key_info = await request.json()
+    LOG.debug(f'Admin unlocking: {key_info}')
     if all(k in key_info for k in("path", "passphrase", "ttl")):
         await activate_key('pgp', key_info['path'], passphrase=key_info['passphrase'], ttl=key_info['ttl'])
         return web.HTTPAccepted()
@@ -230,7 +235,9 @@ async def unlock_key(request):
 
 @routes.get('/admin/ttl')
 async def check_ttl(request):
-    """Unlock a key via request."""
+    """Evict from the cache if TTL expired
+       and return the keys that survived""" # ehh...why? /Fred
+    LOG.debug(f'Admin TTL')
     pgp_expire = _pgp_cache.check_ttl()
     rsa_expire = _rsa_cache.check_ttl()
     if pgp_expire or rsa_expire:
