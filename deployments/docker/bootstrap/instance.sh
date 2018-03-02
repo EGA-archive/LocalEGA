@@ -71,7 +71,7 @@ log = /etc/ega/logger.yml
 
 [ingestion]
 # Keyserver communication
-keyserver_host = ega-keys-${INSTANCE}
+keyserver_connection = https://ega-keys-${INSTANCE}:9011
 
 ## Connecting to Local EGA
 [broker]
@@ -375,7 +375,7 @@ services:
       - ./${INSTANCE}/ega.conf:/etc/ega/conf.ini:ro
       - ./${INSTANCE}/logger.yml:/etc/ega/logger.yml:ro
       - inbox_${INSTANCE}:/ega/inbox
-      # - ../..:/root/.local/lib/python3.6/site-packages:ro
+      # ../../../lega:/root/.local/lib/python3.6/site-packages/lega
       # - ~/_auth_ega:/root/auth
     restart: on-failure:3
     networks:
@@ -402,7 +402,7 @@ services:
        - vault_${INSTANCE}:/ega/vault
        - ./${INSTANCE}/ega.conf:/etc/ega/conf.ini:ro
        - ./${INSTANCE}/logger.yml:/etc/ega/logger.yml:ro
-       # - ../..:/root/.local/lib/python3.6/site-packages:ro
+       # ../../../lega:/root/.local/lib/python3.6/site-packages/lega
     restart: on-failure:3
     networks:
       - lega_${INSTANCE}
@@ -429,7 +429,7 @@ services:
        - ./${INSTANCE}/ega.conf:/etc/ega/conf.ini:ro
        - ./${INSTANCE}/logger.yml:/etc/ega/logger.yml:ro
        - ./${INSTANCE}/certs/ssl.cert:/etc/ega/ssl.cert:ro
-       # - ../..:/root/.local/lib/python3.6/site-packages:ro
+       # ../../../lega:/root/.local/lib/python3.6/site-packages/lega
     restart: on-failure:3
     networks:
       - lega_${INSTANCE}
@@ -457,7 +457,7 @@ services:
        - ./${INSTANCE}/pgp/ega.sec:/etc/ega/pgp/sec.pem:ro
        - ./${INSTANCE}/rsa/ega.pub:/etc/ega/rsa/pub.pem:ro
        - ./${INSTANCE}/rsa/ega.sec:/etc/ega/rsa/sec.pem:ro
-       - ../../../lega:/root/.local/lib/python3.6/site-packages/lega
+       # ../../../lega:/root/.local/lib/python3.6/site-packages/lega
     restart: on-failure:3
     networks:
       - lega_${INSTANCE}
