@@ -9,9 +9,6 @@ ARG PIP_EGA_PACKAGES=
 
 RUN pip install PyYaml ${PIP_EGA_PACKAGES}
 
-RUN mkdir -p /keyserver \
-    && chmod +x /keyserver
-
 ARG checkout=
 RUN pip install git+https://github.com/NBISweden/LocalEGA.git@${checkout}
 

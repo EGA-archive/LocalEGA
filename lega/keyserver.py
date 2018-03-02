@@ -18,9 +18,6 @@ from .utils import get_file_content
 LOG = logging.getLogger('keyserver')
 routes = web.RouteTableDef()
 
-ACTIVE_KEYS = {}
-
-
 class Cache:
     """In memory cache."""
 
@@ -272,8 +269,7 @@ def main(args=None):
     LOG.debug(f'Certfile: {ssl_certfile}')
     LOG.debug(f'Keyfile: {ssl_keyfile}')
 
-    # sslcontext = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
-    sslcontext = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+    sslcontext = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
     sslcontext.check_hostname = False
     sslcontext.load_cert_chain(ssl_certfile, ssl_keyfile)
 
