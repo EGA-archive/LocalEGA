@@ -41,15 +41,14 @@ def main(args=None):
 
     filename = args[-1] # Last argument
 
-    LOG.info(f"###### Encrypted file: {filename}")
+    #LOG.debug(f"###### Encrypted file: {filename}")
     try:
         with open(filename, 'rb') as infile:
             name = cipher = session_key = None
             for packet in iter_packets(infile):
-                #packet.skip()
-                LOG.info(str(packet))
+                #LOG.debug(str(packet))
                 if packet.tag == 1:
-                    LOG.info("###### Decrypting session key")
+                    #LOG.debug("###### Decrypting session key")
                     # Note: decrypt_session_key knows the key ID.
                     #       It will be updated to contact the keyserver
                     #       and retrieve the private_key/private_padding
@@ -60,9 +59,10 @@ def main(args=None):
                     # private_key_material = data['private']
                     private_key, private_padding = make_key(public_key_material, private_key_material)
                     name, cipher, session_key = packet.decrypt_session_key(private_key, private_padding)
+                    LOG.info(f'SESSION KEY: {session_key.hex()}')
 
                 elif packet.tag == 18:
-                    LOG.info(f"###### Decrypting message using {name}")
+                    #LOG.info(f"###### Decrypting message using {name}")
                     assert( session_key and cipher )
                     for literal_data in packet.process(session_key, cipher):
                         sys.stdout.buffer.write(literal_data)
