@@ -41,12 +41,12 @@ def main(args=None):
 
     filename = args[-1] # Last argument
 
-    #LOG.debug(f"###### Encrypted file: {filename}")
+    LOG.debug(f"###### Encrypted file: {filename}")
     try:
         with open(filename, 'rb') as infile:
             name = cipher = session_key = None
             for packet in iter_packets(infile):
-                #LOG.debug(str(packet))
+                LOG.debug(str(packet))
                 if packet.tag == 1:
                     #LOG.debug("###### Decrypting session key")
                     # Note: decrypt_session_key knows the key ID.
@@ -62,7 +62,7 @@ def main(args=None):
                     LOG.info(f'SESSION KEY: {session_key.hex()}')
 
                 elif packet.tag == 18:
-                    #LOG.info(f"###### Decrypting message using {name}")
+                    LOG.info(f"###### Decrypting message using {name}")
                     assert( session_key and cipher )
                     for literal_data in packet.process(session_key, cipher):
                         sys.stdout.buffer.write(literal_data)
