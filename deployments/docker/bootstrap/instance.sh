@@ -12,7 +12,6 @@ else
     exit 1
 fi
 
-[[ -x $(readlink ${GPG}) ]] && echo "${GPG} is not executable. Adjust the setting with --gpg" && exit 2
 [[ -x $(readlink ${OPENSSL}) ]] && echo "${OPENSSL} is not executable. Adjust the setting with --openssl" && exit 3
 
 if [ -z "${DB_USER}" -o "${DB_USER}" == "postgres" ]; then
@@ -24,31 +23,12 @@ fi
 # And....cue music
 #########################################################################
 
-mkdir -p $PRIVATE/${INSTANCE}/{gpg,rsa,certs,logs}
-chmod 700 $PRIVATE/${INSTANCE}/{gpg,rsa,certs,logs}
+mkdir -p $PRIVATE/${INSTANCE}/{pgp,rsa,certs,logs}
+chmod 700 $PRIVATE/${INSTANCE}/{pgp,rsa,certs,logs}
 
-echomsg "\t* the GnuPG key"
+echomsg "\t* the PGP key"
 
-cat > ${PRIVATE}/${INSTANCE}/gen_key <<EOF
-%echo Generating a basic OpenPGP key
-Key-Type: RSA
-Key-Length: 4096
-Name-Real: ${GPG_NAME}
-Name-Comment: ${GPG_COMMENT}
-Name-Email: ${GPG_EMAIL}
-Expire-Date: 0
-Passphrase: ${GPG_PASSPHRASE}
-# Do a commit here, so that we can later print "done" :-)
-%commit
-%echo done
-EOF
-
-${GPG} --homedir ${PRIVATE}/${INSTANCE}/gpg --batch --generate-key ${PRIVATE}/${INSTANCE}/gen_key
-${GPG} --homedir ${PRIVATE}/${INSTANCE}/gpg --armor --export -a "${GPG_NAME}" > ${PRIVATE}/${INSTANCE}/gpg/public.key
-chmod 755 ${PRIVATE}/${INSTANCE}/gpg
-chmod 744 ${PRIVATE}/${INSTANCE}/gpg/public.key
-rm -f ${PRIVATE}/${INSTANCE}/gen_key
-${GPG_CONF} --kill gpg-agent
+python3.6 ${HERE}/generate_pgp_key.py "${PGP_NAME}" "${PGP_EMAIL}" "${PGP_COMMENT}" --passphrase "${PGP_PASSPHRASE}" --prefix ${PRIVATE}/${INSTANCE}/pgp/ega --armor
 
 #########################################################################
 
@@ -66,22 +46,22 @@ ${OPENSSL} req -x509 -newkey rsa:2048 -keyout ${PRIVATE}/${INSTANCE}/certs/ssl.k
 echomsg "\t* keys.conf"
 cat > ${PRIVATE}/${INSTANCE}/keys.conf <<EOF
 [REENCRYPTION_KEYS]
-active : rsa.key.1
+active = rsa.key.1
 
 [PGP]
-active : pgp.key.1
-EXPIRE: 31/DEC/18 23:59:59
+active = pgp.key.1
+EXPIRE = 31/DEC/18 23:59:59
 
 [rsa.key.1]
-PATH : /etc/ega/rsa/sec.pem
+PATH = /etc/ega/rsa/sec.pem
 
 [rsa.key.2]
-PATH : /etc/ega/rsa/sec2.pem
+PATH = /etc/ega/rsa/sec2.pem
 
 [pgp.key.1]
-public : /etc/ega/pgp/ega.pub
-private : /etc/ega/pgp/ega.sec
-passphrase : ${GPG_PASSPHRASE}
+public = /etc/ega/pgp/pub.pem
+private = /etc/ega/pgp/sec.pem
+passphrase = ${PGP_PASSPHRASE}
 EOF
 
 echomsg "\t* ega.conf"
@@ -90,8 +70,6 @@ cat > ${PRIVATE}/${INSTANCE}/ega.conf <<EOF
 log = /etc/ega/logger.yml
 
 [ingestion]
-gpg_cmd = gpg2 --decrypt %(file)s
-
 # Keyserver communication
 keyserver_host = ega-keys-${INSTANCE}
 
@@ -244,9 +222,9 @@ POSTGRES_PASSWORD=${DB_PASSWORD}
 POSTGRES_DB=lega
 EOF
 
-cat > ${PRIVATE}/${INSTANCE}/gpg.env <<EOF
-GPG_EMAIL=${GPG_EMAIL}
-GPG_PASSPHRASE=${GPG_PASSPHRASE}
+cat > ${PRIVATE}/${INSTANCE}/pgp.env <<EOF
+PGP_EMAIL=${PGP_EMAIL}
+PGP_PASSPHRASE=${PGP_PASSPHRASE}
 EOF
 
 cat >> ${PRIVATE}/cega/env <<EOF
@@ -441,7 +419,6 @@ services:
     external_links:
       - cega-mq:cega-mq
     environment:
-      - GPG_TTY=/dev/console
       - MQ_INSTANCE=ega-mq-${INSTANCE}
       - CEGA_INSTANCE=cega-mq
       - KEYSERVER_HOST=ega-keys-${INSTANCE}
@@ -452,8 +429,6 @@ services:
        - ./${INSTANCE}/ega.conf:/etc/ega/conf.ini:ro
        - ./${INSTANCE}/logger.yml:/etc/ega/logger.yml:ro
        - ./${INSTANCE}/certs/ssl.cert:/etc/ega/ssl.cert:ro
-       - ./${INSTANCE}/gpg/pubring.kbx:/root/.gnupg/pubring.kbx:ro
-       - ./${INSTANCE}/gpg/trustdb.gpg:/root/.gnupg/trustdb.gpg
        # - ../..:/root/.local/lib/python3.6/site-packages:ro
     restart: on-failure:3
     networks:
@@ -462,9 +437,8 @@ services:
 
   # Key server
   keys-${INSTANCE}:
-    env_file: ${INSTANCE}/gpg.env
+    env_file: ${INSTANCE}/pgp.env
     environment:
-      - GPG_TTY=/dev/console
       - KEYSERVER_PORT=9010
     hostname: ega-keys-${INSTANCE}
     container_name: ega-keys-${INSTANCE}
@@ -479,12 +453,10 @@ services:
        - ./${INSTANCE}/keys.conf:/etc/ega/keys.ini:ro
        - ./${INSTANCE}/certs/ssl.cert:/etc/ega/ssl.cert:ro
        - ./${INSTANCE}/certs/ssl.key:/etc/ega/ssl.key:ro
-       - ./${INSTANCE}/gpg/pubring.kbx:/root/.gnupg/pubring.kbx
-       - ./${INSTANCE}/gpg/trustdb.gpg:/root/.gnupg/trustdb.gpg
-       - ./${INSTANCE}/gpg/openpgp-revocs.d:/root/.gnupg/openpgp-revocs.d:ro
-       - ./${INSTANCE}/gpg/private-keys-v1.d:/root/.gnupg/private-keys-v1.d:ro
-       - ./${INSTANCE}/rsa/ega.sec:/etc/ega/rsa/sec.pem:ro
+       - ./${INSTANCE}/pgp/ega.pub:/etc/ega/pgp/pub.pem:ro
+       - ./${INSTANCE}/pgp/ega.sec:/etc/ega/pgp/sec.pem:ro
        - ./${INSTANCE}/rsa/ega.pub:/etc/ega/rsa/pub.pem:ro
+       - ./${INSTANCE}/rsa/ega.sec:/etc/ega/rsa/sec.pem:ro
        # - ../..:/root/.local/lib/python3.6/site-packages:ro
     restart: on-failure:3
     networks:
@@ -552,10 +524,10 @@ cat >> ${PRIVATE}/${INSTANCE}/.trace <<EOF
 #
 #####################################################################
 #
-GPG_PASSPHRASE            = ${GPG_PASSPHRASE}
-GPG_NAME                  = ${GPG_NAME}
-GPG_COMMENT               = ${GPG_COMMENT}
-GPG_EMAIL                 = ${GPG_EMAIL}
+PGP_PASSPHRASE            = ${PGP_PASSPHRASE}
+PGP_NAME                  = ${PGP_NAME}
+PGP_COMMENT               = ${PGP_COMMENT}
+PGP_EMAIL                 = ${PGP_EMAIL}
 SSL_SUBJ                  = ${SSL_SUBJ}
 #
 DB_USER                   = ${DB_USER}
