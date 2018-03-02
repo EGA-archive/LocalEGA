@@ -49,6 +49,26 @@ class Cache:
                 return None
             return value
 
+    def check_ttl(self):
+        """Check ttl for active keys."""
+        keys = []
+        for key, data in self._store.items():
+            value, expire = data
+            keys.append((key, self._time_delta(expire)))
+        return keys
+
+    def _time_delta(self, expire):
+        """"Convert time left in huma readable format."""
+        # A lot of back and forth transformation
+        end_time = datetime.datetime.fromtimestamp(expire).strftime('%d/%b/%y %H:%M:%S')
+        today = datetime.datetime.today().strftime('%d/%b/%y %H:%M:%S')
+        FMT = '%d/%b/%y %H:%M:%S'
+        tdelta = datetime.datetime.strptime(end_time, FMT) - datetime.datetime.strptime(today, FMT)
+
+        if tdelta.days < 0:
+            tdelta = datetime.timedelta(days=tdelta.days, seconds=tdelta.seconds)
+            return f"{tdelta.days} days {tdelta.days * 24 + tdelta.seconds // 3600} hours {(tdelta.seconds % 3600) // 60} minutes {tdelta.seconds} seconds"
+
     def _parse_date_time(self, date_time):
         """We allow ttl to be specified by date and time.
 
@@ -137,6 +157,16 @@ async def unlock_key(request):
     if all(k in key_info for k in("path", "passphrase", "ttl")):
         await activate_key(key_info)
         return web.HTTPAccepted()
+    else:
+        return web.HTTPBadRequest()
+
+
+@routes.get('/admin/ttl')
+async def check_ttl(request):
+    """Unlock a key via request."""
+    expire = cache.check_ttl()
+    if expire:
+        return web.json_response(expire)
     else:
         return web.HTTPBadRequest()
 

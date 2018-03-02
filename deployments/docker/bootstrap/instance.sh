@@ -65,12 +65,12 @@ ${OPENSSL} req -x509 -newkey rsa:2048 -keyout ${PRIVATE}/${INSTANCE}/certs/ssl.k
 
 echomsg "\t* keys.conf"
 cat > ${PRIVATE}/${INSTANCE}/keys.conf <<EOF
-[DEFAULT]
-active_master_key = 1
+[KEYS]
+active=active.key.1
 
-[master.key.1]
-seckey = /etc/ega/rsa/sec.pem
-pubkey = /etc/ega/rsa/pub.pem
+[active.key.1]
+PATH : /etc/ega/rsa/sec.pem
+EXPIRE: 31/DEC/18 23:59:59
 EOF
 
 echomsg "\t* ega.conf"
@@ -286,13 +286,13 @@ output {
 	        elasticsearch {
 			      hosts => ["ega-elasticsearch-${INSTANCE}:9200"]
 		}
-		
+
 	} else {
 		file {
 			path => ["logs/error-%{+YYYY-MM-dd}.log"]
 		}
 		# output to console for debugging purposes
-		stdout { 
+		stdout {
 			codec => rubydebug
 		}
 	}
