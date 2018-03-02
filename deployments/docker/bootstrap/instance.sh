@@ -29,6 +29,7 @@ chmod 700 $PRIVATE/${INSTANCE}/{pgp,rsa,certs,logs}
 echomsg "\t* the PGP key"
 
 python3.6 ${HERE}/generate_pgp_key.py "${PGP_NAME}" "${PGP_EMAIL}" "${PGP_COMMENT}" --passphrase "${PGP_PASSPHRASE}" --prefix ${PRIVATE}/${INSTANCE}/pgp/ega --armor
+chmod 744 ${PRIVATE}/${INSTANCE}/pgp/ega.pub
 
 #########################################################################
 
