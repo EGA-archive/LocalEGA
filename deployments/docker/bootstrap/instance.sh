@@ -457,7 +457,7 @@ services:
        - ./${INSTANCE}/pgp/ega.sec:/etc/ega/pgp/sec.pem:ro
        - ./${INSTANCE}/rsa/ega.pub:/etc/ega/rsa/pub.pem:ro
        - ./${INSTANCE}/rsa/ega.sec:/etc/ega/rsa/sec.pem:ro
-       # - ../..:/root/.local/lib/python3.6/site-packages:ro
+       - ../../../lega:/root/.local/lib/python3.6/site-packages/lega
     restart: on-failure:3
     networks:
       - lega_${INSTANCE}
