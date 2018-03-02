@@ -385,9 +385,9 @@ def decryptor(key, alg):
     iv = (0).to_bytes(block_size, byteorder='big')
     engine = make_decryptor(key,alg,iv)
 
-    LOG.debug(f'KEY {key.hex()}')
-    LOG.debug(f'IV {iv.hex()}')
-    LOG.debug(f'ALGO {alg}')
+    # LOG.debug(f'KEY {key.hex()}')
+    # LOG.debug(f'IV {iv.hex()}')
+    # LOG.debug(f'ALGO {alg}')
 
     leftover = b''
         

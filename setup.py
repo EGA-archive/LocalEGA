@@ -30,7 +30,7 @@ Users are handled throught Central EGA, directly.
               'ega-monitor = lega.monitor:main',
               'ega-keyserver = lega.keyserver:main',
               'ega-conf = lega.conf.__main__:main',
-              'ega-pgp-decrypt = lega.openpgp.__main__:main',
+              #'ega-pgp-decrypt = lega.openpgp.__main__:main',
           ]
       },
       platforms = 'any',
