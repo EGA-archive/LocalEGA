@@ -18,8 +18,14 @@ from cryptography.hazmat.primitives.asymmetric import rsa, dsa, padding
 
 LOG = logging.getLogger('openpgp')
 
-from ..utils.exceptions import PGPError
 from .constants import lookup_sym_algorithm
+
+class PGPError(Exception):
+    def __init__(self, msg):
+        self.msg = msg
+    def __str__(self):
+        return f'OpenPGP Error: {self.msg}'
+
 
 def read_1(data, buf=None):
     '''Pull one byte from data and return as an integer.'''
@@ -318,7 +324,7 @@ def parse_private_key_material(raw_pub_algorithm, data, buf=None):
         d = get_mpi(data, buf=buf)
         p = get_mpi(data, buf=buf)
         q = get_mpi(data, buf=buf)
-        assert( p < q )
+        #assert( p < q )
         u = get_mpi(data, buf=buf)
         return (d, p, q, u)
     elif raw_pub_algorithm == 17:

@@ -8,41 +8,43 @@ import logging
 
 from ..conf import CONF
 from .packet import iter_packets
-from .utils import make_key
-from ..utils.exceptions import PGPError
+from .utils import make_key, PGPError
 
 LOG = logging.getLogger('openpgp')
 
 def main(args=None):
-
-    ##################################################################
-    # Temporary part that loads the private key and unlocks it
-    #
-    seckey = "/Users/daz/_ega/deployments/docker/private/swe1/gpg/ega.sec"
-    passphrase = "I0jhU1FKoAU76HuN".encode()
-    public_key_material = private_key_material = None
-    LOG.info(f"###### Opening sec key: {seckey}")
-    with open(seckey, 'rb') as infile:
-        from .utils import unarmor
-        for packet in iter_packets(unarmor(infile)):
-            #LOG.info(str(packet))
-            if packet.tag == 5:
-                public_key_material, private_key_material = packet.unlock(passphrase)
-            else:
-                packet.skip()
-    #
-    # End of the temporary part
-    ##################################################################
 
     if not args:
         args = sys.argv[1:]
 
     CONF.setup(args)
 
-    filename = args[-1] # Last argument
-
-    LOG.debug(f"###### Encrypted file: {filename}")
     try:
+        ##################################################################
+        # Temporary part that loads the private key and unlocks it
+        #
+        # seckey = "/Users/daz/_ega/deployments/docker/private/swe1/gpg/ega.sec"
+        # passphrase = "I0jhU1FKoAU76HuN".encode()
+        seckey = "/Users/daz/_ega/deployments/docker/bootstrap/ega.sec"
+        passphrase = "blabla".encode()
+        public_key_material = private_key_material = None
+        LOG.info(f"###### Opening sec key: {seckey}")
+        with open(seckey, 'rb') as infile:
+            from .utils import unarmor
+            for packet in iter_packets(unarmor(infile)):
+                LOG.info(str(packet))
+                if packet.tag == 5:
+                    public_key_material, private_key_material = packet.unlock(passphrase)
+                else:
+                    packet.skip()
+        #
+        # End of the temporary part
+        ##################################################################
+        #sys.exit(2)
+
+        filename = args[-1] # Last argument
+
+        LOG.debug(f"###### Encrypted file: {filename}")
         with open(filename, 'rb') as infile:
             name = cipher = session_key = None
             for packet in iter_packets(infile):
@@ -69,7 +71,8 @@ def main(args=None):
                 else:
                     packet.skip()
     except PGPError as pgpe:
-        LOG.critical(f'PGPError: {pgpe!s}')
+        LOG.critical(str(pgpe))
+        sys.exit(2)
 
 
 if __name__ == '__main__':

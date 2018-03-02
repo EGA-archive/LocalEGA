@@ -76,9 +76,3 @@ class AlreadyProcessed(Warning):
                 f'\t* name: {self.filename}\n'
                 f'\t* submission id: {submission_id})\n'
                 f'\t* Encrypted checksum: {enc_checksum_hash} (algorithm: {enc_checksum_algorithm}')
-
-class PGPError(Exception):
-    def __str__(self):
-        return f'OpenPGP Error'
-
-
