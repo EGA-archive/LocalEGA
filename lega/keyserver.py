@@ -13,6 +13,7 @@ import struct
 from .openpgp.utils import unarmor
 from .openpgp.packet import iter_packets
 from .conf import CONF, KeysConfiguration
+from .utils import get_file_content
 
 LOG = logging.getLogger('keyserver')
 routes = web.RouteTableDef()
@@ -33,10 +34,7 @@ class Cache:
     def set(self, key, value, ttl=None):
         """Assign in the store to the the key the value and ttl."""
         self._check_limit()
-        if not ttl:
-            ttl = self._ttl
-        else:
-            ttl = self._parse_date_time(ttl)
+        ttl = self._ttl if not ttl else self._parse_date_time(ttl)
         self._store[key] = (value, ttl)
 
     def get(self, key):
@@ -101,12 +99,13 @@ class PGPPrivateKey:
     def __init__(self, secret_path, passphrase):
         """Intialise PrivateKey."""
         self.secret_path = secret_path
+        assert( isinstance(passphrase,str) )
         self.passphrase = passphrase.encode()
         self.key_id = None
         self.fingerprint = None
 
     def load_key(self):
-        """Load key and return tuble for reconstruction."""
+        """Load key and return tuple for reconstruction."""
         _public_key_material = None
         _private_key_material = None
         with open(self.secret_path, 'rb') as infile:
@@ -126,35 +125,45 @@ class PGPPrivateKey:
 class ReEncryptionKey:
     """ReEncryption currently done with a RSA key."""
 
-    def __init__(self, secret_path):
+    def __init__(self, key_id, secret_path, passphrase=''):
         """Intialise PrivateKey."""
         self.secret_path = secret_path
+        self.key_id = key_id
+        assert( isinstance(passphrase,str) )
+        self.passphrase = passphrase.encode()
+        
 
     def load_key(self):
-        """Load key and return tuble for reconstruction."""
-        with open(self.secret_path, 'rb') as infile:
-            data = infile.read()
-            return data
+        """Load key and return tuple for reconstruction."""
+        data = get_file_content(self.secret_path)
+        # unlock it with the passphrase
+        # TODO
+        return (self.key_id, data)
 
 
 # For now, one must know the path of the Key to re(activate) it
-async def activate_key(key_info):
+async def activate_key(key_type, path, key_id=None, ttl=None, passphrase=None):
     """(Re)Activate a key."""
-    if key_info["type"] == "pgp":
-        obj_key = PGPPrivateKey(key_info['path'], key_info['passphrase'])
-        key_id, value = obj_key.load_key()
-        _pgp_cache.set(key_id, value, ttl=key_info['ttl'])
-    elif key_info["type"] == "rsa":
-        obj_key = ReEncryptionKey(key_info['path'])
-        value = obj_key.load_key()
-        _rsa_cache.set("rsa", value)
+    if key_type == "pgp":
+        obj_key = PGPPrivateKey(path, passphrase)
+        _cache = _pgp_cache
+    elif key_type == "rsa":
+        assert( key_id is not None )
+        obj_key = ReEncryptionKey(key_id, path, passphrase='')
+        _cache = _rsa_cache
     else:
         LOG.error(f"Unrecognised key type.")
 
+    key_id, value = obj_key.load_key()
+    _cache.set(key_id, value, ttl=ttl)
 
 @routes.get('/retrieve/pgp/{requested_id}')
 async def retrieve_pgp_key(request):
-    """Retrieve tuple to reconstruced unlocked key."""
+    """Retrieve tuple to reconstruced unlocked key.
+
+    In case the output is not JSON, we use the following encoding:
+    First, 4 bytes for the length of the public part, followed by the public part.
+    Then, 4 bytes for the length of the private part, followed by the private part."""
     requested_id = request.match_info['requested_id']
     request_type = request.content_type
     key_id = requested_id[-16:]
@@ -176,12 +185,10 @@ async def retrieve_pgp_key(request):
 async def retrieve_pgp_key_private(request):
     """Retrieve private part to reconstruced unlocked key."""
     requested_id = request.match_info['requested_id']
-    print(request.content_type)
     key_id = requested_id[-16:]
     value = _pgp_cache.get(key_id)
     if value:
-        private_key = b''.join((value[2], value[3]))
-        return web.Response(body=private_key.hex())
+        return web.Response(body=value[3].hex())
     else:
         LOG.warn(f"Requested PGP key {requested_id} not found.")
         return web.HTTPNotFound()
@@ -191,23 +198,23 @@ async def retrieve_pgp_key_private(request):
 async def retrieve_pgp_key_public(request):
     """Retrieve public to reconstruced unlocked key."""
     requested_id = request.match_info['requested_id']
-    print(request.content_type)
     key_id = requested_id[-16:]
     value = _pgp_cache.get(key_id)
     if value:
-        public_key = b''.join((value[0], value[1]))
-        return web.Response(body=public_key.hex())
+        return web.Response(body=value[1].hex())
     else:
         LOG.warn(f"Requested PGP key {requested_id} not found.")
         return web.HTTPNotFound()
 
 
-@routes.get('/retrieve/rsa')
+@routes.get('/retrieve/reencryptionkey')
 async def retrieve_reencryt_key(request):
     """Retrieve RSA reencryption key."""
-    value = _rsa_cache.get("rsa")
+    key_id = _rsa_cache.get("active_rsa_key")
+    value = _rsa_cache.get(key_id)
     if value:
-        return web.Response(text=value)
+        return web.json_response({ 'id': key_id,
+                                   'public': value.hex()})
     else:
         LOG.warn(f"Requested ReEncryption Key not found.")
         return web.HTTPNotFound()
@@ -218,8 +225,7 @@ async def unlock_key(request):
     """Unlock a key via request."""
     key_info = await request.json()
     if all(k in key_info for k in("path", "passphrase", "ttl")):
-        key_info["type"] = "pgp"
-        await activate_key(key_info)
+        await activate_key('pgp', key_info['path'], passphrase=key_info['passphrase'], ttl=key_info['ttl'])
         return web.HTTPAccepted()
     else:
         return web.HTTPBadRequest()
@@ -240,17 +246,17 @@ async def load_keys_conf(KEYS):
     """Parse and load keys configuration."""
     active_pgp_key = KEYS.get('PGP', 'active')
     active_rsa_key = KEYS.get('REENCRYPTION_KEYS', 'active')
-    pgp_key = {"type": "pgp",
-               "path": KEYS.get(active_pgp_key, 'private'),
-               "passphrase": KEYS.get(active_pgp_key, 'passphrase'),
-               "ttl": KEYS.get('PGP', 'EXPIRE', fallback=None)}
-
-    rsa_key = {"type": "rsa",
-               "path": KEYS.get(active_rsa_key, 'PATH'),
-               "ttl": KEYS.get('REENCRYPTION_KEYS', 'EXPIRE', fallback=None)}
-
-    await activate_key(pgp_key)
-    await activate_key(rsa_key)
+    await activate_key('pgp',
+                       path=KEYS.get(active_pgp_key, 'private'),
+                       passphrase=KEYS.get(active_pgp_key, 'passphrase'),
+                       ttl=KEYS.get('PGP', 'EXPIRE', fallback=None),
+                       key_id=None)
+    await activate_key('rsa',
+                       path=KEYS.get(active_rsa_key, 'PATH'),
+                       passphrase=None,
+                       ttl=KEYS.get('REENCRYPTION_KEYS', 'EXPIRE', fallback=None),
+                       key_id=active_rsa_key)
+    _rsa_cache.set('active_rsa_key', active_rsa_key)
 
 
 def main(args=None):
