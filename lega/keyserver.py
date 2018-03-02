@@ -27,6 +27,7 @@ class Cache:
         self._store = dict()
         self._max_size = max_size
         self._ttl = ttl
+        self._FMT = '%d/%b/%y %H:%M:%S'
 
     def set(self, key, value, ttl=None):
         """Assign in the store to the the key the value and ttl."""
@@ -54,18 +55,19 @@ class Cache:
         keys = []
         for key, data in self._store.items():
             value, expire = data
+            if expire and time.time() > expire:
+                del self._store[key]
             keys.append((key, self._time_delta(expire)))
-        return keys
+            return keys
 
     def _time_delta(self, expire):
         """"Convert time left in huma readable format."""
         # A lot of back and forth transformation
-        end_time = datetime.datetime.fromtimestamp(expire).strftime('%d/%b/%y %H:%M:%S')
-        today = datetime.datetime.today().strftime('%d/%b/%y %H:%M:%S')
-        FMT = '%d/%b/%y %H:%M:%S'
-        tdelta = datetime.datetime.strptime(end_time, FMT) - datetime.datetime.strptime(today, FMT)
+        end_time = datetime.datetime.fromtimestamp(expire).strftime(self._FMT)
+        today = datetime.datetime.today().strftime(self._FMT)
+        tdelta = datetime.datetime.strptime(end_time, self._FMT) - datetime.datetime.strptime(today, self._FMT)
 
-        if tdelta.days < 0:
+        if tdelta.days > 0:
             tdelta = datetime.timedelta(days=tdelta.days, seconds=tdelta.seconds)
             return f"{tdelta.days} days {tdelta.days * 24 + tdelta.seconds // 3600} hours {(tdelta.seconds % 3600) // 60} minutes {tdelta.seconds} seconds"
 
@@ -74,7 +76,7 @@ class Cache:
 
         Example of set time and date 30/MAR/18 08:00:00 .
         """
-        return time.mktime(datetime.datetime.strptime(date_time, "%d/%b/%y %H:%M:%S").timetuple())
+        return time.mktime(datetime.datetime.strptime(date_time, self._FMT).timetuple())
 
     def _check_limit(self):
         """Check if current cache size exceeds maximum cache size and pop the oldest item in this case."""
