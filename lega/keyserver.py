@@ -280,17 +280,14 @@ def main(args=None):
     sslcontext.check_hostname = False
     sslcontext.load_cert_chain(ssl_certfile, ssl_keyfile)
 
-    host = CONF.get('keyserver', 'host')
-    port = CONF.getint('keyserver', 'port')
     loop = asyncio.get_event_loop()
-
     keyserver = web.Application(loop=loop)
     keyserver.router.add_routes(routes)
 
     loop.run_until_complete(load_keys_conf(KEYS))
 
     LOG.info("Start keyserver")
-    web.run_app(keyserver, host=host, port=port, shutdown_timeout=0, ssl_context=sslcontext)
+    web.run_app(keyserver, host='0.0.0.0', port=443, shutdown_timeout=0, ssl_context=sslcontext)
 
 
 if __name__ == '__main__':
