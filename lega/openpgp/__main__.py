@@ -15,6 +15,27 @@ from .utils import make_key, PGPError
 
 LOG = logging.getLogger('openpgp')
 
+ssl_ctx = ssl.create_default_context()
+ssl_ctx.check_hostname = False
+ssl_ctx.verify_mode=ssl.CERT_NONE
+
+def fetch_private_key(key_id):
+    connection = CONF.get('ingestion','keyserver_connection')
+    LOG.info(f'Retrieving the PGP Private Key {key_id}')
+    keyurl = f'{connection}/retrieve/pgp/{key_id}'
+    try:
+        req = Request(keyurl, headers={'content-type':'application/json'}, method='GET')
+        LOG.info(f'Opening connection to {keyurl}')
+        with urlopen(req, context=ssl_ctx) as response:
+            data = json.loads(response.read().decode())
+            public_key_material = bytes.fromhex(data['public'])
+            private_key_material = bytes.fromhex(data['private'])
+        # Connection closed
+        return make_key(public_key_material, private_key_material)
+    except HTTPError as e:
+        LOG.critical(f'Unknown PGP key {key_id}')
+        sys.exit(1)
+
 def main(args=None):
 
     if not args:
@@ -37,29 +58,9 @@ def main(args=None):
                 LOG.debug(str(packet))
                 if packet.tag == 1:
                     LOG.debug("###### Decrypting session key")
-                    # Note: decrypt_session_key knows the key ID.
-                    #       It will be updated to contact the keyserver
-                    #       and retrieve the private_key material
-                    connection = CONF.get('ingestion','keyserver_connection')
-                    ssl_ctx = ssl.create_default_context()
-                    ssl_ctx.check_hostname = False
-                    ssl_ctx.verify_mode=ssl.CERT_NONE
-                    def fetch_private_key(key_id):
-                        LOG.info(f'Retrieving the PGP Private Key {key_id}')
-                        keyurl = f'{connection}/retrieve/pgp/{key_id}'
-                        try:
-                            req = Request(keyurl, headers={'content-type':'application/json'}, method='GET')
-                            LOG.info(f'Opening connection to {keyurl}')
-                            with urlopen(req, context=ssl_ctx) as response:
-                                data = json.loads(response.read().decode())
-                                public_key_material = bytes.fromhex(data['public'])
-                                private_key_material = bytes.fromhex(data['private'])
-                            # Connection closed
-                            return make_key(public_key_material, private_key_material)
-                        except HTTPError as e:
-                            LOG.critical(f'Unknown PGP key {key_id}')
-                            sys.exit(1)
-
+                    # Note: decrypt_session_key does not know yet the key ID.
+                    #       It will parse the packet and then contact the keyserver
+                    #       to retrieve the private_key material
                     name, cipher, session_key = packet.decrypt_session_key(fetch_private_key)
                     LOG.info(f'SESSION KEY: {session_key.hex()}')
 
