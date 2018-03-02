@@ -8,11 +8,8 @@ set -e
 [[ -z "$KEYSERVER_HOST" ]] && echo 'Environment KEYSERVER_HOST is empty' 1>&2 && exit 1
 [[ -z "$KEYSERVER_PORT" ]] && echo 'Environment KEYSERVER_PORT is empty' 1>&2 && exit 1
 
-# echo "Waiting for Keyserver"
+echo "Waiting for Keyserver"
 until nc -4 --send-only ${KEYSERVER_HOST} ${KEYSERVER_PORT} </dev/null &>/dev/null; do sleep 1; done
-echo "Starting the socket forwarder"
-ega-socket-forwarder /root/.gnupg/S.gpg-agent ${KEYSERVER_HOST}:${KEYSERVER_PORT} --certfile /etc/ega/ssl.cert &
-
 echo "Waiting for Central Message Broker"
 until nc -4 --send-only ${CEGA_INSTANCE} 5672 </dev/null &>/dev/null; do sleep 1; done
 echo "Waiting for Local Message Broker"

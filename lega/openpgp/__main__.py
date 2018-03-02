@@ -25,8 +25,8 @@ def main(args=None):
         #
         # seckey = "/Users/daz/_ega/deployments/docker/private/swe1/gpg/ega.sec"
         # passphrase = "I0jhU1FKoAU76HuN".encode()
-        seckey = "/Users/daz/_ega/deployments/docker/bootstrap/ega.sec"
-        passphrase = "blabla".encode()
+        seckey = "/etc/ega/pgp/sec.pem"
+        passphrase = "8RYJtXsU4qc3lmAi".encode()
         public_key_material = private_key_material = None
         LOG.info(f"###### Opening sec key: {seckey}")
         with open(seckey, 'rb') as infile:
@@ -35,12 +35,13 @@ def main(args=None):
                 LOG.info(str(packet))
                 if packet.tag == 5:
                     public_key_material, private_key_material = packet.unlock(passphrase)
+                    LOG.info('============================= KEY ID: %s',packet.key_id)
                 else:
                     packet.skip()
         #
         # End of the temporary part
         ##################################################################
-        #sys.exit(2)
+        sys.exit(2)
 
         filename = args[-1] # Last argument
 
