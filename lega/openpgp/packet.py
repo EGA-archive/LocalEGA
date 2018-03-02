@@ -301,7 +301,7 @@ class PublicKeyEncryptedSessionKeyPacket(Packet):
 
     def __repr__(self):
         s = super().__repr__()
-        return f"{s} | keyID {self.key_id.hex()} ({lookup_pub_algorithm(self.raw_pub_algorithm)[0]})"
+        return f"{s} | keyID {self.key_id} ({lookup_pub_algorithm(self.raw_pub_algorithm)[0]})"
 
     def decrypt_session_key(self, private_key, private_padding):
         assert( not self.partial )

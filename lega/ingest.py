@@ -30,6 +30,7 @@ import uuid
 import ssl
 from functools import partial
 from urllib.request import urlopen
+import json
 
 
 from .conf import CONF
@@ -153,32 +154,26 @@ def main(args=None):
 
     CONF.setup(args) # re-conf
 
-    # Prepare to contact the Keyserver for the PGP key
-    connection = CONF.get('ingestion','keyserver_connection')
-    ssl_certfile = Path(CONF.get('ingestion','keyserver_ssl_certfile')).expanduser()
-
-    ssl_ctx = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
-    ssl_ctx.check_hostname = False
-    if ssl_certfile and ssl_certfile.exists():
-        ssl_ctx.load_cert_chain(ssl_certfile)
-
-    if not ssl_ctx:
-        LOG.error('No SSL encryption. Exiting...')
-        sys.exit(2)
-    else:
-        LOG.debug('With SSL encryption')
-        
+    master_key = None
     try:
+        # Prepare to contact the Keyserver for the Master key
+        connection = CONF.get('ingestion','keyserver_connection')
+        ssl_ctx = ssl.create_default_context()
+        ssl_ctx.check_hostname = False
+        ssl_ctx.verify_mode=ssl.CERT_NONE
         LOG.info('Retrieving the Master Public Key')
         with urlopen(connection+'/retrieve/reencryptionkey', context=ssl_ctx) as response:
             master_key = json.loads(response.read().decode())
-            do_work = partial(work, int(master_key['id']), bytes.fromhex(master_key['public']))
-        
     except Exception as e:
         LOG.error(repr(e))
         LOG.critical('Problem contacting the Keyserver. Ingestion Worker terminated')
         sys.exit(1)
     else:
+
+        # Server connection closed
+        assert( master_key )
+        do_work = partial(work, master_key['id'], bytes.fromhex(master_key['public']))
+        
         # upstream link configured in local broker
         consume(do_work, 'files', 'staged')
 
