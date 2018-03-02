@@ -74,6 +74,8 @@ log = /etc/ega/logger.yml
 # Keyserver communication
 keyserver_connection = https://ega-keys-${INSTANCE}
 
+decrypt_cmd = python3.6 -u -m lega.openpgp %(file)s
+
 ## Connecting to Local EGA
 [broker]
 host = ega-mq-${INSTANCE}

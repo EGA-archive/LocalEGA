@@ -86,7 +86,7 @@ class Cache:
 
 
 # All the cache goes here
-_pgp_cache = Cache()
+_pgp_cache = Cache() # keys are uppercase
 _rsa_cache = Cache()
 
 
@@ -116,7 +116,7 @@ class PGPPrivateKey:
                 else:
                     packet.skip()
 
-        return (self.key_id, (_public_length, _public_key_material, _private_length, _private_key_material))
+        return (self.key_id.upper(), (_public_length, _public_key_material, _private_length, _private_key_material))
 
 
 class ReEncryptionKey:
@@ -141,6 +141,8 @@ class ReEncryptionKey:
 # For now, one must know the path of the Key to re(activate) it
 async def activate_key(key_type, path, key_id=None, ttl=None, passphrase=None):
     """(Re)Activate a key."""
+
+    LOG.debug(f'(Re)Activating a {key_type} key: {path} | key ID: {key_id} | ttl: {ttl} | passphrase: {passphrase}')
     if key_type == "pgp":
         obj_key = PGPPrivateKey(path, passphrase)
         _cache = _pgp_cache
@@ -152,6 +154,7 @@ async def activate_key(key_type, path, key_id=None, ttl=None, passphrase=None):
         LOG.error(f"Unrecognised key type.")
 
     key_id, value = obj_key.load_key()
+    LOG.debug(f'Caching key: {key_id} in the {key_type} cache')
     _cache.set(key_id, value, ttl=ttl)
 
 @routes.get('/retrieve/pgp/{requested_id}')
@@ -164,7 +167,7 @@ async def retrieve_pgp_key(request):
     requested_id = request.match_info['requested_id']
     request_type = request.content_type
     LOG.debug(f'Requested PGP key with ID {requested_id} | {request_type}')
-    key_id = requested_id[-16:]
+    key_id = requested_id[-16:].upper()
     value = _pgp_cache.get(key_id)
     if value:
         if request_type == 'application/json':
@@ -184,7 +187,7 @@ async def retrieve_pgp_key_private(request):
     """Retrieve private part to reconstruced unlocked key."""
     requested_id = request.match_info['requested_id']
     LOG.debug(f'Requested PGP (private) key with ID {requested_id} | {request_type}')
-    key_id = requested_id[-16:]
+    key_id = requested_id[-16:].upper()
     value = _pgp_cache.get(key_id)
     if value:
         return web.Response(body=value[3].hex())
@@ -198,7 +201,7 @@ async def retrieve_pgp_key_public(request):
     """Retrieve public to reconstruced unlocked key."""
     requested_id = request.match_info['requested_id']
     LOG.debug(f'Requested PGP (public) key with ID {requested_id} | {request_type}')
-    key_id = requested_id[-16:]
+    key_id = requested_id[-16:].upper()
     value = _pgp_cache.get(key_id)
     if value:
         return web.Response(body=value[1].hex())
@@ -249,12 +252,12 @@ async def check_ttl(request):
 async def load_keys_conf(KEYS):
     """Parse and load keys configuration."""
     active_pgp_key = KEYS.get('PGP', 'active')
-    active_rsa_key = KEYS.get('REENCRYPTION_KEYS', 'active')
     await activate_key('pgp',
                        path=KEYS.get(active_pgp_key, 'private'),
                        passphrase=KEYS.get(active_pgp_key, 'passphrase'),
                        ttl=KEYS.get('PGP', 'EXPIRE', fallback=None),
                        key_id=None)
+    active_rsa_key = KEYS.get('REENCRYPTION_KEYS', 'active')
     await activate_key('rsa',
                        path=KEYS.get(active_rsa_key, 'PATH'),
                        passphrase=None,

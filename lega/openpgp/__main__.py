@@ -4,8 +4,10 @@
 import sys
 import logging
 from urllib.request import urlopen, Request
+from urllib.error import HTTPError
 import json
 import ssl
+import argparse
 
 from ..conf import CONF
 from .packet import iter_packets
@@ -21,33 +23,15 @@ def main(args=None):
     CONF.setup(args)
 
     try:
-        # ##################################################################
-        # # Temporary part that loads the private key and unlocks it
-        # #
-        # # seckey = "/Users/daz/_ega/deployments/docker/private/swe1/gpg/ega.sec"
-        # # passphrase = "I0jhU1FKoAU76HuN".encode()
-        # seckey = "/etc/ega/pgp/sec.pem"
-        # passphrase = "8RYJtXsU4qc3lmAi".encode()
-        # public_key_material = private_key_material = None
-        # LOG.info(f"###### Opening sec key: {seckey}")
-        # with open(seckey, 'rb') as infile:
-        #     from .utils import unarmor
-        #     for packet in iter_packets(unarmor(infile)):
-        #         LOG.info(str(packet))
-        #         if packet.tag == 5:
-        #             public_key_material, private_key_material = packet.unlock(passphrase)
-        #             LOG.info('============================= KEY ID: %s',packet.key_id)
-        #         else:
-        #             packet.skip()
-        # #
-        # # End of the temporary part
-        # ##################################################################
-        # sys.exit(2)
+        # Parser to enforce the filename
+        parser = argparse.ArgumentParser(description='''Decrypt a PGP message.''')
+        parser.add_argument('--log', help="The logger configuration file")
+        parser.add_argument('--conf', help="The EGA configuration file")
+        parser.add_argument('filename', help="The path of the file to decrypt")
+        args = parser.parse_args()
 
-        filename = args[-1] # Last argument
-
-        LOG.debug(f"###### Encrypted file: {filename}")
-        with open(filename, 'rb') as infile:
+        LOG.debug(f"###### Encrypted file: {args.filename}")
+        with open(args.filename, 'rb') as infile:
             name = cipher = session_key = None
             for packet in iter_packets(infile):
                 LOG.debug(str(packet))
@@ -63,14 +47,18 @@ def main(args=None):
                     def fetch_private_key(key_id):
                         LOG.info(f'Retrieving the PGP Private Key {key_id}')
                         keyurl = f'{connection}/retrieve/pgp/{key_id}'
-                        req = Request(keyurl, headers={'content-type':'application/json'}, method='GET')
-                        LOG.info(f'Opening connection to {keyurl}')
-                        with urlopen(req, context=ssl_ctx) as response:
-                            data = json.loads(response.read().decode)
-                            public_key_material = bytes.fromhex(data['public'])
-                            private_key_material = bytes.fromhex(data['private'])
-                        # Connection closed
-                        return make_key(public_key_material, private_key_material)
+                        try:
+                            req = Request(keyurl, headers={'content-type':'application/json'}, method='GET')
+                            LOG.info(f'Opening connection to {keyurl}')
+                            with urlopen(req, context=ssl_ctx) as response:
+                                data = json.loads(response.read().decode())
+                                public_key_material = bytes.fromhex(data['public'])
+                                private_key_material = bytes.fromhex(data['private'])
+                            # Connection closed
+                            return make_key(public_key_material, private_key_material)
+                        except HTTPError as e:
+                            LOG.critical(f'Unknown PGP key {key_id}')
+                            sys.exit(1)
 
                     name, cipher, session_key = packet.decrypt_session_key(fetch_private_key)
                     LOG.info(f'SESSION KEY: {session_key.hex()}')
