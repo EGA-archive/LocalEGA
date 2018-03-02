@@ -16,7 +16,7 @@ message broker and a database.
 
 Users are handled throught Central EGA, directly.
 ''',
-      packages=['lega', 'lega/utils', 'lega/conf'],
+      packages=['lega', 'lega/utils', 'lega/openpgp', 'lega/conf'],
       include_package_data=False,
       package_data={ 'lega': ['conf/loggers/*.yaml', 'conf/defaults.ini'] },
       zip_safe=False,
