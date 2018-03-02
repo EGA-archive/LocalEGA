@@ -1,10 +1,11 @@
-#!/usr/bin/env python3 -u
+#!/usr/bin/env python3.6 -u
 # -*- coding: utf-8 -*-
 
 import sys
 import logging
-# from urllib.request import urlopen
-# import json
+from urllib.request import urlopen, Request
+import json
+import ssl
 
 from ..conf import CONF
 from .packet import iter_packets
@@ -59,17 +60,19 @@ def main(args=None):
                     ssl_ctx = ssl.create_default_context()
                     ssl_ctx.check_hostname = False
                     ssl_ctx.verify_mode=ssl.CERT_NONE
-                    LOG.info('Retrieving the PGP Private Key')
-                    keyurl = f'{connection}/retrieve/pgp/{packet.key_id}'
-                    req = urllib.request.Request(keyurl, headers={'content-type':'application/json'}, method='GET')
-                    LOG.info(f'Opening connection to {keyurl}')
-                    with urlopen(req, context=ssl_ctx) as response:
-                        data = json.loads(response.read().decode))
-                        public_key_material = bytes.fromhex(data['public'])
-                        private_key_material = bytes.fromhex(data['private'])
-                    # Connection closed
-                    private_key, private_padding = make_key(public_key_material, private_key_material)
-                    name, cipher, session_key = packet.decrypt_session_key(private_key, private_padding)
+                    def fetch_private_key(key_id):
+                        LOG.info(f'Retrieving the PGP Private Key {key_id}')
+                        keyurl = f'{connection}/retrieve/pgp/{key_id}'
+                        req = Request(keyurl, headers={'content-type':'application/json'}, method='GET')
+                        LOG.info(f'Opening connection to {keyurl}')
+                        with urlopen(req, context=ssl_ctx) as response:
+                            data = json.loads(response.read().decode)
+                            public_key_material = bytes.fromhex(data['public'])
+                            private_key_material = bytes.fromhex(data['private'])
+                        # Connection closed
+                        return make_key(public_key_material, private_key_material)
+
+                    name, cipher, session_key = packet.decrypt_session_key(fetch_private_key)
                     LOG.info(f'SESSION KEY: {session_key.hex()}')
 
                 elif packet.tag == 18:

@@ -14,7 +14,6 @@ RUN pip3.6 install PyYaml ${PIP_EGA_PACKAGES}
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod 755 /usr/local/bin/entrypoint.sh
 
-ENV KEYSERVER_HOST=
-ENV KEYSERVER_PORT=
+ENV KEYSERVER_INSTANCE=
 ENV MQ_INSTANCE=
 ENTRYPOINT ["entrypoint.sh"]

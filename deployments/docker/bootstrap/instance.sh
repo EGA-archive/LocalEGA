@@ -72,7 +72,7 @@ log = /etc/ega/logger.yml
 
 [ingestion]
 # Keyserver communication
-keyserver_connection = https://ega-keys-${INSTANCE}:9011
+keyserver_connection = https://ega-keys-${INSTANCE}
 
 ## Connecting to Local EGA
 [broker]
@@ -376,12 +376,60 @@ services:
       - ./${INSTANCE}/ega.conf:/etc/ega/conf.ini:ro
       - ./${INSTANCE}/logger.yml:/etc/ega/logger.yml:ro
       - inbox_${INSTANCE}:/ega/inbox
-      # ../../../lega:/root/.local/lib/python3.6/site-packages/lega
+      # - ../../../lega:/root/.local/lib/python3.6/site-packages/lega
       # - ~/_auth_ega:/root/auth
     restart: on-failure:3
     networks:
       - lega_${INSTANCE}
       - cega
+
+  # Ingestion Workers
+  ingest-${INSTANCE}:
+    depends_on:
+      - db-${INSTANCE}
+      - mq-${INSTANCE}
+      - keys-${INSTANCE}
+    image: nbisweden/ega-worker
+    # Required external link
+    external_links:
+      - cega-mq:cega-mq
+    environment:
+      - MQ_INSTANCE=ega-mq-${INSTANCE}
+      - KEYSERVER_INSTANCE=ega-keys-${INSTANCE}
+    volumes:
+       - inbox_${INSTANCE}:/ega/inbox
+       - staging_${INSTANCE}:/ega/staging
+       - ./${INSTANCE}/ega.conf:/etc/ega/conf.ini:ro
+       - ./${INSTANCE}/logger.yml:/etc/ega/logger.yml:ro
+       - ../../../lega:/root/.local/lib/python3.6/site-packages/lega
+    restart: on-failure:3
+    networks:
+      - lega_${INSTANCE}
+      - cega
+
+  # Key server
+  keys-${INSTANCE}:
+    env_file: ${INSTANCE}/pgp.env
+    hostname: ega-keys-${INSTANCE}
+    container_name: ega-keys-${INSTANCE}
+    image: nbisweden/ega-keys
+    tty: true
+    expose:
+      - "443"
+    volumes:
+       - ./${INSTANCE}/ega.conf:/etc/ega/conf.ini:ro
+       - ./${INSTANCE}/logger.yml:/etc/ega/logger.yml:ro
+       - ./${INSTANCE}/keys.conf:/etc/ega/keys.ini:ro
+       - ./${INSTANCE}/certs/ssl.cert:/etc/ega/ssl.cert:ro
+       - ./${INSTANCE}/certs/ssl.key:/etc/ega/ssl.key:ro
+       - ./${INSTANCE}/pgp/ega.pub:/etc/ega/pgp/pub.pem:ro
+       - ./${INSTANCE}/pgp/ega.sec:/etc/ega/pgp/sec.pem:ro
+       - ./${INSTANCE}/rsa/ega.pub:/etc/ega/rsa/pub.pem:ro
+       - ./${INSTANCE}/rsa/ega.sec:/etc/ega/rsa/sec.pem:ro
+       - ../../../lega:/root/.local/lib/python3.6/site-packages/lega
+    restart: on-failure:3
+    networks:
+      - lega_${INSTANCE}
 
   # Vault
   vault-${INSTANCE}:
@@ -403,65 +451,11 @@ services:
        - vault_${INSTANCE}:/ega/vault
        - ./${INSTANCE}/ega.conf:/etc/ega/conf.ini:ro
        - ./${INSTANCE}/logger.yml:/etc/ega/logger.yml:ro
-       # ../../../lega:/root/.local/lib/python3.6/site-packages/lega
+       # - ../../../lega:/root/.local/lib/python3.6/site-packages/lega
     restart: on-failure:3
     networks:
       - lega_${INSTANCE}
       - cega
-
-  # Ingestion Workers
-  ingest-${INSTANCE}:
-    depends_on:
-      - db-${INSTANCE}
-      - mq-${INSTANCE}
-      - keys-${INSTANCE}
-    image: nbisweden/ega-worker
-    # Required external link
-    external_links:
-      - cega-mq:cega-mq
-    environment:
-      - MQ_INSTANCE=ega-mq-${INSTANCE}
-      - CEGA_INSTANCE=cega-mq
-      - KEYSERVER_HOST=ega-keys-${INSTANCE}
-      - KEYSERVER_PORT=9010
-    volumes:
-       - inbox_${INSTANCE}:/ega/inbox
-       - staging_${INSTANCE}:/ega/staging
-       - ./${INSTANCE}/ega.conf:/etc/ega/conf.ini:ro
-       - ./${INSTANCE}/logger.yml:/etc/ega/logger.yml:ro
-       - ./${INSTANCE}/certs/ssl.cert:/etc/ega/ssl.cert:ro
-       # ../../../lega:/root/.local/lib/python3.6/site-packages/lega
-    restart: on-failure:3
-    networks:
-      - lega_${INSTANCE}
-      - cega
-
-  # Key server
-  keys-${INSTANCE}:
-    env_file: ${INSTANCE}/pgp.env
-    environment:
-      - KEYSERVER_PORT=9010
-    hostname: ega-keys-${INSTANCE}
-    container_name: ega-keys-${INSTANCE}
-    image: nbisweden/ega-keys
-    tty: true
-    expose:
-      - "9010"
-      - "9011"
-    volumes:
-       - ./${INSTANCE}/ega.conf:/etc/ega/conf.ini:ro
-       - ./${INSTANCE}/logger.yml:/etc/ega/logger.yml:ro
-       - ./${INSTANCE}/keys.conf:/etc/ega/keys.ini:ro
-       - ./${INSTANCE}/certs/ssl.cert:/etc/ega/ssl.cert:ro
-       - ./${INSTANCE}/certs/ssl.key:/etc/ega/ssl.key:ro
-       - ./${INSTANCE}/pgp/ega.pub:/etc/ega/pgp/pub.pem:ro
-       - ./${INSTANCE}/pgp/ega.sec:/etc/ega/pgp/sec.pem:ro
-       - ./${INSTANCE}/rsa/ega.pub:/etc/ega/rsa/pub.pem:ro
-       - ./${INSTANCE}/rsa/ega.sec:/etc/ega/rsa/sec.pem:ro
-       # ../../../lega:/root/.local/lib/python3.6/site-packages/lega
-    restart: on-failure:3
-    networks:
-      - lega_${INSTANCE}
 
   # Logging & Monitoring (ELK: Elasticsearch, Logstash, Kibana).
   elasticsearch-${INSTANCE}:
