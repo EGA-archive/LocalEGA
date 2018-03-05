@@ -15,8 +15,8 @@ resource "openstack_compute_secgroup_v2" "ega_inbox" {
   description = "SFTP inbox rules"
 
   rule {
-    from_port   = 22
-    to_port     = 22
+    from_port   = 9000
+    to_port     = 9000
     ip_protocol = "tcp"
     cidr        = "0.0.0.0/0"
   }
@@ -30,15 +30,17 @@ data "template_file" "cloud_init" {
     conf        = "${base64encode("${file("${var.instance_data}/ega.conf")}")}"
     auth_conf   = "${base64encode("${file("${var.instance_data}/auth.conf")}")}"
     hosts       = "${base64encode("${file("${path.root}/hosts")}")}"
-    hosts_allow = "${base64encode("${file("${path.root}/hosts.allow")}")}"
-    sshd_config = "${base64encode("${file("${path.module}/sshd_config")}")}"
-    sshd_pam    = "${base64encode("${file("${path.module}/pam.sshd")}")}"
-    ega_pam     = "${base64encode("${file("${path.module}/pam.ega")}")}"
-    fuse_cleanup= "${base64encode("${file("${path.module}/fuse_cleanup.sh")}")}"
+    boot_script = "${base64encode("${file("${path.module}/boot.sh")}")}"
+    ega_options = "${base64encode("${file("${path.root}/systemd/options")}")}"
+    ega_slice   = "${base64encode("${file("${path.root}/systemd/ega.slice")}")}"
+    ega_inbox   = "${base64encode("${file("${path.root}/systemd/ega-inbox.service")}")}"
     ega_ssh_keys= "${base64encode("${file("${var.instance_data}/ega_ssh_keys.sh")}")}"
     ega_mount   = "${base64encode("${file("${path.root}/systemd/ega.mount")}")}"
+    ega_banner  = "${base64encode("${file("private/banner")}")}"
   }
 }
+
+# /etc/hosts.allow must contain ega as a service, and sshd
 
 resource "openstack_compute_instance_v2" "inbox" {
   name      = "inbox"
