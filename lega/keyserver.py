@@ -40,6 +40,7 @@ from .openpgp.utils import unarmor
 from .openpgp.packet import iter_packets
 from .conf import CONF, KeysConfiguration
 from .utils import get_file_content
+# from .openpgp.generate import generate_pgp_key
 
 LOG = logging.getLogger('keyserver')
 routes = web.RouteTableDef()
@@ -77,14 +78,14 @@ class Cache:
         keys = []
         for key, data in self._store.items():
             value, expire = data
-            if expire and time.time() > expire:
-                del self._store[key]
-            if expire:
+            if expire and time.time() < expire:
                 keys.append({"keyID": key, "ttl": self._time_delta(expire)})
-            return keys
+            if expire is None and key not in ['active_pgp_key', 'active_rsa_key']:
+                keys.append({"keyID": key, "ttl": "Expiration not set."})
+        return keys
 
     def _time_delta(self, expire):
-        """"Convert time left in huma readable format."""
+        """"Convert time left in human readable format."""
         # A lot of back and forth transformation
         end_time = datetime.datetime.fromtimestamp(expire).strftime(self._FMT)
         today = datetime.datetime.today().strftime(self._FMT)
@@ -166,7 +167,7 @@ class ReEncryptionKey:
 async def activate_key(key_name, path, ttl=None, passphrase=None):
     """(Re)Activate a key."""
 
-    LOG.debug(f'(Re)Activating a {key_name} key: {path} | ttl: {ttl} | passphrase: {passphrase}')
+    LOG.debug(f'(Re)Activating a {key_name} key: {path} | ttl: {ttl}')
     if key_name.startswith("pgp"):
         obj_key = PGPPrivateKey(path, passphrase)
         _cache = _pgp_cache
@@ -226,7 +227,7 @@ async def active_pgp_key_private(request):
 @routes.get('/active/pgp/public')
 async def active_pgp_key_public(request):
     """Retrieve public to reconstruced unlocked active key."""
-    key_id = _pgp_cache.retrieve_active()
+    key_id = _pgp_cache.get("active_pgp_key")
     LOG.debug(f'Requested active PGP (public) key.')
     value = _pgp_cache.get(key_id)
     if value:
@@ -252,7 +253,7 @@ async def retrieve_active_rsa(request):
 
 # Just want to get a key by its key_id PGP or RSA
 
-@routes.get('/retrive/pgp/{requested_id}')
+@routes.get('/retrieve/pgp/{requested_id}')
 async def retrieve_pgp_key(request):
     """Retrieve tuple to reconstruced unlocked key.
 
@@ -278,7 +279,7 @@ async def retrieve_pgp_key(request):
         return web.HTTPNotFound()
 
 
-@routes.get('/retrive/pgp/{requested_id}/private')
+@routes.get('/retrieve/pgp/{requested_id}/private')
 async def retrieve_pgp_key_private(request):
     """Retrieve private part to reconstruced unlocked key."""
     requested_id = request.match_info['requested_id']
@@ -292,7 +293,7 @@ async def retrieve_pgp_key_private(request):
         return web.HTTPNotFound()
 
 
-@routes.get('/retrive/pgp/{requested_id}/public')
+@routes.get('/retrieve/pgp/{requested_id}/public')
 async def retrieve_pgp_key_public(request):
     """Retrieve public to reconstruced unlocked key."""
     requested_id = request.match_info['requested_id']
@@ -306,7 +307,7 @@ async def retrieve_pgp_key_public(request):
         return web.HTTPNotFound()
 
 
-@routes.get('/retrive/rsa/{requested_id}')
+@routes.get('/retrieve/rsa/{requested_id}')
 async def retrieve_reencryt_key(request):
     """Retrieve RSA reencryption key."""
     requested_id = request.match_info['requested_id']
@@ -332,6 +333,23 @@ async def unlock_key(request):
         return web.HTTPBadRequest()
 
 
+# @routes.post('generate/pgp')
+# async def generate_pgp_key_pair(request):
+#     """Generate PGP key pair"""
+#     key_options = await request.json()
+#     LOG.debug(f'Admin generate PGP key pair: {key_options}')
+#     if all(k in key_options for k in("name", "comment", "email")):
+#         # By default we can return armored
+#         pub_data, sec_data = generate_pgp_key(key_options['name'],
+#                                               key_options['email'],
+#                                               key_options['comment'],
+#                                               key_options['passphrase'] if 'passphrase' in key_options else None)
+#         # TO DO return the key pair or the path where it is stored.
+#         return web.HTTPAccepted()
+#     else:
+#         return web.HTTPBadRequest()
+
+
 @routes.get('/admin/ttl')
 async def check_ttl(request):
     """Evict from the cache if TTL expired
@@ -347,12 +365,12 @@ async def check_ttl(request):
 
 async def load_keys_conf(KEYS):
     """Parse and load keys configuration."""
-    active_pgp_key = KEYS.get('PGP', 'active')
-    active_rsa_key = KEYS.get('REENCRYPTION_KEYS', 'active')
+    active_pgp_key = KEYS.get('ACTIVE', 'pgp')
+    active_rsa_key = KEYS.get('ACTIVE', 'reenc')
     _pgp_cache.set('active_pgp_key', active_pgp_key)
     _rsa_cache.set('active_rsa_key', active_rsa_key)
     for section in KEYS.sections():
-        if section not in ['REENCRYPTION_KEYS', 'PGP']:
+        if section != 'ACTIVE':
             await activate_key(section,
                                path=KEYS.get(section, 'private'),
                                passphrase=KEYS.get(section, 'passphrase', fallback=None),
