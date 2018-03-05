@@ -101,6 +101,8 @@ data "template_file" "cloud_init" {
     cega_html   = "${base64encode("${file("${path.module}/users.html")}")}"
     ega_slice   = "${base64encode("${file("../systemd/ega.slice")}")}"
     ega_service = "${base64encode("${file("../systemd/cega-users.service")}")}"
+    ega_cert    = "${base64encode("${file("private/cega.cert")}")}"
+    ega_cert_key= "${base64encode("${file("private/cega.key")}")}"
   }
 }
 
