@@ -52,7 +52,7 @@ bootcmd:
   - mkdir -m 0750 /ega
 
 runcmd:
-  - /root/boot.sh
+  - /root/boot.sh ${cidr}
 
 
 
