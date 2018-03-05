@@ -46,23 +46,29 @@ ${OPENSSL} req -x509 -newkey rsa:2048 -keyout ${PRIVATE}/${INSTANCE}/certs/ssl.k
 
 echomsg "\t* keys.conf"
 cat > ${PRIVATE}/${INSTANCE}/keys.conf <<EOF
-[REENCRYPTION_KEYS]
-active = rsa.key.1
-
-[PGP]
-active = pgp.key.1
-EXPIRE = 31/DEC/18 23:59:59
+[ACTIVE]
+reenc : rsa.key.1
+pgp : pgp.key.1
 
 [rsa.key.1]
-PATH = /etc/ega/rsa/sec.pem
+public : /etc/ega/rsa/ega.pub
+private : /etc/ega/rsa/ega.sec
 
 [rsa.key.2]
-PATH = /etc/ega/rsa/sec2.pem
+public : /etc/ega/rsa/ega2.pub
+private : /etc/ega/rsa/ega2.sec
 
 [pgp.key.1]
-public = /etc/ega/pgp/pub.pem
-private = /etc/ega/pgp/sec.pem
-passphrase = ${PGP_PASSPHRASE}
+public : /etc/ega/pgp/ega.pub
+private : /etc/ega/pgp/ega.sec
+passphrase : ${PGP_PASSPHRASE}
+expire: 30/MAR/18 08:00:00
+
+[pgp.key.2]
+public : /etc/ega/pgp/ega.pub
+private : /test/export1.pgp
+passphrase : ${PGP_PASSPHRASE}
+expire: 30/MAR/18 08:00:00
 EOF
 
 echomsg "\t* ega.conf"

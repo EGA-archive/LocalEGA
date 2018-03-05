@@ -1,5 +1,7 @@
 #!/bin/bash
 
+cidr=$1
+
 yum -y install automake autoconf libtool libgcrypt libgcrypt-devel postgresql-devel pam-devel libcurl-devel jq-devel nfs-utils fuse fuse-libs cronie
 echo '/usr/local/lib/ega' > /etc/ld.so.conf.d/ega.conf
 
@@ -23,8 +25,8 @@ chown root:ega /ega/inbox
 chown ega:ega /ega/staging
 chmod 0750 /ega/{inbox,staging}
 chmod g+s /ega/{inbox,staging}
-echo '/ega/inbox   ${cidr}(rw,sync,no_root_squash,no_all_squash,no_subtree_check)' > /etc/exports
-echo '/ega/staging ${cidr}(rw,sync,no_root_squash,no_all_squash,no_subtree_check)' >> /etc/exports
+echo "/ega/inbox   ${cidr}(rw,sync,no_root_squash,no_all_squash,no_subtree_check)" > /etc/exports
+echo "/ega/staging ${cidr}(rw,sync,no_root_squash,no_all_squash,no_subtree_check)" >> /etc/exports
 systemctl restart rpcbind nfs-server nfs-lock nfs-idmap
 systemctl enable rpcbind nfs-server nfs-lock nfs-idmap
 
