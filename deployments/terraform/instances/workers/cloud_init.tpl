@@ -16,21 +16,6 @@ write_files:
     path: /etc/ega/conf.ini
     permissions: '0600'
   - encoding: b64
-    content: ${gpg_pubring}
-    owner: ega:ega
-    path: /home/ega/.gnupg/pubring.kbx
-    permissions: '0600'
-  - encoding: b64
-    content: ${gpg_trustdb}
-    owner: ega:ega
-    path: /home/ega/.gnupg/trustdb.gpg
-    permissions: '0600'
-  - encoding: b64
-    content: ${ssl_cert}
-    owner: ega:ega
-    path: /etc/ega/ssl.cert
-    permissions: '0600'
-  - encoding: b64
     content: ${ega_options}
     owner: root:root
     path: /etc/ega/options
@@ -39,16 +24,6 @@ write_files:
     content: ${ega_slice}
     owner: root:root
     path: /etc/systemd/system/ega.slice
-    permissions: '0644'
-  - encoding: b64
-    content: ${ega_socket}
-    owner: root:root
-    path: /etc/systemd/system/ega-socket-forwarder.socket
-    permissions: '0644'
-  - encoding: b64
-    content: ${ega_forward}
-    owner: root:root
-    path: /etc/systemd/system/ega-socket-forwarder.service
     permissions: '0644'
   - encoding: b64
     content: ${ega_ingest}
@@ -67,18 +42,13 @@ write_files:
     permissions: '0644'
 
 bootcmd:
-  - mkdir -p /home/ega/.gnupg
-  - chmod 700 /home/ega/.gnupg
-  - chown -R ega:ega /home/ega/.gnupg
   - mkdir -p /ega
   - chown ega:ega /ega
   - chmod 700 /ega
 
 runcmd:
   - pip3.6 uninstall -y lega
-  - pip3.6 install git+https://github.com/NBISweden/LocalEGA.git@feature/inbox-fuse
-  - systemctl start ega-socket-forwarder.service ega-socket-forwarder.socket
-  - systemctl enable ega-socket-forwarder.service ega-socket-forwarder.socket
+  - pip3.6 install git+https://github.com/NBISweden/LocalEGA.git@feature/pgp
   - systemctl start ega-ingestion@1.service ega-ingestion@2.service
   - systemctl enable ega-ingestion@1.service ega-ingestion@2.service
 

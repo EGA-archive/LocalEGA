@@ -1,4 +1,4 @@
-{"rabbit_version":"3.6.10",
+{"rabbit_version":"3.6.14",
  "vhosts":[{"name":"/"}],
  "parameters":[],
  "policies":[],

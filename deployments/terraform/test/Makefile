@@ -1,7 +1,6 @@
 .PHONY: upload submit user rabbitmqadmin check vault
 
 TERRAFORM_PATH=$(dir $(abspath $(lastword $(MAKEFILE_LIST))))..
-GPG_EXEC=gpg
 SSH_KEY_PUB=~/.ssh/lega.pub
 SSH_KEY_PRIV=~/.ssh/lega
 
@@ -13,8 +12,13 @@ NOCOLOR=$'          \033[0m
 
 ##############################
 
+PGP_PUB=$(TERRAFORM_PATH)/private/pgp/ega.pub
+PGP_EMAIL=$(shell awk -F= '/PGP_EMAIL/ {print $$2}' $(TERRAFORM_PATH)/bootstrap/settings)
+
 GPG_HOME=$(TERRAFORM_PATH)/private/gpg
-GPG_EMAIL=$(shell awk -F= '/GPG_EMAIL/ {print $$2}' $(TERRAFORM_PATH)/bootstrap/settings)
+GPG_EXEC=gpg
+GPG_AGENT=gpg-agent
+GPG_CONF=gpgconf
 
 PREFIX_PATH=/
 ifdef $(findstring 'hellgate',$(CEGA_CONNECTION))
@@ -33,17 +37,25 @@ echo:
 	@echo CEGA_MQ_CONNECTION=$(CEGA_MQ_CONNECTION)
 
 
+# Hack to avoid the "Socket name too long" error
+/tmp/ega_gpg:
+	@mkdir -p -m 700 $(GPG_HOME)
+	ln -s $(GPG_HOME) $@
+	export GNUPGHOME=$@ && $(GPG_AGENT) --daemon
+
 org:
 	@echo "${BULLET} Create a file named 'org' ${NOCOLOR}"
 	@echo "Hello, Niclas!" > $@
 
-enc: org
+enc: org /tmp/ega_gpg
 	@echo "${BULLET} Encrypt 'org' into 'enc' ${NOCOLOR}"
-	$(GPG_EXEC) --homedir $(GPG_HOME) -r $(GPG_EMAIL) -e -o $@ $< 2>/dev/null
+	$(GPG_EXEC) --homedir /tmp/ega_gpg --import $(PGP_PUB)
+	$(GPG_EXEC) --homedir /tmp/ega_gpg -r $(PGP_EMAIL) --always-trust -e -o $@ $<
+
 
 upload: user enc
 	@echo "${BULLET} Upload 'enc' to the Swedish Local EGA inbox ${NOCOLOR}"
-	sftp -i $(SSH_KEY_PRIV) toto@${INBOX_IP} <<< $$'put enc' &>/dev/null
+	sftp -i $(SSH_KEY_PRIV) -P 9000 toto@${INBOX_IP} <<< $$'put enc' &>/dev/null
 
 enc.md5: enc
 	@echo "${BULLET} Compute checksum for 'enc' ${NOCOLOR} [algorithm: md5]"
@@ -70,6 +82,8 @@ toto.yml:
 
 clean:
 	rm -rf org enc enc.md5 org.md5 toto.yml
+	$(GPG_CONF) --homedir /tmp/ega_gpg --kill gpg-agent || :
+	unlink /tmp/ega_gpg
 
 
 check:

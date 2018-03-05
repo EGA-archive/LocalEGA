@@ -22,7 +22,7 @@ EOF
 yum -y update
 yum -y install epel-release
 #yum -y install rabbitmq-server
-yum -y install https://github.com/rabbitmq/rabbitmq-server/releases/download/rabbitmq_v3_6_10/rabbitmq-server-3.6.10-1.el7.noarch.rpm
+yum -y install https://github.com/rabbitmq/rabbitmq-server/releases/download/rabbitmq_v3_6_14/rabbitmq-server-3.6.14-1.el7.noarch.rpm
 
 # Note: Update the sudo rights?
 poweroff
