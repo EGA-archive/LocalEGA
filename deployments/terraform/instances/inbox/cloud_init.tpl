@@ -4,12 +4,7 @@ write_files:
     content: ${hosts}
     owner: root:root
     path: /etc/hosts
-    permissions: '0644'
-  - encoding: b64
-    content: ${hosts_allow}
-    owner: root:root
-    path: /etc/hosts.allow
-    permissions: '0644'
+    permissions: '0700'
   - encoding: b64
     content: ${conf}
     owner: root:root
@@ -21,39 +16,34 @@ write_files:
     path: /etc/ega/auth.conf
     permissions: '0644'
   - encoding: b64
-    content: ${sshd_config}
+    content: ${boot_script}
     owner: root:root
-    path: /etc/ssh/sshd_config
-    permissions: '0644'
-  - encoding: b64
-    content: ${ega_pam}
-    owner: root:root
-    path: /etc/pam.d/ega
-    permissions: '0644'
-  - encoding: b64
-    content: ${sshd_pam}
-    owner: root:root
-    path: /etc/pam.d/ega_sshd
-    permissions: '0644'
-  - encoding: b64
-    content: ${ega_ssh_keys}
-    owner: root:ega
-    path: /usr/local/bin/ega-ssh-keys.sh
-    permissions: '0750'
-  - encoding: b64
-    content: ${ega_ssh_keys}
-    owner: root:ega
-    path: /usr/local/bin/ega-ssh-keys.sh
-    permissions: '0750'
-  - encoding: b64
-    content: ${fuse_cleanup}
-    owner: root:ega
-    path: /usr/local/bin/fuse_cleanup.sh
-    permissions: '0750'
+    path: /root/boot.sh
+    permissions: '0700'
   - encoding: b64
     content: ${ega_mount}
     owner: root:root
     path: /etc/systemd/system/ega.mount
+    permissions: '0644'
+  - encoding: b64
+    content: ${ega_inbox}
+    owner: root:root
+    path: /etc/systemd/system/ega-inbox.service
+    permissions: '0644'
+  - encoding: b64
+    content: ${ega_options}
+    owner: root:root
+    path: /etc/ega/options
+    permissions: '0644'
+  - encoding: b64
+    content: ${ega_slice}
+    owner: root:root
+    path: /etc/systemd/system/ega.slice
+    permissions: '0644'
+  - encoding: b64
+    content: ${ega_banner}
+    owner: root:root
+    path: /etc/banner
     permissions: '0644'
 
 bootcmd:
@@ -62,32 +52,7 @@ bootcmd:
   - mkdir -m 0750 /ega
 
 runcmd:
-  - yum -y install automake autoconf libtool libgcrypt libgcrypt-devel postgresql-devel pam-devel libcurl-devel jq-devel nfs-utils fuse fuse-libs cronie
-  - echo '/usr/local/lib/ega' > /etc/ld.so.conf.d/ega.conf
-  - modprobe fuse
-  - mkdir -p /mnt/lega
-  - mkfs -t btrfs -f /dev/vdb
-  - systemctl start ega.mount
-  - systemctl enable ega.mount
-  - mkdir -p /ega/{inbox,staging}
-  - chown root:ega /ega/inbox
-  - chown ega:ega /ega/staging
-  - chmod 0750 /ega/{inbox,staging}
-  - chmod g+s /ega/{inbox,staging}
-  - echo '/ega/inbox   ${cidr}(rw,sync,no_root_squash,no_all_squash,no_subtree_check)' > /etc/exports
-  - echo '/ega/staging ${cidr}(rw,sync,no_root_squash,no_all_squash,no_subtree_check)' >> /etc/exports
-  - systemctl restart rpcbind nfs-server nfs-lock nfs-idmap
-  - systemctl enable rpcbind nfs-server nfs-lock nfs-idmap
-  - git clone -b fuse https://github.com/NBISweden/LocalEGA-auth.git ~/repo && cd ~/repo/src && make install && ldconfig -v
-  - pip3.6 uninstall -y lega
-  - pip3.6 install git+https://github.com/NBISweden/LocalEGA.git@feature/inbox-fuse
-  - cp /etc/pam.d/sshd /etc/pam.d/sshd.bak
-  - mv -f /etc/pam.d/ega_sshd /etc/pam.d/sshd
-  - cp /etc/nsswitch.conf /etc/nsswitch.conf.bak
-  - sed -i -e 's/^passwd:\(.*\)files/passwd:\1files ega/' /etc/nsswitch.conf
-  - echo '*/5 * * * * root /usr/local/bin/fuse_cleanup.sh /lega' >> /etc/crontab
-  - systemctl start crond.service
-  - systemctl enable crond.service
+  - /root/boot.sh
 
 
 
