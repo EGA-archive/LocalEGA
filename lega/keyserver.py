@@ -186,7 +186,7 @@ async def retrieve_pgp_key(request):
 async def retrieve_pgp_key_private(request):
     """Retrieve private part to reconstruced unlocked key."""
     requested_id = request.match_info['requested_id']
-    LOG.debug(f'Requested PGP (private) key with ID {requested_id} | {request_type}')
+    LOG.debug(f'Requested PGP (private) key with ID {requested_id}')
     key_id = requested_id[-16:].upper()
     value = _pgp_cache.get(key_id)
     if value:
@@ -200,7 +200,7 @@ async def retrieve_pgp_key_private(request):
 async def retrieve_pgp_key_public(request):
     """Retrieve public to reconstruced unlocked key."""
     requested_id = request.match_info['requested_id']
-    LOG.debug(f'Requested PGP (public) key with ID {requested_id} | {request_type}')
+    LOG.debug(f'Requested PGP (public) key with ID {requested_id}')
     key_id = requested_id[-16:].upper()
     value = _pgp_cache.get(key_id)
     if value:
