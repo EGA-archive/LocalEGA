@@ -28,7 +28,7 @@ chmod 700 $PRIVATE/${INSTANCE}/{pgp,rsa,certs,logs}
 
 echomsg "\t* the PGP key"
 
-python3.6 ${HERE}/../../../extras/generate_pgp_key.py "${PGP_NAME}" "${PGP_EMAIL}" "${PGP_COMMENT}" --passphrase "${PGP_PASSPHRASE}" --prefix ${PRIVATE}/${INSTANCE}/pgp/ega --armor
+python3.6 ${EXTRAS}/generate_pgp_key.py "${PGP_NAME}" "${PGP_EMAIL}" "${PGP_COMMENT}" --passphrase "${PGP_PASSPHRASE}" --prefix ${PRIVATE}/${INSTANCE}/pgp/ega --armor
 chmod 744 ${PRIVATE}/${INSTANCE}/pgp/ega.pub
 
 #########################################################################
@@ -100,13 +100,7 @@ echomsg "\t* db.sql"
 # CREATE DATABASE lega WITH OWNER ${DB_USER};
 
 # EOF
-if [[ -f /tmp/db.sql ]]; then
-    # Running in a container
-    cat /tmp/db.sql >> ${PRIVATE}/${INSTANCE}/db.sql
-else
-    # Running on host, outside a container
-    cat ${HERE}/../../../extras/db.sql >> ${PRIVATE}/${INSTANCE}/db.sql
-fi
+cat ${EXTRAS}/db.sql >> ${PRIVATE}/${INSTANCE}/db.sql
 # cat >> ${PRIVATE}/${INSTANCE}/db.sql <<EOF
 
 # -- Changing the owner there too

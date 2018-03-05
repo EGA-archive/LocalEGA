@@ -7,6 +7,7 @@ HERE=$(dirname ${BASH_SOURCE[0]})
 PRIVATE=${HERE}/../private
 DOT_ENV=${HERE}/../.env
 SETTINGS=${HERE}/settings
+EXTRAS=${HERE}/../../../extras
 
 # Defaults
 VERBOSE=no
