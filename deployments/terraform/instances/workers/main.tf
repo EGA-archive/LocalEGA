@@ -18,13 +18,8 @@ data "template_file" "cloud_init" {
     hosts       = "${base64encode("${file("${path.root}/hosts")}")}"
     hosts_allow = "${base64encode("${file("${path.root}/hosts.allow")}")}"
     lega_conf   = "${base64encode("${file("${var.instance_data}/ega.conf")}")}"
-    ssl_cert    = "${base64encode("${file("${var.instance_data}/certs/ssl.cert")}")}"
-    gpg_pubring = "${base64encode("${file("${var.instance_data}/gpg/pubring.kbx")}")}"
-    gpg_trustdb = "${base64encode("${file("${var.instance_data}/gpg/trustdb.gpg")}")}"
     ega_options = "${base64encode("${file("${path.root}/systemd/options")}")}"
     ega_slice   = "${base64encode("${file("${path.root}/systemd/ega.slice")}")}"
-    ega_socket  = "${base64encode("${file("${path.root}/systemd/ega-socket-forwarder.socket")}")}"
-    ega_forward = "${base64encode("${file("${path.root}/systemd/ega-socket-forwarder.service")}")}"
     ega_ingest  = "${base64encode("${file("${path.root}/systemd/ega-ingestion@.service")}")}"
     ega_inbox_mount   = "${base64encode("${file("${path.root}/systemd/ega-inbox.mount")}")}"
     ega_staging_mount = "${base64encode("${file("${path.root}/systemd/ega-staging.mount")}")}"
@@ -49,36 +44,21 @@ resource "openstack_compute_instance_v2" "worker" {
 ##             Master GPG-agent
 ################################################################
 
-data "archive_file" "gpg_private" {
-  type        = "zip"
-  output_path = "${var.instance_data}/gpg_private.zip"
-  source_dir = "${var.instance_data}/gpg/private-keys-v1.d"
-  # Not packaging the openpgp-revocs.d folder
-}
-
 data "template_file" "cloud_init_keys" {
   template = "${file("${path.module}/cloud_init_keys.tpl")}"
 
   vars {
     hosts             = "${base64encode("${file("${path.root}/hosts")}")}"
     hosts_allow       = "${base64encode("${file("${path.root}/hosts.allow")}")}"
-    preset_script     = "${base64encode("${file("${var.instance_data}/preset.sh")}")}"
     lega_conf         = "${base64encode("${file("${var.instance_data}/ega.conf")}")}"
     keys_conf         = "${base64encode("${file("${var.instance_data}/keys.conf")}")}"
     ssl_cert          = "${base64encode("${file("${var.instance_data}/certs/ssl.cert")}")}"
     ssl_key           = "${base64encode("${file("${var.instance_data}/certs/ssl.key")}")}"
     rsa_pub           = "${base64encode("${file("${var.instance_data}/rsa/ega.pub")}")}"
     rsa_sec           = "${base64encode("${file("${var.instance_data}/rsa/ega.sec")}")}"
-    gpg_agent         = "${base64encode("${file("${path.module}/gpg-agent.conf")}")}"
-    gpg_pubring       = "${base64encode("${file("${var.instance_data}/gpg/pubring.kbx")}")}"
-    gpg_trustdb       = "${base64encode("${file("${var.instance_data}/gpg/trustdb.gpg")}")}"
-    gpg_private       = "${base64encode("${file("${data.archive_file.gpg_private.output_path}")}")}"
     ega_options       = "${base64encode("${file("${path.root}/systemd/options")}")}"
     ega_slice         = "${base64encode("${file("${path.root}/systemd/ega.slice")}")}"
-    ega_proxy         = "${base64encode("${file("${path.root}/systemd/ega-socket-proxy.service")}")}"
     ega_keys          = "${base64encode("${file("${path.root}/systemd/ega-keyserver.service")}")}"
-    gpg_agent_service = "${base64encode("${file("${path.root}/systemd/gpg-agent.service")}")}"
-    gpg_agent_socket  = "${base64encode("${file("${path.root}/systemd/gpg-agent.socket")}")}"
   }
 }
 
@@ -87,14 +67,8 @@ resource "openstack_compute_secgroup_v2" "ega_keys" {
   description = "GPG socket forwarding and Keys Server"
 
   rule {
-    from_port   = 9010
-    to_port     = 9010
-    ip_protocol = "tcp"
-    cidr        = "${var.cidr}"
-  }
-  rule {
-    from_port   = 9011
-    to_port     = 9011
+    from_port   = 443
+    to_port     = 443
     ip_protocol = "tcp"
     cidr        = "${var.cidr}"
   }
