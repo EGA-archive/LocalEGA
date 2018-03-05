@@ -119,9 +119,7 @@ EOF
 
 
 CEGA_REST_PASSWORD=$(awk '/swe1_REST_PASSWORD/ {print $3}' ${CEGA_PRIVATE}/env)
-CEGA_MQ_PASSWORD=$(awk '/swe1_MQ_PASSWORD/ {print $3}' ${CEGA_PRIVATE}/.trace)
 [[ -z "${CEGA_REST_PASSWORD}" ]] && error 1 "Are you sure Central EGA is bootstrapped?"
-[[ -z "${CEGA_MQ_PASSWORD}" ]] && error 1 "Are you sure Central EGA is bootstrapped?"
 
 echomsg "\t* ega.conf"
 cat > ${PRIVATE}/ega.conf <<EOF
@@ -333,7 +331,6 @@ MQ_PASSWORD         = ${MQ_PASSWORD}
 MQ_VHOST            = /
 #
 CEGA_REST_PASSWORD  = ${CEGA_REST_PASSWORD}
-CEGA_MQ_PASSWORD    = ${CEGA_MQ_PASSWORD}
 CEGA_PASSWORD       = ${CEGA_PASSWORD}
 #
 KIBANA_USER         = lega

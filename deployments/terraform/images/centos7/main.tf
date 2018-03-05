@@ -109,16 +109,3 @@ resource "openstack_compute_instance_v2" "monitor" {
   }
   user_data       = "${file("${path.module}/elk.sh")}"
 }
-
-resource "openstack_compute_instance_v2" "cega" {
-  name            = "cega"
-  flavor_name     = "${var.flavor}"
-  image_name      = "${var.boot_image}"
-  key_pair        = "${var.key}"
-  security_groups = ["default"]
-  network {
-    uuid          = "${openstack_networking_network_v2.boot_net.id}"
-    fixed_ip_v4   = "192.168.1.204"
-  }
-  user_data       = "${file("${path.module}/cega.sh")}"
-}
