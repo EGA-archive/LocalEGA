@@ -7,3 +7,4 @@ fusepy
 sphinx_rtd_theme
 pycryptodomex==3.4.7
 cryptography==2.1.3
+pgpy
