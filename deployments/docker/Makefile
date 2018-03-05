@@ -7,7 +7,7 @@ help:
 	@echo "where <target> is: 'bootstrap', 'up', 'all-up', 'ps', 'down', 'network' or 'clean'\n"
 
 private bootstrap:
-	@docker run --rm -it -v ${PWD}:/ega -v ${PWD}/../../extras/db.sql:/tmp/db.sql nbisweden/ega-bootstrap ${ARGS}
+	@./bootstrap/boot.sh ${ARGS}
 
 network:
 	@docker network inspect cega &>/dev/null || docker network create cega &>/dev/null
