@@ -48,7 +48,7 @@ bootcmd:
 
 runcmd:
   - pip3.6 uninstall -y lega
-  - pip3.6 install git+https://github.com/NBISweden/LocalEGA.git@feature/pgp
+  - pip3.6 install -r git+https://github.com/NBISweden/LocalEGA.git@feature/pgp
   - systemctl start ega-ingestion@1.service ega-ingestion@2.service
   - systemctl enable ega-ingestion@1.service ega-ingestion@2.service
 

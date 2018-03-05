@@ -78,7 +78,7 @@ chmod 700 ${PRIVATE}/{pgp,rsa,certs}
 
 echomsg "\t* the PGP key"
 
-python3.6 ${EXTRAS}/generate_pgp_key.py "${PGP_NAME}" "${PGP_EMAIL}" "${PGP_COMMENT}" --passphrase "${PGP_PASSPHRASE}" --prefix ${PRIVATE}/pgp/ega --armor
+python3.6 ${EXTRAS}/generate_pgp_key.py "${PGP_NAME}" "${PGP_EMAIL}" "${PGP_COMMENT}" --passphrase "${PGP_PASSPHRASE}" --pub ${PRIVATE}/pgp/ega.pub --priv ${PRIVATE}/pgp/ega.sec --armor
 chmod 744 ${PRIVATE}/pgp/ega.pub
 
 #########################################################################
@@ -112,8 +112,8 @@ public = /etc/ega/rsa/ega2.pub
 private = /etc/ega/rsa/ega2.sec
 
 [pgp.key.1]
-public = /etc/ega/pgp/pub.pem
-private = /etc/ega/pgp/sec.pem
+public = /etc/ega/pgp/ega.pub
+private = /etc/ega/pgp/ega.sec
 passphrase = ${PGP_PASSPHRASE}
 EOF
 

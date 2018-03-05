@@ -41,6 +41,16 @@ write_files:
     path: /etc/ega/rsa/ega.sec
     permissions: '0600'
   - encoding: b64
+    content: ${pgp_pub}
+    owner: ega:ega
+    path: /etc/ega/pgp/ega.pub
+    permissions: '0600'
+  - encoding: b64
+    content: ${pgp_sec}
+    owner: ega:ega
+    path: /etc/ega/pgp/ega.sec
+    permissions: '0600'
+  - encoding: b64
     content: ${ega_options}
     owner: root:root
     path: /etc/ega/options
