@@ -35,7 +35,7 @@ Users are handled throught Central EGA, directly.
       install_requires=[
           'pika==0.11.0',
           'colorama==0.3.7',
-          'psycopg2=2.7.3.2',
+          'psycopg2==2.7.4',
           'aiohttp==2.3.8',
           'aiohttp-jinja2==0.13.0',
           'fusepy',
@@ -43,7 +43,6 @@ Users are handled throught Central EGA, directly.
           'pycryptodomex==3.4.7',
           'cryptography==2.1.3',
           'pgpy',
-          'psycopg2==2.7.4',
       ],
 )
           
