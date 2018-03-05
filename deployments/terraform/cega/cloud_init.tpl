@@ -50,6 +50,17 @@ write_files:
     owner: root:root
     path: /etc/systemd/system/cega-users.service
     permissions: '0644'
+  - encoding: b64
+    content: ${ega_cert}
+    owner: root:root
+    path: /var/lib/cega/cega.cert
+    permissions: '0644'
+  - encoding: b64
+    content: ${ega_cert_key}
+    owner: root:root
+    path: /var/lib/cega/cega.key
+    permissions: '0644'
+
 
 bootcmd:
  - mkdir -p /var/lib/cega/users
