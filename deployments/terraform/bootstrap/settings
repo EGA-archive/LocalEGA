@@ -12,17 +12,17 @@ DB_TRY=30
 MQ_PASSWORD=$(generate_password 16)
 CEGA_PASSWORD=$(generate_password 16)
 
-GPG_NAME="EGA Sweden"
-GPG_COMMENT="@NBIS"
-GPG_EMAIL="ega@nbis.se"
+PGP_NAME="EGA Sweden"
+PGP_COMMENT="@NBIS"
+PGP_EMAIL="ega@nbis.se"
 
-GPG_PASSPHRASE=$(generate_password 16)
+PGP_PASSPHRASE=$(generate_password 16)
 RSA_PASSPHRASE=$(generate_password 16)
 
 LOG_LEVEL=DEBUG
 
-EGA_USER=1001
-EGA_GROUP=1001 # I don't like that solution
+EGA_UID=1001
+EGA_GID=1001 # I don't like that solution
 
 KIBANA_PASSWORD=$(generate_password 16)
 declare -A KIBANA_USERS=()

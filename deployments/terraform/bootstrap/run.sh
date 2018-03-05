@@ -6,22 +6,17 @@ set -e
 HERE=$(dirname ${BASH_SOURCE[0]})
 SETTINGS=${HERE}/settings
 PRIVATE=${HERE}/../private
+EXTRAS=${HERE}/../../../extras
 
 # Defaults
 VERBOSE=no
 FORCE=yes
 OPENSSL=openssl
-GPG=/usr/local/bin/gpg
-GPG_CONF=/usr/local/bin/gpgconf
-GPG_AGENT=/usr/local/bin/gpg-agent
 
 function usage {
     echo "Usage: $0 [options]"
     echo -e "\nOptions are:"
     echo -e "\t--openssl <value>   \tPath to the Openssl executable [Default: ${OPENSSL}]"
-    echo -e "\t--gpg <value>       \tPath to the GnuPG executable [Default: ${GPG}]"
-    echo -e "\t--gpgconf <value>   \tPath to the GnuPG conf executable [Default: ${GPG_CONF}]"
-    echo -e "\t--gpg-agent <value> \tPath to the GnuPG agent executable [Default: ${GPG_AGENT}]"
     echo ""
     echo -e "\t--settings <value>  \tPath to the settings the instances [Default: ${SETTINGS}]"
     echo ""
@@ -38,8 +33,6 @@ while [[ $# -gt 0 ]]; do
         --help|-h) usage; exit 0;;
         --verbose|-v) VERBOSE=yes;;
         --polite|-p) FORCE=no;;
-	--gpg) GPG=$2; shift;;
-	--gpgconf) GPG_CONF=$2; shift;;
         --openssl) OPENSSL=$2; shift;;
         --settings) SETTINGS=$2; shift;;
 	--) shift; break;;
@@ -64,7 +57,6 @@ else
     error 1 "No settings found. Use settings.sample to create a settings file"
 fi
 
-[[ -x $(readlink ${GPG}) ]] && error 2 "${GPG} is not executable. Adjust the setting with --gpg"
 [[ -x $(readlink ${OPENSSL}) ]] && error 3 "${OPENSSL} is not executable. Adjust the setting with --openssl"
 
 [ -z "${DB_USER}" -o "${DB_USER}" == "postgres" ] && error 4 "Choose a database user (but not 'postgres')"
@@ -81,40 +73,19 @@ fi
 # And....cue music
 #########################################################################
 
-mkdir -p ${PRIVATE}/{gpg,rsa,certs}
-chmod 700 ${PRIVATE}/{gpg,rsa,certs}
+mkdir -p ${PRIVATE}/{pgp,rsa,certs}
+chmod 700 ${PRIVATE}/{pgp,rsa,certs}
 
-echomsg "\t* the GnuPG key"
+echomsg "\t* the PGP key"
 
-cat > ${PRIVATE}/gen_key <<EOF
-%echo Generating a basic OpenPGP key
-Key-Type: RSA
-Key-Length: 4096
-Name-Real: ${GPG_NAME}
-Name-Comment: ${GPG_COMMENT}
-Name-Email: ${GPG_EMAIL}
-Expire-Date: 0
-Passphrase: ${GPG_PASSPHRASE}
-# Do a commit here, so that we can later print "done" :-)
-%commit
-%echo done
-EOF
-
-# Hack to avoid the "Socket name too long" error
-[[ -L /tmp/ega_gpg ]] && unlink /tmp/ega_gpg
-ln -s ${PWD}/${PRIVATE}/gpg /tmp/ega_gpg
-export GNUPGHOME=/tmp/ega_gpg
-${GPG_AGENT} --daemon
-${GPG} --batch --generate-key ${PRIVATE}/gen_key
-rm -f ${PRIVATE}/gen_key
-${GPG_CONF} --kill gpg-agent || :
-unlink /tmp/ega_gpg
+python3.6 ${EXTRAS}/generate_pgp_key.py "${PGP_NAME}" "${PGP_EMAIL}" "${PGP_COMMENT}" --passphrase "${PGP_PASSPHRASE}" --prefix ${PRIVATE}/pgp/ega --armor
+chmod 744 ${PRIVATE}/pgp/ega.pub
 
 #########################################################################
 
 echomsg "\t* the RSA public and private key"
-${OPENSSL} genrsa -out ${PRIVATE}/rsa/ega.sec -passout pass:${RSA_PASSPHRASE} 2048
-${OPENSSL} rsa -in ${PRIVATE}/rsa/ega.sec -passin pass:${RSA_PASSPHRASE} -pubout -out ${PRIVATE}/rsa/ega.pub
+${OPENSSL} genpkey -algorithm RSA -out ${PRIVATE}/rsa/ega.sec -pkeyopt rsa_keygen_bits:2048
+${OPENSSL} rsa -pubout -in ${PRIVATE}/rsa/ega.sec -out ${PRIVATE}/rsa/ega.pub
 
 #########################################################################
 
@@ -125,13 +96,25 @@ ${OPENSSL} req -x509 -newkey rsa:2048 -keyout ${PRIVATE}/certs/ssl.key -nodes -o
 
 echomsg "\t* keys.conf"
 cat > ${PRIVATE}/keys.conf <<EOF
-[DEFAULT]
-active_master_key = 1
+[REENCRYPTION_KEYS]
+active = rsa.key.1
 
-[master.key.1]
-seckey = /etc/ega/rsa/sec.pem
-pubkey = /etc/ega/rsa/pub.pem
-passphrase = ${RSA_PASSPHRASE}
+[PGP]
+active = pgp.key.1
+EXPIRE = 31/DEC/18 23:59:59
+
+[rsa.key.1]
+public = /etc/ega/rsa/ega.pub
+private = /etc/ega/rsa/ega.sec
+
+[rsa.key.2]
+public = /etc/ega/rsa/ega2.pub
+private = /etc/ega/rsa/ega2.sec
+
+[pgp.key.1]
+public = /etc/ega/pgp/pub.pem
+private = /etc/ega/pgp/sec.pem
+passphrase = ${PGP_PASSPHRASE}
 EOF
 
 
@@ -146,12 +129,10 @@ cat > ${PRIVATE}/ega.conf <<EOF
 log = logstash
 
 [ingestion]
-gpg_cmd = /usr/local/bin/gpg2 --decrypt %(file)s
-
 inbox = /ega/inbox/%(user_id)s
-
 # Keyserver communication
-keyserver_host = ega_keys
+keyserver_connection = https://ega_keys
+decrypt_cmd = python3.6 -u -m lega.openpgp %(file)s
 
 ## Connecting to Local EGA
 [broker]
@@ -165,57 +146,35 @@ host = ega_db
 username = ${DB_USER}
 password = ${DB_PASSWORD}
 try = ${DB_TRY}
-
-[frontend]
-host = ega_frontend
-cega_password = ${CEGA_PASSWORD}
-
-[outgestion]
-# Keyserver communication
-keyserver_host = ega_keys
 EOF
 
 
 echomsg "\t* Generating auth.conf"
 cat > ${PRIVATE}/auth.conf <<EOF
-debug = yes
-
-##################
-# Databases
-##################
-db_connection = host=ega_db port=5432 dbname=lega user=${DB_USER} password=${DB_PASSWORD} connect_timeout=1 sslmode=disable
-
 enable_cega = yes
-cega_endpoint = http://cega/user/%s
-cega_user = swe1
-cega_password = ${CEGA_REST_PASSWORD}
-cega_resp_passwd = .password_hash
-cega_resp_pubkey = .pubkey
+cega_endpoint = http://cega/user/
+cega_creds = swe1:${CEGA_REST_PASSWORD}
+cega_json_passwd = .password_hash
+cega_json_pubkey = .pubkey
 
 ##################
-# NSS & PAM Queries
+# NSS & PAM
 ##################
-get_ent = SELECT elixir_id FROM users WHERE elixir_id = \$1 LIMIT 1
-add_user = SELECT insert_user(\$1,\$2,\$3)
-get_password = SELECT password_hash FROM users WHERE elixir_id = \$1 LIMIT 1
-get_account = SELECT elixir_id FROM users WHERE elixir_id = \$1 and current_timestamp < last_accessed + expiration
+# prompt = Knock Knock:
+ega_uid = ${EGA_UID}
+ega_gid = ${EGA_GID}
+# ega_gecos = EGA User
+# ega_shell = /sbin/nologin
 
-#prompt = Knock Knock:
-
-ega_uid = ${EGA_USER}
-ega_gid = ${EGA_GROUP}
-ega_gecos = EGA User
-ega_shell = /sbin/nologin
+ega_dir = /ega/inbox
+ega_dir_attrs = 2750 # rwxr-s---
 
 ##################
 # FUSE mount
 ##################
-ega_fuse_dir = /mnt/lega
+ega_fuse_dir = /lega
 ega_fuse_exec = /usr/bin/ega-fs
-ega_fuse_flags = nodev,noexec,uid=${EGA_USER},gid=${EGA_GROUP},suid
-
-ega_dir = /ega/inbox
-ega_dir_attrs = 2750 # rwxr-s---
+ega_fuse_flags = nodev,noexec,uid=${EGA_UID},gid=${EGA_GID},suid
 EOF
 
 echomsg "\t* Generating SSH banner"
@@ -233,7 +192,7 @@ CREATE USER ${DB_USER} WITH password '${DB_PASSWORD}';
 CREATE DATABASE lega WITH OWNER ${DB_USER};
 
 EOF
-cat ${HERE}/../../../extras/db.sql >> ${PRIVATE}/db.sql
+cat ${EXTRAS}/db.sql >> ${PRIVATE}/db.sql
 cat >> ${PRIVATE}/db.sql <<EOF
 
 -- Changing the owner there too
@@ -251,20 +210,6 @@ eid=\${1%%@*} # strip what's after the @ symbol
 query="SELECT pubkey from users where elixir_id = '\${eid}' LIMIT 1"
 
 PGPASSWORD=${DB_PASSWORD} psql -tqA -U ${DB_USER} -h ega_db -d lega -c "\${query}"
-EOF
-
-echomsg "\t* GnuPG preset script"
-cat > ${PRIVATE}/preset.sh <<EOF
-#!/bin/bash
-set -e
-KEYGRIP=\$(/usr/local/bin/gpg2 -k --with-keygrip ${GPG_EMAIL} | awk '/Keygrip/{print \$3;exit;}')
-if [ ! -z "\$KEYGRIP" ]; then 
-    echo 'Unlocking the GPG key'
-    # This will use the standard socket. The proxy forwards to the extra socket.
-    /usr/local/libexec/gpg-preset-passphrase --preset -P "${GPG_PASSPHRASE}" \$KEYGRIP
-else
-    echo 'Skipping the GPG key preseting'
-fi
 EOF
 
 echomsg "\t* MQ user"
@@ -357,6 +302,10 @@ EOF
 
 #########################################################################
 
+
+
+#########################################################################
+
 cat > ${PRIVATE}/.trace <<EOF
 #####################################################################
 #
@@ -364,10 +313,10 @@ cat > ${PRIVATE}/.trace <<EOF
 #
 #####################################################################
 #
-GPG_PASSPHRASE      = ${GPG_PASSPHRASE}
-GPG_NAME            = ${GPG_NAME}
-GPG_COMMENT         = ${GPG_COMMENT}
-GPG_EMAIL           = ${GPG_EMAIL}
+PGP_PASSPHRASE      = ${PGP_PASSPHRASE}
+PGP_NAME            = ${PGP_NAME}
+PGP_COMMENT         = ${PGP_COMMENT}
+PGP_EMAIL           = ${PGP_EMAIL}
 #
 RSA_PASSPHRASE      = ${RSA_PASSPHRASE}
 #

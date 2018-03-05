@@ -88,19 +88,9 @@ module "inbox" {
   instance_data = "private"
 }
 
-module "frontend" {
-  source        = "./instances/frontend"
-  private_ip    = "192.168.10.13"
-  ega_key       = "${var.key}"
-  ega_net       = "${openstack_networking_network_v2.ega_net.id}"
-  pool          = "${var.pool}"
-  flavor_name   = "${var.flavor}"
-  instance_data = "private"
-}
-
 module "vault" {
   source      = "./instances/vault"
-  private_ip    = "192.168.10.14"
+  private_ip    = "192.168.10.13"
   ega_key       = "${var.key}"
   ega_net       = "${openstack_networking_network_v2.ega_net.id}"
   volume_size   = "150"
@@ -111,7 +101,7 @@ module "vault" {
 module "workers" {
   source        = "./instances/workers"
   count         = 2
-  private_ip_keys = "192.168.10.15"
+  private_ip_keys = "192.168.10.14"
   private_ips   = ["192.168.10.101","192.168.10.102"]
   ega_key       = "${var.key}"
   ega_net       = "${openstack_networking_network_v2.ega_net.id}"
@@ -121,12 +111,12 @@ module "workers" {
   flavor_name_compute = "${var.flavor_compute}"
 }
 
-module "monitor" {
-  source        = "./instances/monitor"
-  private_ip    = "192.168.10.16"
-  ega_key       = "${var.key}"
-  ega_net       = "${openstack_networking_network_v2.ega_net.id}"
-  flavor_name   = "${var.flavor_compute}"
-  instance_data = "private"
-  pool          = "${var.pool}"
-}
+# module "monitor" {
+#   source        = "./instances/monitor"
+#   private_ip    = "192.168.10.15"
+#   ega_key       = "${var.key}"
+#   ega_net       = "${openstack_networking_network_v2.ega_net.id}"
+#   flavor_name   = "${var.flavor_compute}"
+#   instance_data = "private"
+#   pool          = "${var.pool}"
+# }
