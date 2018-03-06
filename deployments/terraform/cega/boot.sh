@@ -21,7 +21,7 @@ yum -y install python36u python36u-pip unzip
 [[ -e /lib64/libpython3.6m.so ]] || ln -s /lib64/libpython3.6m.so.1.0 /lib64/libpython3.6m.so
 [[ -e /usr/local/bin/python3 ]]  || ln -s /bin/python3.6 /usr/local/bin/python3
 
-pip3.6 install PyYaml Markdown aiohttp aiohttp-jinja2
+pip3.6 install PyYaml Markdown aiohttp==2.3.8 aiohttp-jinja2==0.13.0
 
 mkdir -p /var/lib/cega/users
 unzip -d /var/lib/cega/users /tmp/cega_users.zip
