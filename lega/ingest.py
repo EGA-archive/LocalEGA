@@ -158,7 +158,7 @@ def main(args=None):
         ssl_ctx = ssl.create_default_context()
         ssl_ctx.check_hostname = False
         ssl_ctx.verify_mode=ssl.CERT_NONE
-        keyurl = CONF.get('ingestion','keyserver_connection_rsa')
+        keyurl = CONF.get('ingestion','keyserver_endpoint_rsa')
         LOG.info('Retrieving the Master Public Key')
         with urlopen(keyurl, context=ssl_ctx) as response:
             master_key = json.loads(response.read().decode())
