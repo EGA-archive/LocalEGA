@@ -72,10 +72,10 @@ def consume():
     '''
     LOG.debug(f'Starting a stream processor')
     stream = IOBuf()
-    data, is_final_chunk = yield # wait
+    data, more_coming = yield # wait
+    stream.write(data)
     while True:
-        stream.write(data)
-        LOG.debug(f'Advancing the stream processor | is_final_chunk {is_final_chunk}')
+        LOG.debug(f'Advancing the stream processor | more_coming: {more_coming}')
         packet = parse_one(stream)
         if packet is None:
             LOG.debug('No more packet')
@@ -83,14 +83,15 @@ def consume():
             return
         try:
             LOG.debug(f'FOUND a {packet.name}')
-            engine = packet.process()
+            gen = packet.process()
             LOG.debug(f'Created internal engine for the {packet.name}')
-            next(engine) # start it
-            LOG.debug(f'engine started | is_final_chunk: {is_final_chunk} | {packet.name}')
-            data, is_final_chunk = yield engine.send(is_final_chunk)
+            next(gen) # start it
+            LOG.debug(f'engine started | more_coming {more_coming} | {packet.name}')
+            data, more_coming = yield gen.send(more_coming)
             while True:
                 stream.write(data)
-                data, is_final_chunk = yield engine.send(is_final_chunk)
+                LOG.debug(f'advancing internal engine | more_coming {more_coming} | data: {len(data)}')
+                data, more_coming = yield gen.send(more_coming)
         except StopIteration:
             LOG.debug(f'DONE processing packet: {packet.name}')
         #assert( stream.get_size() == 0 )
@@ -371,21 +372,24 @@ class SymEncryptedDataPacket(Packet):
         assert( self.version == 1 )
 
         # Do-until.
-        data_length, partial = self.length - 1, self.partial
+        data_length, final = self.length - 1, not self.partial
         while True:
             # Produce data
-            LOG.debug(f'Reading data to decrypt: {data_length} bytes - partial {partial}')
-            ed = (self.data.read(data_length), data_length, not partial)
-            assert( len(ed[0]) == ed[1] )
-            decrypted_data = self.engine.send( ed )
-            decrypted_data = self._handle_decrypted_data(decrypted_data, not partial)
+            LOG.debug(f'Reading data to decrypt: {data_length} bytes - final {final}')
+            encrypted_data = (self.data.read(data_length), data_length, final)
+            assert( len(encrypted_data[0]) == encrypted_data[1] )
+            decrypted_data = self.engine.send(encrypted_data)
+            decrypted_data = self._handle_decrypted_data(decrypted_data, final)
 
             # Consume and return data
-            yield consumer.send( (decrypted_data, not partial) )
+            literal_data = consumer.send( (decrypted_data, final) )
+            if literal_data:
+                yield literal_data
 
             # More coming?
-            if partial:
+            if not final:
                 data_length, partial = new_tag_length(self.data)
+                final = not partial
             else:
                 break
 
@@ -438,7 +442,7 @@ class CompressedDataPacket(Packet):
         '''
 
         LOG.debug('Initializing Decompressor')
-        is_final_chunk = yield
+        more_coming = yield
 
         algo = read_1(self.data)
         LOG.debug(f'Compression Algo: {algo}')
@@ -447,42 +451,62 @@ class CompressedDataPacket(Packet):
         consumer = consume()
         next(consumer) # start it
 
-        data_length, partial = (self.length - 1 if self.length else None), self.partial
+        data_length, final = (self.length - 1 if self.length else None), not self.partial
+
+        if data_length is None:
+            LOG.debug(f'Undetermined length')
+            assert( final )
 
         while True:
-            if data_length is not None:
-                raise NotImplemented("TODO")
-
-            # Undertermined length
-            LOG.debug('Undertermined length')
-            assert( not partial )
-
             LOG.debug(f'Reading data to decompress | buffer size {self.data.get_size()}')
             data = self.data.read(data_length)
+            LOG.debug(f'Got some data to decompress: {len(data)} | final {final}')
 
-            LOG.debug(f'Got some data to decompress: {len(data)}')
+            if data_length is not None:
+                data_length -= len(data)
+
+            if data_length:
+                LOG.debug(f'The body of that packet is not yet complete | Need {data_length} left | {self.name}')
+
             decompressed_data = engine.decompress(data)
             LOG.debug(f'Decompressed data: {len(decompressed_data)}')
-                
-            if is_final_chunk:
+
+            if final or not more_coming:
                 LOG.debug(f'Not more coming: Flushing the decompressor')
                 decompressed_data += engine.flush()
-                    
-            next_is_final_chunk = yield consumer.send( (decompressed_data,is_final_chunk) )
-            if is_final_chunk:
-                LOG.debug(f'no more coming: finito | {self.name}')
-                break
-            is_final_chunk = next_is_final_chunk
+                
+            more_coming = yield consumer.send( (decompressed_data,final or more_coming) )
+
+            if data_length:
+                continue
+
+            if not final: # must continue
+                assert( data_length == 0 ) # and data_length is not None
+                data_length, partial = new_tag_length(self.data)
+                final = not partial
+                assert( data_length is not None )
+            else:
+                # data_length could be None
+                # In that case, my parent tells me if I should exit
+                # and if there are data in the buffer when I wake up
+                # Otherwise I wait, until more data is available in Da stream
+                if data_length is None and self.data.get_size() > 0:
+                    continue
+                
+                if not more_coming:
+                    LOG.debug(f'no more coming: finito | {self.name}')
+                    break
+                yield # nothing
+
 
         LOG.debug(f'decompression finished')
-
 
 class LiteralDataPacket(Packet):
 
     def process(self):
 
         LOG.debug(f'Processing {self.name}')
-        is_final_chunk = yield # ready to work
+        more_coming = yield # ready to work
 
         # TODO: Handle the case where there is not enough data.
         # ie the buffer contains less than filename+6 bytes
@@ -509,31 +533,46 @@ class LiteralDataPacket(Packet):
         LOG.debug(f'date: {self.date}')
 
         LOG.debug(f'Literal packet length {self.length} | partial {self.partial}')
-        data_length, partial = (self.length-6-filename_length if self.length else None), self.partial
+        data_length, final = (self.length-6-filename_length if self.length else None), not self.partial
 
         if data_length is None:
             LOG.debug(f'Undetermined length')
-            assert( not partial )
+            assert( final )
 
         while True:
             data = self.data.read(data_length)
-            LOG.debug(f'Literal length: {data_length} - partial {partial}')
+            LOG.debug(f'Literal length: {data_length} - final {final}')
+            assert( data )
 
-            data_length = data_length - len(data) if data_length else 0
+            if data_length is not None:
+                data_length -= len(data)
+
             if data_length:
                 LOG.debug(f'The body of that packet is not yet complete | Need {data_length} left | {self.name}')
-                assert( not is_final_chunk )
 
             LOG.debug(f'Got some literal data: {len(data)}')
-            next_is_final_chunk = yield data
+            more_coming = yield data
 
-            if partial:
-                new_data_length, new_partial = new_tag_length(self.data)
-                data_length += new_data_length
+            if data_length:
+                continue
+
+            if not final:
+                assert( data_length is not None and data_length == 0 )
+                data_length, partial = new_tag_length(self.data)
+                assert( data_length is not None )
+                final = not partial
             else:
-                if is_final_chunk:
+                # data_length could be None
+                # In that case, my parent tells me if I should exit
+                # and if there are data in the buffer when I wake up
+                # Otherwise I wait, until more data is available in Da stream
+                if data_length is None and self.data.get_size() > 0:
+                    continue
+                
+                if not more_coming:
+                    LOG.debug(f'no more coming: finito | {self.name}')
                     break
-                is_final_chunk = next_is_final_chunk
+                yield # nothing
 
         LOG.debug(f'DONE with {self.name}')
 
@@ -561,3 +600,4 @@ PACKET_TYPES = {
     # 17: UserAttributePacket,
     18: SymEncryptedDataPacket,
 }
+    
