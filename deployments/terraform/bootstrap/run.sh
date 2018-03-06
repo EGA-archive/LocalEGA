@@ -96,27 +96,19 @@ ${OPENSSL} req -x509 -newkey rsa:2048 -keyout ${PRIVATE}/certs/ssl.key -nodes -o
 
 echomsg "\t* keys.conf"
 cat > ${PRIVATE}/keys.conf <<EOF
-[ACTIVE]
-reenc : rsa.key.1
+[DEFAULT]
+rsa : rsa.key.1
 pgp : pgp.key.1
 
 [rsa.key.1]
-private : /test/key1.pem
-
-[rsa.key.2]
-private : /test/key.pem
+public : /etc/ega/rsa/ega.pub
+private : /etc/ega/rsa/ega.sec
 
 [pgp.key.1]
 public : /etc/ega/pgp/ega.pub
-private : /test/export.pgp
-passphrase : test
-expire: 30/MAR/18 08:00:00
-
-[pgp.key.2]
-public : /etc/ega/pgp/ega.pub
-private : /test/export1.pgp
-passphrase : test
-expire: 30/MAR/18 08:00:00
+private : /etc/ega/pgp/ega.sec
+passphrase : ${PGP_PASSPHRASE}
+expire: 30/MAR/19 08:00:00
 EOF
 
 
@@ -126,12 +118,13 @@ CEGA_REST_PASSWORD=$(awk '/swe1_REST_PASSWORD/ {print $3}' ${CEGA_PRIVATE}/env)
 echomsg "\t* ega.conf"
 cat > ${PRIVATE}/ega.conf <<EOF
 [DEFAULT]
-log = logstash
+log = debug
 
 [ingestion]
 inbox = /ega/inbox/%(user_id)s
 # Keyserver communication
-keyserver_connection = https://ega_keys
+keyserver_endpoint_pgp = https://ega_keys/retrieve/pgp/%s
+keyserver_endpoint_rsa = https://ega_keys/active/rsa
 decrypt_cmd = python3.6 -u -m lega.openpgp %(file)s
 
 ## Connecting to Local EGA
