@@ -14,10 +14,6 @@ NOCOLOR=$'          \033[0m
 PGP_PUB=$(TERRAFORM_PATH)/private/pgp/ega.pub
 PGP_EMAIL=$(shell awk -F= '/PGP_EMAIL/ {print $$2}' $(TERRAFORM_PATH)/bootstrap/settings)
 
-GPG_HOME=$(shell echo $$TMPDIR)ega_gpg
-GPG_EXEC=gpg
-GPG_AGENT=gpg-agent
-GPG_CONF=gpgconf
 
 PREFIX_PATH=/
 ifdef $(findstring 'hellgate',$(CEGA_CONNECTION))
@@ -42,17 +38,9 @@ org:
 	@echo "${BULLET} Create a file named 'org' ${NOCOLOR}"
 	@echo "Hello, Niclas!" > $@
 
-gpg_home: $(GPG_HOME)
-
-$(GPG_HOME):
-	@mkdir -p -m 700 $@
-	$(GPG_AGENT) --homedir $@ --daemon
-
-enc: org gpg_home
+enc: org
 	@echo "${BULLET} Encrypt 'org' into 'enc' ${NOCOLOR}"
-	$(GPG_EXEC) --homedir $(GPG_HOME) --import $(PGP_PUB)
-	$(GPG_EXEC) --homedir $(GPG_HOME) -r $(PGP_EMAIL) --always-trust -e -o $@ $<
-
+	python ~/_ega/extras/encrypt.py $(PGP_PUB) $< > $@
 
 upload: user enc
 	@echo "${BULLET} Upload 'enc' to the Swedish Local EGA inbox ${NOCOLOR}"
@@ -83,9 +71,6 @@ toto.yml:
 
 clean:
 	rm -rf org enc enc.md5 org.md5 toto.yml
-	$(GPG_CONF) --homedir $(GPG_HOME) --kill gpg-agent || :
-	rm -rf $(GPG_HOME)
-
 
 check:
 	@echo "${BULLET} Check the message broker in Central EGA ${NOCOLOR}"

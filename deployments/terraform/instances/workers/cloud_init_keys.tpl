@@ -68,6 +68,7 @@ write_files:
 
 runcmd:
   - pip3.6 uninstall -y lega
+  - pip3.6 install aiohttp==2.3.8 cryptography==2.1.3
   - pip3.6 install git+https://github.com/NBISweden/LocalEGA.git@feature/pgp
   - systemctl start ega-keyserver.service
   - systemctl enable ega-keyserver.service
