@@ -80,7 +80,7 @@ class Cache:
             value, expire = data
             if expire and time.time() < expire:
                 keys.append({"keyID": key, "ttl": self._time_delta(expire)})
-            if expire is None and key not in ['active_pgp_key', 'active_rsa_key']:
+            if expire is None and key not in ('active_pgp_key', 'active_rsa_key'):
                 keys.append({"keyID": key, "ttl": "Expiration not set."})
         return keys
 
@@ -164,15 +164,14 @@ class ReEncryptionKey:
         return (self.key_id, data)
 
 
-async def activate_key(key_name, path, ttl=None, passphrase=None):
+async def activate_key(key_name, data):
     """(Re)Activate a key."""
-
-    LOG.debug(f'(Re)Activating a {key_name} key: {path} | ttl: {ttl}')
+    LOG.debug(f'(Re)Activating a {key_name}')
     if key_name.startswith("pgp"):
-        obj_key = PGPPrivateKey(path, passphrase)
+        obj_key = PGPPrivateKey(data.get('private'), data.get('passphrase'))
         _cache = _pgp_cache
     elif key_name.startswith("rsa"):
-        obj_key = ReEncryptionKey(key_name, path, passphrase='')
+        obj_key = ReEncryptionKey(key_name, data.get('private'), passphrase='')
         _cache = _rsa_cache
     else:
         LOG.error(f"Unrecognised key type.")
@@ -181,7 +180,7 @@ async def activate_key(key_name, path, ttl=None, passphrase=None):
     LOG.debug(f'Caching key: {key_id} | {key_name} in the {_cache} cache')
     if key_name == _pgp_cache.get("active_pgp_key"):
         _cache.set("active_pgp_key", key_id)
-    _cache.set(key_id, value, ttl=ttl)
+    _cache.set(key_id, value, ttl=data.get('expire', None))
 
 
 # Retrieve the active keys #
@@ -323,11 +322,14 @@ async def retrieve_reencryt_key(request):
 
 @routes.post('/admin/unlock')
 async def unlock_key(request):
-    """Unlock a key via a POST request."""
+    """Unlock a key via a POST request.
+    POST request takes the form:
+    \{"type": "pgp", "private": "path/to/file.sec", "passphrase": "pass", "expire": "30/MAR/18 08:00:00"\}
+    """
     key_info = await request.json()
     LOG.debug(f'Admin unlocking: {key_info}')
-    if all(k in key_info for k in("path", "passphrase", "ttl")):
-        await activate_key(key_info['type'], key_info['path'], passphrase=key_info['passphrase'], ttl=key_info['ttl'])
+    if all(k in key_info for k in("private", "passphrase", "expire")):
+        await activate_key(key_info['type'], key_info)
         return web.HTTPAccepted()
     else:
         return web.HTTPBadRequest()
@@ -343,7 +345,7 @@ async def unlock_key(request):
 #         pub_data, sec_data = generate_pgp_key(key_options['name'],
 #                                               key_options['email'],
 #                                               key_options['comment'],
-#                                               key_options['passphrase'] if 'passphrase' in key_options else None)
+#                                               key_options.get('passphrase', None))
 #         # TO DO return the key pair or the path where it is stored.
 #         return web.HTTPAccepted()
 #     else:
@@ -365,16 +367,11 @@ async def check_ttl(request):
 
 async def load_keys_conf(KEYS):
     """Parse and load keys configuration."""
-    active_pgp_key = KEYS.get('ACTIVE', 'pgp')
-    active_rsa_key = KEYS.get('ACTIVE', 'reenc')
-    _pgp_cache.set('active_pgp_key', active_pgp_key)
-    _rsa_cache.set('active_rsa_key', active_rsa_key)
+    active_rsa_key, active_pgp_key = KEYS.defaults().items()
+    _pgp_cache.set('active_pgp_key', active_pgp_key[1])
+    _rsa_cache.set('active_rsa_key', active_rsa_key[1])
     for section in KEYS.sections():
-        if section != 'ACTIVE':
-            await activate_key(section,
-                               path=KEYS.get(section, 'private'),
-                               passphrase=KEYS.get(section, 'passphrase', fallback=None),
-                               ttl=KEYS.get(section, 'expire', fallback=None))
+        await activate_key(section, dict(KEYS.items(section)))
 
 
 def main(args=None):
