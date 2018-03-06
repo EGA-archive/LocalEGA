@@ -367,9 +367,11 @@ async def check_ttl(request):
 
 async def load_keys_conf(KEYS):
     """Parse and load keys configuration."""
-    active_rsa_key, active_pgp_key = KEYS.defaults().items()
-    _pgp_cache.set('active_pgp_key', active_pgp_key[1])
-    _rsa_cache.set('active_rsa_key', active_rsa_key[1])
+    for name, value in KEYS.defaults().items():
+        if name == 'pgp':
+            _pgp_cache.set('active_pgp_key', value)
+        if name == 'reenc':
+            _rsa_cache.set('active_rsa_key', value)
     for section in KEYS.sections():
         await activate_key(section, dict(KEYS.items(section)))
 
