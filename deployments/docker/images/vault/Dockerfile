@@ -1,9 +1,6 @@
 FROM nbisweden/ega-common:latest
 LABEL maintainer "Frédéric Haziza, NBIS"
 
-RUN yum -y install nc && \
-    yum clean all && rm -rf /var/cache/yum
-
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod 755 /usr/local/bin/entrypoint.sh
 
