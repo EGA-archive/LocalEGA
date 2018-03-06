@@ -19,6 +19,6 @@ handlers:
 
 formatters:
   simple:
-    format: '[{levelname:^6}] | {filename} | L{lineno:<3} | {message}'
+    format: '[{levelname:^7}] | {filename:^12} | L{lineno:<3} | {message}'
     style: '{'
 
