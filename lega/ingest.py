@@ -155,12 +155,12 @@ def main(args=None):
     master_key = None
     try:
         # Prepare to contact the Keyserver for the Master key
-        connection = CONF.get('ingestion','keyserver_connection')
         ssl_ctx = ssl.create_default_context()
         ssl_ctx.check_hostname = False
         ssl_ctx.verify_mode=ssl.CERT_NONE
+        keyurl = CONF.get('ingestion','keyserver_connection_rsa')
         LOG.info('Retrieving the Master Public Key')
-        with urlopen(connection+'/retrieve/reencryptionkey', context=ssl_ctx) as response:
+        with urlopen(keyurl, context=ssl_ctx) as response:
             master_key = json.loads(response.read().decode())
     except Exception as e:
         LOG.error(repr(e))
