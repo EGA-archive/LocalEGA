@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.6 -u
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 import sys
@@ -14,9 +14,6 @@ from .packet import iter_packets
 from .utils import make_key, PGPError
 
 LOG = logging.getLogger('openpgp')
-
-# sec_key = ''
-# passphrase = b''
 
 def fetch_private_key(key_id):
     ssl_ctx = ssl.create_default_context()
@@ -37,17 +34,6 @@ def fetch_private_key(key_id):
         LOG.critical('Unknown PGP key %s', key_id)
         sys.exit(1)
 
-    # from .utils import unarmor
-    # with open(sec_key, 'rb') as infile:
-    #     for packet in iter_packets(unarmor(infile)):
-    #         LOG.info(str(packet))
-    #         if packet.tag == 5:
-    #             public_key_material, private_key_material = packet.unlock(passphrase)
-    #         else:
-    #             packet.skip()
-    # return make_key(public_key_material, private_key_material)
-
-
 def main(args=None):
 
     if not args:
@@ -62,15 +48,7 @@ def main(args=None):
         parser.add_argument('--conf', help="The EGA configuration file")
         parser.add_argument('filename', help="The path of the file to decrypt")
 
-        # parser.add_argument('-s',help='Private key')
-        # parser.add_argument('-p',help='Passphrase')
-
         args = parser.parse_args()
-
-        # global sec_key
-        # sec_key = args.s
-        # global passphrase
-        # passphrase = args.p.encode()
 
         LOG.debug("###### Encrypted file: %s", args.filename)
         with open(args.filename, 'rb') as infile:
@@ -98,8 +76,6 @@ def main(args=None):
 
 
 if __name__ == '__main__':
-    # import cProfile
-    # cProfile.run('main()', 'ega-pgp.profile')
     main()
 
 
