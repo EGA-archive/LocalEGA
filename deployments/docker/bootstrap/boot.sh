@@ -48,7 +48,7 @@ rm_politely ${PRIVATE}
 mkdir -p ${PRIVATE}/cega
 backup ${DOT_ENV}
 
-# exec 2>${PRIVATE}/.err
+exec 2>${PRIVATE}/.err
 
 cat > ${DOT_ENV} <<EOF
 COMPOSE_PROJECT_NAME=ega
