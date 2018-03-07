@@ -1,9 +1,6 @@
 FROM nbisweden/ega-common:latest
 LABEL maintainer "Frédéric Haziza, NBIS"
 
-RUN apk add --update \
-    && apk add --no-cache postgresql-dev libffi-dev netcat-openbsd
-
 VOLUME /ega/inbox
 VOLUME /ega/staging
 
