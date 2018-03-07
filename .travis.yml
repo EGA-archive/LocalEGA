@@ -17,6 +17,7 @@ before_install:
 
 install:
   - pip3.6 install -r requirements.txt
+  - pip3.6 install -e ../../
   - docker network create cega
   - docker-compose up -d ${DOCKER_CONTAINERS}
   - docker-compose ps
