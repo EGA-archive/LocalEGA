@@ -339,7 +339,7 @@ services:
     hostname: ega-mq-${INSTANCE}
     ports:
       - "${DOCKER_PORT_mq}:15672"
-    image: nbisweden/ega-mq
+    image: rabbitmq:3.6.14-management
     container_name: ega-mq-${INSTANCE}
     restart: on-failure:3
     # Required external link
@@ -348,6 +348,12 @@ services:
     networks:
       - lega_${INSTANCE}
       - cega
+    volumes:
+      - ../images/mq/defs.json:/etc/rabbitmq/defs.json
+      - ../images/mq/rabbitmq.config:/etc/rabbitmq/rabbitmq.config
+      - ../images/mq/entrypoint.sh:/usr/bin/ega-entrypoint.sh
+    entrypoint: ["/bin/bash", "/usr/bin/ega-entrypoint.sh"]
+    command: ["rabbitmq-server"]
 
   # Postgres Database
   db-${INSTANCE}:
@@ -399,7 +405,7 @@ services:
       - db-${INSTANCE}
       - mq-${INSTANCE}
       - keys-${INSTANCE}
-    image: nbisweden/ega-worker
+    image: nbisweden/ega-common
     # Required external link
     external_links:
       - cega-mq:cega-mq
@@ -411,18 +417,20 @@ services:
        - staging_${INSTANCE}:/ega/staging
        - ./${INSTANCE}/ega.conf:/etc/ega/conf.ini:ro
        - ./${INSTANCE}/logger.yml:/etc/ega/logger.yml:ro
+       - ../images/worker/entrypoint.sh:/usr/local/bin/entrypoint.sh
        - ../../../lega:/root/.local/lib/python3.6/site-packages/lega
     restart: on-failure:3
     networks:
       - lega_${INSTANCE}
       - cega
+    entrypoint: ["/bin/bash", "/usr/local/bin/entrypoint.sh"]
 
   # Key server
   keys-${INSTANCE}:
     env_file: ${INSTANCE}/pgp.env
     hostname: ega-keys-${INSTANCE}
     container_name: ega-keys-${INSTANCE}
-    image: nbisweden/ega-keys
+    image: nbisweden/ega-common
     tty: true
     expose:
       - "443"
@@ -444,6 +452,7 @@ services:
     restart: on-failure:3
     networks:
       - lega_${INSTANCE}
+    entrypoint: ["ega-keyserver","--keys","/etc/ega/keys.ini"]
 
   # Vault
   vault-${INSTANCE}:
@@ -453,7 +462,7 @@ services:
       - inbox-${INSTANCE}
     hostname: ega-vault
     container_name: ega-vault-${INSTANCE}
-    image: nbisweden/ega-vault
+    image: nbisweden/ega-common
     # Required external link
     external_links:
       - cega-mq:cega-mq
@@ -465,11 +474,13 @@ services:
        - vault_${INSTANCE}:/ega/vault
        - ./${INSTANCE}/ega.conf:/etc/ega/conf.ini:ro
        - ./${INSTANCE}/logger.yml:/etc/ega/logger.yml:ro
+       - ../images/vault/entrypoint.sh:/usr/local/bin/entrypoint.sh
        # - ../../../lega:/root/.local/lib/python3.6/site-packages/lega
     restart: on-failure:3
     networks:
       - lega_${INSTANCE}
       - cega
+    entrypoint: ["/bin/bash", "/usr/local/bin/entrypoint.sh"]
 
   # Logging & Monitoring (ELK: Elasticsearch, Logstash, Kibana).
   elasticsearch-${INSTANCE}:

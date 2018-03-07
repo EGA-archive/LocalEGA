@@ -16,33 +16,12 @@ endif
 
 TARGET=nbisweden/ega
 
-EGA_IMAGES=mq inbox worker vault keys cega-users
+.PHONY: all push pull common inbox erase delete clean cleanall
 
-.PHONY: all push pull common erase delete clean cleanall $(EGA_IMAGES)
+all: common inbox
 
-all: images
-
-images: common
-	@make -j 4 $(EGA_IMAGES)
-
+common: PIP_EGA_PACKAGES=pika==0.11.0 pycryptodomex==3.4.7 psycopg2==2.7.4 cryptography==2.1.3 aiohttp==2.3.8 aiohttp-jinja2==0.13.0
 common:
-	docker build --build-arg checkout=$(CHECKOUT) \
-                     --build-arg DEV_PACKAGES="$(DEV_PACKAGES)" \
-                     --cache-from $(TARGET)-$@:latest \
-                     --tag $(TARGET)-$@:$(TAG) \
-                     --tag $(TARGET)-$@:latest \
-                     $@
-
-
-inbox:      PIP_EGA_PACKAGES=pika==0.11.0 fusepy
-worker:     PIP_EGA_PACKAGES=pika==0.11.0 pycryptodomex==3.4.7 psycopg2==2.7.4 cryptography==2.1.3
-keys:       PIP_EGA_PACKAGES=aiohttp==2.3.8 cryptography==2.1.3
-vault:      PIP_EGA_PACKAGES=pika==0.11.0 psycopg2==2.7.4
-cega-users: PIP_EGA_PACKAGES=aiohttp==2.3.8 aiohttp-jinja2==0.13.0
-
-
-
-$(EGA_IMAGES):
 	docker build --build-arg checkout=$(CHECKOUT) \
                      --build-arg PIP_EGA_PACKAGES="$(PIP_EGA_PACKAGES)" \
                      --cache-from $(TARGET)-$@:latest \
@@ -50,11 +29,22 @@ $(EGA_IMAGES):
                      --tag $(TARGET)-$@:latest \
                      $@
 
+
+inbox:  PIP_EGA_PACKAGES=pika==0.11.0 fusepy
+inbox:
+	docker build --build-arg checkout=$(CHECKOUT) \
+                     --build-arg PIP_EGA_PACKAGES="$(PIP_EGA_PACKAGES)" \
+                     --build-arg DEV_PACKAGES="$(DEV_PACKAGES)" \
+                     --cache-from $(TARGET)-$@:latest \
+                     --tag $(TARGET)-$@:$(TAG) \
+                     --tag $(TARGET)-$@:latest \
+                     $@
+
 pull:
-	for image in $(EGA_IMAGES); do docker pull $(TARGET)-$$image:latest; done
+	for image in common inbox; do docker pull $(TARGET)-$$image:latest; done
 
 push:
-	for image in $(EGA_IMAGES); do docker push $(TARGET)-$$image:latest; done
+	for image in common inbox; do docker push $(TARGET)-$$image:latest; done
 
 clean:
 	@docker images $(TARGET)-* -f "dangling=true" -q | uniq | while read n; do docker rmi -f $$n; done
