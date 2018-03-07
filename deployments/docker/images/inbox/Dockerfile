@@ -16,8 +16,9 @@ VOLUME /ega/inbox
 ENV DB_INSTANCE=
 
 ARG PIP_EGA_PACKAGES=
+ARG checkout=
 RUN pip3.6 install --upgrade pip && \
-    pip3.6 install git+https://github.com/NBISweden/LocalEGA.git@feature/pgp && \
+    pip3.6 install git+https://github.com/NBISweden/LocalEGA.git@${checkout} && \
     pip3.6 install PyYaml ${PIP_EGA_PACKAGES}
 
 ##################################
