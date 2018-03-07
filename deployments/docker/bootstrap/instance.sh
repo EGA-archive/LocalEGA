@@ -28,10 +28,11 @@ chmod 700 $PRIVATE/${INSTANCE}/{pgp,rsa,certs,logs}
 
 echomsg "\t* the PGP key"
 
-python3.6 ${EXTRAS}/generate_pgp_key.py "${PGP_NAME}" "${PGP_EMAIL}" "${PGP_COMMENT}" --passphrase "${PGP_PASSPHRASE}" --pub ${PRIVATE}/${INSTANCE}/pgp/ega.pub --priv ${PRIVATE}/${INSTANCE}/pgp/ega.sec --armor
+# Python 3.6
+python ${EXTRAS}/generate_pgp_key.py "${PGP_NAME}" "${PGP_EMAIL}" "${PGP_COMMENT}" --passphrase "${PGP_PASSPHRASE}" --pub ${PRIVATE}/${INSTANCE}/pgp/ega.pub --priv ${PRIVATE}/${INSTANCE}/pgp/ega.sec --armor
 chmod 744 ${PRIVATE}/${INSTANCE}/pgp/ega.pub
 
-python3.6 ${EXTRAS}/generate_pgp_key.py "${PGP_NAME}" "${PGP_EMAIL}" "${PGP_COMMENT}" --passphrase "${PGP_PASSPHRASE}" --pub ${PRIVATE}/${INSTANCE}/pgp/ega2.pub --priv ${PRIVATE}/${INSTANCE}/pgp/ega2.sec --armor
+python ${EXTRAS}/generate_pgp_key.py "${PGP_NAME}" "${PGP_EMAIL}" "${PGP_COMMENT}" --passphrase "${PGP_PASSPHRASE}" --pub ${PRIVATE}/${INSTANCE}/pgp/ega2.pub --priv ${PRIVATE}/${INSTANCE}/pgp/ega2.sec --armor
 chmod 744 ${PRIVATE}/${INSTANCE}/pgp/ega2.pub
 
 #########################################################################
@@ -87,7 +88,7 @@ log = /etc/ega/logger.yml
 keyserver_endpoint_pgp = https://ega-keys-${INSTANCE}/retrieve/pgp/%s
 keyserver_endpoint_rsa = https://ega-keys-${INSTANCE}/active/rsa
 
-decrypt_cmd = python3.6 -u -m lega.openpgp %(file)s
+decrypt_cmd = python -u -m lega.openpgp %(file)s
 
 ## Connecting to Local EGA
 [broker]
