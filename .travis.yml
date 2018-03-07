@@ -1,4 +1,6 @@
-language: common
+language: python
+python:
+- 3.6
 
 services:
   - docker
@@ -14,6 +16,7 @@ before_install:
         make bootstrap
 
 install:
+  - pip3.6 install -r requirements.txt
   - docker network create cega
   - docker-compose up -d ${DOCKER_CONTAINERS}
   - docker-compose ps
