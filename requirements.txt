@@ -1,6 +1,5 @@
 pika==0.11.0
 colorama==0.3.7
-psycopg2=2.7.3.2
 aiohttp==2.3.8
 aiohttp-jinja2==0.13.0
 fusepy
