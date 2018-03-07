@@ -100,17 +100,24 @@ services:
 
   cega-users:
     env_file: cega/env
-    image: nbisweden/ega-cega-users
+    image: nbisweden/ega-common
     hostname: cega-users
     container_name: cega-users
     ports:
       - "9100:80"
+    expose:
+      - "80"
     volumes:
       - ./cega/users:/cega/users:rw
+      - ../images/cega-users/users.html:/cega/users.html
+      - ../images/cega-users/server.py:/cega/server.py
       # - ../..:/root/.local/lib/python3.6/site-packages:ro
     restart: on-failure:3
     networks:
       - cega
+    command: ["python", "/cega/server.py"]
+
+
 EOF
 
 # For the compose file
