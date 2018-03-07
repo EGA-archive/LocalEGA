@@ -22,19 +22,19 @@ def fetch_private_key(key_id):
     ssl_ctx = ssl.create_default_context()
     ssl_ctx.check_hostname = False
     ssl_ctx.verify_mode=ssl.CERT_NONE
-    LOG.info(f'Retrieving the PGP Private Key {key_id}')
+    LOG.info('Retrieving the PGP Private Key %s', key_id)
     keyurl = CONF.get('ingestion','keyserver_endpoint_pgp',raw=True) % key_id
     try:
         req = Request(keyurl, headers={'content-type':'application/json'}, method='GET')
-        LOG.info(f'Opening connection to {keyurl}')
+        LOG.info('Opening connection to %s', keyurl)
         with urlopen(req, context=ssl_ctx) as response:
             data = json.loads(response.read().decode())
             public_key_material = bytes.fromhex(data['public'])
             private_key_material = bytes.fromhex(data['private'])
-        LOG.info(f'Connection to the server closed for {key_id}')
+        LOG.info('Connection to the server closed for %s', key_id)
         return make_key(public_key_material, private_key_material)
     except HTTPError as e:
-        LOG.critical(f'Unknown PGP key {key_id}')
+        LOG.critical('Unknown PGP key %s', key_id)
         sys.exit(1)
 
     # from .utils import unarmor
@@ -72,7 +72,7 @@ def main(args=None):
         # global passphrase
         # passphrase = args.p.encode()
 
-        LOG.debug(f"###### Encrypted file: {args.filename}")
+        LOG.debug("###### Encrypted file: %s", args.filename)
         with open(args.filename, 'rb') as infile:
             name = cipher = session_key = None
             for packet in iter_packets(infile):
@@ -83,10 +83,10 @@ def main(args=None):
                     #       It will parse the packet and then contact the keyserver
                     #       to retrieve the private_key material
                     name, cipher, session_key = packet.decrypt_session_key(fetch_private_key)
-                    LOG.info('SESSION KEY: {session_key.hex()}')
+                    LOG.info('SESSION KEY: %s', session_key.hex())
 
                 elif packet.tag == 18:
-                    LOG.info(f"###### Decrypting message using {name}")
+                    LOG.info("###### Decrypting message using %s", name)
                     assert( session_key and cipher )
                     for literal_data in packet.process(session_key, cipher):
                         sys.stdout.buffer.write(literal_data)

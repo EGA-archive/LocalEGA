@@ -30,7 +30,7 @@ def parse_one(data):
     if not b:
         return None
 
-    LOG.debug(f"First byte: {b.hex()} {ord(b):08b} ({ord(b)})")
+    #LOG.debug(f"First byte: {b.hex()} {ord(b):08b} ({ord(b)})")
     b = ord(b)
 
     # 7th bit of the first byte must be a 1
@@ -70,31 +70,27 @@ def consume():
     The one advancing it sends the generator a pair of data and a
     boolean to tell if it is the last chunk.
     '''
-    LOG.debug(f'Starting a stream processor')
+    LOG.debug('Starting a stream processor')
     stream = IOBuf()
     data, more_coming = yield # wait
     stream.write(data)
     while True:
-        LOG.debug(f'Advancing the stream processor | more_coming: {more_coming}')
+        #LOG.debug('Advancing the stream processor | more_coming: {more_coming}')
         packet = parse_one(stream)
         if packet is None:
             LOG.debug('No more packet')
             del stream
             return
         try:
-            LOG.debug(f'FOUND a {packet.name}')
+            LOG.debug('FOUND a %s', packet.name)
             gen = packet.process()
-            LOG.debug(f'Created internal engine for the {packet.name}')
             next(gen) # start it
-            LOG.debug(f'engine started | more_coming {more_coming} | {packet.name}')
             data, more_coming = yield gen.send(more_coming)
             while True:
                 stream.write(data)
-                LOG.debug(f'advancing internal engine | more_coming {more_coming} | data: {len(data)}')
                 data, more_coming = yield gen.send(more_coming)
         except StopIteration:
-            LOG.debug(f'DONE processing packet: {packet.name}')
-        #assert( stream.get_size() == 0 )
+            LOG.debug('DONE processing packet %s', packet.name)
         # recurse
 
     
@@ -248,10 +244,11 @@ class SecretKeyPacket(PublicKeyPacket):
         # Ready to unlock the private parts
         name, key_len, cipher = lookup_sym_algorithm(self.cipher_id)
         iv_len = cipher.block_size // 8
-        LOG.debug(f"Unlocking seckey: {name} (keylen: {key_len} bytes) | IV {self.s2k_iv.hex()} ({iv_len} bytes)")
+        LOG.debug("Unlocking seckey: %s (keylen: %i bytes) | IV %s (%i bytes)", name, key_len, self.s2k_iv.hex(), iv_len)
         assert( len(self.s2k_iv) == iv_len )
         passphrase_key = derive_key(passphrase, key_len, self.s2k_type, self.s2k_hash, self.s2k_salt, self.s2k_count)
-        LOG.debug(f"derived passphrase key: {passphrase_key.hex()} ({len(passphrase_key)} bytes)")
+        LOG.debug("derived passphrase key: %s", passphrase_key.hex())
+        #LOG.debug("derived passphrase key length: %i bytes", len(passphrase_key))
 
         assert(len(passphrase_key) == key_len)
         engine = make_decryptor(passphrase_key, cipher, self.s2k_iv)
@@ -327,7 +324,7 @@ class PublicKeyEncryptedSessionKeyPacket(Packet):
             name, keylen, symalg = lookup_sym_algorithm(symalg_id)
             symkey = session_data.read(keylen)
 
-            LOG.debug(f"{name} | {keylen} | Session key: {symkey.hex()}")
+            LOG.debug("%s | %i | Session key: %s", name, keylen, symkey.hex())
             assert( keylen == len(symkey) )
             checksum = read_2(session_data)
             
@@ -375,7 +372,7 @@ class SymEncryptedDataPacket(Packet):
         data_length, final = self.length - 1, not self.partial
         while True:
             # Produce data
-            LOG.debug(f'Reading data to decrypt: {data_length} bytes - final {final}')
+            LOG.debug('Reading data to decrypt: %i bytes - final %s', data_length, final)
             encrypted_data = (self.data.read(data_length), data_length, final)
             assert( len(encrypted_data[0]) == encrypted_data[1] )
             decrypted_data = self.engine.send(encrypted_data)
@@ -396,12 +393,12 @@ class SymEncryptedDataPacket(Packet):
         # Finally, MDC control
         if self.mdc:
             digest = b'\xD3\x14' + self.hasher.digest() # including prefix, and MDC tag+length
-            LOG.debug(f'digest: {digest.hex().upper()}')
-            LOG.debug(f'   MDC: {self.mdc_value.hex().upper()}')
+            LOG.debug('digest: %s', digest.hex())
+            LOG.debug('   MDC: %s', self.mdc_value.hex())
             if self.mdc_value != digest:
                 raise PGPError("MDC Decryption failed")
 
-        LOG.debug(f'decryption finished')
+        LOG.debug('decryption finished')
 
     def _handle_decrypted_data(self, data, final):
         '''Strip the prefix and MDC value when they arrive,
@@ -421,7 +418,7 @@ class SymEncryptedDataPacket(Packet):
         # Handle prefix
         if not self.prefix_found and self.prefix_count > self.prefix_size:
             self.prefix = data[:self.prefix_size]
-            LOG.debug(f'PREFIX: {self.prefix.hex()}')
+            LOG.debug('PREFIX: %s', self.prefix.hex())
             if self.prefix[-4:-2] != self.prefix[-2:]:
                 raise PGPError("Prefix Repetition error")
             self.prefix_found = True
@@ -445,7 +442,7 @@ class CompressedDataPacket(Packet):
         more_coming = yield
 
         algo = read_1(self.data)
-        LOG.debug(f'Compression Algo: {algo}')
+        LOG.debug('Compression Algo: %s', algo)
         engine = decompressor(algo)
 
         consumer = consume()
@@ -454,25 +451,25 @@ class CompressedDataPacket(Packet):
         data_length, final = (self.length - 1 if self.length else None), not self.partial
 
         if data_length is None:
-            LOG.debug(f'Undetermined length')
+            LOG.debug('Undetermined length')
             assert( final )
 
         while True:
-            LOG.debug(f'Reading data to decompress | buffer size {self.data.get_size()}')
+            LOG.debug('Reading data to decompress | buffer size %i', self.data.get_size())
             data = self.data.read(data_length)
-            LOG.debug(f'Got some data to decompress: {len(data)} | final {final}')
+            LOG.debug('Got some data to decompress: %i | final %s', len(data), final)
 
             if data_length is not None:
                 data_length -= len(data)
 
             if data_length:
-                LOG.debug(f'The body of that packet is not yet complete | Need {data_length} left | {self.name}')
+                LOG.debug('The body of that packet is not yet complete | Need %i left | %s', data_length, self.name)
 
             decompressed_data = engine.decompress(data)
-            LOG.debug(f'Decompressed data: {len(decompressed_data)}')
+            LOG.debug('Decompressed data: %i', len(decompressed_data))
 
             if final or not more_coming:
-                LOG.debug(f'Not more coming: Flushing the decompressor')
+                LOG.debug('Not more coming: Flushing the decompressor')
                 decompressed_data += engine.flush()
                 
             more_coming = yield consumer.send( (decompressed_data,final or more_coming) )
@@ -494,18 +491,18 @@ class CompressedDataPacket(Packet):
                     continue
                 
                 if not more_coming:
-                    LOG.debug(f'no more coming: finito | {self.name}')
+                    LOG.debug('no more coming: finito | %s', self.name)
                     break
                 yield # nothing
 
 
-        LOG.debug(f'decompression finished')
+        LOG.debug('decompression finished')
 
 class LiteralDataPacket(Packet):
 
     def process(self):
 
-        LOG.debug(f'Processing {self.name}')
+        LOG.debug('Processing %s', self.name)
         more_coming = yield # ready to work
 
         # TODO: Handle the case where there is not enough data.
@@ -513,7 +510,7 @@ class LiteralDataPacket(Packet):
         assert( self.data.get_size() > 6 )
 
         self.data_format = self.data.read(1)
-        LOG.debug(f'data format: {self.data_format.decode()}')
+        LOG.debug('data format: %s', self.data_format.decode())
 
         filename_length = read_1(self.data)
         if filename_length == 0:
@@ -526,31 +523,31 @@ class LiteralDataPacket(Packet):
             #     filename = None
 
         if filename:
-            LOG.debug(f'filename: {filename}')
+            LOG.debug('filename: %s', filename)
 
         self.raw_date = read_4(self.data)
         self.date = datetime.utcfromtimestamp(self.raw_date)
-        LOG.debug(f'date: {self.date}')
+        LOG.debug('date: %s', self.date)
 
-        LOG.debug(f'Literal packet length {self.length} | partial {self.partial}')
+        LOG.debug('Literal packet length %i | partial %s', self.length, self.partial)
         data_length, final = (self.length-6-filename_length if self.length else None), not self.partial
 
         if data_length is None:
-            LOG.debug(f'Undetermined length')
+            LOG.debug('Undetermined length')
             assert( final )
 
         while True:
             data = self.data.read(data_length)
-            LOG.debug(f'Literal length: {data_length} - final {final}')
+            LOG.debug('Literal length: %i - final %s', data_length, final)
             assert( data )
 
             if data_length is not None:
                 data_length -= len(data)
 
             if data_length:
-                LOG.debug(f'The body of that packet is not yet complete | Need {data_length} left | {self.name}')
+                LOG.debug('The body of that packet is not yet complete | Need %i left | %s', data_length, self.name)
 
-            LOG.debug(f'Got some literal data: {len(data)}')
+            LOG.debug('Got some literal data: %i', len(data))
             more_coming = yield data
 
             if data_length:
@@ -570,11 +567,11 @@ class LiteralDataPacket(Packet):
                     continue
                 
                 if not more_coming:
-                    LOG.debug(f'no more coming: finito | {self.name}')
+                    LOG.debug('no more coming: finito | %s', self.name)
                     break
                 yield # nothing
 
-        LOG.debug(f'DONE with {self.name}')
+        LOG.debug('DONE with %s', self.name)
 
     def __repr__(self):
         s = super().__repr__()
