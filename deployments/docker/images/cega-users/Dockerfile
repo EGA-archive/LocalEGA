@@ -8,7 +8,7 @@ EXPOSE 80
 
 ARG PIP_EGA_PACKAGES=
 
-RUN pip3.6 install PyYaml ${PIP_EGA_PACKAGES}
+RUN pip install PyYaml ${PIP_EGA_PACKAGES}
 
 COPY users.html /cega/users.html
 
