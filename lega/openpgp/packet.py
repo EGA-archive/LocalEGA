@@ -8,7 +8,7 @@ import hashlib
 
 from .constants import lookup_pub_algorithm, lookup_sym_algorithm, lookup_hash_algorithm, lookup_s2k, lookup_tag
 from .utils import (PGPError,
-                    read_1, read_2, read_4,
+                    read_1_byte, read_2_bytes, read_4_bytes,
                     new_tag_length, old_tag_length,
                     get_mpi, parse_public_key_material, parse_private_key_material,
                     derive_key,
@@ -173,13 +173,13 @@ class PublicKeyPacket(Packet):
 
     def parse(self):
         assert( not self.partial )
-        self.pubkey_version = read_1(self.data)
+        self.pubkey_version = read_1_byte(self.data)
         if self.pubkey_version in (2,3):
             raise PGPError("Warning: version 3 keys are deprecated")
         elif self.pubkey_version != 4:
             raise PGPError(f"Unsupported public key packet, version {self.pubkey_version}")
 
-        self.raw_creation_time = read_4(self.data)
+        self.raw_creation_time = read_4_bytes(self.data)
         self.creation_time = datetime.utcfromtimestamp(self.raw_creation_time)
         # No validity, moved to Signature
 
@@ -208,15 +208,15 @@ class SecretKeyPacket(PublicKeyPacket):
     s2k_hash = None
 
     def parse_s2k(self):
-        self.s2k_type = read_1(self.data)
+        self.s2k_type = read_1_byte(self.data)
         if self.s2k_type == 0:
             # simple string-to-key
-            hash_algo = read_1(self.data)
+            hash_algo = read_1_byte(self.data)
             self.s2k_hash = lookup_hash_algorithm(hash_algo)
 
         elif self.s2k_type == 1:
             # salted string-to-key
-            hash_algo = read_1(self.data)
+            hash_algo = read_1_byte(self.data)
             self.s2k_hash = lookup_hash_algorithm(hash_algo)
             # 8 bytes salt
             self.s2k_salt = self.data.read(8)
@@ -227,10 +227,10 @@ class SecretKeyPacket(PublicKeyPacket):
 
         elif self.s2k_type == 3:
             # iterated and salted
-            hash_algo = read_1(self.data)
+            hash_algo = read_1_byte(self.data)
             self.s2k_hash = lookup_hash_algorithm(hash_algo)
             self.s2k_salt = self.data.read(8)
-            self.s2k_coded_count = read_1(self.data)
+            self.s2k_coded_count = read_1_byte(self.data)
             self.s2k_count = (16 + (self.s2k_coded_count & 15)) << ((self.s2k_coded_count >> 4) + 6)
 
         elif 100 <= self.s2k_type <= 110:
@@ -245,16 +245,16 @@ class SecretKeyPacket(PublicKeyPacket):
         super().parse()
 
         # parse secret-key packet format from section 5.5.3
-        self.s2k_usage = read_1(self.data)
+        self.s2k_usage = read_1_byte(self.data)
 
         if self.s2k_usage == 0:
             # key data not encrypted
             self.s2k_hash = lookup_hash_algorithm("MD5")
             parse_private_key_material(self.raw_pub_algorithm, self.data) # just consume
-            self.checksum = read_2(self.data)
+            self.checksum = read_2_bytes(self.data)
         elif self.s2k_usage in (254, 255):
             # string-to-key specifier
-            self.cipher_id = read_1(self.data)
+            self.cipher_id = read_1_byte(self.data)
             self.s2k_cipher, _, alg = lookup_sym_algorithm(self.cipher_id)
             self.s2k_iv_len = alg.block_size // 8
             self.parse_s2k()
@@ -336,12 +336,12 @@ class PublicKeyEncryptedSessionKeyPacket(Packet):
     def decrypt_session_key(self, call_keyserver):
         assert( not self.partial )
         pos_start = self.data.tell()
-        session_key_version = read_1(self.data)
+        session_key_version = read_1_byte(self.data)
         if session_key_version != 3:
             raise PGPError(f"Unsupported encrypted session key packet, version {session_key_version}")
 
         self.key_id = self.data.read(8).hex()
-        self.raw_pub_algorithm = read_1(self.data)
+        self.raw_pub_algorithm = read_1_byte(self.data)
         # Remainder is the encrypted key
         self.encrypted_data = get_mpi(self.data)
 
@@ -352,14 +352,14 @@ class PublicKeyEncryptedSessionKeyPacket(Packet):
             session_data = private_key.decrypt(self.encrypted_data, *key_args)
                 
             session_data = io.BytesIO(session_data)
-            symalg_id = read_1(session_data)
+            symalg_id = read_1_byte(session_data)
 
             name, keylen, symalg = lookup_sym_algorithm(symalg_id)
             symkey = session_data.read(keylen)
 
             LOG.debug("%s | %i | Session key: %s", name, keylen, symkey.hex())
             assert( keylen == len(symkey) )
-            checksum = read_2(session_data)
+            checksum = read_2_bytes(session_data)
             
             if not sum(symkey) % 65536 == checksum:
                 raise PGPError(f"{name} decryption failed")
@@ -398,7 +398,7 @@ class SymEncryptedDataPacket(Packet):
         next(consumer) # start it
 
         # Skip over the compulsary version byte
-        self.version = read_1(self.data)
+        self.version = read_1_byte(self.data)
         assert( self.version == 1 )
 
         # Do-until.
@@ -474,7 +474,7 @@ class CompressedDataPacket(Packet):
         LOG.debug('Initializing Decompressor')
         more_coming = yield
 
-        algo = read_1(self.data)
+        algo = read_1_byte(self.data)
         LOG.debug('Compression Algo: %s', algo)
         engine = decompressor(algo)
 
@@ -545,7 +545,7 @@ class LiteralDataPacket(Packet):
         self.data_format = self.data.read(1)
         LOG.debug('data format: %s', self.data_format.decode())
 
-        filename_length = read_1(self.data)
+        filename_length = read_1_byte(self.data)
         if filename_length == 0:
             filename = None
         else:
@@ -557,7 +557,7 @@ class LiteralDataPacket(Packet):
         if filename:
             LOG.debug('filename: %s', filename)
 
-        self.raw_date = read_4(self.data)
+        self.raw_date = read_4_bytes(self.data)
         self.date = datetime.utcfromtimestamp(self.raw_date)
         LOG.debug('date: %s', self.date)
 
