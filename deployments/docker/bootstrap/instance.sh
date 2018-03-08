@@ -28,11 +28,19 @@ chmod 700 $PRIVATE/${INSTANCE}/{pgp,rsa,certs,logs}
 
 echomsg "\t* the PGP key"
 
+if [[ -f /tmp/generate_pgp_key.py ]]; then
+    # Running in a container
+    GEN_KEY="python3.6 /tmp/generate_pgp_key.py"
+else
+    # Running on host, outside a container
+    GEN_KEY="python ${EXTRAS}/generate_pgp_key.py"
+fi
+
 # Python 3.6
-python ${EXTRAS}/generate_pgp_key.py "${PGP_NAME}" "${PGP_EMAIL}" "${PGP_COMMENT}" --passphrase "${PGP_PASSPHRASE}" --pub ${PRIVATE}/${INSTANCE}/pgp/ega.pub --priv ${PRIVATE}/${INSTANCE}/pgp/ega.sec --armor
+${GEN_KEY} "${PGP_NAME}" "${PGP_EMAIL}" "${PGP_COMMENT}" --passphrase "${PGP_PASSPHRASE}" --pub ${PRIVATE}/${INSTANCE}/pgp/ega.pub --priv ${PRIVATE}/${INSTANCE}/pgp/ega.sec --armor
 chmod 744 ${PRIVATE}/${INSTANCE}/pgp/ega.pub
 
-python ${EXTRAS}/generate_pgp_key.py "${PGP_NAME}" "${PGP_EMAIL}" "${PGP_COMMENT}" --passphrase "${PGP_PASSPHRASE}" --pub ${PRIVATE}/${INSTANCE}/pgp/ega2.pub --priv ${PRIVATE}/${INSTANCE}/pgp/ega2.sec --armor
+${GEN_KEY} "${PGP_NAME}" "${PGP_EMAIL}" "${PGP_COMMENT}" --passphrase "${PGP_PASSPHRASE}" --pub ${PRIVATE}/${INSTANCE}/pgp/ega2.pub --priv ${PRIVATE}/${INSTANCE}/pgp/ega2.sec --armor
 chmod 744 ${PRIVATE}/${INSTANCE}/pgp/ega2.pub
 
 #########################################################################
@@ -114,7 +122,13 @@ echomsg "\t* db.sql"
 # CREATE DATABASE lega WITH OWNER ${DB_USER};
 
 # EOF
-cat ${EXTRAS}/db.sql >> ${PRIVATE}/${INSTANCE}/db.sql
+if [[ -f /tmp/db.sql ]]; then
+    # Running in a container
+    cat /tmp/db.sql >> ${PRIVATE}/${INSTANCE}/db.sql
+else
+    # Running on host, outside a container
+    cat ${EXTRAS}/db.sql >> ${PRIVATE}/${INSTANCE}/db.sql
+fi
 # cat >> ${PRIVATE}/${INSTANCE}/db.sql <<EOF
 
 # -- Changing the owner there too
