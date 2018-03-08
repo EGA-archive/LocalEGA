@@ -1,6 +1,16 @@
 #cloud-config
 write_files:
   - encoding: b64
+    content: ${mq_users}
+    owner: root:root
+    path: /root/mq_users.sh
+    permissions: '0700'
+  - encoding: b64
+    content: ${mq_defs}
+    owner: root:root
+    path: /etc/rabbitmq/defs.json
+    permissions: '0644'
+  - encoding: b64
     content: ${cega_users}
     owner: root:root
     path: /tmp/cega_users.zip
@@ -53,5 +63,6 @@ write_files:
 
 runcmd:
   - /root/boot.sh
+  - /root/mq_users.sh
 
 final_message: "The system is finally up, after $UPTIME seconds"
