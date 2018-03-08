@@ -387,6 +387,9 @@ def main(args=None):
     CONF.setup(args)
     KEYS = KeysConfiguration(args)
 
+    host = CONF.get('keyserver', 'host') # fallbacks are in defaults.ini
+    port = CONF.getint('keyserver', 'port')
+
     ssl_certfile = Path(CONF.get('keyserver', 'ssl_certfile')).expanduser()
     ssl_keyfile = Path(CONF.get('keyserver', 'ssl_keyfile')).expanduser()
     LOG.debug(f'Certfile: {ssl_certfile}')
@@ -402,8 +405,8 @@ def main(args=None):
 
     loop.run_until_complete(load_keys_conf(KEYS))
 
-    LOG.info("Start keyserver")
-    web.run_app(keyserver, host='0.0.0.0', port=443, shutdown_timeout=0, ssl_context=sslcontext)
+    LOG.info(f"Start keyserver on {host}:{port}")
+    web.run_app(keyserver, host=host, port=port, shutdown_timeout=0, ssl_context=sslcontext)
 
 
 if __name__ == '__main__':

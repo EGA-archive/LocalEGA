@@ -77,8 +77,8 @@ mkdir -p ${PRIVATE}/{pgp,rsa,certs}
 chmod 700 ${PRIVATE}/{pgp,rsa,certs}
 
 echomsg "\t* the PGP key"
-
-python3.6 ${EXTRAS}/generate_pgp_key.py "${PGP_NAME}" "${PGP_EMAIL}" "${PGP_COMMENT}" --passphrase "${PGP_PASSPHRASE}" --pub ${PRIVATE}/pgp/ega.pub --priv ${PRIVATE}/pgp/ega.sec --armor
+# Python 3.6
+python ${EXTRAS}/generate_pgp_key.py "${PGP_NAME}" "${PGP_EMAIL}" "${PGP_COMMENT}" --passphrase "${PGP_PASSPHRASE}" --pub ${PRIVATE}/pgp/ega.pub --priv ${PRIVATE}/pgp/ega.sec --armor
 chmod 744 ${PRIVATE}/pgp/ega.pub
 
 #########################################################################
@@ -139,6 +139,9 @@ host = ega_db
 username = ${DB_USER}
 password = ${DB_PASSWORD}
 try = ${DB_TRY}
+
+[keyserver]
+port = 8443
 EOF
 
 
