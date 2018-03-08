@@ -65,6 +65,19 @@ resource "openstack_compute_secgroup_v2" "cega" {
     ip_protocol = "tcp"
     cidr        = "0.0.0.0/0"
   }
+  rule {
+    from_port   = 5672
+    to_port     = 5672
+    ip_protocol = "tcp"
+    #cidr        = "192.168.10.0/24"
+    cidr        = "0.0.0.0/0"
+  }
+  rule {
+    from_port   = 15672
+    to_port     = 15672
+    ip_protocol = "tcp"
+    cidr        = "0.0.0.0/0"
+  }
 }
 
 # ========= Machine =========
@@ -81,6 +94,8 @@ data "template_file" "cloud_init" {
 
   vars {
     boot_script = "${base64encode("${file("${path.module}/boot.sh")}")}"
+    mq_users    = "${base64encode("${file("private/mq_users.sh")}")}"
+    mq_defs     = "${base64encode("${file("private/defs.json")}")}"
     cega_env    = "${base64encode("${file("private/env")}")}"
     cega_server = "${base64encode("${file("${path.module}/server.py")}")}"
     cega_publish= "${base64encode("${file("${path.module}/publish.py")}")}"
