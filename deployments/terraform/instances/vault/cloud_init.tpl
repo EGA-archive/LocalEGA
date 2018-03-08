@@ -53,8 +53,8 @@ bootcmd:
 runcmd:
   - mkfs -t btrfs -f /dev/vdb
   - pip3.6 uninstall -y lega
-  - pip3.6 install pika==0.11.0 psycopg2==2.7.3.2
-  - pip3.6 install git+https://github.com/NBISweden/LocalEGA.git@feature/inbox-fuse
+  - pip3.6 install pika==0.11.0 psycopg2==2.7.4
+  - pip3.6 install git+https://github.com/NBISweden/LocalEGA.git@feature/pgp
   - systemctl start ega-verify ega-vault
   - systemctl enable ega-verify ega-vault
 
