@@ -9,8 +9,6 @@ before_install:
   # https://elk-docker.readthedocs.io/#es-not-starting-max-map-count
   # mostly used by ELK stack; Solving issue #252
   # - sudo sysctl -w vm.max_map_count=262144
-  - pip3.6 install pgpy
-  - pip3.6 install -e .
   - |
         cd deployments/docker
         # make -C images pull # Not used at the moment, cuz we don't manage to build from cache
