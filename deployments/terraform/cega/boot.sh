@@ -27,3 +27,22 @@ mkdir -p /var/lib/cega/users
 unzip -d /var/lib/cega/users /tmp/cega_users.zip
 systemctl start cega-users.service
 systemctl enable cega-users.service
+
+# RabbitMQ
+yum -y install rabbitmq-server
+echo '[rabbitmq_management].' > /etc/rabbitmq/enabled_plugins
+cat > /etc/rabbitmq/rabbitmq.config <<EOF
+%% -*- mode: erlang -*-
+%%
+[%% {rabbit,[{loopback_users, [ ] },
+ %% 	  {default_vhost, "/"},
+ %% 	  {default_user,  "guest"},
+ %%	  {default_pass,  "guest"},
+ %%	  {default_permissions, [".*", ".*",".*"]},
+ %%	  {default_user_tags, [administrator]},
+ %%	  {disk_free_limit, "1GB"}]},
+ {rabbitmq_management, [ {load_definitions, "/etc/rabbitmq/defs.json"} ]}
+].
+EOF
+systemctl start rabbitmq-server
+systemctl enable rabbitmq-server

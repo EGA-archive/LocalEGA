@@ -14,6 +14,7 @@ NOCOLOR=$'          \033[0m
 PGP_PUB=$(TERRAFORM_PATH)/private/pgp/ega.pub
 PGP_EMAIL=$(shell awk -F= '/PGP_EMAIL/ {print $$2}' $(TERRAFORM_PATH)/bootstrap/settings)
 
+CEGA_HOST=$()
 
 PREFIX_PATH=/
 ifdef $(findstring 'hellgate',$(CEGA_CONNECTION))
@@ -32,7 +33,6 @@ echo:
 	@echo INBOX_IP=$(INBOX_IP)
 	@echo CEGA_MQ_PASSWORD=$(CEGA_MQ_PASSWORD)
 	@echo CEGA_MQ_CONNECTION=$(CEGA_MQ_CONNECTION)
-	@echo GPG_HOME=$(GPG_HOME)
 
 org:
 	@echo "${BULLET} Create a file named 'org' ${NOCOLOR}"
@@ -56,7 +56,7 @@ org.md5: org
 
 submit: enc enc.md5 org.md5
 	@echo "${BULLET} Publish message to Central EGA for ingestion ${NOCOLOR}"
-	python ~/_ega/extras/publish.py --connection $(subst cega-mq,localhost,$(CEGA_CONNECTION)) toto enc --unenc $(shell cat org.md5) --enc $(shell cat enc.md5)
+	python ~/_ega/extras/publish.py --connection $(subst cega_mq,$(CEGA_IP),$(CEGA_CONNECTION)) toto enc --unenc $(shell cat org.md5) --enc $(shell cat enc.md5)
 
 user: toto.yml
 	@echo "${BULLET} Add 'toto' to Central EGA ${NOCOLOR}"
@@ -75,7 +75,7 @@ clean:
 check:
 	@echo "${BULLET} Check the message broker in Central EGA ${NOCOLOR}"
 	@echo "            Listing queues, vhost, name, node, messages on the Message Broker"
-	@rabbitmqadmin -U $(subst cega-mq,localhost,$(CEGA_CONNECTION)) --prefix-path $(PREFIX_PATH) list queues vhost name node messages
+	@rabbitmqadmin -U $(subst cega_mq,$(CEGA_IP),$(CEGA_CONNECTION)) --prefix-path $(PREFIX_PATH) list queues vhost name node messages
 
 vault:
 	@echo "${BULLET} Check the vault ${NOCOLOR}"
