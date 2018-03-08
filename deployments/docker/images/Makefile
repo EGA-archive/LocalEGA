@@ -16,9 +16,9 @@ endif
 
 TARGET=nbisweden/ega
 
-.PHONY: all push pull common inbox erase delete clean cleanall
+.PHONY: all push pull common inbox erase delete clean cleanall bootstrap
 
-all: common inbox
+all: common inbox bootstrap
 
 common: PIP_EGA_PACKAGES=pika==0.11.0 pycryptodomex==3.4.7 psycopg2==2.7.4 cryptography==2.1.3 aiohttp==2.3.8 aiohttp-jinja2==0.13.0
 common:
@@ -31,7 +31,8 @@ common:
 
 
 inbox:  PIP_EGA_PACKAGES=pika==0.11.0 fusepy
-inbox:
+bootstrap: PIP_EGA_PACKAGES=pgpy
+bootstrap inbox:
 	docker build --build-arg checkout=$(CHECKOUT) \
                      --build-arg PIP_EGA_PACKAGES="$(PIP_EGA_PACKAGES)" \
                      --build-arg DEV_PACKAGES="$(DEV_PACKAGES)" \
