@@ -58,8 +58,8 @@ def main(args=None):
                 if packet.tag == 1:
                     LOG.debug("###### Decrypting session key")
                     # Note: decrypt_session_key does not know yet the key ID.
-                    #       It will parse the packet and then contact the keyserver
-                    #       to retrieve the private_key material
+                    #      It will parse the packet and then use the provided function,
+                    #      fetch_private_key, to retrieve the private_key material
                     name, cipher, session_key = packet.decrypt_session_key(fetch_private_key)
                     LOG.info('SESSION KEY: %s', session_key.hex())
 

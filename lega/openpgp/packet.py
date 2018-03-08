@@ -22,7 +22,7 @@ LOG = logging.getLogger('openpgp')
 
 PACKET_TYPES = {} # Will be updated below
 
-def parse_one(data):
+def parse_next_packet(data):
     org_pos = data.tell()
 
     # First byte
@@ -59,7 +59,7 @@ def parse_one(data):
 
 def iter_packets(data):
     while True:
-        packet = parse_one(data)
+        packet = parse_next_packet(data)
         if packet is None:
             break
         yield packet
@@ -76,7 +76,7 @@ def consume():
     stream.write(data)
     while True:
         #LOG.debug('Advancing the stream processor | more_coming: {more_coming}')
-        packet = parse_one(stream)
+        packet = parse_next_packet(stream)
         if packet is None:
             LOG.debug('No more packet')
             del stream
@@ -514,12 +514,11 @@ class LiteralDataPacket(Packet):
 
         filename_length = read_1(self.data)
         if filename_length == 0:
-            # then sensitive file
             filename = None
         else:
             filename = self.data.read(filename_length)
             assert( len(filename) == filename_length )
-            # if filename == '_CONSOLE':
+            # if filename == '_CONSOLE': # then sensitive file
             #     filename = None
 
         if filename:
