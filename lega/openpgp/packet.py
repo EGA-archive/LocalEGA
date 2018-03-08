@@ -23,6 +23,39 @@ LOG = logging.getLogger('openpgp')
 PACKET_TYPES = {} # Will be updated below
 
 def parse_next_packet(data):
+    """\
+    A packet is composed of (in order) a `tag`, a `length` and a `body`.
+
+    A tag is one byte long and determine how many bytes the length is.
+
+    There are two formats for tag:
+    * old style: The length can be 0, 1, 2 or 4 byte(s) long.
+    * new style: The length can be 1, 2, or 4 byte(s) long.
+ 
+    Packet Tag byte
+    ---------------
+    +-------------+----------+---------------+---+---+---+---+---------+---------+
+    | bit         | 7        | 6             | 5 | 4 | 3 | 2 | 1       | 0       |
+    +-------------+----------+---------------+---+---+---+---+---------+---------+
+    |             | always 1 | packet format |               | length type       |
+    |             |          |               |               | 0 = 1 byte        |
+    | old-style   |          |       0       |  packet tag   | 1 = 2 bytes       |
+    |             |          |               |               | 2 = 5 bytes       |
+    |             |          |               |               | 3 = undertermined |
+    +-------------+          +---------------+---------------+-------------------+
+    |             |          |               |                                   |
+    | new-style   |          |       1       |             packet tag            |
+    |             |          |               |                                   |
+    +-------------+----------+---------------+-----------------------------------+
+
+    With the old format, the tag includes the length, but the number of packet types is limited to 16.
+    With the new format, the number of packet type can exceed 16, and the length are the following bytes.
+
+    The length determines how many bytes the body is.
+    Note that the new format can specify a length that encodes a body chunk by chunk.
+   
+    Refer to RFC 4880 for more information (https://tools.ietf.org/html/rfc4880).
+    """
     org_pos = data.tell()
 
     # First byte

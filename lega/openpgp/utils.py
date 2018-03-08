@@ -71,7 +71,7 @@ def read_4(data, buf=None):
 def new_tag_length(data):
     '''Takes a bytearray of data as input.
     Returns a derived (length, partial) tuple.
-    Reference: http://tools.ietf.org/html/rfc4880#section-4.2.2
+    Refer to RFC 4880 section 4.2.2: http://tools.ietf.org/html/rfc4880#section-4.2.2
     '''
     b1 = read_1(data)
     length = 0
