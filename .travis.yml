@@ -13,8 +13,7 @@ before_install:
   # - make -C images pull # Not used at the moment, cuz we don't manage to build from cache
   - make -C images -j 4
   - make bootstrap
-  - whoami
-  - ls -al private/swe1
+  - sudo chown -R travis private
 
 install:
   - docker network create cega
