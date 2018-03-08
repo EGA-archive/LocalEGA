@@ -100,7 +100,7 @@ services:
 
   cega-users:
     env_file: cega/env
-    image: nbisweden/ega-common
+    image: nbisweden/ega-base
     hostname: cega-users
     container_name: cega-users
     ports:
@@ -115,7 +115,7 @@ services:
     restart: on-failure:3
     networks:
       - cega
-    command: ["python", "/cega/server.py"]
+    command: ["python3.6", "/cega/server.py"]
 
 
 EOF

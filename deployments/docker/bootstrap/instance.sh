@@ -96,7 +96,7 @@ log = /etc/ega/logger.yml
 keyserver_endpoint_pgp = https://ega-keys-${INSTANCE}/retrieve/pgp/%s
 keyserver_endpoint_rsa = https://ega-keys-${INSTANCE}/active/rsa
 
-decrypt_cmd = python -u -m lega.openpgp %(file)s
+decrypt_cmd = python3.6 -u -m lega.openpgp %(file)s
 
 ## Connecting to Local EGA
 [broker]
@@ -419,7 +419,7 @@ services:
       - db-${INSTANCE}
       - mq-${INSTANCE}
       - keys-${INSTANCE}
-    image: nbisweden/ega-common
+    image: nbisweden/ega-base
     # Required external link
     external_links:
       - cega-mq:cega-mq
@@ -444,7 +444,7 @@ services:
     env_file: ${INSTANCE}/pgp.env
     hostname: ega-keys-${INSTANCE}
     container_name: ega-keys-${INSTANCE}
-    image: nbisweden/ega-common
+    image: nbisweden/ega-base
     tty: true
     expose:
       - "443"
@@ -476,7 +476,7 @@ services:
       - inbox-${INSTANCE}
     hostname: ega-vault
     container_name: ega-vault-${INSTANCE}
-    image: nbisweden/ega-common
+    image: nbisweden/ega-base
     # Required external link
     external_links:
       - cega-mq:cega-mq
