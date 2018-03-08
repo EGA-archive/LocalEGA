@@ -41,13 +41,14 @@ resource "openstack_compute_instance_v2" "worker" {
 }
 
 ################################################################
-##             Master GPG-agent
+##             Key Server
 ################################################################
 
 data "template_file" "cloud_init_keys" {
   template = "${file("${path.module}/cloud_init_keys.tpl")}"
 
   vars {
+    iptables          = "${base64encode("${file("${path.module}/iptables")}")}"
     hosts             = "${base64encode("${file("${path.root}/hosts")}")}"
     hosts_allow       = "${base64encode("${file("${path.root}/hosts.allow")}")}"
     lega_conf         = "${base64encode("${file("${var.instance_data}/ega.conf")}")}"
