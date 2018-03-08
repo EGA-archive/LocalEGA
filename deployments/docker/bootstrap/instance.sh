@@ -38,10 +38,10 @@ fi
 
 # Python 3.6
 ${GEN_KEY} "${PGP_NAME}" "${PGP_EMAIL}" "${PGP_COMMENT}" --passphrase "${PGP_PASSPHRASE}" --pub ${PRIVATE}/${INSTANCE}/pgp/ega.pub --priv ${PRIVATE}/${INSTANCE}/pgp/ega.sec --armor
-chmod 744 ${PRIVATE}/${INSTANCE}/pgp/ega.pub
+chmod 644 ${PRIVATE}/${INSTANCE}/pgp/ega.pub
 
 ${GEN_KEY} "${PGP_NAME}" "${PGP_EMAIL}" "${PGP_COMMENT}" --passphrase "${PGP_PASSPHRASE}" --pub ${PRIVATE}/${INSTANCE}/pgp/ega2.pub --priv ${PRIVATE}/${INSTANCE}/pgp/ega2.sec --armor
-chmod 744 ${PRIVATE}/${INSTANCE}/pgp/ega2.pub
+chmod 644 ${PRIVATE}/${INSTANCE}/pgp/ega2.pub
 
 #########################################################################
 
