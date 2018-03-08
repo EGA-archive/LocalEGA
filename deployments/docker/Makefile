@@ -11,7 +11,8 @@ private bootstrap:
 		    -v ${PWD}:/ega \
 		    -v ${PWD}/../../extras/db.sql:/tmp/db.sql \
 		    -v ${PWD}/../../extras/generate_pgp_key.py:/tmp/generate_pgp_key.py \
-		    nbisweden/ega-bootstrap ${ARGS}
+		    --entrypoint /ega/bootstrap/boot.sh \
+		    nbisweden/ega-base ${ARGS}
 
 network:
 	@docker network inspect cega &>/dev/null || docker network create cega &>/dev/null

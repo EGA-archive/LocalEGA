@@ -1,27 +1,9 @@
-FROM centos:7.4.1708
-LABEL maintainer "Frédéric Haziza, NBIS"
+FROM nbisweden/ega-base
+LABEL maintainer "NBIS System Developers"
 
-RUN yum -y install https://centos7.iuscommunity.org/ius-release.rpm && \
-    yum -y install python36u python36u-pip nc ${DEV_PACKAGES} && \
-    yum clean all && rm -rf /var/cache/yum
-
-RUN [[ -e /lib64/libpython3.6m.so ]] || ln -s /lib64/libpython3.6m.so.1.0 /lib64/libpython3.6m.so
-
-RUN yum -y install git gcc make bzip2 nc openssh-server pam-devel libcurl-devel jq-devel fuse fuse-libs cronie && \
-    yum clean all && rm -rf /var/cache/yum
-
-##################################
 EXPOSE 9000
 VOLUME /ega/inbox
-ENV DB_INSTANCE=
 
-ARG PIP_EGA_PACKAGES=
-ARG checkout=
-RUN pip3.6 install --upgrade pip && \
-    pip3.6 install git+https://github.com/NBISweden/LocalEGA.git@${checkout} && \
-    pip3.6 install PyYaml ${PIP_EGA_PACKAGES}
-
-##################################
 # Regenerate keys (no passphrase)
 RUN ssh-keygen -t rsa     -N '' -f /etc/ssh/ssh_host_rsa_key && \
     ssh-keygen -t dsa     -N '' -f /etc/ssh/ssh_host_dsa_key && \

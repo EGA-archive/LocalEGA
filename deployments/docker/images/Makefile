@@ -1,7 +1,7 @@
 
 # Add those packages to the containers, in case DEV is defined
 ifdef DEV
-DEV_PACKAGES="nss-tools nc nmap tcpdump lsof strace bash-completion bash-completion-extras"
+DEV_PACKAGES="nss-tools nmap tcpdump lsof strace bash-completion bash-completion-extras"
 endif
 
 CHECKOUT=$(shell git rev-parse --abbrev-ref HEAD)
@@ -16,23 +16,12 @@ endif
 
 TARGET=nbisweden/ega
 
-.PHONY: all push pull common inbox erase delete clean cleanall bootstrap
+.PHONY: all erase delete clean cleanall base inbox
 
-all: common inbox bootstrap
+all: base inbox
 
-common: PIP_EGA_PACKAGES=pika==0.11.0 pycryptodomex==3.4.7 psycopg2==2.7.4 cryptography==2.1.3 aiohttp==2.3.8 aiohttp-jinja2==0.13.0
-common:
-	docker build --build-arg checkout=$(CHECKOUT) \
-                     --build-arg PIP_EGA_PACKAGES="$(PIP_EGA_PACKAGES)" \
-                     --cache-from $(TARGET)-$@:latest \
-                     --tag $(TARGET)-$@:$(TAG) \
-                     --tag $(TARGET)-$@:latest \
-                     $@
-
-
-inbox:  PIP_EGA_PACKAGES=pika==0.11.0 fusepy
-bootstrap: PIP_EGA_PACKAGES=pgpy
-bootstrap inbox:
+base: PIP_EGA_PACKAGES=pika==0.11.0 pycryptodomex==3.4.7 psycopg2==2.7.4 cryptography==2.1.3 aiohttp==2.3.8 aiohttp-jinja2==0.13.0 pgpy fusepy
+base inbox:
 	docker build --build-arg checkout=$(CHECKOUT) \
                      --build-arg PIP_EGA_PACKAGES="$(PIP_EGA_PACKAGES)" \
                      --build-arg DEV_PACKAGES="$(DEV_PACKAGES)" \
@@ -40,12 +29,6 @@ bootstrap inbox:
                      --tag $(TARGET)-$@:$(TAG) \
                      --tag $(TARGET)-$@:latest \
                      $@
-
-pull:
-	for image in common inbox; do docker pull $(TARGET)-$$image:latest; done
-
-push:
-	for image in common inbox; do docker push $(TARGET)-$$image:latest; done
 
 clean:
 	@docker images $(TARGET)-* -f "dangling=true" -q | uniq | while read n; do docker rmi -f $$n; done
@@ -56,5 +39,5 @@ cleanall:
 delete:
 	@docker images $(TARGET)-* --format "{{.Repository}} {{.Tag}}" | awk '{ if ($$2 != "$(TAG)" && $$2 != "latest") print $$1":"$$2; }' | uniq | while read n; do docker rmi $$n; done
 
-erase:
-	@docker images $(TARGET)-* -q | uniq | while read n; do docker rmi -f $$n; done
+erase: # erasing all but base
+	@docker images $(TARGET)-inbox -q | uniq | while read n; do docker rmi -f $$n; done
