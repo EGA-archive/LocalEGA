@@ -27,22 +27,14 @@ class PGPError(Exception):
         return f'OpenPGP Error: {self.msg}'
 
 
-def read_1(data, buf=None):
+def read_1_byte(data, buf=None):
     '''Pull one byte from data and return as an integer.'''
     b1 = data.read(1)
     if buf:
         buf.write(b1)
     return None if b1 in (None, b'') else ord(b1)
 
-def get_int2(b):
-    assert( len(b) > 1 )
-    return (b[0] << 8) + b[1]
-
-def get_int4(b):
-    assert( len(b) > 3 )
-    return (b[0] << 24) + (b[1] << 16) + (b[2] << 8) + b[3]
-
-def read_2(data, buf=None):
+def read_2_bytes(data, buf=None):
     '''Pull two bytes from data at offset and return as an integer.'''
 
     b = bytearray(2)
@@ -54,8 +46,7 @@ def read_2(data, buf=None):
         buf.write(b) # or bytes(b)
     return get_int2(b)
 
-
-def read_4(data, buf=None):
+def read_4_bytes(data, buf=None):
     '''Pull four bytes from data at offset and return as an integer.'''
     b = bytearray(4)
     _b = data.readinto(b)
@@ -66,14 +57,20 @@ def read_4(data, buf=None):
         buf.write(b) # or bytes(b)
     return get_int4(b)
 
+def get_int2(b):
+    assert( len(b) > 1 )
+    return (b[0] << 8) + b[1]
 
+def get_int4(b):
+    assert( len(b) > 3 )
+    return (b[0] << 24) + (b[1] << 16) + (b[2] << 8) + b[3]
 
 def new_tag_length(data):
     '''Takes a bytearray of data as input.
     Returns a derived (length, partial) tuple.
     Refer to RFC 4880 section 4.2.2: http://tools.ietf.org/html/rfc4880#section-4.2.2
     '''
-    b1 = read_1(data)
+    b1 = read_1_byte(data)
     length = 0
     partial = False
 
@@ -83,12 +80,12 @@ def new_tag_length(data):
 
     # two-octet
     elif b1 < 224:
-        b2 = read_1(data)
+        b2 = read_1_byte(data)
         length = ((b1 - 192) << 8) + b2 + 192
 
     # five-octet
     elif b1 == 255:
-        length = read_4(data)
+        length = read_4_bytes(data)
 
     # Partial Body Length header, one octet long
     else:
@@ -100,11 +97,11 @@ def new_tag_length(data):
 
 def old_tag_length(data, length_type):
     if length_type == 0:
-        data_length = read_1(data)
+        data_length = read_1_byte(data)
     elif length_type == 1:
-        data_length = read_2(data)
+        data_length = read_2_bytes(data)
     elif length_type == 2:
-        data_length = read_4(data)
+        data_length = read_4_bytes(data)
     elif length_type == 3:
         data_length = None
         # pos = data.tell()
@@ -117,7 +114,7 @@ def old_tag_length(data, length_type):
 def get_mpi(data, buf=None):
     '''Get a multi-precision integer.
     See: http://tools.ietf.org/html/rfc4880#section-3.2'''
-    mpi_len = read_2(data,buf=buf) # length in bits
+    mpi_len = read_2_bytes(data,buf=buf) # length in bits
     to_process = (mpi_len + 7) // 8 # length in bytes
     b = data.read(to_process)
     #print("MPI bits:",mpi_len,"to_process", to_process)
@@ -293,7 +290,7 @@ def parse_public_key_material(data, buf=None):
     
     When buf is not None, the raw bytes are also transfered from data to buf.
     '''
-    raw_pub_algorithm = read_1(data, buf=buf)
+    raw_pub_algorithm = read_1_byte(data, buf=buf)
     if raw_pub_algorithm in (1, 2, 3):
         # n, e
         n = get_mpi(data, buf=buf)
