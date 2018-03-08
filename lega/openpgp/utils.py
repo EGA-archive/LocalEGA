@@ -234,7 +234,7 @@ def unarmor(f):
     return data
 
 
-# See 3.7.1.3
+# See 3.7.1.3 of RFC 4880
 def derive_key(passphrase, keylen, s2k_type, hash_algo, salt, count):
     
     hash_algo = hash_algo.lower()
