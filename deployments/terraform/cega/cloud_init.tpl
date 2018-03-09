@@ -6,11 +6,6 @@ write_files:
     path: /root/mq_users.sh
     permissions: '0700'
   - encoding: b64
-    content: ${mq_conf}
-    owner: root:root
-    path: /etc/rabbitmq/rabbitmq.config
-    permissions: '0644'
-  - encoding: b64
     content: ${mq_defs}
     owner: root:root
     path: /etc/rabbitmq/defs.json
@@ -50,17 +45,24 @@ write_files:
     owner: root:root
     path: /etc/systemd/system/cega-users.service
     permissions: '0644'
-
-bootcmd:
- - mkdir -p /var/lib/cega/users
+  - encoding: b64
+    content: ${ega_cert}
+    owner: root:root
+    path: /var/lib/cega/cega.cert
+    permissions: '0644'
+  - encoding: b64
+    content: ${ega_cert_key}
+    owner: root:root
+    path: /var/lib/cega/cega.key
+    permissions: '0644'
+  - encoding: b64
+    content: ${boot_script}
+    owner: root:root
+    path: /root/boot.sh
+    permissions: '0700'
 
 runcmd:
-  - unzip -d /var/lib/cega/users /tmp/cega_users.zip
-  - systemctl start cega-users.service
-  - systemctl enable cega-users.service
-  - echo '[rabbitmq_management].' > /etc/rabbitmq/enabled_plugins
-  - systemctl start rabbitmq-server
-  - systemctl enable rabbitmq-server
+  - /root/boot.sh
   - /root/mq_users.sh
 
 final_message: "The system is finally up, after $UPTIME seconds"

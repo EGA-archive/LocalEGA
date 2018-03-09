@@ -2,9 +2,9 @@ import logging
 
 LOG = logging.getLogger('utils')
 
-def get_file_content(f):
+def get_file_content(f, mode='rb'):
     try:
-        with open( f, 'rb') as h:
+        with open( f, mode) as h:
             return h.read()
     except OSError as e:
         LOG.error(f'Error reading {f}: {e!r}')

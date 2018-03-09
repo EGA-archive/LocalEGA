@@ -77,19 +77,20 @@ def main():
     loop = asyncio.get_event_loop()
     server = web.Application(loop=loop)
 
-    template_loader = jinja2.FileSystemLoader(f"{ROOT_DIR}")
+    template_loader = jinja2.FileSystemLoader(ROOT_DIR)
     aiohttp_jinja2.setup(server, loader=template_loader)
 
     # Registering the routes
     server.router.add_get( '/'         , index, name='root')
     server.router.add_get( '/user/{id}', user , name='user')
 
-    # ssl_ctx = ssl.create_default_context(cafile='certs/ca.cert.pem')
-    # ssl_ctx.load_cert_chain('certs/cega.cert.pem', 'private/cega.key.pem', password="hello")
+    # ssl_ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+    # ssl_ctx.check_hostname = False
+    # ssl_ctx.load_cert_chain(f'{ROOT_DIR}/cega.cert', f'{ROOT_DIR}/cega.key')
     ssl_ctx = None
 
     # And ...... cue music!
-    web.run_app(server, host=host, port=80, shutdown_timeout=0, ssl_context=ssl_ctx, loop=loop)
+    web.run_app(server, host=host, port=80, shutdown_timeout=0, ssl_context=ssl_ctx)
 
 if __name__ == '__main__':
     main()
