@@ -1,0 +1,11 @@
+version: 1
+root:
+  level: NOTSET
+  handlers: [noHandler]
+
+handlers:
+  noHandler:
+    class: logging.NullHandler
+    level: NOTSET
+
+

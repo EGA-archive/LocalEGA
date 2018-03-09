@@ -16,13 +16,12 @@ message broker and a database.
 
 Users are handled throught Central EGA, directly.
 ''',
-      packages=['lega', 'lega/utils', 'lega/conf'],
+      packages=['lega', 'lega/utils', 'lega/openpgp', 'lega/conf'],
       include_package_data=False,
-      package_data={ 'lega': ['conf/loggers/*.yaml', 'conf/defaults.ini', 'conf/templates/*.html'] },
+      package_data={ 'lega': ['conf/loggers/*.yaml', 'conf/defaults.ini'] },
       zip_safe=False,
       entry_points={
           'console_scripts': [
-              'ega-frontend = lega.frontend:main',
               'ega-ingest = lega.ingest:main',
               'ega-fs = lega.fs:main',
               'ega-vault = lega.vault:main',
@@ -30,18 +29,20 @@ Users are handled throught Central EGA, directly.
               'ega-monitor = lega.monitor:main',
               'ega-keyserver = lega.keyserver:main',
               'ega-conf = lega.conf.__main__:main',
-              'ega-socket-proxy = lega.utils.socket:proxy',
-              'ega-socket-forwarder = lega.utils.socket:forward',
           ]
       },
       platforms = 'any',
       # install_requires=[
       #     'pika==0.11.0',
-      #     'aiohttp==2.3.8',
-      #     'pycryptodomex==3.4.7',
-      #     'aiopg==0.13.0',
       #     'colorama==0.3.7',
+      #     'psycopg2==2.7.4',
+      #     'aiohttp==2.3.8',
       #     'aiohttp-jinja2==0.13.0',
       #     'fusepy',
+      #     'sphinx_rtd_theme',
+      #     'pycryptodomex==3.4.7',
+      #     'cryptography==2.1.3',
+      #     'pgpy',
       # ],
 )
+          

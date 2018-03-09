@@ -12,7 +12,6 @@ else
     exit 1
 fi
 
-[[ -x $(readlink ${GPG}) ]] && echo "${GPG} is not executable. Adjust the setting with --gpg" && exit 2
 [[ -x $(readlink ${OPENSSL}) ]] && echo "${OPENSSL} is not executable. Adjust the setting with --openssl" && exit 3
 
 if [ -z "${DB_USER}" -o "${DB_USER}" == "postgres" ]; then
@@ -24,37 +23,34 @@ fi
 # And....cue music
 #########################################################################
 
-mkdir -p $PRIVATE/${INSTANCE}/{gpg,rsa,certs,logs}
-chmod 700 $PRIVATE/${INSTANCE}/{gpg,rsa,certs,logs}
+mkdir -p $PRIVATE/${INSTANCE}/{pgp,rsa,certs,logs}
+chmod 700 $PRIVATE/${INSTANCE}/{pgp,rsa,certs,logs}
 
-echomsg "\t* the GnuPG key"
+echomsg "\t* the PGP key"
 
-cat > ${PRIVATE}/${INSTANCE}/gen_key <<EOF
-%echo Generating a basic OpenPGP key
-Key-Type: RSA
-Key-Length: 4096
-Name-Real: ${GPG_NAME}
-Name-Comment: ${GPG_COMMENT}
-Name-Email: ${GPG_EMAIL}
-Expire-Date: 0
-Passphrase: ${GPG_PASSPHRASE}
-# Do a commit here, so that we can later print "done" :-)
-%commit
-%echo done
-EOF
+if [[ -f /tmp/generate_pgp_key.py ]]; then
+    # Running in a container
+    GEN_KEY="python3.6 /tmp/generate_pgp_key.py"
+else
+    # Running on host, outside a container
+    GEN_KEY="python ${EXTRAS}/generate_pgp_key.py"
+fi
 
-${GPG} --homedir ${PRIVATE}/${INSTANCE}/gpg --batch --generate-key ${PRIVATE}/${INSTANCE}/gen_key
-${GPG} --homedir ${PRIVATE}/${INSTANCE}/gpg --armor --export -a "${GPG_NAME}" > ${PRIVATE}/${INSTANCE}/gpg/public.key
-chmod 755 ${PRIVATE}/${INSTANCE}/gpg
-chmod 744 ${PRIVATE}/${INSTANCE}/gpg/public.key
-rm -f ${PRIVATE}/${INSTANCE}/gen_key
-${GPG_CONF} --kill gpg-agent
+# Python 3.6
+${GEN_KEY} "${PGP_NAME}" "${PGP_EMAIL}" "${PGP_COMMENT}" --passphrase "${PGP_PASSPHRASE}" --pub ${PRIVATE}/${INSTANCE}/pgp/ega.pub --priv ${PRIVATE}/${INSTANCE}/pgp/ega.sec --armor
+chmod 644 ${PRIVATE}/${INSTANCE}/pgp/ega.pub
+
+${GEN_KEY} "${PGP_NAME}" "${PGP_EMAIL}" "${PGP_COMMENT}" --passphrase "${PGP_PASSPHRASE}" --pub ${PRIVATE}/${INSTANCE}/pgp/ega2.pub --priv ${PRIVATE}/${INSTANCE}/pgp/ega2.sec --armor
+chmod 644 ${PRIVATE}/${INSTANCE}/pgp/ega2.pub
 
 #########################################################################
 
 echomsg "\t* the RSA public and private key"
 ${OPENSSL} genpkey -algorithm RSA -out ${PRIVATE}/${INSTANCE}/rsa/ega.sec -pkeyopt rsa_keygen_bits:2048
 ${OPENSSL} rsa -pubout -in ${PRIVATE}/${INSTANCE}/rsa/ega.sec -out ${PRIVATE}/${INSTANCE}/rsa/ega.pub
+
+${OPENSSL} genpkey -algorithm RSA -out ${PRIVATE}/${INSTANCE}/rsa/ega2.sec -pkeyopt rsa_keygen_bits:2048
+${OPENSSL} rsa -pubout -in ${PRIVATE}/${INSTANCE}/rsa/ega2.sec -out ${PRIVATE}/${INSTANCE}/rsa/ega2.pub
 
 #########################################################################
 
@@ -66,11 +62,28 @@ ${OPENSSL} req -x509 -newkey rsa:2048 -keyout ${PRIVATE}/${INSTANCE}/certs/ssl.k
 echomsg "\t* keys.conf"
 cat > ${PRIVATE}/${INSTANCE}/keys.conf <<EOF
 [DEFAULT]
-active_master_key = 1
+rsa : rsa.key.1
+pgp : pgp.key.1
 
-[master.key.1]
-seckey = /etc/ega/rsa/sec.pem
-pubkey = /etc/ega/rsa/pub.pem
+[rsa.key.1]
+public : /etc/ega/rsa/ega.pub
+private : /etc/ega/rsa/ega.sec
+
+[rsa.key.2]
+public : /etc/ega/rsa/ega2.pub
+private : /etc/ega/rsa/ega2.sec
+
+[pgp.key.1]
+public : /etc/ega/pgp/ega.pub
+private : /etc/ega/pgp/ega.sec
+passphrase : ${PGP_PASSPHRASE}
+expire: 30/MAR/19 08:00:00
+
+[pgp.key.2]
+public : /etc/ega/pgp/ega2.pub
+private : /etc/ega/pgp/ega2.sec
+passphrase : ${PGP_PASSPHRASE}
+expire: 30/MAR/18 08:00:00
 EOF
 
 echomsg "\t* ega.conf"
@@ -79,10 +92,11 @@ cat > ${PRIVATE}/${INSTANCE}/ega.conf <<EOF
 log = /etc/ega/logger.yml
 
 [ingestion]
-gpg_cmd = gpg2 --decrypt %(file)s
-
 # Keyserver communication
-keyserver_host = ega-keys-${INSTANCE}
+keyserver_endpoint_pgp = https://ega-keys-${INSTANCE}/retrieve/pgp/%s
+keyserver_endpoint_rsa = https://ega-keys-${INSTANCE}/active/rsa
+
+decrypt_cmd = python3.6 -u -m lega.openpgp %(file)s
 
 ## Connecting to Local EGA
 [broker]
@@ -113,7 +127,7 @@ if [[ -f /tmp/db.sql ]]; then
     cat /tmp/db.sql >> ${PRIVATE}/${INSTANCE}/db.sql
 else
     # Running on host, outside a container
-    cat ${HERE}/../../../extras/db.sql >> ${PRIVATE}/${INSTANCE}/db.sql
+    cat ${EXTRAS}/db.sql >> ${PRIVATE}/${INSTANCE}/db.sql
 fi
 # cat >> ${PRIVATE}/${INSTANCE}/db.sql <<EOF
 
@@ -233,9 +247,9 @@ POSTGRES_PASSWORD=${DB_PASSWORD}
 POSTGRES_DB=lega
 EOF
 
-cat > ${PRIVATE}/${INSTANCE}/gpg.env <<EOF
-GPG_EMAIL=${GPG_EMAIL}
-GPG_PASSPHRASE=${GPG_PASSPHRASE}
+cat > ${PRIVATE}/${INSTANCE}/pgp.env <<EOF
+PGP_EMAIL=${PGP_EMAIL}
+PGP_PASSPHRASE=${PGP_PASSPHRASE}
 EOF
 
 cat >> ${PRIVATE}/cega/env <<EOF
@@ -286,13 +300,13 @@ output {
 	        elasticsearch {
 			      hosts => ["ega-elasticsearch-${INSTANCE}:9200"]
 		}
-		
+
 	} else {
 		file {
 			path => ["logs/error-%{+YYYY-MM-dd}.log"]
 		}
 		# output to console for debugging purposes
-		stdout { 
+		stdout {
 			codec => rubydebug
 		}
 	}
@@ -339,7 +353,7 @@ services:
     hostname: ega-mq-${INSTANCE}
     ports:
       - "${DOCKER_PORT_mq}:15672"
-    image: nbisweden/ega-mq
+    image: rabbitmq:3.6.14-management
     container_name: ega-mq-${INSTANCE}
     restart: on-failure:3
     # Required external link
@@ -348,6 +362,12 @@ services:
     networks:
       - lega_${INSTANCE}
       - cega
+    volumes:
+      - ../images/mq/defs.json:/etc/rabbitmq/defs.json
+      - ../images/mq/rabbitmq.config:/etc/rabbitmq/rabbitmq.config
+      - ../images/mq/entrypoint.sh:/usr/bin/ega-entrypoint.sh
+    entrypoint: ["/bin/bash", "/usr/bin/ega-entrypoint.sh"]
+    command: ["rabbitmq-server"]
 
   # Postgres Database
   db-${INSTANCE}:
@@ -386,34 +406,8 @@ services:
       - ./${INSTANCE}/ega.conf:/etc/ega/conf.ini:ro
       - ./${INSTANCE}/logger.yml:/etc/ega/logger.yml:ro
       - inbox_${INSTANCE}:/ega/inbox
-      # - ../..:/root/.local/lib/python3.6/site-packages:ro
+      # - ../../../lega:/root/.local/lib/python3.6/site-packages/lega
       # - ~/_auth_ega:/root/auth
-    restart: on-failure:3
-    networks:
-      - lega_${INSTANCE}
-      - cega
-
-  # Vault
-  vault-${INSTANCE}:
-    depends_on:
-      - db-${INSTANCE}
-      - mq-${INSTANCE}
-      - inbox-${INSTANCE}
-    hostname: ega-vault
-    container_name: ega-vault-${INSTANCE}
-    image: nbisweden/ega-vault
-    # Required external link
-    external_links:
-      - cega-mq:cega-mq
-    environment:
-      - MQ_INSTANCE=ega-mq-${INSTANCE}
-      - CEGA_INSTANCE=cega-mq
-    volumes:
-       - staging_${INSTANCE}:/ega/staging
-       - vault_${INSTANCE}:/ega/vault
-       - ./${INSTANCE}/ega.conf:/etc/ega/conf.ini:ro
-       - ./${INSTANCE}/logger.yml:/etc/ega/logger.yml:ro
-       # - ../..:/root/.local/lib/python3.6/site-packages:ro
     restart: on-failure:3
     networks:
       - lega_${INSTANCE}
@@ -425,59 +419,82 @@ services:
       - db-${INSTANCE}
       - mq-${INSTANCE}
       - keys-${INSTANCE}
-    image: nbisweden/ega-worker
+    image: nbisweden/ega-base
     # Required external link
     external_links:
       - cega-mq:cega-mq
     environment:
-      - GPG_TTY=/dev/console
       - MQ_INSTANCE=ega-mq-${INSTANCE}
-      - CEGA_INSTANCE=cega-mq
-      - KEYSERVER_HOST=ega-keys-${INSTANCE}
-      - KEYSERVER_PORT=9010
+      - KEYSERVER_INSTANCE=ega-keys-${INSTANCE}
     volumes:
        - inbox_${INSTANCE}:/ega/inbox
        - staging_${INSTANCE}:/ega/staging
        - ./${INSTANCE}/ega.conf:/etc/ega/conf.ini:ro
        - ./${INSTANCE}/logger.yml:/etc/ega/logger.yml:ro
-       - ./${INSTANCE}/certs/ssl.cert:/etc/ega/ssl.cert:ro
-       - ./${INSTANCE}/gpg/pubring.kbx:/root/.gnupg/pubring.kbx:ro
-       - ./${INSTANCE}/gpg/trustdb.gpg:/root/.gnupg/trustdb.gpg
-       # - ../..:/root/.local/lib/python3.6/site-packages:ro
+       - ../images/worker/entrypoint.sh:/usr/local/bin/entrypoint.sh
+       - ../../../lega:/root/.local/lib/python3.6/site-packages/lega
     restart: on-failure:3
     networks:
       - lega_${INSTANCE}
       - cega
+    entrypoint: ["/bin/bash", "/usr/local/bin/entrypoint.sh"]
 
   # Key server
   keys-${INSTANCE}:
-    env_file: ${INSTANCE}/gpg.env
-    environment:
-      - GPG_TTY=/dev/console
-      - KEYSERVER_PORT=9010
+    env_file: ${INSTANCE}/pgp.env
     hostname: ega-keys-${INSTANCE}
     container_name: ega-keys-${INSTANCE}
-    image: nbisweden/ega-keys
+    image: nbisweden/ega-base
     tty: true
     expose:
-      - "9010"
-      - "9011"
+      - "443"
     volumes:
        - ./${INSTANCE}/ega.conf:/etc/ega/conf.ini:ro
        - ./${INSTANCE}/logger.yml:/etc/ega/logger.yml:ro
        - ./${INSTANCE}/keys.conf:/etc/ega/keys.ini:ro
        - ./${INSTANCE}/certs/ssl.cert:/etc/ega/ssl.cert:ro
        - ./${INSTANCE}/certs/ssl.key:/etc/ega/ssl.key:ro
-       - ./${INSTANCE}/gpg/pubring.kbx:/root/.gnupg/pubring.kbx
-       - ./${INSTANCE}/gpg/trustdb.gpg:/root/.gnupg/trustdb.gpg
-       - ./${INSTANCE}/gpg/openpgp-revocs.d:/root/.gnupg/openpgp-revocs.d:ro
-       - ./${INSTANCE}/gpg/private-keys-v1.d:/root/.gnupg/private-keys-v1.d:ro
-       - ./${INSTANCE}/rsa/ega.sec:/etc/ega/rsa/sec.pem:ro
-       - ./${INSTANCE}/rsa/ega.pub:/etc/ega/rsa/pub.pem:ro
-       # - ../..:/root/.local/lib/python3.6/site-packages:ro
+       - ./${INSTANCE}/pgp/ega.pub:/etc/ega/pgp/ega.pub:ro
+       - ./${INSTANCE}/pgp/ega.sec:/etc/ega/pgp/ega.sec:ro
+       - ./${INSTANCE}/pgp/ega2.pub:/etc/ega/pgp/ega2.pub:ro
+       - ./${INSTANCE}/pgp/ega2.sec:/etc/ega/pgp/ega2.sec:ro
+       - ./${INSTANCE}/rsa/ega.pub:/etc/ega/rsa/ega.pub:ro
+       - ./${INSTANCE}/rsa/ega.sec:/etc/ega/rsa/ega.sec:ro
+       - ./${INSTANCE}/rsa/ega2.pub:/etc/ega/rsa/ega2.pub:ro
+       - ./${INSTANCE}/rsa/ega2.sec:/etc/ega/rsa/ega2.sec:ro
+       - ../../../lega:/root/.local/lib/python3.6/site-packages/lega
     restart: on-failure:3
     networks:
       - lega_${INSTANCE}
+    entrypoint: ["ega-keyserver","--keys","/etc/ega/keys.ini"]
+
+  # Vault
+  vault-${INSTANCE}:
+    depends_on:
+      - db-${INSTANCE}
+      - mq-${INSTANCE}
+      - inbox-${INSTANCE}
+    hostname: ega-vault
+    container_name: ega-vault-${INSTANCE}
+    image: nbisweden/ega-base
+    # Required external link
+    external_links:
+      - cega-mq:cega-mq
+    environment:
+      - MQ_INSTANCE=ega-mq-${INSTANCE}
+      - CEGA_INSTANCE=cega-mq
+    volumes:
+       - staging_${INSTANCE}:/ega/staging
+       - vault_${INSTANCE}:/ega/vault
+       - ./${INSTANCE}/ega.conf:/etc/ega/conf.ini:ro
+       - ./${INSTANCE}/logger.yml:/etc/ega/logger.yml:ro
+       - ../images/vault/entrypoint.sh:/usr/local/bin/entrypoint.sh
+       # - ../../../lega:/root/.local/lib/python3.6/site-packages/lega
+    restart: on-failure:3
+    networks:
+      - lega_${INSTANCE}
+      - cega
+    entrypoint: ["/bin/bash", "/usr/local/bin/entrypoint.sh"]
 
   # Logging & Monitoring (ELK: Elasticsearch, Logstash, Kibana).
   elasticsearch-${INSTANCE}:
@@ -541,10 +558,10 @@ cat >> ${PRIVATE}/${INSTANCE}/.trace <<EOF
 #
 #####################################################################
 #
-GPG_PASSPHRASE            = ${GPG_PASSPHRASE}
-GPG_NAME                  = ${GPG_NAME}
-GPG_COMMENT               = ${GPG_COMMENT}
-GPG_EMAIL                 = ${GPG_EMAIL}
+PGP_PASSPHRASE            = ${PGP_PASSPHRASE}
+PGP_NAME                  = ${PGP_NAME}
+PGP_COMMENT               = ${PGP_COMMENT}
+PGP_EMAIL                 = ${PGP_EMAIL}
 SSL_SUBJ                  = ${SSL_SUBJ}
 #
 DB_USER                   = ${DB_USER}

@@ -42,7 +42,7 @@ INSTANCES=($@)
 source ${HERE}/../bootstrap/defs.sh
 
 rm_politely ${PRIVATE} ${FORCE}
-mkdir -p ${PRIVATE}
+mkdir -p ${PRIVATE}/{users,certs}
 
 exec 2>${PRIVATE}/.err
 
@@ -53,8 +53,6 @@ exec 2>${PRIVATE}/.err
 echomsg "Generating fake Central EGA users"
 
 [[ -x $(readlink ${OPENSSL}) ]] && echo "${OPENSSL} is not executable. Adjust the setting with --openssl" && exit 3
-
-mkdir -p ${PRIVATE}/users
 
 EGA_USER_PASSWORD_JOHN=$(generate_password 16)
 EGA_USER_PASSWORD_JANE=$(generate_password 16)
@@ -103,6 +101,10 @@ mkdir -p ${PRIVATE}/users/{swe1,fin1}
     cd ${PRIVATE}/users/fin1
     ln -s ../john.yml .
 )
+
+echomsg "Generate SSL certificates for HTTPS"
+${OPENSSL} req -x509 -newkey rsa:2048 -keyout ${PRIVATE}/cega.key -nodes -out ${PRIVATE}/cega.cert -sha256 -days 1000 -subj "/C=ES/ST=Catalunya/L=Barcelona/O=CEGA/OU=CEGA/CN=CentralEGA/emailAddress=central@ega.org"
+
 
 cat > ${PRIVATE}/.trace <<EOF
 #####################################################################
@@ -157,9 +159,10 @@ function output_vhosts {
 
 function output_queues {
     declare -a tmp
-    for INSTANCE in ${INSTANCES}
+    for INSTANCE in ${INSTANCES[@]}
     do
 	tmp+=("{\"name\":\"inbox\",     \"vhost\":\"${INSTANCE}\", \"durable\":true, \"auto_delete\":false, \"arguments\":{}}")
+	tmp+=("{\"name\":\"inbox.checksums\",     \"vhost\":\"${INSTANCE}\", \"durable\":true, \"auto_delete\":false, \"arguments\":{}}")
 	tmp+=("{\"name\":\"files\",     \"vhost\":\"${INSTANCE}\", \"durable\":true, \"auto_delete\":false, \"arguments\":{}}")
 	tmp+=("{\"name\":\"completed\", \"vhost\":\"${INSTANCE}\", \"durable\":true, \"auto_delete\":false, \"arguments\":{}}")
 	tmp+=("{\"name\":\"errors\",    \"vhost\":\"${INSTANCE}\", \"durable\":true, \"auto_delete\":false, \"arguments\":{}}")
@@ -179,9 +182,10 @@ function output_exchanges {
 
 function output_bindings {
     declare -a tmp
-    for INSTANCE in ${INSTANCES}
+    for INSTANCE in ${INSTANCES[@]}
     do
 	tmp+=("{\"source\":\"localega.v1\",\"vhost\":\"${INSTANCE}\",\"destination_type\":\"queue\",\"arguments\":{},\"destination\":\"inbox\",\"routing_key\":\"inbox\"}")
+	tmp+=("{\"source\":\"localega.v1\",\"vhost\":\"${INSTANCE}\",\"destination_type\":\"queue\",\"arguments\":{},\"destination\":\"inbox.checksums\",\"routing_key\":\"inbox.checksums\"}")
 	tmp+=("{\"source\":\"localega.v1\",\"vhost\":\"${INSTANCE}\",\"destination_type\":\"queue\",\"arguments\":{},\"destination\":\"files\",\"routing_key\":\"files\"}")
 	tmp+=("{\"source\":\"localega.v1\",\"vhost\":\"${INSTANCE}\",\"destination_type\":\"queue\",\"arguments\":{},\"destination\":\"completed\",\"routing_key\":\"completed\"}")
 	tmp+=("{\"source\":\"localega.v1\",\"vhost\":\"${INSTANCE}\",\"destination_type\":\"queue\",\"arguments\":{},\"destination\":\"errors\",\"routing_key\":\"errors\"}")
@@ -191,9 +195,9 @@ function output_bindings {
 
 {
     echo    '{"rabbit_version":"3.3.5",'
-    echo -n ' "users":[],'
+    echo    ' "users":[],'
     echo -n ' "vhosts":['; output_vhosts; echo '],'
-    echo -n ' "permissions":[],'
+    echo    ' "permissions":[],'
     echo    ' "parameters":[],'
     echo    ' "policies":[],'
     echo -n ' "queues":['; output_queues; echo '],'
@@ -206,19 +210,20 @@ cat > ${PRIVATE}/mq_users.sh <<EOF
 #!/usr/bin/env bash
 set -e
 EOF
-for ins in ${!CEGA_MQ_PASSWORD[@]}
+for INSTANCE in ${INSTANCES[@]}
 do
     {
 	echo
 	# Creating VHost
 	#echo "rabbitmqctl add_vhost ${instance}"
 	# Adding user
-	echo "rabbitmqctl add_user cega_${ins} ${CEGA_MQ_PASSWORD[${ins}]}"
-	echo "rabbitmqctl set_user_tags cega_${ins} administrator"
+	echo "rabbitmqctl add_user cega_${INSTANCE} ${CEGA_MQ_PASSWORD[${INSTANCE}]}"
+	echo "rabbitmqctl set_user_tags cega_${INSTANCE} administrator"
 	# Setting permissions
-	echo "rabbitmqctl set_permissions -p ${ins} cega_${ins} \".*\" \".*\" \".*\""
+	echo "rabbitmqctl set_permissions -p ${INSTANCE} cega_${INSTANCE} \".*\" \".*\" \".*\""
 	echo
     } >> ${PRIVATE}/mq_users.sh
 done
+
 
 task_complete "Bootstrap complete"

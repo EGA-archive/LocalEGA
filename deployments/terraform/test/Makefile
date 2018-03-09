@@ -1,7 +1,5 @@
-.PHONY: upload submit user rabbitmqadmin check vault
 
 TERRAFORM_PATH=$(dir $(abspath $(lastword $(MAKEFILE_LIST))))..
-GPG_EXEC=gpg
 SSH_KEY_PUB=~/.ssh/lega.pub
 SSH_KEY_PRIV=~/.ssh/lega
 
@@ -13,8 +11,10 @@ NOCOLOR=$'          \033[0m
 
 ##############################
 
-GPG_HOME=$(TERRAFORM_PATH)/private/gpg
-GPG_EMAIL=$(shell awk -F= '/GPG_EMAIL/ {print $$2}' $(TERRAFORM_PATH)/bootstrap/settings)
+PGP_PUB=$(TERRAFORM_PATH)/private/pgp/ega.pub
+PGP_EMAIL=$(shell awk -F= '/PGP_EMAIL/ {print $$2}' $(TERRAFORM_PATH)/bootstrap/settings)
+
+CEGA_HOST=$()
 
 PREFIX_PATH=/
 ifdef $(findstring 'hellgate',$(CEGA_CONNECTION))
@@ -22,6 +22,8 @@ PREFIX_PATH=/rabbitmq
 endif
 
 ##############################
+
+.PHONY: upload submit user rabbitmqadmin check vault gpg_home
 
 all: user upload submit rabbitmqadmin
 
@@ -32,18 +34,17 @@ echo:
 	@echo CEGA_MQ_PASSWORD=$(CEGA_MQ_PASSWORD)
 	@echo CEGA_MQ_CONNECTION=$(CEGA_MQ_CONNECTION)
 
-
 org:
 	@echo "${BULLET} Create a file named 'org' ${NOCOLOR}"
 	@echo "Hello, Niclas!" > $@
 
 enc: org
 	@echo "${BULLET} Encrypt 'org' into 'enc' ${NOCOLOR}"
-	$(GPG_EXEC) --homedir $(GPG_HOME) -r $(GPG_EMAIL) -e -o $@ $< 2>/dev/null
+	python ~/_ega/extras/encrypt.py $(PGP_PUB) $< > $@
 
 upload: user enc
 	@echo "${BULLET} Upload 'enc' to the Swedish Local EGA inbox ${NOCOLOR}"
-	sftp -i $(SSH_KEY_PRIV) toto@${INBOX_IP} <<< $$'put enc' &>/dev/null
+	sftp -i $(SSH_KEY_PRIV) -P 9000 toto@${INBOX_IP} <<< $$'put enc' &>/dev/null
 
 enc.md5: enc
 	@echo "${BULLET} Compute checksum for 'enc' ${NOCOLOR} [algorithm: md5]"
@@ -55,7 +56,7 @@ org.md5: org
 
 submit: enc enc.md5 org.md5
 	@echo "${BULLET} Publish message to Central EGA for ingestion ${NOCOLOR}"
-	python ~/_ega/extras/publish.py --connection $(subst cega-mq,localhost,$(CEGA_CONNECTION)) toto enc --unenc $(shell cat org.md5) --enc $(shell cat enc.md5)
+	python ~/_ega/extras/publish.py --connection $(subst cega_mq,$(CEGA_IP),$(CEGA_CONNECTION)) toto enc --unenc $(shell cat org.md5) --enc $(shell cat enc.md5)
 
 user: toto.yml
 	@echo "${BULLET} Add 'toto' to Central EGA ${NOCOLOR}"
@@ -71,11 +72,10 @@ toto.yml:
 clean:
 	rm -rf org enc enc.md5 org.md5 toto.yml
 
-
 check:
 	@echo "${BULLET} Check the message broker in Central EGA ${NOCOLOR}"
 	@echo "            Listing queues, vhost, name, node, messages on the Message Broker"
-	@rabbitmqadmin -U $(subst cega-mq,localhost,$(CEGA_CONNECTION)) --prefix-path $(PREFIX_PATH) list queues vhost name node messages
+	@rabbitmqadmin -U $(subst cega_mq,$(CEGA_IP),$(CEGA_CONNECTION)) --prefix-path $(PREFIX_PATH) list queues vhost name node messages
 
 vault:
 	@echo "${BULLET} Check the vault ${NOCOLOR}"

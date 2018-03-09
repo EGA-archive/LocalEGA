@@ -29,16 +29,16 @@ LOG = logging.getLogger('crypto')
 # Ingestion
 ###########################################################
 
-def make_header(key_nr, enc_key_size, nonce_size, aes_mode):
+def make_header(key_id, enc_key_size, nonce_size, aes_mode):
     '''Create the header line for the re-encrypted files
 
     The header is simply of the form:
-    Key number | Encryption key size (in bytes) | Nonce size | AES mode
+    Key ID | Encryption key size (in bytes) | Nonce size | AES mode
 
     The key number points to a particular section of the configuration files, 
     holding the information about that key
     '''
-    return f'{key_nr}|{enc_key_size}|{nonce_size}|{aes_mode}'
+    return f'{key_id}|{enc_key_size}|{nonce_size}|{aes_mode}'
 
 def encrypt_engine(key,passphrase=None):
     '''Generator that takes a block of data as input and encrypts it as output.
@@ -137,7 +137,7 @@ class ReEncryptor(asyncio.SubprocessProtocol):
         self.target_digest.update(cipherchunk)
 
 
-def ingest(gpg_cmd,
+def ingest(decrypt_cmd,
            enc_file,
            org_hash, hash_algo,
            active_key, master_key,
@@ -155,7 +155,7 @@ def ingest(gpg_cmd,
     assert( isinstance(org_hash,str) )
 
     _err = None
-    cmd = gpg_cmd.split(None) # whitespace split
+    cmd = decrypt_cmd.split(None) # whitespace split
 
     with open(target, 'wb') as target_h:
 

@@ -7,7 +7,12 @@ help:
 	@echo "where <target> is: 'bootstrap', 'up', 'all-up', 'ps', 'down', 'network' or 'clean'\n"
 
 private bootstrap:
-	@docker run --rm -it -v ${PWD}:/ega -v ${PWD}/../../extras/db.sql:/tmp/db.sql nbisweden/ega-bootstrap ${ARGS}
+	@docker run --rm -it \
+		    -v ${PWD}:/ega \
+		    -v ${PWD}/../../extras/db.sql:/tmp/db.sql \
+		    -v ${PWD}/../../extras/generate_pgp_key.py:/tmp/generate_pgp_key.py \
+		    --entrypoint /ega/bootstrap/boot.sh \
+		    nbisweden/ega-base ${ARGS}
 
 network:
 	@docker network inspect cega &>/dev/null || docker network create cega &>/dev/null
