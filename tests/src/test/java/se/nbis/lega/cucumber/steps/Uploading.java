@@ -27,7 +27,7 @@ public class Uploading implements En {
             File rawFile = context.getRawFile();
             File encryptedFile = new File(rawFile.getAbsolutePath() + ".enc");
             try {
-                Encryptor encryptor = new Encryptor(new Key(new File(String.format("%s/%s/gpg/public.key", utils.getPrivateFolderPath(), instance))));
+                Encryptor encryptor = new Encryptor(new Key(new File(String.format("%s/%s/pgp/ega.pub", utils.getPrivateFolderPath(), instance))));
                 encryptor.setSigningAlgorithm(null);
                 encryptor.encrypt(rawFile, encryptedFile);
             } catch (IOException | PGPException e) {

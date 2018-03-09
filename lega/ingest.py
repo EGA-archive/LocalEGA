@@ -12,9 +12,7 @@ It simply consumes message from the message queue configured in the [worker] sec
 
 It defaults to the `tasks` queue.
 
-It is possible to start several workers, of course!
-However, they should have the gpg-agent socket location in their environment (when using GnuPG 2.0 or less).
-In GnuPG 2.1, it is not necessary (Just point the `homedir` to the right place).
+It is possible to start several workers.
 
 When a message is consumed, it must be of the form:
 * filepath
@@ -29,41 +27,16 @@ from pathlib import Path
 import uuid
 import ssl
 from functools import partial
-import asyncio
+from urllib.request import urlopen
+import json
 
 
 from .conf import CONF
 from .utils import db, exceptions, checksum, sanitize_user_id
 from .utils.amqp import consume, publish, get_connection
 from .utils.crypto import ingest as crypto_ingest
-from .keyserver import MASTER_PUBKEY, ACTIVE_MASTER_KEY
 
 LOG = logging.getLogger('ingestion')
-
-async def _req(req, host, port, ssl=None, loop=None):
-    reader, writer = await asyncio.open_connection(host, port, ssl=ssl, loop=loop)
-
-    try:
-        LOG.debug(f"Sending request for {req}")
-        # What does the client want
-        writer.write(req)
-        await writer.drain()
-
-        LOG.debug("Waiting for answer")
-        buf=bytearray()
-        while True:
-            data = await reader.read(1000)
-            if data:
-                buf.extend(data)
-            else:
-                writer.close()
-                LOG.debug("Got it")
-                return buf
-    except Exception as e:
-        LOG.error(repr(e))
-        writer.write(repr(e))
-        await writer.drain()
-        writer.close()
 
 @db.catch_error
 def work(active_master_key, master_pubkey, data):
@@ -157,7 +130,7 @@ def work(active_master_key, master_pubkey, data):
     publish(data, broker.channel(), 'cega', 'files.processing')
 
     # Decrypting
-    cmd = CONF.get('ingestion','gpg_cmd',raw=True) % { 'file': str(inbox_filepath) }
+    cmd = CONF.get('ingestion','decrypt_cmd',raw=True) % { 'file': str(inbox_filepath) }
     LOG.debug(f'GPG command: {cmd}\n')
     details, staging_checksum = crypto_ingest( cmd,
                                                str(inbox_filepath),
@@ -179,38 +152,29 @@ def main(args=None):
 
     CONF.setup(args) # re-conf
 
-    # Prepare to contact the Keyserver for the PGP key
-    host = CONF.get('ingestion','keyserver_host')
-    port = CONF.getint('ingestion','keyserver_port')
-    ssl_certfile = Path(CONF.get('ingestion','keyserver_ssl_certfile')).expanduser()
-
-    ssl_ctx = ssl.create_default_context(ssl.Purpose.SERVER_AUTH, cafile=ssl_certfile) if (ssl_certfile and ssl_certfile.exists()) else None
-
-    if not ssl_ctx:
-        LOG.error('No SSL encryption. Exiting...')
-        sys.exit(2)
-    else:
-        LOG.debug('With SSL encryption')
-        
-    loop = asyncio.get_event_loop()
+    master_key = None
     try:
+        # Prepare to contact the Keyserver for the Master key
+        ssl_ctx = ssl.create_default_context()
+        ssl_ctx.check_hostname = False
+        ssl_ctx.verify_mode=ssl.CERT_NONE
+        keyurl = CONF.get('ingestion','keyserver_endpoint_rsa')
         LOG.info('Retrieving the Master Public Key')
-
-        # Might raise exception
-        active_master_key = loop.run_until_complete(_req(ACTIVE_MASTER_KEY, host, port, ssl=ssl_ctx, loop=loop))
-        master_pubkey = loop.run_until_complete(_req(MASTER_PUBKEY, host, port, ssl=ssl_ctx, loop=loop))
-        do_work = partial(work, int(active_master_key.decode()), master_pubkey.decode())
-        
+        with urlopen(keyurl, context=ssl_ctx) as response:
+            master_key = json.loads(response.read().decode())
     except Exception as e:
         LOG.error(repr(e))
         LOG.critical('Problem contacting the Keyserver. Ingestion Worker terminated')
-        loop.close()
         sys.exit(1)
     else:
+
+        # Server connection closed
+        assert( master_key )
+        LOG.info(f"Master Key ID: {master_key['id']}")
+        do_work = partial(work, master_key['id'], bytes.fromhex(master_key['public']))
+        
         # upstream link configured in local broker
         consume(do_work, 'files', 'staged')
-    finally:
-        loop.close()
 
 if __name__ == '__main__':
     main()

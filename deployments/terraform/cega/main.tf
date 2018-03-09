@@ -14,6 +14,7 @@ variable router_id   {}
 variable dns_servers { type = "list" }
 variable key         {}
 variable flavor      {}
+variable boot_image  {}
 
 terraform {
   backend "local" {
@@ -68,7 +69,8 @@ resource "openstack_compute_secgroup_v2" "cega" {
     from_port   = 5672
     to_port     = 5672
     ip_protocol = "tcp"
-    cidr        = "192.168.10.0/24"
+    #cidr        = "192.168.10.0/24"
+    cidr        = "0.0.0.0/0"
   }
   rule {
     from_port   = 15672
@@ -91,9 +93,9 @@ data "template_file" "cloud_init" {
   template = "${file("${path.module}/cloud_init.tpl")}"
 
   vars {
+    boot_script = "${base64encode("${file("${path.module}/boot.sh")}")}"
     mq_users    = "${base64encode("${file("private/mq_users.sh")}")}"
     mq_defs     = "${base64encode("${file("private/defs.json")}")}"
-    mq_conf     = "${base64encode("${file("${path.module}/rabbitmq.config")}")}"
     cega_env    = "${base64encode("${file("private/env")}")}"
     cega_server = "${base64encode("${file("${path.module}/server.py")}")}"
     cega_publish= "${base64encode("${file("${path.module}/publish.py")}")}"
@@ -101,13 +103,15 @@ data "template_file" "cloud_init" {
     cega_html   = "${base64encode("${file("${path.module}/users.html")}")}"
     ega_slice   = "${base64encode("${file("../systemd/ega.slice")}")}"
     ega_service = "${base64encode("${file("../systemd/cega-users.service")}")}"
+    ega_cert    = "${base64encode("${file("private/cega.cert")}")}"
+    ega_cert_key= "${base64encode("${file("private/cega.key")}")}"
   }
 }
 
 resource "openstack_compute_instance_v2" "cega" {
   name        = "cega"
   flavor_name = "${var.flavor}"
-  image_name  = "EGA-cega"
+  image_name  = "${var.boot_image}"
   key_pair  = "${var.key}"
   security_groups = ["default","${openstack_compute_secgroup_v2.cega.name}"]
   network {

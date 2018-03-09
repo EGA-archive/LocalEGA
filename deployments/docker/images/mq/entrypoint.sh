@@ -5,6 +5,21 @@ set -x
 
 [[ -z "${CEGA_CONNECTION}" ]] && echo 'Environment CEGA_CONNECTION is empty' 1>&2 && exit 1
 
+apt-get update
+apt-get install -y curl netcat
+rm -rf /var/lib/apt/lists/*
+
+# Initialization
+rabbitmq-plugins enable --offline rabbitmq_federation
+rabbitmq-plugins enable --offline rabbitmq_federation_management
+rabbitmq-plugins enable --offline rabbitmq_shovel
+rabbitmq-plugins enable --offline rabbitmq_shovel_management
+
+chown rabbitmq:rabbitmq /etc/rabbitmq/rabbitmq.config
+chmod 640 /etc/rabbitmq/rabbitmq.config
+chown rabbitmq:rabbitmq /etc/rabbitmq/defs.json
+chmod 640 /etc/rabbitmq/defs.json
+
 # Problem of loading the plugins and definitions out-of-orders.
 # Explanation: https://github.com/rabbitmq/rabbitmq-shovel/issues/13
 # Therefore: we run the server, with some default confs

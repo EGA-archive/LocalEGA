@@ -1,18 +1,9 @@
-FROM nbisweden/ega-common:latest
-LABEL maintainer "Frédéric Haziza, NBIS"
+FROM nbisweden/ega-base
+LABEL maintainer "NBIS System Developers"
 
-RUN yum -y install openssh-server pam-devel libcurl-devel jq-devel fuse fuse-libs cronie && \
-    yum clean all && rm -rf /var/cache/yum
-
-##################################
 EXPOSE 9000
 VOLUME /ega/inbox
-ENV DB_INSTANCE=
 
-ARG PIP_EGA_PACKAGES=
-RUN pip3.6 install PyYaml ${PIP_EGA_PACKAGES}
-
-##################################
 # Regenerate keys (no passphrase)
 RUN ssh-keygen -t rsa     -N '' -f /etc/ssh/ssh_host_rsa_key && \
     ssh-keygen -t dsa     -N '' -f /etc/ssh/ssh_host_dsa_key && \
