@@ -130,20 +130,17 @@ class PGPPrivateKey:
 
     def load_key(self):
         """Load key and return tuple for reconstruction."""
-        _public_key_material = None
-        _private_key_material = None
+        data = None
         with open(self.secret_path, 'rb') as infile:
             for packet in iter_packets(unarmor(infile)):
                 LOG.info(str(packet))
                 if packet.tag == 5:
-                    _public_key_material, _private_key_material = packet.unlock(self.passphrase)
-                    _public_length = struct.pack('>I', len(_public_key_material))
-                    _private_length = struct.pack('>I', len(_private_key_material))
+                    data = packet.unlock(self.passphrase)
                     self.key_id = packet.key_id
                 else:
                     packet.skip()
 
-        return (self.key_id.upper(), (_public_length, _public_key_material, _private_length, _private_key_material))
+        return (self.key_id.upper(), data)
 
 
 class ReEncryptionKey:
@@ -189,24 +186,19 @@ async def activate_key(key_name, data):
 
 @routes.get('/active/pgp')
 async def active_pgp_key(request):
-    """Retrieve tuple to reconstruced active unlocked key.
+    """Returns a JSON-formated list of numbers to reconstruct the active key, unlocked.
 
-    In case the output is not JSON, we use the following encoding:
-    First, 4 bytes for the length of the public part, followed by the public part.
-    Then, 4 bytes for the length of the private part, followed by the private part.
+    The JOSN response contains a "type" attribute to specify which key it is.
+    If type is "rsa", the public and private attributes contain ('n','e') and ('d','p','q','u') respectively.
+    If type is "dsa", the public and private attributes contain ('p','q','g','y') and ('x') respectively.
+    If type is "elg", the public and private attributes contain ('p','g','y') and ('x') respectively.
+    Other key types are not supported
     """
     key_id = _pgp_cache.get("active_pgp_key")
-    request_type = request.content_type
-    LOG.debug(f'Requested active PGP key | {request_type}')
+    LOG.debug(f'Requesting active PGP key')
     value = _pgp_cache.get(key_id)
     if value:
-        if request_type == 'application/json':
-            return web.json_response({'public': value[1].hex(), 'private': value[3].hex()})
-        response_body = b''.join(value)
-        if request_type == 'text/hex':
-            return web.Response(body=response_body.hex(), content_type='text/hex')
-        else:
-            return web.Response(body=response_body, content_type='application/octed-stream')
+            return web.json_response(value)
     else:
         LOG.warn(f"Active key not found.")
         return web.HTTPNotFound()
@@ -219,7 +211,8 @@ async def active_pgp_key_private(request):
     LOG.debug(f'Requested active PGP (private) key.')
     value = _pgp_cache.get(key_id)
     if value:
-        return web.Response(body=value[3].hex())
+        del value['public']
+        return web.json_response(value)
     else:
         LOG.warn(f"Requested active PGP key not found.")
         return web.HTTPNotFound()
@@ -232,7 +225,8 @@ async def active_pgp_key_public(request):
     LOG.debug(f'Requested active PGP (public) key.')
     value = _pgp_cache.get(key_id)
     if value:
-        return web.Response(body=value[1].hex())
+        del value['private']
+        return web.json_response(value)
     else:
         LOG.warn(f"Requested PGP key not found.")
         return web.HTTPNotFound()
@@ -256,25 +250,20 @@ async def retrieve_active_rsa(request):
 
 @routes.get('/retrieve/pgp/{requested_id}')
 async def retrieve_pgp_key(request):
-    """Retrieve tuple to reconstruced unlocked key.
+    """Returns a JSON-formated list of numbers to reconstruct an unlocked key.
 
-    In case the output is not JSON, we use the following encoding:
-    First, 4 bytes for the length of the public part, followed by the public part.
-    Then, 4 bytes for the length of the private part, followed by the private part.
+    The JOSN response contains a "type" attribute to specify which key it is.
+    If type is "rsa", the public and private attributes contain ('n','e') and ('d','p','q','u') respectively.
+    If type is "dsa", the public and private attributes contain ('p','q','g','y') and ('x') respectively.
+    If type is "elg", the public and private attributes contain ('p','g','y') and ('x') respectively.
+    Other key types are not supported
     """
     requested_id = request.match_info['requested_id']
-    request_type = request.content_type
-    LOG.debug(f'Requested PGP key with ID {requested_id} | {request_type}')
+    LOG.debug(f'Requested PGP key with ID {requested_id}')
     key_id = requested_id[-16:].upper()
     value = _pgp_cache.get(key_id)
     if value:
-        if request_type == 'application/json':
-            return web.json_response({'public': value[1].hex(), 'private': value[3].hex()})
-        response_body = b''.join(value)
-        if request_type == 'text/hex':
-            return web.Response(body=response_body.hex(), content_type='text/hex')
-        else:
-            return web.Response(body=response_body, content_type='application/octed-stream')
+        return web.json_response(value)
     else:
         LOG.warn(f"Requested PGP key {requested_id} not found.")
         return web.HTTPNotFound()
@@ -391,14 +380,16 @@ def main(args=None):
     host = CONF.get('keyserver', 'host') # fallbacks are in defaults.ini
     port = CONF.getint('keyserver', 'port')
 
-    ssl_certfile = Path(CONF.get('keyserver', 'ssl_certfile')).expanduser()
-    ssl_keyfile = Path(CONF.get('keyserver', 'ssl_keyfile')).expanduser()
-    LOG.debug(f'Certfile: {ssl_certfile}')
-    LOG.debug(f'Keyfile: {ssl_keyfile}')
+    # ssl_certfile = Path(CONF.get('keyserver', 'ssl_certfile')).expanduser()
+    # ssl_keyfile = Path(CONF.get('keyserver', 'ssl_keyfile')).expanduser()
+    # LOG.debug(f'Certfile: {ssl_certfile}')
+    # LOG.debug(f'Keyfile: {ssl_keyfile}')
 
-    sslcontext = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-    sslcontext.check_hostname = False
-    sslcontext.load_cert_chain(ssl_certfile, ssl_keyfile)
+    # sslcontext = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+    # sslcontext.check_hostname = False
+    # sslcontext.load_cert_chain(ssl_certfile, ssl_keyfile)
+
+    sslcontext = None # Turning off SSL for the moment
 
     loop = asyncio.get_event_loop()
     keyserver = web.Application(loop=loop)
