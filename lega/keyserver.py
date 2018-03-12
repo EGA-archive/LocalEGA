@@ -40,7 +40,7 @@ from .openpgp.utils import unarmor
 from .openpgp.packet import iter_packets
 from .conf import CONF, KeysConfiguration
 from .utils import get_file_content
-# from .openpgp.generate import generate_pgp_key
+from .openpgp.generate import generate_pgp_key
 
 LOG = logging.getLogger('keyserver')
 routes = web.RouteTableDef()
@@ -149,19 +149,20 @@ class PGPPrivateKey:
 class ReEncryptionKey:
     """ReEncryption currently done with a RSA key."""
 
-    def __init__(self, key_id, secret_path, passphrase=''):
+    def __init__(self, key_id, public_path, secret_path=None, passphrase=''):
         """Intialise PrivateKey."""
         self.secret_path = secret_path
+        self.public_path = public_path
         self.key_id = key_id
         assert( isinstance(passphrase,str) )
         self.passphrase = passphrase.encode()
 
     def load_key(self):
         """Load key and return tuple for reconstruction."""
-        data = get_file_content(self.secret_path)
+        public_data = get_file_content(self.public_path)
         # unlock it with the passphrase
         # TODO
-        return (self.key_id, data)
+        return (self.key_id, public_data)
 
 
 async def activate_key(key_name, data):
@@ -171,7 +172,7 @@ async def activate_key(key_name, data):
         obj_key = PGPPrivateKey(data.get('private'), data.get('passphrase'))
         _cache = _pgp_cache
     elif key_name.startswith("rsa"):
-        obj_key = ReEncryptionKey(key_name, data.get('private'), passphrase='')
+        obj_key = ReEncryptionKey(key_name, data.get('public'), None, passphrase='')
         _cache = _rsa_cache
     else:
         LOG.error(f"Unrecognised key type: {key_name}")
@@ -336,21 +337,21 @@ async def unlock_key(request):
         return web.HTTPBadRequest()
 
 
-# @routes.post('generate/pgp')
-# async def generate_pgp_key_pair(request):
-#     """Generate PGP key pair"""
-#     key_options = await request.json()
-#     LOG.debug(f'Admin generate PGP key pair: {key_options}')
-#     if all(k in key_options for k in("name", "comment", "email")):
-#         # By default we can return armored
-#         pub_data, sec_data = generate_pgp_key(key_options['name'],
-#                                               key_options['email'],
-#                                               key_options['comment'],
-#                                               key_options.get('passphrase', None))
-#         # TO DO return the key pair or the path where it is stored.
-#         return web.HTTPAccepted()
-#     else:
-#         return web.HTTPBadRequest()
+@routes.post('/generate/pgp')
+async def generate_pgp_key_pair(request):
+    """Generate PGP key pair"""
+    key_options = await request.json()
+    LOG.debug(f'Admin generate PGP key pair: {key_options}')
+    if all(k in key_options for k in("name", "comment", "email")):
+        # By default we can return armored
+        pub_data, sec_data = generate_pgp_key(key_options['name'],
+                                              key_options['email'],
+                                              key_options['comment'],
+                                              key_options.get('passphrase', None))
+        # TO DO return the key pair or the path where it is stored.
+        return web.HTTPAccepted()
+    else:
+        return web.HTTPBadRequest()
 
 
 @routes.get('/admin/ttl')
