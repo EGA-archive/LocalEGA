@@ -26,10 +26,8 @@ def fetch_private_key(key_id):
         LOG.info('Opening connection to %s', keyurl)
         with urlopen(req, context=ssl_ctx) as response:
             data = json.loads(response.read().decode())
-            public_key_material = bytes.fromhex(data['public'])
-            private_key_material = bytes.fromhex(data['private'])
         LOG.info('Connection to the server closed for %s', key_id)
-        return make_key(public_key_material, private_key_material)
+        return make_key(data)
     except HTTPError as e:
         LOG.critical('Unknown PGP key %s', key_id)
         sys.exit(1)

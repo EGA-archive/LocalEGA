@@ -268,21 +268,42 @@ def derive_key(passphrase, keylen, s2k_type, hash_algo, salt, count):
 
     return b''.join(_h.digest() for _h in h)[:keylen]
 
-def make_rsa_key(n, e, d, p, q, u):
+def make_rsa_key(material):
+    '''Convert a hex-based dict of values to an RSA key'''
     backend = default_backend()
-    pub = rsa.RSAPublicNumbers(e, n)
+    public_material = material['public']
+    private_material = material['private']
+    e = int(public_material['e'], 16)
+    n = int(public_material['n'], 16)
+    d = int(private_material['d'], 16)
+    p = int(private_material['p'], 16)
+    q = int(private_material['q'], 16)
+    pub = rsa.RSAPublicNumbers(e,n)
     dmp1 = rsa.rsa_crt_dmp1(d, p)
     dmq1 = rsa.rsa_crt_dmq1(d, q)
     iqmp = rsa.rsa_crt_iqmp(p, q)
     return rsa.RSAPrivateNumbers(p, q, d, dmp1, dmq1, iqmp, pub).private_key(backend), padding.PKCS1v15()
 
-def make_dsa_key(y, g, p, q, x):
+def make_dsa_key(material):
+    '''Convert a hex-based dict of values to a DSA key'''
     backend = default_backend()
+    public_material = material['public']
+    private_material = material['private']
+    p = int(public_material['p'], 16)
+    q = int(public_material['q'], 16)
+    g = int(public_material['g'], 16)
+    y = int(public_material['y'], 16)
+    x = int(private_material['x'], 16)
     params = dsa.DSAParameterNumbers(p,q,g)
     pn = dsa.DSAPublicNumbers(y, params)
     return dsa.DSAPrivateNumbers(x, pn).private_key(backend), None
 
-def make_elg_key(y, g, p, q, x):
+def make_elg_key(material):
+    # backend = default_backend()
+    # p = int(material['p'], 16)
+    # q = int(material['q'], 16)
+    # y = int(material['y'], 16)
+    # x = int(material['x'], 16)
     raise NotImplementedError()
 
 def parse_public_key_material(data, buf=None):
@@ -337,22 +358,46 @@ def parse_private_key_material(raw_pub_algorithm, data, buf=None):
         raise PGPError(f"Experimental private key part: {raw_pub_algorithm}")
     raise PGPError(f"Unsupported public key algorithm {raw_pub_algorithm}")
 
-def make_key(pub_stream, priv_stream):
-    '''Given the public and private part, as byte sequences, this function
-       parses them and return a key object'''
-    raw_alg, key_type, *public_key_material = parse_public_key_material(io.BytesIO(pub_stream))
-    private_key_material = parse_private_key_material(raw_alg, io.BytesIO(priv_stream))
+def make_key(key_material):
+    '''Given the key_material, this function returns a key object'''
 
-    args = (int.from_bytes(n, "big") for n in chain(public_key_material, private_key_material))
+    LOG.debug(f'-------------------- MAKE KEY from: {key_material}')
+    key_type = key_material["type"]
     if key_type == "rsa":
-        return make_rsa_key(*args)
+        return make_rsa_key(key_material)
     if key_type == "dsa":
-        return make_dsa_key(*args)
+        return make_dsa_key(key_material)
     if key_type == "elg":
-        return make_elg_key(*args)
+        return make_elg_key(key_material)
 
     assert False, "should not come here"
     return None
+
+def pack_key_material(pub_stream, priv_stream):
+    pub_stream.seek(0,io.SEEK_SET) # rewind to beginning
+    priv_stream.seek(0,io.SEEK_SET)
+    raw_alg, key_type, *public_key_material = parse_public_key_material(pub_stream)
+    private_key_material = parse_private_key_material(raw_alg, priv_stream)
+
+    if key_type == "rsa":
+        material_keys_pub = ('n','e')
+        material_keys_priv = ('d','p','q','u')
+    elif key_type == "dsa":
+        material_keys_pub = ('p','q','g','y')
+        material_keys_priv = ('x')
+    elif key_type == "elg":
+        material_keys_pub = ('p','g','y')
+        material_keys_priv = ('x')
+    else:
+        raise PGPError(f'Cannot pack a "{key_material}" key material')
+
+    return {
+        "type": key_type,
+        "public": dict(zip(material_keys_pub, (v.hex() for v in public_key_material))),
+        #"private": dict(zip(chain(material_keys_pub, material_keys_priv), chain(public_key_material, private_key_material))),
+        "private": dict(zip(material_keys_priv, (v.hex() for v in private_key_material))),
+    }
+
 
 def validate_private_data(data, s2k_usage):
 
