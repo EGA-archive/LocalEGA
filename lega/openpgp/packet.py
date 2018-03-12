@@ -10,7 +10,7 @@ from .constants import lookup_pub_algorithm, lookup_sym_algorithm, lookup_hash_a
 from .utils import (PGPError,
                     read_1_byte, read_2_bytes, read_4_bytes,
                     new_tag_length, old_tag_length,
-                    get_mpi, parse_public_key_material, parse_private_key_material,
+                    get_mpi, parse_public_key_material, parse_private_key_material, pack_key_material,
                     derive_key,
                     decryptor, make_decryptor,
                     decompressor,
@@ -289,7 +289,9 @@ class SecretKeyPacket(PublicKeyPacket):
         
         validate_private_data(clear_private_data, self.s2k_usage)
         LOG.info('Passphrase correct')
-        return (self.public_part.getvalue(), clear_private_data)
+
+        # Packing the return data
+        return pack_key_material(self.public_part, io.BytesIO(clear_private_data))
 
     def __repr__(self):
         s = super().__repr__()

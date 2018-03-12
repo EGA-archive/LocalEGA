@@ -93,8 +93,8 @@ log = /etc/ega/logger.yml
 
 [ingestion]
 # Keyserver communication
-keyserver_endpoint_pgp = https://ega-keys-${INSTANCE}/retrieve/pgp/%s
-keyserver_endpoint_rsa = https://ega-keys-${INSTANCE}/active/rsa
+keyserver_endpoint_pgp = http://ega-keys-${INSTANCE}:443/retrieve/pgp/%s
+keyserver_endpoint_rsa = http://ega-keys-${INSTANCE}:443/active/rsa
 
 decrypt_cmd = python3.6 -u -m lega.openpgp %(file)s
 
