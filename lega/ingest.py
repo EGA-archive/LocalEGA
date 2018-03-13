@@ -52,13 +52,14 @@ def work(active_master_key, master_pubkey, data):
     '''
 
     filepath = data['filepath']
-    LOG.info(f"Processing {filepath}")
+    stable_id = data['stable_id']
+    LOG.info(f"Processing {filepath} (with stable_id: {stable_id})")
 
     # Use user_id, and not elixir_id
     user_id = sanitize_user_id(data['user'])
     
     # Insert in database
-    file_id = db.insert_file(filepath, user_id)
+    file_id = db.insert_file(filepath, user_id, stable_id)
 
     # early record
     internal_data = {
