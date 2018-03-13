@@ -348,11 +348,11 @@ def parse_private_key_material(raw_pub_algorithm, data, buf=None):
     elif raw_pub_algorithm == 17:
         # x
         x = get_mpi(data, buf=buf)
-        return x
+        return (x, )
     elif raw_pub_algorithm in (16, 20):
         # x
         x = get_mpi(data, buf=buf)
-        return x
+        return (x, )
     elif 100 <= raw_pub_algorithm <= 110:
         # Private/Experimental algorithms, just move on
         raise PGPError(f"Experimental private key part: {raw_pub_algorithm}")

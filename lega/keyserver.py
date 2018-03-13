@@ -146,7 +146,7 @@ class PGPPrivateKey:
 class ReEncryptionKey:
     """ReEncryption currently done with a RSA key."""
 
-    def __init__(self, key_id, public_path, secret_path=None, passphrase=''):
+    def __init__(self, key_id, public_path, secret_path, passphrase=''):
         """Intialise PrivateKey."""
         self.secret_path = secret_path
         self.public_path = public_path
@@ -156,10 +156,15 @@ class ReEncryptionKey:
 
     def load_key(self):
         """Load key and return tuple for reconstruction."""
-        public_data = get_file_content(self.public_path)
+        public_data = get_file_content(self.public_path).hex()
         # unlock it with the passphrase
+        private_data = None
+        if self.secret_path:
+            private_data = get_file_content(self.secret_path).hex()
         # TODO
-        return (self.key_id, public_data)
+        return (self.key_id, {'id': self.key_id,
+                              'public': public_data,
+                              'private': private_data})
 
 
 async def activate_key(key_name, data):
@@ -169,7 +174,7 @@ async def activate_key(key_name, data):
         obj_key = PGPPrivateKey(data.get('private'), data.get('passphrase'))
         _cache = _pgp_cache
     elif key_name.startswith("rsa"):
-        obj_key = ReEncryptionKey(key_name, data.get('public'), None, passphrase='')
+        obj_key = ReEncryptionKey(key_name, data.get('public'), data.get('private', None), passphrase='')
         _cache = _rsa_cache
     else:
         LOG.error(f"Unrecognised key type: {key_name}")
@@ -184,72 +189,90 @@ async def activate_key(key_name, data):
 
 # Retrieve the active keys #
 
-@routes.get('/active/pgp')
-async def active_pgp_key(request):
+@routes.get('/active/{key_type}')
+async def active_key(request):
     """Returns a JSON-formated list of numbers to reconstruct the active key, unlocked.
 
-    The JOSN response contains a "type" attribute to specify which key it is.
-    If type is "rsa", the public and private attributes contain ('n','e') and ('d','p','q','u') respectively.
-    If type is "dsa", the public and private attributes contain ('p','q','g','y') and ('x') respectively.
-    If type is "elg", the public and private attributes contain ('p','g','y') and ('x') respectively.
+    For PGP:
+
+        * The JOSN response contains a "type" attribute to specify which key it is.
+        * If type is "rsa", the public and private attributes contain ('n','e') and ('d','p','q','u') respectively.
+        * If type is "dsa", the public and private attributes contain ('p','q','g','y') and ('x') respectively.
+        * If type is "elg", the public and private attributes contain ('p','g','y') and ('x') respectively.
+
+    For RSA the public and private parts are retrieved in hex format.
+
     Other key types are not supported
     """
-    key_id = _pgp_cache.get("active_pgp_key")
-    LOG.debug(f'Requesting active PGP key')
-    value = _pgp_cache.get(key_id)
+    key_type = request.match_info['key_type'].lower()
+    if key_type == 'pgp':
+        active_key = "active_pgp_key"
+        _cache = _pgp_cache
+    elif key_type == 'rsa':
+        active_key = "active_rsa_key"
+        _cache = _rsa_cache
+    else:
+        return web.HTTPBadRequest()
+    key_id = _cache.get(active_key)
+    LOG.debug(f'Requesting active %s key', key_type.upper())
+    value = _cache.get(key_id)
     if value:
-            return web.json_response(value)
+        return web.json_response(value)
     else:
         LOG.warn(f"Active key not found.")
         return web.HTTPNotFound()
 
 
-@routes.get('/active/pgp/private')
-async def active_pgp_key_private(request):
+@routes.get('/active/{key_type}/private')
+async def active_key_private(request):
     """Retrieve private part to reconstruced unlocked active key."""
-    key_id = _pgp_cache.get("active_pgp_key")
-    LOG.debug(f'Requested active PGP (private) key.')
-    value = _pgp_cache.get(key_id)
+    key_type = request.match_info['key_type'].lower()
+    if key_type == 'pgp':
+        active_key = "active_pgp_key"
+        _cache = _pgp_cache
+    elif key_type == 'rsa':
+        active_key = "active_rsa_key"
+        _cache = _rsa_cache
+    else:
+        return web.HTTPBadRequest()
+    key_id = _cache.get(active_key)
+    LOG.debug(f'Requesting active %s (private) key', key_type.upper())
+    value = dict(_cache.get(key_id))
     if value:
         del value['public']
         return web.json_response(value)
     else:
-        LOG.warn(f"Requested active PGP key not found.")
+        LOG.warn(f"Requested active %s (private) key not found.", key_type.upper())
         return web.HTTPNotFound()
 
 
-@routes.get('/active/pgp/public')
-async def active_pgp_key_public(request):
+@routes.get('/active/{key_type}/public')
+async def active_key_public(request):
     """Retrieve public to reconstruced unlocked active key."""
-    key_id = _pgp_cache.get("active_pgp_key")
-    LOG.debug(f'Requested active PGP (public) key.')
-    value = _pgp_cache.get(key_id)
+    key_type = request.match_info['key_type'].lower()
+    if key_type == 'pgp':
+        active_key = "active_pgp_key"
+        _cache = _pgp_cache
+    elif key_type == 'rsa':
+        active_key = "active_rsa_key"
+        _cache = _rsa_cache
+    else:
+        return web.HTTPBadRequest()
+    key_id = _cache.get(active_key)
+    LOG.debug(f'Requesting active %s (public) key', key_type.upper())
+    value = dict(_cache.get(key_id))
     if value:
         del value['private']
         return web.json_response(value)
     else:
-        LOG.warn(f"Requested PGP key not found.")
-        return web.HTTPNotFound()
-
-
-@routes.get('/active/rsa')
-async def retrieve_active_rsa(request):
-    """Retrieve RSA reencryption key."""
-    key_id = _rsa_cache.get("active_rsa_key")
-    LOG.debug(f'Requested active RSA key')
-    value = _rsa_cache.get(key_id)
-    if value:
-        return web.json_response({ 'id': key_id,
-                                   'public': value.hex()})
-    else:
-        LOG.warn(f"Requested ReEncryption Key not found.")
+        LOG.warn(f"Requested %s key (public) not found.", key_type.upper())
         return web.HTTPNotFound()
 
 
 # Just want to get a key by its key_id PGP or RSA
 
-@routes.get('/retrieve/pgp/{requested_id}')
-async def retrieve_pgp_key(request):
+@routes.get('/retrieve/{key_type}/{requested_id}')
+async def retrieve_key(request):
     """Returns a JSON-formated list of numbers to reconstruct an unlocked key.
 
     The JOSN response contains a "type" attribute to specify which key it is.
@@ -259,55 +282,67 @@ async def retrieve_pgp_key(request):
     Other key types are not supported
     """
     requested_id = request.match_info['requested_id']
-    LOG.debug(f'Requested PGP key with ID {requested_id}')
-    key_id = requested_id[-16:].upper()
-    value = _pgp_cache.get(key_id)
+    key_type = request.match_info['key_type'].lower()
+    if key_type == 'pgp':
+        _cache = _pgp_cache
+        key_id = requested_id[-16:].upper()
+    elif key_type == 'rsa':
+        _cache = _rsa_cache
+        key_id = requested_id
+    else:
+        return web.HTTPBadRequest()
+    LOG.debug(f'Requested {key_type.upper()} key with ID {requested_id}')
+    value = _cache.get(key_id)
     if value:
         return web.json_response(value)
     else:
-        LOG.warn(f"Requested PGP key {requested_id} not found.")
+        LOG.warn(f"Requested {key_type.upper()} key {requested_id} not found.")
         return web.HTTPNotFound()
 
 
-@routes.get('/retrieve/pgp/{requested_id}/private')
-async def retrieve_pgp_key_private(request):
+@routes.get('/retrieve/{key_type}/{requested_id}/private')
+async def retrieve_key_private(request):
     """Retrieve private part to reconstruced unlocked key."""
     requested_id = request.match_info['requested_id']
-    LOG.debug(f'Requested PGP (private) key with ID {requested_id}')
-    key_id = requested_id[-16:].upper()
-    value = _pgp_cache.get(key_id)
-    if value:
-        return web.Response(body=value[3].hex())
+    key_type = request.match_info['key_type'].lower()
+    if key_type == 'pgp':
+        _cache = _pgp_cache
+        key_id = requested_id[-16:].upper()
+    elif key_type == 'rsa':
+        _cache = _rsa_cache
+        key_id = requested_id
     else:
-        LOG.warn(f"Requested PGP key {requested_id} not found.")
+        return web.HTTPBadRequest()
+    LOG.debug(f'Requested {key_type.upper()} (private) key with ID {requested_id}')
+    value = dict(_cache.get(key_id))
+    if value:
+        del value['public']
+        return web.json_response(value)
+    else:
+        LOG.warn(f"Requested {key_type.upper()} (private) key {requested_id} not found.")
         return web.HTTPNotFound()
 
 
-@routes.get('/retrieve/pgp/{requested_id}/public')
-async def retrieve_pgp_key_public(request):
+@routes.get('/retrieve/{key_type}/{requested_id}/public')
+async def retrieve_key_public(request):
     """Retrieve public to reconstruced unlocked key."""
     requested_id = request.match_info['requested_id']
-    LOG.debug(f'Requested PGP (public) key with ID {requested_id}')
-    key_id = requested_id[-16:].upper()
-    value = _pgp_cache.get(key_id)
-    if value:
-        return web.Response(body=value[1].hex())
+    key_type = request.match_info['key_type'].lower()
+    if key_type == 'pgp':
+        _cache = _pgp_cache
+        key_id = requested_id[-16:].upper()
+    elif key_type == 'rsa':
+        _cache = _rsa_cache
+        key_id = requested_id
     else:
-        LOG.warn(f"Requested PGP key {requested_id} not found.")
-        return web.HTTPNotFound()
-
-
-@routes.get('/retrieve/rsa/{requested_id}')
-async def retrieve_reencryt_key(request):
-    """Retrieve RSA reencryption key."""
-    requested_id = request.match_info['requested_id']
-    LOG.debug(f'Requested RSA key with ID {requested_id}')
-    value = _rsa_cache.get(requested_id)
+        return web.HTTPBadRequest()
+    LOG.debug(f'Requested {key_type.upper()} (public) key with ID {requested_id}')
+    value = dict(_cache.get(key_id))
     if value:
-        return web.json_response({ 'id': requested_id,
-                                   'public': value.hex()})
+        del value['private']
+        return web.json_response(value)
     else:
-        LOG.warn(f"Requested ReEncryption Key not found.")
+        LOG.warn(f"Requested {key_type.upper()} (public) key {requested_id} not found.")
         return web.HTTPNotFound()
 
 
