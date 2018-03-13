@@ -14,6 +14,9 @@ public class Message {
   @JsonProperty("filepath")
   private String filepath;
 
+  @JsonProperty("stable_id")
+  private String stableID;
+
   @JsonProperty("encrypted_integrity")
   private Checksum encryptedIntegrity;
 

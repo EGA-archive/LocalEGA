@@ -222,6 +222,7 @@ public class Utils {
         Message message = new Message();
         message.setUser(user);
         message.setFilepath(filepath);
+	message.setStableID("EGAF_" + UUID.randomUUID().toString());
 
         Checksum unencrypted = new Checksum();
         unencrypted.setAlgorithm("md5");
