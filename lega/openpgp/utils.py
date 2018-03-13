@@ -384,10 +384,10 @@ def pack_key_material(pub_stream, priv_stream):
         material_keys_priv = ('d','p','q','u')
     elif key_type == "dsa":
         material_keys_pub = ('p','q','g','y')
-        material_keys_priv = ('x')
+        material_keys_priv = ('x', )
     elif key_type == "elg":
         material_keys_pub = ('p','g','y')
-        material_keys_priv = ('x')
+        material_keys_priv = ('x', )
     else:
         raise PGPError(f'Cannot pack a "{key_material}" key material')
 

@@ -5,19 +5,21 @@ Keyserver
 ---------
 
 The Keyserver provides a REST endpoint for retrieving PGP and Re-encryption keys.
-Active keys endpoint:
+Active keys endpoint (current key types supported are PGP and RSA):
 
-* ``/active/pgp`` - GET request for the active PGP key
-* ``/active/rsa`` - GET request for the active RSA key for re-encryption
-* ``/active/pgp/private`` - GET request for the private part of the active PGP key
-* ``/active/pgp/public`` - GET request for the public part of the active PGP key
+* ``/active/\{key_type\}`` - GET request for the active key
+* ``/active/\{key_type\}/private`` - GET request for the private part of the active key
+* ``/active/\{key_type\}/public`` - GET request for the public part of the active key
 
 Retrieve keys endpoint:
 
-* ``/retrieve/pgp/\{key_id\}`` - GET request for the active PGP key with a known keyID of fingerprint
-* ``/retrieve/rsa/\{key_id\}`` - GET request for the active RSA key for re-encryption with a known keyID
-* ``/retrieve/pgp/\{key_id\}/private`` - GET request for the private part of the active PGP key with a known keyID of fingerprint
-* ``/retrieve/pgp/\{key_id\}/public`` - GET request for the public part of the active PGP key with a known keyID of fingerprint
+* ``/retrieve/\{key_type\}/\{key_id\}`` - GET request for the active PGP key with a known keyID of fingerprint
+* ``/retrieve/\{key_type\}/\{key_id\}/private`` - GET request for the private part of the active PGP key with a known keyID of fingerprint
+* ``/retrieve/\{key_type\}/\{key_id\}/public`` - GET request for the public part of the active PGP key with a known keyID of fingerprint
+
+Generate endpoint:
+
+* ``/generate/pgp`` - POST request to generate a PGP key pair
 
 Admin endpoint:
 
@@ -193,7 +195,7 @@ async def activate_key(key_name, data):
 async def active_key(request):
     """Returns a JSON-formated list of numbers to reconstruct the active key, unlocked.
 
-    For PGP:
+    For PGP key types:
 
         * The JOSN response contains a "type" attribute to specify which key it is.
         * If type is "rsa", the public and private attributes contain ('n','e') and ('d','p','q','u') respectively.
@@ -202,7 +204,7 @@ async def active_key(request):
 
     For RSA the public and private parts are retrieved in hex format.
 
-    Other key types are not supported
+    Other key types are not supported.
     """
     key_type = request.match_info['key_type'].lower()
     if key_type == 'pgp':
@@ -225,7 +227,19 @@ async def active_key(request):
 
 @routes.get('/active/{key_type}/private')
 async def active_key_private(request):
-    """Retrieve private part to reconstruced unlocked active key."""
+    """Retrieve private part to reconstruced unlocked active key.
+
+    For PGP key types:
+
+        * The JOSN response contains a "type" attribute to specify which key it is.
+        * If type is "rsa", the private attribute contains ('d','p','q','u').
+        * If type is "dsa", the private attribute contains ('x').
+        * If type is "elg", the private attribute contains ('x').
+
+    For RSA the public and private parts are retrieved in hex format.
+
+    Other key types are not supported.
+    """
     key_type = request.match_info['key_type'].lower()
     if key_type == 'pgp':
         active_key = "active_pgp_key"
@@ -248,7 +262,19 @@ async def active_key_private(request):
 
 @routes.get('/active/{key_type}/public')
 async def active_key_public(request):
-    """Retrieve public to reconstruced unlocked active key."""
+    """Retrieve public to reconstruced unlocked active key.
+
+    For PGP key types:
+
+        * The JOSN response contains a "type" attribute to specify which key it is.
+        * If type is "rsa", the public attribute contains ('n','e').
+        * If type is "dsa", the public attribute contains ('p','q','g','y').
+        * If type is "elg", the public attribute contains ('p','g','y').
+
+    For RSA the public part is retrieved in hex format.
+
+    Other key types are not supported.
+    """
     key_type = request.match_info['key_type'].lower()
     if key_type == 'pgp':
         active_key = "active_pgp_key"
@@ -275,11 +301,16 @@ async def active_key_public(request):
 async def retrieve_key(request):
     """Returns a JSON-formated list of numbers to reconstruct an unlocked key.
 
-    The JOSN response contains a "type" attribute to specify which key it is.
-    If type is "rsa", the public and private attributes contain ('n','e') and ('d','p','q','u') respectively.
-    If type is "dsa", the public and private attributes contain ('p','q','g','y') and ('x') respectively.
-    If type is "elg", the public and private attributes contain ('p','g','y') and ('x') respectively.
-    Other key types are not supported
+    For PGP key types:
+
+        * The JOSN response contains a "type" attribute to specify which key it is.
+        * If type is "rsa", the public and private attributes contain ('n','e') and ('d','p','q','u') respectively.
+        * If type is "dsa", the public and private attributes contain ('p','q','g','y') and ('x') respectively.
+        * If type is "elg", the public and private attributes contain ('p','g','y') and ('x') respectively.
+
+    For RSA the public and private parts are retrieved in hex format.
+
+    Other key types are not supported.
     """
     requested_id = request.match_info['requested_id']
     key_type = request.match_info['key_type'].lower()
@@ -302,7 +333,10 @@ async def retrieve_key(request):
 
 @routes.get('/retrieve/{key_type}/{requested_id}/private')
 async def retrieve_key_private(request):
-    """Retrieve private part to reconstruced unlocked key."""
+    """Retrieve private part to reconstruct unlocked key.
+
+    :py:func:`lega.keyserver.active_key_private`
+    """
     requested_id = request.match_info['requested_id']
     key_type = request.match_info['key_type'].lower()
     if key_type == 'pgp':
@@ -325,7 +359,10 @@ async def retrieve_key_private(request):
 
 @routes.get('/retrieve/{key_type}/{requested_id}/public')
 async def retrieve_key_public(request):
-    """Retrieve public to reconstruced unlocked key."""
+    """Retrieve public part to reconstruct unlocked key.
+
+    :py:func:`lega.keyserver.active_key_private`
+    """
     requested_id = request.match_info['requested_id']
     key_type = request.match_info['key_type'].lower()
     if key_type == 'pgp':
@@ -378,11 +415,20 @@ async def generate_pgp_key_pair(request):
         return web.HTTPBadRequest()
 
 
+@routes.get('/health')
+async def healthcheck(request):
+    """A health endpoint for service discovery.
+    It will always return ok.
+    """
+    LOG.debug('Healthcheck called')
+    return web.HTTPOk()
+
+
 @routes.get('/admin/ttl')
 async def check_ttl(request):
     """Evict from the cache if TTL expired
        and return the keys that survived""" # ehh...why? /Fred
-    LOG.debug(f'Admin TTL')
+    LOG.debug('Admin TTL')
     pgp_expire = _pgp_cache.check_ttl()
     rsa_expire = _rsa_cache.check_ttl()
     if pgp_expire or rsa_expire:
