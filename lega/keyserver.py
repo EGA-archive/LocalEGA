@@ -41,7 +41,7 @@ import struct
 from .openpgp.utils import unarmor
 from .openpgp.packet import iter_packets
 from .conf import CONF, KeysConfiguration
-from .utils import get_file_content
+from .utils import get_file_content, db
 from .openpgp.generate import generate_pgp_key
 
 LOG = logging.getLogger('keyserver')
@@ -436,19 +436,47 @@ async def check_ttl(request):
     else:
         return web.HTTPBadRequest()
 
+@routes.get('/temp/file/{file_id}')
+async def translate_file_id_to_filepath(request):
+    """Translate a file_id to a file_path"""
+    file_id = request.match_info['file_id']
+    LOG.debug(f'Translation {file_id} to filepath')
+    filepath = await db.get_filepath(request.app['db'], file_id)
+    LOG.debug(f'Filepath {filepath}')
+    if filepath:
+        return web.Response(text=filepath)
+    raise web.HTTPNotFound(text=f'Dunno anything about a file with id "{file_id}"\n')
 
-async def load_keys_conf(KEYS):
+async def load_keys_conf(store):
     """Parse and load keys configuration."""
     # Cache the active key names
-    for name, value in KEYS.defaults().items():
+    for name, value in store.defaults().items():
         if name == 'pgp':
             _pgp_cache.set('active_pgp_key', value)
         if name == 'rsa':
             _rsa_cache.set('active_rsa_key', value)
     # Load all the keys in the store
-    for section in KEYS.sections():
-        await activate_key(section, dict(KEYS.items(section)))
+    for section in store.sections():
+        await activate_key(section, dict(store.items(section)))
 
+async def init(app):
+    '''Initialization running before the loop.run_forever'''
+    app['db'] = await db.create_pool(loop=app.loop)
+    LOG.info('DB Connection pool created')
+    # Note: will exit on failure
+    await load_keys_conf(app['store'])
+
+async def shutdown(app):
+    '''Function run after a KeyboardInterrupt. After that: cleanup'''
+    LOG.info('Shutting down the database engine')
+    app['db'].close()
+    await app['db'].wait_closed()
+
+async def cleanup(app):
+    '''Function run after a KeyboardInterrupt. Right after, the loop is closed'''
+    LOG.info('Cancelling all pending tasks')
+    for task in asyncio.Task.all_tasks():
+        task.cancel()
 
 def main(args=None):
     """Where the magic happens."""
@@ -456,7 +484,6 @@ def main(args=None):
         args = sys.argv[1:]
 
     CONF.setup(args)
-    KEYS = KeysConfiguration(args)
 
     host = CONF.get('keyserver', 'host') # fallbacks are in defaults.ini
     port = CONF.getint('keyserver', 'port')
@@ -476,7 +503,14 @@ def main(args=None):
     keyserver = web.Application(loop=loop)
     keyserver.router.add_routes(routes)
 
-    loop.run_until_complete(load_keys_conf(KEYS))
+    # Adding the keystore to the server
+    keyserver['store'] = KeysConfiguration(args)
+
+    # Registering some initialization and cleanup routines	
+    LOG.info('Setting up callbacks')
+    keyserver.on_startup.append(init)
+    keyserver.on_shutdown.append(shutdown)
+    keyserver.on_cleanup.append(cleanup)
 
     LOG.info(f"Start keyserver on {host}:{port}")
     web.run_app(keyserver, host=host, port=port, shutdown_timeout=0, ssl_context=sslcontext)

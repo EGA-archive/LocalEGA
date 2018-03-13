@@ -4,6 +4,7 @@ set -e
 DOCKER_PORT_inbox=2223
 DOCKER_PORT_mq=15673
 DOCKER_PORT_kibana=5602
+DOCKER_PORT_keyserver=8444
 
 LEGA_GREETINGS="Welcome to Local EGA Finland @ CSC"
 CEGA_MQ_PASSWORD=$(generate_password 16)
@@ -19,5 +20,7 @@ PGP_NAME="EGA Finland"
 PGP_COMMENT="@CSC"
 PGP_EMAIL="ega@csc.fi"
 PGP_PASSPHRASE=$(generate_password 16)
+
+RSA_PASSPHRASE=$(generate_password 16)
 
 LOG_LEVEL=INFO
