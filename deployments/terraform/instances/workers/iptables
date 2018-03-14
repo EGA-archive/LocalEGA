@@ -16,7 +16,7 @@ COMMIT
 :INPUT ACCEPT [0:0]
 :OUTPUT ACCEPT [0:0]
 :POSTROUTING ACCEPT [0:0]
-# Redirect from 443 to 8443. Not restricting a give CIDR
+# Redirect from 443 to 8443. Not restricting to a given CIDR
 -A PREROUTING -p tcp -m tcp --dport 443 -j REDIRECT --to-ports 8443
 -A OUTPUT -p tcp -o lo --dport 443 -j REDIRECT --to-ports 8443
 COMMIT
