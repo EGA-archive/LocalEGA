@@ -21,6 +21,7 @@ CREATE TABLE files (
 	status         status,
 	staging_name   TEXT,
 	stable_id      TEXT,
+	filepath       TEXT,
 	reenc_info     TEXT,
 	reenc_size     INTEGER,
 	reenc_checksum TEXT, -- sha256
@@ -30,18 +31,30 @@ CREATE TABLE files (
 
 CREATE FUNCTION insert_file(filename    files.filename%TYPE,
 			    eid         files.elixir_id%TYPE,
+			    stable_id   files.stable_id%TYPE,
 			    status      files.status%TYPE)
     RETURNS files.id%TYPE AS $insert_file$
     #variable_conflict use_column
     DECLARE
         file_id files.id%TYPE;
     BEGIN
-	INSERT INTO files (filename,elixir_id,status)
-	VALUES(filename,eid,status) RETURNING files.id
+	INSERT INTO files (filename,elixir_id,stable_id,status)
+	VALUES(filename,eid,stable_id,status) RETURNING files.id
 	INTO file_id;
 	RETURN file_id;
     END;
 $insert_file$ LANGUAGE plpgsql;
+
+CREATE FUNCTION translate_fileid_to_filepath(sid files.stable_id%TYPE)
+    RETURNS files.filepath%TYPE AS $translate_fileid_to_filepath$
+    #variable_conflict use_column
+    DECLARE
+        filepath files.filepath%TYPE;
+    BEGIN
+	SELECT filepath FROM files WHERE stable_id = sid LIMIT 1 INTO filepath;
+	RETURN filepath;
+    END;
+$translate_fileid_to_filepath$ LANGUAGE plpgsql;
 
 -- ##################################################
 --                      ERRORS

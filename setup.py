@@ -36,6 +36,7 @@ Users are handled throught Central EGA, directly.
       #     'pika==0.11.0',
       #     'colorama==0.3.7',
       #     'psycopg2==2.7.4',
+      #     'aiopg'==0.13.0,
       #     'aiohttp==2.3.8',
       #     'aiohttp-jinja2==0.13.0',
       #     'fusepy',
