@@ -5,19 +5,21 @@ Keyserver
 ---------
 
 The Keyserver provides a REST endpoint for retrieving PGP and Re-encryption keys.
-Active keys endpoint:
+Active keys endpoint (current key types supported are PGP and RSA):
 
-* ``/active/pgp`` - GET request for the active PGP key
-* ``/active/rsa`` - GET request for the active RSA key for re-encryption
-* ``/active/pgp/private`` - GET request for the private part of the active PGP key
-* ``/active/pgp/public`` - GET request for the public part of the active PGP key
+* ``/active/\{key_type\}`` - GET request for the active key
+* ``/active/\{key_type\}/private`` - GET request for the private part of the active key
+* ``/active/\{key_type\}/public`` - GET request for the public part of the active key
 
 Retrieve keys endpoint:
 
-* ``/retrieve/pgp/\{key_id\}`` - GET request for the active PGP key with a known keyID of fingerprint
-* ``/retrieve/rsa/\{key_id\}`` - GET request for the active RSA key for re-encryption with a known keyID
-* ``/retrieve/pgp/\{key_id\}/private`` - GET request for the private part of the active PGP key with a known keyID of fingerprint
-* ``/retrieve/pgp/\{key_id\}/public`` - GET request for the public part of the active PGP key with a known keyID of fingerprint
+* ``/retrieve/\{key_type\}/\{key_id\}`` - GET request for the active PGP key with a known keyID of fingerprint
+* ``/retrieve/\{key_type\}/\{key_id\}/private`` - GET request for the private part of the active PGP key with a known keyID of fingerprint
+* ``/retrieve/\{key_type\}/\{key_id\}/public`` - GET request for the public part of the active PGP key with a known keyID of fingerprint
+
+Generate endpoint:
+
+* ``/generate/pgp`` - POST request to generate a PGP key pair
 
 Admin endpoint:
 
@@ -39,8 +41,8 @@ import struct
 from .openpgp.utils import unarmor
 from .openpgp.packet import iter_packets
 from .conf import CONF, KeysConfiguration
-from .utils import get_file_content
-# from .openpgp.generate import generate_pgp_key
+from .utils import get_file_content, db
+from .openpgp.generate import generate_pgp_key
 
 LOG = logging.getLogger('keyserver')
 routes = web.RouteTableDef()
@@ -130,38 +132,41 @@ class PGPPrivateKey:
 
     def load_key(self):
         """Load key and return tuple for reconstruction."""
-        _public_key_material = None
-        _private_key_material = None
+        data = None
         with open(self.secret_path, 'rb') as infile:
             for packet in iter_packets(unarmor(infile)):
                 LOG.info(str(packet))
                 if packet.tag == 5:
-                    _public_key_material, _private_key_material = packet.unlock(self.passphrase)
-                    _public_length = struct.pack('>I', len(_public_key_material))
-                    _private_length = struct.pack('>I', len(_private_key_material))
+                    data = packet.unlock(self.passphrase)
                     self.key_id = packet.key_id
                 else:
                     packet.skip()
 
-        return (self.key_id.upper(), (_public_length, _public_key_material, _private_length, _private_key_material))
+        return (self.key_id.upper(), data)
 
 
 class ReEncryptionKey:
     """ReEncryption currently done with a RSA key."""
 
-    def __init__(self, key_id, secret_path, passphrase=''):
+    def __init__(self, key_id, public_path, secret_path, passphrase=''):
         """Intialise PrivateKey."""
         self.secret_path = secret_path
+        self.public_path = public_path
         self.key_id = key_id
         assert( isinstance(passphrase,str) )
         self.passphrase = passphrase.encode()
 
     def load_key(self):
         """Load key and return tuple for reconstruction."""
-        data = get_file_content(self.secret_path)
+        public_data = get_file_content(self.public_path).hex()
         # unlock it with the passphrase
+        private_data = None
+        if self.secret_path:
+            private_data = get_file_content(self.secret_path).hex()
         # TODO
-        return (self.key_id, data)
+        return (self.key_id, {'id': self.key_id,
+                              'public': public_data,
+                              'private': private_data})
 
 
 async def activate_key(key_name, data):
@@ -171,7 +176,7 @@ async def activate_key(key_name, data):
         obj_key = PGPPrivateKey(data.get('private'), data.get('passphrase'))
         _cache = _pgp_cache
     elif key_name.startswith("rsa"):
-        obj_key = ReEncryptionKey(key_name, data.get('private'), passphrase='')
+        obj_key = ReEncryptionKey(key_name, data.get('public'), data.get('private', None), passphrase='')
         _cache = _rsa_cache
     else:
         LOG.error(f"Unrecognised key type: {key_name}")
@@ -186,138 +191,195 @@ async def activate_key(key_name, data):
 
 # Retrieve the active keys #
 
-@routes.get('/active/pgp')
-async def active_pgp_key(request):
-    """Retrieve tuple to reconstruced active unlocked key.
+@routes.get('/active/{key_type}')
+async def active_key(request):
+    """Returns a JSON-formated list of numbers to reconstruct the active key, unlocked.
 
-    In case the output is not JSON, we use the following encoding:
-    First, 4 bytes for the length of the public part, followed by the public part.
-    Then, 4 bytes for the length of the private part, followed by the private part.
+    For PGP key types:
+
+        * The JOSN response contains a "type" attribute to specify which key it is.
+        * If type is "rsa", the public and private attributes contain ('n','e') and ('d','p','q','u') respectively.
+        * If type is "dsa", the public and private attributes contain ('p','q','g','y') and ('x') respectively.
+        * If type is "elg", the public and private attributes contain ('p','g','y') and ('x') respectively.
+
+    For RSA the public and private parts are retrieved in hex format.
+
+    Other key types are not supported.
     """
-    key_id = _pgp_cache.get("active_pgp_key")
-    request_type = request.content_type
-    LOG.debug(f'Requested active PGP key | {request_type}')
-    value = _pgp_cache.get(key_id)
+    key_type = request.match_info['key_type'].lower()
+    if key_type == 'pgp':
+        active_key = "active_pgp_key"
+        _cache = _pgp_cache
+    elif key_type == 'rsa':
+        active_key = "active_rsa_key"
+        _cache = _rsa_cache
+    else:
+        return web.HTTPBadRequest()
+    key_id = _cache.get(active_key)
+    LOG.debug(f'Requesting active %s key', key_type.upper())
+    value = _cache.get(key_id)
     if value:
-        if request_type == 'application/json':
-            return web.json_response({'public': value[1].hex(), 'private': value[3].hex()})
-        response_body = b''.join(value)
-        if request_type == 'text/hex':
-            return web.Response(body=response_body.hex(), content_type='text/hex')
-        else:
-            return web.Response(body=response_body, content_type='application/octed-stream')
+        return web.json_response(value)
     else:
         LOG.warn(f"Active key not found.")
         return web.HTTPNotFound()
 
 
-@routes.get('/active/pgp/private')
-async def active_pgp_key_private(request):
-    """Retrieve private part to reconstruced unlocked active key."""
-    key_id = _pgp_cache.get("active_pgp_key")
-    LOG.debug(f'Requested active PGP (private) key.')
-    value = _pgp_cache.get(key_id)
-    if value:
-        return web.Response(body=value[3].hex())
+@routes.get('/active/{key_type}/private')
+async def active_key_private(request):
+    """Retrieve private part to reconstruced unlocked active key.
+
+    For PGP key types:
+
+        * The JOSN response contains a "type" attribute to specify which key it is.
+        * If type is "rsa", the private attribute contains ('d','p','q','u').
+        * If type is "dsa", the private attribute contains ('x').
+        * If type is "elg", the private attribute contains ('x').
+
+    For RSA the public and private parts are retrieved in hex format.
+
+    Other key types are not supported.
+    """
+    key_type = request.match_info['key_type'].lower()
+    if key_type == 'pgp':
+        active_key = "active_pgp_key"
+        _cache = _pgp_cache
+    elif key_type == 'rsa':
+        active_key = "active_rsa_key"
+        _cache = _rsa_cache
     else:
-        LOG.warn(f"Requested active PGP key not found.")
+        return web.HTTPBadRequest()
+    key_id = _cache.get(active_key)
+    LOG.debug(f'Requesting active %s (private) key', key_type.upper())
+    value = dict(_cache.get(key_id))
+    if value:
+        del value['public']
+        return web.json_response(value)
+    else:
+        LOG.warn(f"Requested active %s (private) key not found.", key_type.upper())
         return web.HTTPNotFound()
 
 
-@routes.get('/active/pgp/public')
-async def active_pgp_key_public(request):
-    """Retrieve public to reconstruced unlocked active key."""
-    key_id = _pgp_cache.get("active_pgp_key")
-    LOG.debug(f'Requested active PGP (public) key.')
-    value = _pgp_cache.get(key_id)
-    if value:
-        return web.Response(body=value[1].hex())
-    else:
-        LOG.warn(f"Requested PGP key not found.")
-        return web.HTTPNotFound()
+@routes.get('/active/{key_type}/public')
+async def active_key_public(request):
+    """Retrieve public to reconstruced unlocked active key.
 
+    For PGP key types:
 
-@routes.get('/active/rsa')
-async def retrieve_active_rsa(request):
-    """Retrieve RSA reencryption key."""
-    key_id = _rsa_cache.get("active_rsa_key")
-    LOG.debug(f'Requested active RSA key')
-    value = _rsa_cache.get(key_id)
-    if value:
-        return web.json_response({ 'id': key_id,
-                                   'public': value.hex()})
+        * The JOSN response contains a "type" attribute to specify which key it is.
+        * If type is "rsa", the public attribute contains ('n','e').
+        * If type is "dsa", the public attribute contains ('p','q','g','y').
+        * If type is "elg", the public attribute contains ('p','g','y').
+
+    For RSA the public part is retrieved in hex format.
+
+    Other key types are not supported.
+    """
+    key_type = request.match_info['key_type'].lower()
+    if key_type == 'pgp':
+        active_key = "active_pgp_key"
+        _cache = _pgp_cache
+    elif key_type == 'rsa':
+        active_key = "active_rsa_key"
+        _cache = _rsa_cache
     else:
-        LOG.warn(f"Requested ReEncryption Key not found.")
+        return web.HTTPBadRequest()
+    key_id = _cache.get(active_key)
+    LOG.debug(f'Requesting active %s (public) key', key_type.upper())
+    value = dict(_cache.get(key_id))
+    if value:
+        del value['private']
+        return web.json_response(value)
+    else:
+        LOG.warn(f"Requested %s key (public) not found.", key_type.upper())
         return web.HTTPNotFound()
 
 
 # Just want to get a key by its key_id PGP or RSA
 
-@routes.get('/retrieve/pgp/{requested_id}')
-async def retrieve_pgp_key(request):
-    """Retrieve tuple to reconstruced unlocked key.
+@routes.get('/retrieve/{key_type}/{requested_id}')
+async def retrieve_key(request):
+    """Returns a JSON-formated list of numbers to reconstruct an unlocked key.
 
-    In case the output is not JSON, we use the following encoding:
-    First, 4 bytes for the length of the public part, followed by the public part.
-    Then, 4 bytes for the length of the private part, followed by the private part.
+    For PGP key types:
+
+        * The JOSN response contains a "type" attribute to specify which key it is.
+        * If type is "rsa", the public and private attributes contain ('n','e') and ('d','p','q','u') respectively.
+        * If type is "dsa", the public and private attributes contain ('p','q','g','y') and ('x') respectively.
+        * If type is "elg", the public and private attributes contain ('p','g','y') and ('x') respectively.
+
+    For RSA the public and private parts are retrieved in hex format.
+
+    Other key types are not supported.
     """
     requested_id = request.match_info['requested_id']
-    request_type = request.content_type
-    LOG.debug(f'Requested PGP key with ID {requested_id} | {request_type}')
-    key_id = requested_id[-16:].upper()
-    value = _pgp_cache.get(key_id)
-    if value:
-        if request_type == 'application/json':
-            return web.json_response({'public': value[1].hex(), 'private': value[3].hex()})
-        response_body = b''.join(value)
-        if request_type == 'text/hex':
-            return web.Response(body=response_body.hex(), content_type='text/hex')
-        else:
-            return web.Response(body=response_body, content_type='application/octed-stream')
+    key_type = request.match_info['key_type'].lower()
+    if key_type == 'pgp':
+        _cache = _pgp_cache
+        key_id = requested_id[-16:].upper()
+    elif key_type == 'rsa':
+        _cache = _rsa_cache
+        key_id = requested_id
     else:
-        LOG.warn(f"Requested PGP key {requested_id} not found.")
+        return web.HTTPBadRequest()
+    LOG.debug(f'Requested {key_type.upper()} key with ID {requested_id}')
+    value = _cache.get(key_id)
+    if value:
+        return web.json_response(value)
+    else:
+        LOG.warn(f"Requested {key_type.upper()} key {requested_id} not found.")
         return web.HTTPNotFound()
 
 
-@routes.get('/retrieve/pgp/{requested_id}/private')
-async def retrieve_pgp_key_private(request):
-    """Retrieve private part to reconstruced unlocked key."""
+@routes.get('/retrieve/{key_type}/{requested_id}/private')
+async def retrieve_key_private(request):
+    """Retrieve private part to reconstruct unlocked key.
+
+    :py:func:`lega.keyserver.active_key_private`
+    """
     requested_id = request.match_info['requested_id']
-    LOG.debug(f'Requested PGP (private) key with ID {requested_id}')
-    key_id = requested_id[-16:].upper()
-    value = _pgp_cache.get(key_id)
-    if value:
-        return web.Response(body=value[3].hex())
+    key_type = request.match_info['key_type'].lower()
+    if key_type == 'pgp':
+        _cache = _pgp_cache
+        key_id = requested_id[-16:].upper()
+    elif key_type == 'rsa':
+        _cache = _rsa_cache
+        key_id = requested_id
     else:
-        LOG.warn(f"Requested PGP key {requested_id} not found.")
+        return web.HTTPBadRequest()
+    LOG.debug(f'Requested {key_type.upper()} (private) key with ID {requested_id}')
+    value = dict(_cache.get(key_id))
+    if value:
+        del value['public']
+        return web.json_response(value)
+    else:
+        LOG.warn(f"Requested {key_type.upper()} (private) key {requested_id} not found.")
         return web.HTTPNotFound()
 
 
-@routes.get('/retrieve/pgp/{requested_id}/public')
-async def retrieve_pgp_key_public(request):
-    """Retrieve public to reconstruced unlocked key."""
-    requested_id = request.match_info['requested_id']
-    LOG.debug(f'Requested PGP (public) key with ID {requested_id}')
-    key_id = requested_id[-16:].upper()
-    value = _pgp_cache.get(key_id)
-    if value:
-        return web.Response(body=value[1].hex())
-    else:
-        LOG.warn(f"Requested PGP key {requested_id} not found.")
-        return web.HTTPNotFound()
+@routes.get('/retrieve/{key_type}/{requested_id}/public')
+async def retrieve_key_public(request):
+    """Retrieve public part to reconstruct unlocked key.
 
-
-@routes.get('/retrieve/rsa/{requested_id}')
-async def retrieve_reencryt_key(request):
-    """Retrieve RSA reencryption key."""
+    :py:func:`lega.keyserver.active_key_private`
+    """
     requested_id = request.match_info['requested_id']
-    LOG.debug(f'Requested RSA key with ID {requested_id}')
-    value = _rsa_cache.get(requested_id)
-    if value:
-        return web.json_response({ 'id': requested_id,
-                                   'public': value.hex()})
+    key_type = request.match_info['key_type'].lower()
+    if key_type == 'pgp':
+        _cache = _pgp_cache
+        key_id = requested_id[-16:].upper()
+    elif key_type == 'rsa':
+        _cache = _rsa_cache
+        key_id = requested_id
     else:
-        LOG.warn(f"Requested ReEncryption Key not found.")
+        return web.HTTPBadRequest()
+    LOG.debug(f'Requested {key_type.upper()} (public) key with ID {requested_id}')
+    value = dict(_cache.get(key_id))
+    if value:
+        del value['private']
+        return web.json_response(value)
+    else:
+        LOG.warn(f"Requested {key_type.upper()} (public) key {requested_id} not found.")
         return web.HTTPNotFound()
 
 
@@ -336,28 +398,37 @@ async def unlock_key(request):
         return web.HTTPBadRequest()
 
 
-# @routes.post('generate/pgp')
-# async def generate_pgp_key_pair(request):
-#     """Generate PGP key pair"""
-#     key_options = await request.json()
-#     LOG.debug(f'Admin generate PGP key pair: {key_options}')
-#     if all(k in key_options for k in("name", "comment", "email")):
-#         # By default we can return armored
-#         pub_data, sec_data = generate_pgp_key(key_options['name'],
-#                                               key_options['email'],
-#                                               key_options['comment'],
-#                                               key_options.get('passphrase', None))
-#         # TO DO return the key pair or the path where it is stored.
-#         return web.HTTPAccepted()
-#     else:
-#         return web.HTTPBadRequest()
+@routes.post('/generate/pgp')
+async def generate_pgp_key_pair(request):
+    """Generate PGP key pair"""
+    key_options = await request.json()
+    LOG.debug(f'Admin generate PGP key pair: {key_options}')
+    if all(k in key_options for k in("name", "comment", "email")):
+        # By default we can return armored
+        pub_data, sec_data = generate_pgp_key(key_options['name'],
+                                              key_options['email'],
+                                              key_options['comment'],
+                                              key_options.get('passphrase', None))
+        # TO DO return the key pair or the path where it is stored.
+        return web.HTTPAccepted()
+    else:
+        return web.HTTPBadRequest()
+
+
+@routes.get('/health')
+async def healthcheck(request):
+    """A health endpoint for service discovery.
+    It will always return ok.
+    """
+    LOG.debug('Healthcheck called')
+    return web.HTTPOk()
 
 
 @routes.get('/admin/ttl')
 async def check_ttl(request):
     """Evict from the cache if TTL expired
        and return the keys that survived""" # ehh...why? /Fred
-    LOG.debug(f'Admin TTL')
+    LOG.debug('Admin TTL')
     pgp_expire = _pgp_cache.check_ttl()
     rsa_expire = _rsa_cache.check_ttl()
     if pgp_expire or rsa_expire:
@@ -365,19 +436,47 @@ async def check_ttl(request):
     else:
         return web.HTTPBadRequest()
 
+@routes.get('/temp/file/{file_id}')
+async def translate_file_id_to_filepath(request):
+    """Translate a file_id to a file_path"""
+    file_id = request.match_info['file_id']
+    LOG.debug(f'Translation {file_id} to filepath')
+    filepath = await db.get_filepath(request.app['db'], file_id)
+    LOG.debug(f'Filepath {filepath}')
+    if filepath:
+        return web.Response(text=filepath)
+    raise web.HTTPNotFound(text=f'Dunno anything about a file with id "{file_id}"\n')
 
-async def load_keys_conf(KEYS):
+async def load_keys_conf(store):
     """Parse and load keys configuration."""
     # Cache the active key names
-    for name, value in KEYS.defaults().items():
+    for name, value in store.defaults().items():
         if name == 'pgp':
             _pgp_cache.set('active_pgp_key', value)
         if name == 'rsa':
             _rsa_cache.set('active_rsa_key', value)
     # Load all the keys in the store
-    for section in KEYS.sections():
-        await activate_key(section, dict(KEYS.items(section)))
+    for section in store.sections():
+        await activate_key(section, dict(store.items(section)))
 
+async def init(app):
+    '''Initialization running before the loop.run_forever'''
+    app['db'] = await db.create_pool(loop=app.loop)
+    LOG.info('DB Connection pool created')
+    # Note: will exit on failure
+    await load_keys_conf(app['store'])
+
+async def shutdown(app):
+    '''Function run after a KeyboardInterrupt. After that: cleanup'''
+    LOG.info('Shutting down the database engine')
+    app['db'].close()
+    await app['db'].wait_closed()
+
+async def cleanup(app):
+    '''Function run after a KeyboardInterrupt. Right after, the loop is closed'''
+    LOG.info('Cancelling all pending tasks')
+    for task in asyncio.Task.all_tasks():
+        task.cancel()
 
 def main(args=None):
     """Where the magic happens."""
@@ -385,25 +484,33 @@ def main(args=None):
         args = sys.argv[1:]
 
     CONF.setup(args)
-    KEYS = KeysConfiguration(args)
 
     host = CONF.get('keyserver', 'host') # fallbacks are in defaults.ini
     port = CONF.getint('keyserver', 'port')
 
-    ssl_certfile = Path(CONF.get('keyserver', 'ssl_certfile')).expanduser()
-    ssl_keyfile = Path(CONF.get('keyserver', 'ssl_keyfile')).expanduser()
-    LOG.debug(f'Certfile: {ssl_certfile}')
-    LOG.debug(f'Keyfile: {ssl_keyfile}')
+    # ssl_certfile = Path(CONF.get('keyserver', 'ssl_certfile')).expanduser()
+    # ssl_keyfile = Path(CONF.get('keyserver', 'ssl_keyfile')).expanduser()
+    # LOG.debug(f'Certfile: {ssl_certfile}')
+    # LOG.debug(f'Keyfile: {ssl_keyfile}')
 
-    sslcontext = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-    sslcontext.check_hostname = False
-    sslcontext.load_cert_chain(ssl_certfile, ssl_keyfile)
+    # sslcontext = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+    # sslcontext.check_hostname = False
+    # sslcontext.load_cert_chain(ssl_certfile, ssl_keyfile)
+
+    sslcontext = None # Turning off SSL for the moment
 
     loop = asyncio.get_event_loop()
     keyserver = web.Application(loop=loop)
     keyserver.router.add_routes(routes)
 
-    loop.run_until_complete(load_keys_conf(KEYS))
+    # Adding the keystore to the server
+    keyserver['store'] = KeysConfiguration(args)
+
+    # Registering some initialization and cleanup routines	
+    LOG.info('Setting up callbacks')
+    keyserver.on_startup.append(init)
+    keyserver.on_shutdown.append(shutdown)
+    keyserver.on_cleanup.append(cleanup)
 
     LOG.info(f"Start keyserver on {host}:{port}")
     web.run_app(keyserver, host=host, port=port, shutdown_timeout=0, ssl_context=sslcontext)
