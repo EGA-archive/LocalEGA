@@ -55,7 +55,7 @@ public class Ingestion implements En {
         Then("^the file is ingested successfully$", () -> {
             try {
                 String output = utils.executeDBQuery(context.getTargetInstance(),
-                        String.format("select stable_id from files where filename = '%s'", context.getEncryptedFile().getName()));
+                        String.format("select filepath from files where filename = '%s'", context.getEncryptedFile().getName()));
                 String vaultFileName = output.split(System.getProperty("line.separator"))[2].trim();
                 String cat = utils.executeWithinContainer(utils.findContainer(utils.getProperty("images.name.vault"),
                         utils.getProperty("container.prefix.vault") + context.getTargetInstance()), "cat", vaultFileName);
@@ -69,7 +69,7 @@ public class Ingestion implements En {
         Then("^ingestion failed$", () -> {
             try {
                 String output = utils.executeDBQuery(context.getTargetInstance(),
-                        String.format("select stable_id from files where filename = '%s'", context.getEncryptedFile().getName()));
+                        String.format("select filepath from files where filename = '%s'", context.getEncryptedFile().getName()));
                 String vaultFileName = output.split(System.getProperty("line.separator"))[2].trim();
                 Assertions.assertThat(vaultFileName).isEmpty();
             } catch (IOException | InterruptedException e) {
