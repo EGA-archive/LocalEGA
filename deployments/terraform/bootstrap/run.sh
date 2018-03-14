@@ -123,8 +123,8 @@ log = debug
 [ingestion]
 inbox = /ega/inbox/%(user_id)s
 # Keyserver communication
-keyserver_endpoint_pgp = https://ega_keys/retrieve/pgp/%s
-keyserver_endpoint_rsa = https://ega_keys/active/rsa
+keyserver_endpoint_pgp = http://ega_keys:443/retrieve/pgp/%s
+keyserver_endpoint_rsa = http://ega_keys:443/active/rsa
 decrypt_cmd = python3.6 -u -m lega.openpgp %(file)s
 
 ## Connecting to Local EGA
