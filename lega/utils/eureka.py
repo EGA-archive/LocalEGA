@@ -1,7 +1,6 @@
 """
 Eureka Discovery for LocalEGA.
 
-Because we need something that just works.
 Inspired by https://github.com/wasp/eureka
 Apache 2.0 License https://github.com/wasp/eureka/blob/master/LICENSE
 """
@@ -20,7 +19,7 @@ eureka_status = {
     4: 'UNKNOWN',
 }
 
-LOG = logging.getLogger('keyserver')
+LOG = logging.getLogger('eureka')
 
 
 class EurekaRequests:
@@ -28,7 +27,7 @@ class EurekaRequests:
 
     Following: https://github.com/Netflix/eureka/wiki/Eureka-REST-operations
 
-    .. note:: The eureka url for Spring Eureka is ``http://eureka_host:eureka_port/eureka``
+    .. note:: The eureka url for Spring Framework Eureka is ``http://eureka_host:eureka_port/eureka``
             notice the ``/v2`` is missing and the default port is ``8671``.
     """
 
@@ -38,20 +37,12 @@ class EurekaRequests:
         self._loop = loop if loop else asyncio.get_event_loop()
         self._eureka_url = eureka_url.rstrip('/') + '/eureka'
 
-    async def update_meta(self, key, value):
-        """Update metadata of application."""
-        url = f'{self._eureka_url}/apps/{self._app_name}/{self._instance_id}/metadata?{key}={value}'
-        async with aiohttp.ClientSession(headers=self._headers) as session:
-            async with session.put(url) as resp:
-                print(resp)
-            await session.close()
-
     async def out_of_service(self, app_name, instance_id):
         """Take an instance out of service."""
         url = f'{self._eureka_url}/apps/{app_name}/{instance_id}/status?value={eureka_status[3]}'
         async with aiohttp.ClientSession(headers=self._headers) as session:
             async with session.put(url) as resp:
-                print(resp)
+                LOG.debug('Eureka out_of_service status response %s' % resp.status)
             await session.close()
 
     async def list_apps(self):
@@ -157,23 +148,34 @@ class EurekaClient(EurekaRequests):
         LOG.debug('Registering %s', self._app_name)
         async with aiohttp.ClientSession(headers=self._headers) as session:
             async with session.post(url, data=json.dumps(payload)) as resp:
-                print(resp.status)
+                LOG.debug('Eureka register response %s' % resp.status)
             await session.close()
 
     async def renew(self):
         """Renew the application's lease."""
         url = f'{self._eureka_url}/apps/{self._app_name}/{self._instance_id}'
+        LOG.debug('Renew lease for %s', self._app_name)
         async with aiohttp.ClientSession(headers=self._headers) as session:
             async with session.put(url) as resp:
-                print(resp)
+                LOG.debug('Eureka renew response %s' % resp.status)
             await session.close()
 
     async def deregister(self):
         """Deregister with the remote server, to avoid 500 eror."""
         url = f'{self._eureka_url}/apps/{self._app_name}/{self._instance_id}'
+        LOG.debug('Deregister %s', self._app_name)
         async with aiohttp.ClientSession(headers=self._headers) as session:
             async with session.delete(url) as resp:
-                print(resp)
+                LOG.debug('Eureka deregister response %s' % resp.status)
+            await session.close()
+
+    async def update_metadata(self, key, value):
+        """Update metadata of application."""
+        url = f'{self._eureka_url}/apps/{self._app_name}/{self._instance_id}/metadata?{key}={value}'
+        LOG.debug(f'Update metadata for {self._app_name} instance {self._instance_id}')
+        async with aiohttp.ClientSession(headers=self._headers) as session:
+            async with session.put(url) as resp:
+                LOG.debug('Eureka update metadata response %s' % resp.status)
             await session.close()
 
     def _generate_instance_id(self):
