@@ -109,14 +109,30 @@ services:
       - "80"
     volumes:
       - ./cega/users:/cega/users:rw
-      - ../images/cega-users/users.html:/cega/users.html
-      - ../images/cega-users/server.py:/cega/server.py
+      - ../images/cega/users.html:/cega/users.html
+      - ../images/cega/server.py:/cega/server.py
       # - ../..:/root/.local/lib/python3.6/site-packages:ro
     restart: on-failure:3
     networks:
       - cega
     command: ["python3.6", "/cega/server.py"]
+
+  ############################################
+  # Fake Eureka server
+  ############################################
+  cega-eureka:
+    hostname: cega-eureka
+    ports:
+      - "8761:8761"
+    image: nbisweden/ega-base
+    container_name: cega-eureka
+    volumes:
+      - ../images/cega/eureka.py:/cega/eureka.py
+    restart: on-failure:3
+    networks:
+      - cega
+    command: ["python3.6", "/cega/eureka.py"]
 EOF
 
 # For the compose file
-echo -n ":private/cega.yml" >> ${DOT_ENV} # no newline
+echo -n "private/cega.yml" >> ${DOT_ENV} # no newline
