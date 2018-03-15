@@ -59,6 +59,9 @@ cat >> ${PRIVATE}/cega/env <<EOF
 LEGA_INSTANCES=${INSTANCES// /,}
 EOF
 
+# Eureka server
+source ${HERE}/eureka.sh
+
 # Central EGA Users
 source ${HERE}/cega_users.sh
 
