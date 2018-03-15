@@ -117,7 +117,13 @@ services:
       - cega
     command: ["python3.6", "/cega/server.py"]
 
-
+  cega-eureka:
+    hostname: eureka
+    image: danshan/spring-cloud-eureka
+    ports:
+      - "8761:8761"
+    networks:
+      - cega
 EOF
 
 # For the compose file
