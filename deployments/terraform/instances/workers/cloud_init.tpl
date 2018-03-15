@@ -48,7 +48,7 @@ bootcmd:
 
 runcmd:
   - pip3.6 uninstall -y lega
-  - pip3.6 install pika==0.11.0 pycryptodomex==3.4.7 psycopg2==2.7.4 cryptography==2.1.3
+  - pip3.6 install pika==0.11.0 psycopg2==2.7.4 cryptography==2.1.4
   - pip3.6 install git+https://github.com/NBISweden/LocalEGA.git@feature/pgp
   - systemctl start ega-ingestion@1.service ega-ingestion@2.service
   - systemctl enable ega-ingestion@1.service ega-ingestion@2.service
