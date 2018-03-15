@@ -424,9 +424,6 @@ services:
       - mq-${INSTANCE}
       - keys-${INSTANCE}
     image: nbisweden/ega-base
-    # Required external link
-    external_links:
-      - cega-mq:cega-mq
     environment:
       - MQ_INSTANCE=ega-mq-${INSTANCE}
       - KEYSERVER_INSTANCE=ega-keys-${INSTANCE}
@@ -440,7 +437,6 @@ services:
     restart: on-failure:3
     networks:
       - lega_${INSTANCE}
-      - cega
     entrypoint: ["/bin/bash", "/usr/local/bin/entrypoint.sh"]
 
   # Key server
@@ -471,10 +467,10 @@ services:
        - ../../../lega:/root/.local/lib/python3.6/site-packages/lega
     restart: on-failure:3
     external_links:
-      - cega-eureka:cega-eureka
+      - eureka:eureka
     networks:
       - lega_${INSTANCE}
-      - cega
+      - eureka
     entrypoint: ["ega-keyserver","--keys","/etc/ega/keys.ini"]
 
   # Vault
@@ -486,12 +482,8 @@ services:
     hostname: ega-vault
     container_name: ega-vault-${INSTANCE}
     image: nbisweden/ega-base
-    # Required external link
-    external_links:
-      - cega-mq:cega-mq
     environment:
       - MQ_INSTANCE=ega-mq-${INSTANCE}
-      - CEGA_INSTANCE=cega-mq
     volumes:
        - staging_${INSTANCE}:/ega/staging
        - vault_${INSTANCE}:/ega/vault
@@ -502,7 +494,6 @@ services:
     restart: on-failure:3
     networks:
       - lega_${INSTANCE}
-      - cega
     entrypoint: ["/bin/bash", "/usr/local/bin/entrypoint.sh"]
 
   # Logging & Monitoring (ELK: Elasticsearch, Logstash, Kibana).
