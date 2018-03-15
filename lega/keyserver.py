@@ -471,7 +471,7 @@ async def renew_lease(eureka, interval):
 async def init(app):
     '''Initialization running before the loop.run_forever'''
     app['db'] = await db.create_pool(loop=app.loop)
-    app['renew_eureka'] = app.loop.create_task(renew_lease(app['eureka'], 3))
+    app['renew_eureka'] = app.loop.create_task(renew_lease(app['eureka'], app['interval']))
     LOG.info('DB Connection pool created')
     # Note: will exit on failure
     await load_keys_conf(app['store'])
@@ -525,7 +525,7 @@ def main(args=None):
 
     # Adding the keystore to the server
     keyserver['store'] = KeysConfiguration(args)
-
+    keyserver['interval'] = CONF.getint('eureka', 'interval')
     keyserver['eureka'] = EurekaClient("keyserver", port=port, ip_addr=host,
                                        eureka_url=eureka_endpoint, hostname=host,
                                        health_check_url='http://{}:{}{}'.format(host, port, keyserver_health),
