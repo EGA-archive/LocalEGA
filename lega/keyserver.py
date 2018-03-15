@@ -43,6 +43,7 @@ from .openpgp.packet import iter_packets
 from .conf import CONF, KeysConfiguration
 from .utils import get_file_content, db
 from .openpgp.generate import generate_pgp_key
+from .utils.eureka import EurekaClient
 
 LOG = logging.getLogger('keyserver')
 routes = web.RouteTableDef()
@@ -459,24 +460,39 @@ async def load_keys_conf(store):
     for section in store.sections():
         await activate_key(section, dict(store.items(section)))
 
+alive = True  # used to set if the keyserer is alive in the shutdown
+
+async def renew_lease(eureka, interval):
+    '''Renew eureka lease at specific interval.'''
+    while alive:
+        await asyncio.sleep(interval)
+        await eureka.renew()
+
 async def init(app):
     '''Initialization running before the loop.run_forever'''
     app['db'] = await db.create_pool(loop=app.loop)
+    app['renew_eureka'] = app.loop.create_task(renew_lease(app['eureka'], 3))
     LOG.info('DB Connection pool created')
     # Note: will exit on failure
     await load_keys_conf(app['store'])
+    await app['eureka'].register()
 
 async def shutdown(app):
     '''Function run after a KeyboardInterrupt. After that: cleanup'''
     LOG.info('Shutting down the database engine')
+    global alive
     app['db'].close()
     await app['db'].wait_closed()
+    await app['eureka'].deregister()
+    alive = False
 
 async def cleanup(app):
     '''Function run after a KeyboardInterrupt. Right after, the loop is closed'''
     LOG.info('Cancelling all pending tasks')
-    for task in asyncio.Task.all_tasks():
-        task.cancel()
+    # THIS SPAWNS an error see https://github.com/aio-libs/aiohttp/blob/master/aiohttp/web_runner.py#L178
+    # for more details how the cleanup happens.
+    # for task in asyncio.Task.all_tasks():
+    #     task.cancel()
 
 def main(args=None):
     """Where the magic happens."""
@@ -487,6 +503,10 @@ def main(args=None):
 
     host = CONF.get('keyserver', 'host') # fallbacks are in defaults.ini
     port = CONF.getint('keyserver', 'port')
+    keyserver_health = CONF.get('keyserver', 'health_endpoint')
+    keyserver_status = CONF.get('keyserver', 'status_endpoint')
+
+    eureka_endpoint = CONF.get('eureka', 'endpoint')
 
     # ssl_certfile = Path(CONF.get('keyserver', 'ssl_certfile')).expanduser()
     # ssl_keyfile = Path(CONF.get('keyserver', 'ssl_keyfile')).expanduser()
@@ -506,7 +526,12 @@ def main(args=None):
     # Adding the keystore to the server
     keyserver['store'] = KeysConfiguration(args)
 
-    # Registering some initialization and cleanup routines	
+    keyserver['eureka'] = EurekaClient("keyserver", port=port, ip_addr=host,
+                                       eureka_url=eureka_endpoint, hostname=host,
+                                       health_check_url='http://{}:{}{}'.format(host, port, keyserver_health),
+                                       status_check_url='http://{}:{}{}'.format(host, port, keyserver_status), loop=loop)
+
+    # Registering some initialization and cleanup routines
     LOG.info('Setting up callbacks')
     keyserver.on_startup.append(init)
     keyserver.on_shutdown.append(shutdown)
