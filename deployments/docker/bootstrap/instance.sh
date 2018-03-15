@@ -470,8 +470,11 @@ services:
        - ./${INSTANCE}/rsa/ega2.sec:/etc/ega/rsa/ega2.sec:ro
        - ../../../lega:/root/.local/lib/python3.6/site-packages/lega
     restart: on-failure:3
+    external_links:
+      - cega-eureka:cega-eureka
     networks:
       - lega_${INSTANCE}
+      - cega
     entrypoint: ["ega-keyserver","--keys","/etc/ega/keys.ini"]
 
   # Vault

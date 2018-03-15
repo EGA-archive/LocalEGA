@@ -13,6 +13,9 @@ loggers:
   keyserver:
     level: DEBUG
     handlers: [debugFile,console]
+  eureka:
+    level: DEBUG
+    handlers: [debugFile,console]
   vault:
     level: DEBUG
     handlers: [debugFile,console]
