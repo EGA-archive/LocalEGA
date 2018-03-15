@@ -17,16 +17,15 @@ Retrieve keys endpoint:
 * ``/retrieve/\{key_type\}/\{key_id\}/private`` - GET request for the private part of the active PGP key with a known keyID of fingerprint
 * ``/retrieve/\{key_type\}/\{key_id\}/public`` - GET request for the public part of the active PGP key with a known keyID of fingerprint
 
-Generate endpoint:
-
-* ``/generate/pgp`` - POST request to generate a PGP key pair
-
 Admin endpoint:
 
 * ``/admin/unlock`` - POST request to unlock a key with a known path
 * ``/admin/ttl`` - GET request to check when keys will expire
 
 '''
+# Generate endpoint:
+#
+# * ``/generate/pgp`` - POST request to generate a PGP key pair
 
 import sys
 import asyncio
@@ -42,8 +41,9 @@ from .openpgp.utils import unarmor
 from .openpgp.packet import iter_packets
 from .conf import CONF, KeysConfiguration
 from .utils import get_file_content, db
-from .openpgp.generate import generate_pgp_key
-from .utils.eureka import EurekaClient
+from .utils.crypto import get_rsa_private_key_material
+#from .openpgp.generate import generate_pgp_key
+# from .utils.eureka import EurekaClient
 
 LOG = logging.getLogger('keyserver')
 routes = web.RouteTableDef()
@@ -123,9 +123,9 @@ _rsa_cache = Cache()
 class PGPPrivateKey:
     """The Private PGP key loading."""
 
-    def __init__(self, secret_path, passphrase):
+    def __init__(self, path, passphrase):
         """Intialise PrivateKey."""
-        self.secret_path = secret_path
+        self.path = path
         assert( isinstance(passphrase,str) )
         self.passphrase = passphrase.encode()
         self.key_id = None
@@ -134,7 +134,7 @@ class PGPPrivateKey:
     def load_key(self):
         """Load key and return tuple for reconstruction."""
         data = None
-        with open(self.secret_path, 'rb') as infile:
+        with open(self.path, 'rb') as infile:
             for packet in iter_packets(unarmor(infile)):
                 LOG.info(str(packet))
                 if packet.tag == 5:
@@ -149,35 +149,29 @@ class PGPPrivateKey:
 class ReEncryptionKey:
     """ReEncryption currently done with a RSA key."""
 
-    def __init__(self, key_id, public_path, secret_path, passphrase=''):
+    def __init__(self, key_id, path, passphrase):
         """Intialise PrivateKey."""
-        self.secret_path = secret_path
-        self.public_path = public_path
+        self.path = path
         self.key_id = key_id
         assert( isinstance(passphrase,str) )
         self.passphrase = passphrase.encode()
 
     def load_key(self):
-        """Load key and return tuple for reconstruction."""
-        public_data = get_file_content(self.public_path).hex()
-        # unlock it with the passphrase
-        private_data = None
-        if self.secret_path:
-            private_data = get_file_content(self.secret_path).hex()
-        # TODO
-        return (self.key_id, {'id': self.key_id,
-                              'public': public_data,
-                              'private': private_data})
+        """Load key and unlocks it."""
+        with open(self.path, 'rb') as infile:
+            data = get_rsa_private_key_material(infile.read(), password=self.passphrase)
+            data['id'] = self.key_id
+            return (self.key_id, data)
 
 
 async def activate_key(key_name, data):
     """(Re)Activate a key."""
     LOG.debug(f'(Re)Activating a {key_name}')
     if key_name.startswith("pgp"):
-        obj_key = PGPPrivateKey(data.get('private'), data.get('passphrase'))
+        obj_key = PGPPrivateKey(data.get('path'), data.get('passphrase'))
         _cache = _pgp_cache
     elif key_name.startswith("rsa"):
-        obj_key = ReEncryptionKey(key_name, data.get('public'), data.get('private', None), passphrase='')
+        obj_key = ReEncryptionKey(key_name, data.get('path'), data.get('passphrase',''))
         _cache = _rsa_cache
     else:
         LOG.error(f"Unrecognised key type: {key_name}")
@@ -399,21 +393,21 @@ async def unlock_key(request):
         return web.HTTPBadRequest()
 
 
-@routes.post('/generate/pgp')
-async def generate_pgp_key_pair(request):
-    """Generate PGP key pair"""
-    key_options = await request.json()
-    LOG.debug(f'Admin generate PGP key pair: {key_options}')
-    if all(k in key_options for k in("name", "comment", "email")):
-        # By default we can return armored
-        pub_data, sec_data = generate_pgp_key(key_options['name'],
-                                              key_options['email'],
-                                              key_options['comment'],
-                                              key_options.get('passphrase', None))
-        # TO DO return the key pair or the path where it is stored.
-        return web.HTTPAccepted()
-    else:
-        return web.HTTPBadRequest()
+# @routes.post('/generate/pgp')
+# async def generate_pgp_key_pair(request):
+#     """Generate PGP key pair"""
+#     key_options = await request.json()
+#     LOG.debug(f'Admin generate PGP key pair: {key_options}')
+#     if all(k in key_options for k in("name", "comment", "email")):
+#         # By default we can return armored
+#         pub_data, sec_data = generate_pgp_key(key_options['name'],
+#                                               key_options['email'],
+#                                               key_options['comment'],
+#                                               key_options.get('passphrase', None))
+#         # TO DO return the key pair or the path where it is stored.
+#         return web.HTTPAccepted()
+#     else:
+#         return web.HTTPBadRequest()
 
 
 @routes.get('/health')
@@ -460,31 +454,32 @@ async def load_keys_conf(store):
     for section in store.sections():
         await activate_key(section, dict(store.items(section)))
 
-alive = True  # used to set if the keyserer is alive in the shutdown
+# alive = True  # used to set if the keyserer is alive in the shutdown
 
-async def renew_lease(eureka, interval):
-    '''Renew eureka lease at specific interval.'''
-    while alive:
-        await asyncio.sleep(interval)
-        await eureka.renew()
+# async def renew_lease(eureka, interval):
+#     '''Renew eureka lease at specific interval.'''
+#     while alive:
+#         await asyncio.sleep(interval)
+#         await eureka.renew()
 
 async def init(app):
     '''Initialization running before the loop.run_forever'''
     app['db'] = await db.create_pool(loop=app.loop)
-    app['renew_eureka'] = app.loop.create_task(renew_lease(app['eureka'], app['interval']))
     LOG.info('DB Connection pool created')
     # Note: will exit on failure
     await load_keys_conf(app['store'])
-    await app['eureka'].register()
+    #app['renew_eureka'] = app.loop.create_task(renew_lease(app['eureka'], app['interval']))
+    #await app['eureka'].register()
 
 async def shutdown(app):
     '''Function run after a KeyboardInterrupt. After that: cleanup'''
     LOG.info('Shutting down the database engine')
-    global alive
+    
     app['db'].close()
     await app['db'].wait_closed()
-    await app['eureka'].deregister()
-    alive = False
+    #await app['eureka'].deregister()
+    #global alive
+    #alive = False
 
 async def cleanup(app):
     '''Function run after a KeyboardInterrupt. Right after, the loop is closed'''
@@ -506,8 +501,6 @@ def main(args=None):
     keyserver_health = CONF.get('keyserver', 'health_endpoint')
     keyserver_status = CONF.get('keyserver', 'status_endpoint')
 
-    eureka_endpoint = CONF.get('eureka', 'endpoint')
-
     # ssl_certfile = Path(CONF.get('keyserver', 'ssl_certfile')).expanduser()
     # ssl_keyfile = Path(CONF.get('keyserver', 'ssl_keyfile')).expanduser()
     # LOG.debug(f'Certfile: {ssl_certfile}')
@@ -525,11 +518,13 @@ def main(args=None):
 
     # Adding the keystore to the server
     keyserver['store'] = KeysConfiguration(args)
-    keyserver['interval'] = CONF.getint('eureka', 'interval')
-    keyserver['eureka'] = EurekaClient("keyserver", port=port, ip_addr=host,
-                                       eureka_url=eureka_endpoint, hostname=host,
-                                       health_check_url='http://{}:{}{}'.format(host, port, keyserver_health),
-                                       status_check_url='http://{}:{}{}'.format(host, port, keyserver_status), loop=loop)
+
+    # eureka_endpoint = CONF.get('eureka', 'endpoint')
+    # keyserver['interval'] = CONF.getint('eureka', 'interval')
+    # keyserver['eureka'] = EurekaClient("keyserver", port=port, ip_addr=host,
+    #                                    eureka_url=eureka_endpoint, hostname=host,
+    #                                    health_check_url='http://{}:{}{}'.format(host, port, keyserver_health),
+    #                                    status_check_url='http://{}:{}{}'.format(host, port, keyserver_status), loop=loop)
 
     # Registering some initialization and cleanup routines
     LOG.info('Setting up callbacks')
