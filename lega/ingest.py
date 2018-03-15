@@ -39,7 +39,7 @@ from .utils.crypto import ingest as crypto_ingest
 LOG = logging.getLogger('ingestion')
 
 @db.catch_error
-def work(active_master_key, master_pubkey, data):
+def work(master_key, data):
     '''Main ingestion function
 
     The data is of the form:
@@ -137,8 +137,7 @@ def work(active_master_key, master_pubkey, data):
                                                str(inbox_filepath),
                                                unencrypted_hash,
                                                hash_algo = unencrypted_algo,
-                                               active_key = active_master_key,
-                                               master_key = master_pubkey,
+                                               master_key = master_key,
                                                target = staging_filepath)
     db.set_encryption(file_id, details, staging_checksum)
     LOG.debug(f'Re-encryption completed')
@@ -147,35 +146,32 @@ def work(active_master_key, master_pubkey, data):
     LOG.debug(f"Reply message: {data}")
     return data
 
+def get_master_key():
+    keyurl = CONF.get('ingestion','keyserver_endpoint_rsa')
+    LOG.info('Retrieving the Master Public Key from {keyurl}')
+    try:
+        # Prepare to contact the Keyserver for the Master key
+        with urlopen(keyurl) as response:
+            return json.loads(response.read().decode())
+    except Exception as e:
+        LOG.error(repr(e))
+        LOG.critical('Problem contacting the Keyserver. Ingestion Worker terminated')
+        sys.exit(1)
+
+
 def main(args=None):
     if not args:
         args = sys.argv[1:]
 
     CONF.setup(args) # re-conf
 
-    master_key = None
-    try:
-        # Prepare to contact the Keyserver for the Master key
-        ssl_ctx = ssl.create_default_context()
-        ssl_ctx.check_hostname = False
-        ssl_ctx.verify_mode=ssl.CERT_NONE
-        keyurl = CONF.get('ingestion','keyserver_endpoint_rsa')
-        LOG.info('Retrieving the Master Public Key')
-        with urlopen(keyurl, context=ssl_ctx) as response:
-            master_key = json.loads(response.read().decode())
-    except Exception as e:
-        LOG.error(repr(e))
-        LOG.critical('Problem contacting the Keyserver. Ingestion Worker terminated')
-        sys.exit(1)
-    else:
+    master_key = get_master_key(keyurl) # might exit
 
-        # Server connection closed
-        assert( master_key )
-        LOG.info(f"Master Key ID: {master_key['id']}")
-        do_work = partial(work, master_key['id'], bytes.fromhex(master_key['public']))
+    LOG.info(f"Master Key ID: {master_key['id']}")
+    do_work = partial(work, master_key)
         
-        # upstream link configured in local broker
-        consume(do_work, 'files', 'staged')
+    # upstream link configured in local broker
+    consume(do_work, 'files', 'staged')
 
 if __name__ == '__main__':
     main()

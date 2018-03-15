@@ -35,7 +35,7 @@ yum -y install gcc git curl make bzip2 unzip patch \
 [[ -e /usr/local/bin/python3 ]]  || ln -s /bin/python3.6 /usr/local/bin/python3
 
 # Installing required packages
-pip3.6 install PyYaml Markdown #pika aiohttp pycryptodomex aiopg colorama aiohttp-jinja2
+pip3.6 install PyYaml Markdown #pika aiohttp aiopg colorama aiohttp-jinja2 cryptography
 
 ##############################################################
 # Create ega user (with default settings)

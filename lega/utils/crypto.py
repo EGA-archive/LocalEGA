@@ -15,32 +15,78 @@ import asyncio.subprocess
 from pathlib import Path
 from hashlib import sha256
 
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives.asymmetric import rsa, padding
 
-from Cryptodome.PublicKey import RSA
-from Cryptodome.Random import get_random_bytes
-from Cryptodome.Cipher import AES, PKCS1_OAEP
-from Cryptodome.Hash import SHA256
+from cryptography.hazmat.primitives import serialization
 
 from . import exceptions, checksum
 
 LOG = logging.getLogger('crypto')
 
 ###########################################################
+# RSA Master Key
+###########################################################
+def get_private_key_material(filepath, password=None):
+    with open(filepath, 'rb') as infile:
+
+        private_key = serialization.load_pem_private_key(
+            infile.read(),
+            password=password,
+            backend=default_backend()
+        )
+        private_material = private_key.private_numbers()
+        public_material = private_material.public_numbers
+        return (public_material.n, public_material.e, private_material.d, private_material.p, private_material.q, -1)
+
+def get_public_key_material(filepath):
+    with open(filepath, 'rb') as infile:
+
+        public_key = serialization.load_pem_public_key(
+            infile.read(),
+            backend=default_backend()
+        )
+        public_material = public_key.public_numbers()
+        return (public_material.n, public_material.e)
+
+def make_rsa_pubkey(material, backend):
+    public_material = material['public']
+    n = int(public_material['n'], 16)
+    e = int(public_material['e'], 16)
+    return rsa.RSAPublicNumbers(e,n).public_key(backend)
+
+def make_rsa_privkey(material, backend):
+    public_material = material['public']
+    private_material = material['private']
+    n = int(public_material['n'], 16)
+    e = int(public_material['e'], 16)
+    d = int(private_material['d'], 16)
+    p = int(private_material['p'], 16)
+    q = int(private_material['q'], 16)
+    pub = rsa.RSAPublicNumbers(e,n)
+    dmp1 = rsa.rsa_crt_dmp1(d, p)
+    dmq1 = rsa.rsa_crt_dmq1(d, q)
+    iqmp = rsa.rsa_crt_iqmp(p, q)
+    return rsa.RSAPrivateNumbers(p, q, d, dmp1, dmq1, iqmp, pub).private_key(backend)
+
+
+###########################################################
 # Ingestion
 ###########################################################
 
-def make_header(key_id, enc_key_size, nonce_size, aes_mode):
+def make_header(key_id, enc_key_size, nonce_size):
     '''Create the header line for the re-encrypted files
 
     The header is simply of the form:
-    Key ID | Encryption key size (in bytes) | Nonce size | AES mode
+    Key ID | Encryption key size (in bytes) | Nonce size
 
     The key number points to a particular section of the configuration files, 
     holding the information about that key
     '''
-    return f'{key_id}|{enc_key_size}|{nonce_size}|{aes_mode}'
+    return f'{key_id}|{enc_key_size}|{nonce_size}|CTR'
 
-def encrypt_engine(key,passphrase=None):
+def encrypt_engine(master_key):
     '''Generator that takes a block of data as input and encrypts it as output.
 
     The encryption algorithm is AES (in CTR mode), using a randomly-created session key.
@@ -48,26 +94,33 @@ def encrypt_engine(key,passphrase=None):
     '''
 
     LOG.info('Starting the cipher engine')
-    session_key = get_random_bytes(32) # for AES-256
+    session_key = os.urandom(32) # for AES-256
     LOG.debug(f'session key    = {session_key}')
 
+    nonce = os.urandom(16)
+    LOG.debug(f'CTR nonce: {nonce}')
+
     LOG.info('Creating AES cypher (CTR mode)')
-    aes = AES.new(key=session_key, mode=AES.MODE_CTR)
+    backend = default_backend()
+    cipher = Cipher(algorithms.AES(session_key), modes.CTR(nonce), backend=backend)
+    aes = cipher.encryptor()
 
-    LOG.info('Creating RSA cypher')
-    rsa_key = RSA.import_key(key)
-    rsa = PKCS1_OAEP.new(rsa_key, hashAlgo = SHA256)
-
-    encryption_key = rsa.encrypt(session_key)
+    LOG.info('Encrypting the session key with RSA')
+    rsa_key = make_rsa_pubkey(master_key, backend)
+    LOG.debug(f'\trsa key size = {rsa_key.key_size}')
+    encryption_key = rsa_key.encrypt(session_key,
+                                     padding.OAEP(
+                                         mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                                         algorithm=hashes.SHA256(),
+                                         label=None))
     LOG.debug(f'\tencryption key = {encryption_key}')
 
-    nonce = aes.nonce
-    LOG.debug(f'AES nonce: {nonce}')
-
-    clearchunk = yield (encryption_key, 'CTR', nonce)
+    clearchunk = yield (encryption_key, nonce)
     while True:
-        clearchunk = yield aes.encrypt(clearchunk)
-
+        if clearchunk is None:
+            yield aes.finalize() # instead of return
+        else:
+            clearchunk = yield bytes(aes.update(clearchunk))
 
 class ReEncryptor(asyncio.SubprocessProtocol):
     '''Re-encryption protocol.
@@ -78,19 +131,19 @@ class ReEncryptor(asyncio.SubprocessProtocol):
     We also calculate the checksum of the data received in the pipe.
     '''
 
-    def __init__(self, active_key, master_pubkey, hashAlgo, target_h, done):
+    def __init__(self, master_key, hashAlgo, target_h, done):
         self.done = done
         self.errbuf = bytearray()
-        self.engine = encrypt_engine(master_pubkey) # pubkey => no passphrase
+        self.engine = encrypt_engine(master_key)
         self.target_handler = target_h
 
         LOG.info(f'Setup {hashAlgo} digest')
         self.digest = checksum.instantiate(hashAlgo)
 
         LOG.info(f'Starting the encrypting engine')
-        encryption_key, mode, nonce = next(self.engine)
+        encryption_key, nonce = next(self.engine)
 
-        self.header = make_header(active_key, len(encryption_key), len(nonce), mode)
+        self.header = make_header(master_key['id'], len(encryption_key), len(nonce))
         header_b = self.header.encode()
         
         LOG.info(f'Writing header {self.header} to file, followed by encrypting key and nonce')
@@ -123,8 +176,8 @@ class ReEncryptor(asyncio.SubprocessProtocol):
             self.errbuf.extend(data) # f'Data on fd {fd}: {data}'
 
     def process_exited(self):
-        # LOG.info('Closing the encryption engine')
-        # self.engine.send(None) # closing it
+        LOG.info('Closing the encryption engine')
+        self._process_chunk(self.engine.send(None)) # finally
         retcode = self.transport.get_returncode()
         stderr = self.errbuf.decode() if retcode else ''
         self.done.set_result( (retcode, stderr, self.digest.hexdigest()) ) # a tuple as one argument
@@ -140,7 +193,7 @@ class ReEncryptor(asyncio.SubprocessProtocol):
 def ingest(decrypt_cmd,
            enc_file,
            org_hash, hash_algo,
-           active_key, master_key,
+           master_key,
            target):
     '''Decrypts a gpg-encoded file and verifies the integrity of its content.
        Finally, it re-encrypts it chunk-by-chunk'''
@@ -161,7 +214,7 @@ def ingest(decrypt_cmd,
 
         loop = asyncio.get_event_loop()
         done = asyncio.Future(loop=loop)
-        reencrypt_protocol = ReEncryptor(active_key, master_key, hash_algo, target_h, done)
+        reencrypt_protocol = ReEncryptor(master_key, hash_algo, target_h, done)
 
         LOG.debug(f'Spawning a separate process running: {cmd}')
 
