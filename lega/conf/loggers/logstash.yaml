@@ -40,6 +40,9 @@ loggers:
   crypto:
     level: INFO
     handlers: [logstash,console]
+  eureka:
+    level: INFO
+    handlers: [logstash,console]
 
 
 handlers:
