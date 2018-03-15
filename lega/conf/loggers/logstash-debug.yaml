@@ -16,6 +16,9 @@ loggers:
   keyserver:
     level: DEBUG
     handlers: [logstash,console]
+  eureka:
+    level: DEBUG
+    handlers: [logstash,console]
   vault:
     level: DEBUG
     handlers: [logstash,console]
