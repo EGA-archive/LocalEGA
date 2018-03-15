@@ -11,7 +11,6 @@ private bootstrap:
 		    -v ${PWD}:/ega \
 		    -v ${PWD}/../../extras/db.sql:/tmp/db.sql \
 		    -v ${PWD}/../../extras/generate_pgp_key.py:/tmp/generate_pgp_key.py \
-		    -v ${PWD}/../../extras/eureka/target/eureka-server.jar:/tmp/eureka.jar \
 		    --entrypoint /ega/bootstrap/boot.sh \
 		    nbisweden/ega-base ${ARGS}
 
