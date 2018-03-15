@@ -148,7 +148,7 @@ def work(master_key, data):
 
 def get_master_key():
     keyurl = CONF.get('ingestion','keyserver_endpoint_rsa')
-    LOG.info('Retrieving the Master Public Key from {keyurl}')
+    LOG.info(f'Retrieving the Master Public Key from {keyurl}')
     try:
         # Prepare to contact the Keyserver for the Master key
         with urlopen(keyurl) as response:
@@ -165,9 +165,10 @@ def main(args=None):
 
     CONF.setup(args) # re-conf
 
-    master_key = get_master_key(keyurl) # might exit
+    master_key = get_master_key() # might exit
 
     LOG.info(f"Master Key ID: {master_key['id']}")
+    LOG.debug(f"Master Key: {master_key}")
     do_work = partial(work, master_key)
         
     # upstream link configured in local broker

@@ -15,8 +15,9 @@ import asyncio.subprocess
 from pathlib import Path
 from hashlib import sha256
 
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
 
 from cryptography.hazmat.primitives import serialization
@@ -28,42 +29,36 @@ LOG = logging.getLogger('crypto')
 ###########################################################
 # RSA Master Key
 ###########################################################
-def get_private_key_material(filepath, password=None):
-    with open(filepath, 'rb') as infile:
-
-        private_key = serialization.load_pem_private_key(
-            infile.read(),
-            password=password,
-            backend=default_backend()
-        )
-        private_material = private_key.private_numbers()
-        public_material = private_material.public_numbers
-        return (public_material.n, public_material.e, private_material.d, private_material.p, private_material.q, -1)
-
-def get_public_key_material(filepath):
-    with open(filepath, 'rb') as infile:
-
-        public_key = serialization.load_pem_public_key(
-            infile.read(),
-            backend=default_backend()
-        )
-        public_material = public_key.public_numbers()
-        return (public_material.n, public_material.e)
+def get_rsa_private_key_material(content, password=None):
+    private_key = serialization.load_pem_private_key(
+        content,
+        password=password,
+        backend=default_backend()
+    )
+    private_material = private_key.private_numbers()
+    public_material = private_material.public_numbers
+    return {'public': { 'n': public_material.n,
+                        'e': public_material.e},
+            'private':{ 'd': private_material.d,
+                        'p': private_material.p,
+                        'q': private_material.q,
+                        'u': -1}
+    }
 
 def make_rsa_pubkey(material, backend):
     public_material = material['public']
-    n = int(public_material['n'], 16)
-    e = int(public_material['e'], 16)
+    n = public_material['n'] # Note: all the number are already int
+    e = public_material['e']
     return rsa.RSAPublicNumbers(e,n).public_key(backend)
 
 def make_rsa_privkey(material, backend):
     public_material = material['public']
     private_material = material['private']
-    n = int(public_material['n'], 16)
-    e = int(public_material['e'], 16)
-    d = int(private_material['d'], 16)
-    p = int(private_material['p'], 16)
-    q = int(private_material['q'], 16)
+    n = public_material['n']  # Note: all the number are already int
+    e = public_material['e']
+    d = private_material['d']
+    p = private_material['p']
+    q = private_material['q']
     pub = rsa.RSAPublicNumbers(e,n)
     dmp1 = rsa.rsa_crt_dmp1(d, p)
     dmq1 = rsa.rsa_crt_dmq1(d, q)
@@ -118,7 +113,7 @@ def encrypt_engine(master_key):
     clearchunk = yield (encryption_key, nonce)
     while True:
         if clearchunk is None:
-            yield aes.finalize() # instead of return
+            yield bytes(aes.finalize()) # instead of return
         else:
             clearchunk = yield bytes(aes.update(clearchunk))
 
@@ -149,8 +144,8 @@ class ReEncryptor(asyncio.SubprocessProtocol):
         LOG.info(f'Writing header {self.header} to file, followed by encrypting key and nonce')
         self.target_handler.write(header_b)
         self.target_handler.write(b'\n')
-        self.target_handler.write(encryption_key)
-        self.target_handler.write(nonce)
+        self.target_handler.write(encryption_key) # encrypted session key first
+        self.target_handler.write(nonce)          # nonce then
         
         LOG.info('Setup target digest')
         self.target_digest = sha256()
@@ -177,17 +172,25 @@ class ReEncryptor(asyncio.SubprocessProtocol):
 
     def process_exited(self):
         LOG.info('Closing the encryption engine')
-        self._process_chunk(self.engine.send(None)) # finally
+        self._finalize() # flushing the engine
         retcode = self.transport.get_returncode()
         stderr = self.errbuf.decode() if retcode else ''
         self.done.set_result( (retcode, stderr, self.digest.hexdigest()) ) # a tuple as one argument
 
     def _process_chunk(self,data):
-        LOG.debug('processing {} bytes of data'.format(len(data)))
+        LOG.debug(f'processing {len(data)} bytes of data')
         self.digest.update(data)
         cipherchunk = self.engine.send(data)
         self.target_handler.write(cipherchunk)
         self.target_digest.update(cipherchunk)
+
+    def _finalize(self):
+        LOG.debug(f'Finalizing stream of data')
+        cipherchunk = self.engine.send(None)
+        if cipherchunk:
+            LOG.debug(f'Flushed {len(cipherchunk)} bytes of data from the engine')
+            self.target_handler.write(cipherchunk)
+            self.target_digest.update(cipherchunk)
 
 
 def ingest(decrypt_cmd,
@@ -250,3 +253,90 @@ def ingest(decrypt_cmd,
         LOG.info(f'File encrypted')
         assert Path(target).exists()
         return (reencrypt_protocol.header, reencrypt_protocol.target_digest.hexdigest())
+
+
+
+###########################################################
+# Decryption code
+###########################################################
+def chunker(stream, chunk_size=None):
+    """Lazy function (generator) to read a stream one chunk at a time."""
+
+    chunk_size = 1 << 10
+    yield chunk_size
+    while True:
+        data = stream.read(chunk_size)
+        if not data:
+            return None # No more data
+        yield data
+
+def from_header(h):
+    '''Convert the given line into differents values, doing the opposite job as `make_header`'''
+    header = bytearray()
+    while True:
+        b = h.read(1)
+        if b in (b'\n', b''):
+            break
+        header.extend(b)
+
+    header = header.decode()
+    LOG.debug(f'Found header: {header}')
+    key_id, session_key_size, nonce_size, aes_mode = header.split('|')
+    assert( aes_mode == 'CTR' )
+    return (key_id, int(session_key_size), int(nonce_size))
+
+def decrypt_engine( session_key, nonce, backend ):
+
+    LOG.info('Starting the decryption engine')
+    cipher = Cipher(algorithms.AES(session_key), modes.CTR(nonce), backend=backend)
+    aes = cipher.decryptor()
+
+    cipherchunk = yield 
+    while True:
+        if cipherchunk is None:
+            yield bytes(aes.finalize()) # instead of return
+        else:
+            cipherchunk = yield bytes(aes.update(cipherchunk))
+
+
+def decrypt_from_vault(infile, master_key, outfile=None, hasher=None):
+
+    LOG.debug('Decrypting file')
+    key_id, session_key_size, nonce_size = from_header( infile )
+
+    encrypted_session_key = infile.read(session_key_size)
+    nonce = infile.read(nonce_size)
+
+    # LOG.debug(f'encrypted_session_key: {encrypted_session_key.hex()}')
+    # LOG.debug(f'nonce_key: {nonce.hex()}')
+
+    LOG.info('Decrypting the session key with RSA')
+    backend = default_backend()
+    rsa_key = make_rsa_privkey(master_key, backend)
+    LOG.debug(f'\trsa key size = {rsa_key.key_size}')
+    session_key = rsa_key.decrypt(encrypted_session_key,
+                                  padding.OAEP(
+                                      mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                                      algorithm=hashes.SHA256(),
+                                      label=None))
+    LOG.debug(f'\tsession key = {session_key}')
+    
+    engine = decrypt_engine( session_key, nonce, backend )
+    next(engine) # start it
+
+    chunks = chunker(infile) # the rest
+    next(chunks) # start it and ignore its return value
+
+    for chunk in chunks:
+        clearchunk = engine.send(chunk)
+        if outfile:
+            outfile.write(clearchunk)
+        if hasher:
+            hasher.update(clearchunk)
+
+    # finally, flushing
+    clearchunk = engine.send(None)
+    if clearchunk and outfile:
+        outfile.write(clearchunk)
+    if clearchunk and hasher:
+        hasher.update(clearchunk)
