@@ -59,11 +59,8 @@ cat >> ${PRIVATE}/cega/env <<EOF
 LEGA_INSTANCES=${INSTANCES// /,}
 EOF
 
-# Eureka server
-source ${HERE}/eureka.sh
-
-# Central EGA Users
-source ${HERE}/cega_users.sh
+# Central EGA Users and Eureka server
+source ${HERE}/cega.sh
 
 # Generate the configuration for each instance
 for INSTANCE in ${INSTANCES}

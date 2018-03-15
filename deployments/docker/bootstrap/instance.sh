@@ -467,10 +467,10 @@ services:
        - ../../../lega:/root/.local/lib/python3.6/site-packages/lega
     restart: on-failure:3
     external_links:
-      - eureka:eureka
+      - cega-eureka:cega-eureka
     networks:
       - lega_${INSTANCE}
-      - eureka
+      - cega
     entrypoint: ["ega-keyserver","--keys","/etc/ega/keys.ini"]
 
   # Vault
