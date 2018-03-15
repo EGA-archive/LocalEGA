@@ -28,6 +28,7 @@ Users are handled throught Central EGA, directly.
               'ega-verify = lega.verify:main',
               'ega-monitor = lega.monitor:main',
               'ega-keyserver = lega.keyserver:main',
+              'ega-outgest = lega.outgest:main', # just for testing
               'ega-conf = lega.conf.__main__:main',
           ]
       },
