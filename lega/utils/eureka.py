@@ -1,0 +1,185 @@
+"""
+Eureka Discovery for LocalEGA.
+
+Because we need something that just works.
+Inspired by https://github.com/wasp/eureka
+Apache 2.0 License https://github.com/wasp/eureka/blob/master/LICENSE
+"""
+import asyncio
+import aiohttp
+import logging
+import json
+import uuid
+
+
+eureka_status = {
+    0: 'UP',
+    1: 'DOWN',
+    2: 'STARTING',
+    3: 'OUT_OF_SERVICE',
+    4: 'UNKNOWN',
+}
+
+LOG = logging.getLogger('keyserver')
+
+
+class EurekaRequests:
+    """Euerka from Netflix with basic REST operations.
+
+    Following: https://github.com/Netflix/eureka/wiki/Eureka-REST-operations
+
+    .. note:: The eureka url for Spring Eureka is ``http://eureka_host:eureka_port/eureka``
+            notice the ``/v2`` is missing and the default port is ``8671``.
+    """
+
+    def __init__(self, eureka_url='http://localhost:8761',
+                 loop=asyncio.AbstractEventLoop):
+        """Where we make it happen."""
+        self._loop = loop if loop else asyncio.get_event_loop()
+        self._eureka_url = eureka_url.rstrip('/') + '/eureka'
+
+    async def update_meta(self, key, value):
+        """Update metadata of application."""
+        url = f'{self._eureka_url}/apps/{self._app_name}/{self._instance_id}/metadata?{key}={value}'
+        async with aiohttp.ClientSession(headers=self._headers) as session:
+            async with session.put(url) as resp:
+                print(resp)
+            await session.close()
+
+    async def out_of_service(self, app_name, instance_id):
+        """Take an instance out of service."""
+        url = f'{self._eureka_url}/apps/{app_name}/{instance_id}/status?value={eureka_status[3]}'
+        async with aiohttp.ClientSession(headers=self._headers) as session:
+            async with session.put(url) as resp:
+                print(resp)
+            await session.close()
+
+    async def list_apps(self):
+        """Get the apps known to the eureka server."""
+        url = f'{self._eureka_url}/apps'
+        return await self._get_request(url)
+
+    async def get_by_app(self, app_name):
+        """Get an app by its name."""
+        app_name = app_name or self._app_name
+        url = f'{self._eureka_url}/apps/{app_name}'
+        return await self._get_request(url)
+
+    async def get_by_app_instance(self, app_name, instance_id):
+        """Get a specific instance, narrowed by app name."""
+        app_name = app_name or self._app_name
+        instance_id = instance_id or self.instance_id
+        url = f'{self._eureka_url}/apps/{app_name}/{instance_id}'
+        return await self._get_request(url)
+
+    async def get_by_instance(self, instance_id):
+        """Get a specific instance."""
+        instance_id = instance_id or self.instance_id
+        url = f'{self._eureka_url}/instances/{instance_id}'
+        return await self._get_request(url)
+
+    async def get_by_vip(self, vip_address):
+        """Query for all instances under a particular vip address."""
+        vip_address = vip_address or self._app_name
+        url = f'{self._eureka_url}/vips/{vip_address}'
+        return await self._get_request(url)
+
+    async def get_by_svip(self, svip_address):
+        """Query for all instances under a particular secure vip address."""
+        svip_address = svip_address or self._app_name
+        url = f'{self._eureka_url}/vips/{svip_address}'
+        return await self._get_request(url)
+
+    async def _get_request(self, url):
+        """General GET request, to simplify things. Expect always JSON as headers set."""
+        async with aiohttp.ClientSession(headers=self._headers) as session:
+            async with session.get(url) as resp:
+                if resp.status == 200:
+                    return(resp.json())
+            await session.close()
+
+
+class EurekaClient(EurekaRequests):
+    """Eureka Client for registration and deregistration of a client."""
+
+    def __init__(self, app_name, port, ip_addr, hostname,
+                 eureka_url, loop,
+                 instance_id=None,
+                 health_check_url=None,
+                 status_check_url=None):
+        """Where we make it happen."""
+        _default_health = 'http://{}:{}/health'.format(ip_addr, port)
+        EurekaRequests.__init__(self, eureka_url, loop)
+        self._app_name = app_name
+        self._port = port
+        self._hostname = hostname or ip_addr
+        self._ip_addr = ip_addr
+        self._instance_id = instance_id if instance_id else self._generate_instance_id()
+        self._health_check_url = health_check_url if health_check_url else _default_health
+        self._status_check_url = status_check_url if status_check_url else self._health_check_url
+        self._headers = {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+        }
+
+    async def register(self, metadata=None, lease_duration=60, lease_renewal_interval=20):
+        """Register application with Eureka."""
+        payload = {
+            'instance': {
+                'instanceId': self._instance_id,
+                'leaseInfo': {
+                    'durationInSecs': lease_duration,
+                    'renewalIntervalInSecs': lease_renewal_interval,
+                },
+                'port': {
+                    '$': self._port,
+                    '@enabled': self._port is not None,
+                },
+                'status': eureka_status[0],
+                'hostName': self._hostname,
+                'app': self._app_name,
+                'ipAddr': self._ip_addr,
+                'vipAddress': self._app_name,
+                # dataCenterInfo seems to be required
+                'dataCenterInfo': {
+                    '@class': 'com.netflix.appinfo.MyDataCenterInfo',
+                    'name': 'MyOwn',
+                },
+            }
+        }
+        if self._health_check_url is not None:
+            payload['instance']['healthCheckUrl'] = self._health_check_url
+        if self._status_check_url is not None:
+            payload['instance']['statusPageUrl'] = self._status_check_url
+        if metadata:
+            payload['instance']['metadata'] = metadata
+        url = f'{self._eureka_url}/apps/{self._app_name}'
+        LOG.debug('Registering %s', self._app_name)
+        async with aiohttp.ClientSession(headers=self._headers) as session:
+            async with session.post(url, data=json.dumps(payload)) as resp:
+                print(resp.status)
+            await session.close()
+
+    async def renew(self):
+        """Renew the application's lease."""
+        url = f'{self._eureka_url}/apps/{self._app_name}/{self._instance_id}'
+        async with aiohttp.ClientSession(headers=self._headers) as session:
+            async with session.put(url) as resp:
+                print(resp)
+            await session.close()
+
+    async def deregister(self):
+        """Deregister with the remote server, to avoid 500 eror."""
+        url = f'{self._eureka_url}/apps/{self._app_name}/{self._instance_id}'
+        async with aiohttp.ClientSession(headers=self._headers) as session:
+            async with session.delete(url) as resp:
+                print(resp)
+            await session.close()
+
+    def _generate_instance_id(self):
+        """Generate a unique instance id."""
+        instance_id = '{}:{}:{}'.format(
+            str(uuid.uuid4()), self._app_name, self._port
+        )
+        LOG.debug('Generated new instance id: %s for app: %s', instance_id, self._app_name)
+        return instance_id
