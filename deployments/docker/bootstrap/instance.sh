@@ -469,8 +469,7 @@ services:
     networks:
       - lega_${INSTANCE}
       - cega
-    #entrypoint: ["ega-keyserver","--keys","/etc/ega/keys.ini"]
-    entrypoint: ["/bin/sleep","1000000000"]
+    entrypoint: ["ega-keyserver","--keys","/etc/ega/keys.ini"]
 
   # Vault
   vault-${INSTANCE}:
