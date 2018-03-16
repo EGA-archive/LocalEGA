@@ -5,7 +5,7 @@ echomsg "Generating fake Central EGA users"
 
 [[ -x $(readlink ${OPENSSL}) ]] && echo "${OPENSSL} is not executable. Adjust the setting with --openssl" && exit 3
 
-mkdir -p ${PRIVATE}/cega/users
+mkdir -p ${PRIVATE}/cega/users/pgp
 
 EGA_USER_PASSWORD_JOHN=$(generate_password 16)
 EGA_USER_PASSWORD_JANE=$(generate_password 16)
@@ -56,6 +56,26 @@ chmod 777 ${PRIVATE}/cega/users/{swe1,fin1}
     ln -s ../john.yml .
 )
 
+echomsg "Generating PGP keys for EGA users"
+
+if [[ -f /tmp/generate_pgp_key.py ]]; then
+    # Running in a container
+    GEN_KEY="python3.6 /tmp/generate_pgp_key.py"
+else
+    # Running on host, outside a container
+    GEN_KEY="python ${EXTRAS}/generate_pgp_key.py"
+fi
+
+${GEN_KEY} "John Travolta" "john@ega.eu" "John" --passphrase "hi-john" --pub ${PRIVATE}/cega/users/pgp/john.pub --priv ${PRIVATE}/cega/users/pgp/john.sec --armor
+chmod 644 ${PRIVATE}/cega/users/pgp/john.pub
+
+${GEN_KEY} "Jane Fonda" "jane@ega.eu" "Jane" --passphrase "hi-jane" --pub ${PRIVATE}/cega/users/pgp/jane.pub --priv ${PRIVATE}/cega/users/pgp/jane.sec --armor
+chmod 644 ${PRIVATE}/cega/users/pgp/jane.pub
+
+${GEN_KEY} "Taylor Swift" "taylor@ega.eu" "Taylor" --passphrase "hi-taylor" --pub ${PRIVATE}/cega/users/pgp/taylor.pub --priv ${PRIVATE}/cega/users/pgp/taylor.sec --armor
+chmod 644 ${PRIVATE}/cega/users/pgp/taylor.pub
+
+
 cat >> ${PRIVATE}/cega/.trace <<EOF
 #####################################################################
 #
@@ -67,6 +87,10 @@ EGA_USER_PASSWORD_JOHN    = ${EGA_USER_PASSWORD_JOHN}
 EGA_USER_PUBKEY_JOHN      = ./private/cega/users/john.pub
 EGA_USER_PUBKEY_JANE      = ./private/cega/users/jane.pub
 EGA_USER_PASSWORD_TAYLOR  = ${EGA_USER_PASSWORD_TAYLOR}
+#
+EGA_USER_PGP_JOHN         = ./private/cega/users/pgp/john.pub
+EGA_USER_PGP_JANE         = ./private/cega/users/pgp/jane.pub
+EGA_USER_PGP_TAYLOR       = ./private/cega/users/pgp/taylor.pub
 # =============================
 EOF
 
