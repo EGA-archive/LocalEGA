@@ -41,7 +41,7 @@ from .openpgp.utils import unarmor
 from .openpgp.packet import iter_packets
 from .conf import CONF, KeysConfiguration
 from .utils import get_file_content, db
-from .utils.crypto import get_rsa_private_key_material
+from .utils.crypto import get_rsa_private_key_material, serialize_rsa_private_key
 # from .openpgp.generate import generate_pgp_key
 from .utils.eureka import EurekaClient
 
@@ -118,6 +118,7 @@ class Cache:
 # All the cache goes here
 _pgp_cache = Cache() # keys are uppercase
 _rsa_cache = Cache()
+_tmp_cache = Cache()
 
 
 class PGPPrivateKey:
@@ -153,8 +154,7 @@ class ReEncryptionKey:
         """Intialise PrivateKey."""
         self.path = path
         self.key_id = key_id
-        assert( passphrase is None or isinstance(passphrase,str) )
-        self.passphrase = None if passphrase is None else passphrase.encode() # ok for empty string
+        self.passphrase = passphrase
 
     def load_key(self):
         """Load key and unlocks it."""
@@ -163,6 +163,25 @@ class ReEncryptionKey:
             data['id'] = self.key_id
             return (self.key_id, data)
 
+
+###############################
+## Temp endpoint
+###############################
+@routes.get('/temp/rsa/{requested_id}')
+async def temp_key(request):
+    """Returns the unprotected file content"""
+    requested_id = request.match_info['requested_id']
+    LOG.debug(f'Requested raw rsa keyfile with ID {requested_id}')
+    value = _tmp_cache.get(requested_id)
+    if value:
+        return web.Response(text=value.hex())
+    else:
+        LOG.warn(f"Requested raw keyfile for {requested_id} not found.")
+        return web.HTTPNotFound()
+
+####################################
+# Caching the keys
+####################################
 
 async def activate_key(key_name, data):
     """(Re)Activate a key."""
@@ -173,6 +192,13 @@ async def activate_key(key_name, data):
     elif key_name.startswith("rsa"):
         obj_key = ReEncryptionKey(key_name, data.get('path'), data.get('passphrase',None))
         _cache = _rsa_cache
+        
+        ### Temporary
+        with open(data.get('path'), 'rb') as infile:
+            _tmp_cache.set(key_name,
+                           serialize_rsa_private_key(infile.read(), password=data.get('passphrase',None))
+            )
+
     else:
         LOG.error(f"Unrecognised key type: {key_name}")
         return
@@ -183,8 +209,9 @@ async def activate_key(key_name, data):
         _cache.set("active_pgp_key", key_id)
     _cache.set(key_id, value, ttl=data.get('expire', None))
 
-
-# Retrieve the active keys #
+####################################
+# Retrieve the active keys
+####################################
 
 @routes.get('/active/{key_type}')
 async def active_key(request):
@@ -386,7 +413,7 @@ async def unlock_key(request):
     """
     key_info = await request.json()
     LOG.debug(f'Admin unlocking: {key_info}')
-    if all(k in key_info for k in("private", "passphrase", "expire")):
+    if all(k in key_info for k in("path", "passphrase", "expire")):
         await activate_key(key_info['type'], key_info)
         return web.HTTPAccepted()
     else:
@@ -516,6 +543,7 @@ def main(args=None):
     sslcontext = None # Turning off SSL for the moment
 
     loop = asyncio.get_event_loop()
+
     keyserver = web.Application(loop=loop)
     keyserver.router.add_routes(routes)
 

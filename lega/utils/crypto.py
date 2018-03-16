@@ -30,9 +30,10 @@ LOG = logging.getLogger('crypto')
 # RSA Master Key
 ###########################################################
 def get_rsa_private_key_material(content, password=None):
+    assert( password is None or isinstance(password,str) )
     private_key = serialization.load_pem_private_key(
         content,
-        password=password,
+        password=None if password is None else password.encode(), # ok with empty password
         backend=default_backend()
     )
     private_material = private_key.private_numbers()
@@ -64,6 +65,19 @@ def make_rsa_privkey(material, backend):
     iqmp = rsa.rsa_crt_iqmp(p, q)
     return rsa.RSAPrivateNumbers(p, q, d, dmp1, dmq1, iqmp, pub).private_key(backend)
 
+
+def serialize_rsa_private_key(content, password=None):
+    assert( password is None or isinstance(password,str) )
+    private_key = serialization.load_pem_private_key(
+        content,
+        password=None if password is None else password.encode(), # ok with empty password
+        backend=default_backend()
+    )
+    return private_key.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.PKCS8,
+        encryption_algorithm=serialization.NoEncryption()
+    )
 
 ###########################################################
 # Ingestion
