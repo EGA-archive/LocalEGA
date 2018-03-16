@@ -76,7 +76,7 @@ def _do_exit():
 
 
 class EurekaRequests:
-    """Euerka from Netflix with basic REST operations.
+    """Eureka from Netflix with basic REST operations.
 
     Following: https://github.com/Netflix/eureka/wiki/Eureka-REST-operations
 
@@ -84,8 +84,7 @@ class EurekaRequests:
             notice the ``/v2`` is missing and the default port is ``8671``.
     """
 
-    def __init__(self, eureka_url='http://localhost:8761',
-                 loop=asyncio.AbstractEventLoop):
+    def __init__(self, eureka_url='http://localhost:8761', loop=None):
         """Where we make it happen."""
         self._loop = loop if loop else asyncio.get_event_loop()
         self._eureka_url = eureka_url.rstrip('/') + '/eureka'
@@ -96,7 +95,7 @@ class EurekaRequests:
         async with aiohttp.ClientSession(headers=self._headers) as session:
             async with session.put(url) as resp:
                 LOG.debug('Eureka out_of_service status response %s' % resp.status)
-            await session.close()
+            # await session.close()
 
     async def list_apps(self):
         """Get the apps known to the eureka server."""
@@ -141,7 +140,7 @@ class EurekaRequests:
             async with session.get(url) as resp:
                 if resp.status == 200:
                     return(resp.json())
-            await session.close()
+            # await session.close()
 
 
 class EurekaClient(EurekaRequests):
@@ -153,7 +152,7 @@ class EurekaClient(EurekaRequests):
                  health_check_url=None,
                  status_check_url=None):
         """Where we make it happen."""
-        _default_health = 'http://{}:{}/health'.format(ip_addr, port)
+        _default_health = f'http://{ip_addr}:{port}/health'
         EurekaRequests.__init__(self, eureka_url, loop)
         self._app_name = app_name
         self._port = port
@@ -204,7 +203,7 @@ class EurekaClient(EurekaRequests):
         async with aiohttp.ClientSession(headers=self._headers) as session:
             async with session.post(url, data=json.dumps(payload)) as resp:
                 LOG.debug('Eureka register response %s' % resp.status)
-            await session.close()
+            #await session.close()
 
     @retry_loop(on_failure=_do_exit)
     async def renew(self):
@@ -214,7 +213,7 @@ class EurekaClient(EurekaRequests):
         async with aiohttp.ClientSession(headers=self._headers) as session:
             async with session.put(url) as resp:
                 LOG.debug('Eureka renew response %s' % resp.status)
-            await session.close()
+            #await session.close()
 
     @retry_loop(on_failure=_do_exit)
     async def deregister(self):
@@ -224,7 +223,7 @@ class EurekaClient(EurekaRequests):
         async with aiohttp.ClientSession(headers=self._headers) as session:
             async with session.delete(url) as resp:
                 LOG.debug('Eureka deregister response %s' % resp.status)
-            await session.close()
+            #await session.close()
 
     @retry_loop
     async def update_metadata(self, key, value):
@@ -234,12 +233,10 @@ class EurekaClient(EurekaRequests):
         async with aiohttp.ClientSession(headers=self._headers) as session:
             async with session.put(url) as resp:
                 LOG.debug('Eureka update metadata response %s' % resp.status)
-            await session.close()
+            #await session.close()
 
     def _generate_instance_id(self):
         """Generate a unique instance id."""
-        instance_id = '{}:{}:{}'.format(
-            str(uuid.uuid4()), self._app_name, self._port
-        )
+        instance_id = f'{uuid.uuid4()}:{self._app_name}:{self._port}'
         LOG.debug('Generated new instance id: %s for app: %s', instance_id, self._app_name)
         return instance_id
