@@ -467,15 +467,17 @@ async def renew_lease(eureka, interval):
     while alive:
         await asyncio.sleep(interval)
         await eureka.renew()
+        LOG.info('Keyserver Eureka lease renewed.')
 
 async def init(app):
     '''Initialization running before the loop.run_forever'''
     app['db'] = await db.create_pool(loop=app.loop)
-    app['renew_eureka'] = app.loop.create_task(renew_lease(app['eureka'], app['interval']))
     LOG.info('DB Connection pool created')
+    app['renew_eureka'] = app.loop.create_task(renew_lease(app['eureka'], app['interval']))
     # Note: will exit on failure
     await load_keys_conf(app['store'])
     await app['eureka'].register()
+    LOG.info('Keyserver registered with Eureka.')
 
 async def shutdown(app):
     '''Function run after a KeyboardInterrupt. After that: cleanup'''
