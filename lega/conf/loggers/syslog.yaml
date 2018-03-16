@@ -37,6 +37,9 @@ loggers:
   db:
     level: DEBUG
     handlers: [syslog]
+  eureka:
+    level: DEBUG
+    handlers: [syslog]
   crypto:
     level: DEBUG
     handlers: [syslog]

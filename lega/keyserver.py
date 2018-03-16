@@ -17,16 +17,15 @@ Retrieve keys endpoint:
 * ``/retrieve/\{key_type\}/\{key_id\}/private`` - GET request for the private part of the active PGP key with a known keyID of fingerprint
 * ``/retrieve/\{key_type\}/\{key_id\}/public`` - GET request for the public part of the active PGP key with a known keyID of fingerprint
 
-Generate endpoint:
-
-* ``/generate/pgp`` - POST request to generate a PGP key pair
-
 Admin endpoint:
 
 * ``/admin/unlock`` - POST request to unlock a key with a known path
 * ``/admin/ttl`` - GET request to check when keys will expire
 
 '''
+# Generate endpoint:
+#
+# * ``/generate/pgp`` - POST request to generate a PGP key pair
 
 import sys
 import asyncio
@@ -42,7 +41,9 @@ from .openpgp.utils import unarmor
 from .openpgp.packet import iter_packets
 from .conf import CONF, KeysConfiguration
 from .utils import get_file_content, db
-from .openpgp.generate import generate_pgp_key
+from .utils.crypto import get_rsa_private_key_material, serialize_rsa_private_key
+# from .openpgp.generate import generate_pgp_key
+from .utils.eureka import EurekaClient
 
 LOG = logging.getLogger('keyserver')
 routes = web.RouteTableDef()
@@ -117,14 +118,15 @@ class Cache:
 # All the cache goes here
 _pgp_cache = Cache() # keys are uppercase
 _rsa_cache = Cache()
+_tmp_cache = Cache()
 
 
 class PGPPrivateKey:
     """The Private PGP key loading."""
 
-    def __init__(self, secret_path, passphrase):
+    def __init__(self, path, passphrase):
         """Intialise PrivateKey."""
-        self.secret_path = secret_path
+        self.path = path
         assert( isinstance(passphrase,str) )
         self.passphrase = passphrase.encode()
         self.key_id = None
@@ -133,7 +135,7 @@ class PGPPrivateKey:
     def load_key(self):
         """Load key and return tuple for reconstruction."""
         data = None
-        with open(self.secret_path, 'rb') as infile:
+        with open(self.path, 'rb') as infile:
             for packet in iter_packets(unarmor(infile)):
                 LOG.info(str(packet))
                 if packet.tag == 5:
@@ -148,36 +150,55 @@ class PGPPrivateKey:
 class ReEncryptionKey:
     """ReEncryption currently done with a RSA key."""
 
-    def __init__(self, key_id, public_path, secret_path, passphrase=''):
+    def __init__(self, key_id, path, passphrase):
         """Intialise PrivateKey."""
-        self.secret_path = secret_path
-        self.public_path = public_path
+        self.path = path
         self.key_id = key_id
-        assert( isinstance(passphrase,str) )
-        self.passphrase = passphrase.encode()
+        self.passphrase = passphrase
 
     def load_key(self):
-        """Load key and return tuple for reconstruction."""
-        public_data = get_file_content(self.public_path).hex()
-        # unlock it with the passphrase
-        private_data = None
-        if self.secret_path:
-            private_data = get_file_content(self.secret_path).hex()
-        # TODO
-        return (self.key_id, {'id': self.key_id,
-                              'public': public_data,
-                              'private': private_data})
+        """Load key and unlocks it."""
+        with open(self.path, 'rb') as infile:
+            data = get_rsa_private_key_material(infile.read(), password=self.passphrase)
+            data['id'] = self.key_id
+            return (self.key_id, data)
 
+
+###############################
+## Temp endpoint
+###############################
+@routes.get('/temp/rsa/{requested_id}')
+async def temp_key(request):
+    """Returns the unprotected file content"""
+    requested_id = request.match_info['requested_id']
+    LOG.debug(f'Requested raw rsa keyfile with ID {requested_id}')
+    value = _tmp_cache.get(requested_id)
+    if value:
+        return web.Response(text=value.hex())
+    else:
+        LOG.warn(f"Requested raw keyfile for {requested_id} not found.")
+        return web.HTTPNotFound()
+
+####################################
+# Caching the keys
+####################################
 
 async def activate_key(key_name, data):
     """(Re)Activate a key."""
     LOG.debug(f'(Re)Activating a {key_name}')
     if key_name.startswith("pgp"):
-        obj_key = PGPPrivateKey(data.get('private'), data.get('passphrase'))
+        obj_key = PGPPrivateKey(data.get('path'), data.get('passphrase'))
         _cache = _pgp_cache
     elif key_name.startswith("rsa"):
-        obj_key = ReEncryptionKey(key_name, data.get('public'), data.get('private', None), passphrase='')
+        obj_key = ReEncryptionKey(key_name, data.get('path'), data.get('passphrase',None))
         _cache = _rsa_cache
+        
+        ### Temporary
+        with open(data.get('path'), 'rb') as infile:
+            _tmp_cache.set(key_name,
+                           serialize_rsa_private_key(infile.read(), password=data.get('passphrase',None))
+            )
+
     else:
         LOG.error(f"Unrecognised key type: {key_name}")
         return
@@ -188,8 +209,9 @@ async def activate_key(key_name, data):
         _cache.set("active_pgp_key", key_id)
     _cache.set(key_id, value, ttl=data.get('expire', None))
 
-
-# Retrieve the active keys #
+####################################
+# Retrieve the active keys
+####################################
 
 @routes.get('/active/{key_type}')
 async def active_key(request):
@@ -391,28 +413,28 @@ async def unlock_key(request):
     """
     key_info = await request.json()
     LOG.debug(f'Admin unlocking: {key_info}')
-    if all(k in key_info for k in("private", "passphrase", "expire")):
+    if all(k in key_info for k in("path", "passphrase", "expire")):
         await activate_key(key_info['type'], key_info)
         return web.HTTPAccepted()
     else:
         return web.HTTPBadRequest()
 
 
-@routes.post('/generate/pgp')
-async def generate_pgp_key_pair(request):
-    """Generate PGP key pair"""
-    key_options = await request.json()
-    LOG.debug(f'Admin generate PGP key pair: {key_options}')
-    if all(k in key_options for k in("name", "comment", "email")):
-        # By default we can return armored
-        pub_data, sec_data = generate_pgp_key(key_options['name'],
-                                              key_options['email'],
-                                              key_options['comment'],
-                                              key_options.get('passphrase', None))
-        # TO DO return the key pair or the path where it is stored.
-        return web.HTTPAccepted()
-    else:
-        return web.HTTPBadRequest()
+# @routes.post('/generate/pgp')
+# async def generate_pgp_key_pair(request):
+#     """Generate PGP key pair"""
+#     key_options = await request.json()
+#     LOG.debug(f'Admin generate PGP key pair: {key_options}')
+#     if all(k in key_options for k in("name", "comment", "email")):
+#         # By default we can return armored
+#         pub_data, sec_data = generate_pgp_key(key_options['name'],
+#                                               key_options['email'],
+#                                               key_options['comment'],
+#                                               key_options.get('passphrase', None))
+#         # TO DO return the key pair or the path where it is stored.
+#         return web.HTTPAccepted()
+#     else:
+#         return web.HTTPBadRequest()
 
 
 @routes.get('/health')
@@ -459,24 +481,41 @@ async def load_keys_conf(store):
     for section in store.sections():
         await activate_key(section, dict(store.items(section)))
 
+alive = True  # used to set if the keyserer is alive in the shutdown
+
+async def renew_lease(eureka, interval):
+    '''Renew eureka lease at specific interval.'''
+    while alive:
+        await asyncio.sleep(interval)
+        await eureka.renew()
+        LOG.info('Keyserver Eureka lease renewed.')
+
 async def init(app):
     '''Initialization running before the loop.run_forever'''
     app['db'] = await db.create_pool(loop=app.loop)
     LOG.info('DB Connection pool created')
+    app['renew_eureka'] = app.loop.create_task(renew_lease(app['eureka'], app['interval']))
     # Note: will exit on failure
     await load_keys_conf(app['store'])
+    await app['eureka'].register()
+    LOG.info('Keyserver registered with Eureka.')
 
 async def shutdown(app):
     '''Function run after a KeyboardInterrupt. After that: cleanup'''
     LOG.info('Shutting down the database engine')
+    global alive
     app['db'].close()
     await app['db'].wait_closed()
+    await app['eureka'].deregister()
+    alive = False
 
 async def cleanup(app):
     '''Function run after a KeyboardInterrupt. Right after, the loop is closed'''
     LOG.info('Cancelling all pending tasks')
-    for task in asyncio.Task.all_tasks():
-        task.cancel()
+    # THIS SPAWNS an error see https://github.com/aio-libs/aiohttp/blob/master/aiohttp/web_runner.py#L178
+    # for more details how the cleanup happens.
+    # for task in asyncio.Task.all_tasks():
+    #     task.cancel()
 
 def main(args=None):
     """Where the magic happens."""
@@ -487,6 +526,10 @@ def main(args=None):
 
     host = CONF.get('keyserver', 'host') # fallbacks are in defaults.ini
     port = CONF.getint('keyserver', 'port')
+    keyserver_health = CONF.get('keyserver', 'health_endpoint')
+    keyserver_status = CONF.get('keyserver', 'status_endpoint')
+
+    eureka_endpoint = CONF.get('eureka', 'endpoint')
 
     # ssl_certfile = Path(CONF.get('keyserver', 'ssl_certfile')).expanduser()
     # ssl_keyfile = Path(CONF.get('keyserver', 'ssl_keyfile')).expanduser()
@@ -500,13 +543,20 @@ def main(args=None):
     sslcontext = None # Turning off SSL for the moment
 
     loop = asyncio.get_event_loop()
+
     keyserver = web.Application(loop=loop)
     keyserver.router.add_routes(routes)
 
     # Adding the keystore to the server
     keyserver['store'] = KeysConfiguration(args)
+    keyserver['interval'] = CONF.getint('eureka', 'interval')
+    keyserver['eureka'] = EurekaClient("keyserver", port=port, ip_addr=host,
+                                       eureka_url=eureka_endpoint, hostname=host,
+                                       health_check_url=f'http://{host}:{port}{keyserver_health}',
+                                       status_check_url=f'http://{host}:{port}{keyserver_status}',
+                                       loop=loop)
 
-    # Registering some initialization and cleanup routines	
+    # Registering some initialization and cleanup routines
     LOG.info('Setting up callbacks')
     keyserver.on_startup.append(init)
     keyserver.on_shutdown.append(shutdown)
