@@ -445,7 +445,9 @@ services:
     hostname: ega-keys-${INSTANCE}
     container_name: ega-keys-${INSTANCE}
     image: nbisweden/ega-base
-    tty: true
+    # For the /temp/file/{stable_id} queries
+    depends_on:
+      - db-${INSTANCE}
     expose:
       - "443"
     #ports:
@@ -467,7 +469,8 @@ services:
     networks:
       - lega_${INSTANCE}
       - cega
-    entrypoint: ["ega-keyserver","--keys","/etc/ega/keys.ini"]
+    #entrypoint: ["ega-keyserver","--keys","/etc/ega/keys.ini"]
+    entrypoint: ["/bin/sleep","1000000000"]
 
   # Vault
   vault-${INSTANCE}:
