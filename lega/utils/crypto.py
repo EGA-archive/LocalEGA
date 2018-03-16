@@ -41,8 +41,7 @@ def get_rsa_private_key_material(content, password=None):
                         'e': public_material.e},
             'private':{ 'd': private_material.d,
                         'p': private_material.p,
-                        'q': private_material.q,
-                        'u': -1}
+                        'q': private_material.q}
     }
 
 def make_rsa_pubkey(material, backend):

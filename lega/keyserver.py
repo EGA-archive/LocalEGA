@@ -153,8 +153,8 @@ class ReEncryptionKey:
         """Intialise PrivateKey."""
         self.path = path
         self.key_id = key_id
-        assert( isinstance(passphrase,str) )
-        self.passphrase = None if passphrase == '' else passphrase.encode()
+        assert( passphrase is None or isinstance(passphrase,str) )
+        self.passphrase = None if passphrase is None else passphrase.encode() # ok for empty string
 
     def load_key(self):
         """Load key and unlocks it."""
@@ -171,7 +171,7 @@ async def activate_key(key_name, data):
         obj_key = PGPPrivateKey(data.get('path'), data.get('passphrase'))
         _cache = _pgp_cache
     elif key_name.startswith("rsa"):
-        obj_key = ReEncryptionKey(key_name, data.get('path'), data.get('passphrase',''))
+        obj_key = ReEncryptionKey(key_name, data.get('path'), data.get('passphrase',None))
         _cache = _rsa_cache
     else:
         LOG.error(f"Unrecognised key type: {key_name}")
