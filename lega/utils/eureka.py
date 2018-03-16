@@ -9,6 +9,8 @@ import aiohttp
 import logging
 import json
 import uuid
+import sys
+from functools import wraps
 
 
 eureka_status = {
@@ -20,6 +22,57 @@ eureka_status = {
 }
 
 LOG = logging.getLogger('eureka')
+
+
+async def _retry(run, on_failure=None):
+    # similar to the rety loop from db.py
+    """Main retry loop."""
+    nb_try = 5
+    try_interval = 20
+    LOG.debug(f"{nb_try} attempts (every {try_interval} seconds)")
+    count = 0
+    backoff = try_interval
+    while count < nb_try:
+        try:
+            return await run()
+        except (aiohttp.ClientResponseError,
+                aiohttp.ClientError,
+                asyncio.TimeoutError) as e:
+            LOG.debug(f"Eureka connection error: {e!r}")
+            LOG.debug(f"Retrying in {backoff} seconds")
+            asyncio.sleep(backoff)
+            count += 1
+            backoff = (2 ** (count // 10)) * try_interval
+
+    # fail to connect
+    if nb_try:
+        LOG.debug(f"Eureka server connection fail after {nb_try} attempts ...")
+    else:
+        LOG.debug("Eureka server attempts was set to 0 ...")
+
+    if on_failure:
+        on_failure()
+
+
+def retry_loop(on_failure=None):
+    """Decorator retry something ``try`` times every ``try_interval`` seconds."""
+    def decorator(func):
+        if asyncio.iscoroutinefunction(func):
+            @wraps(func)
+            async def wrapper(*args, **kwargs):
+                async def _process():
+                    return await func(*args, **kwargs)
+                return await _retry(_process, on_failure=on_failure)
+        return wrapper
+    return decorator
+
+
+def _do_exit():
+    LOG.error("Could not connect to the Eureka.")
+    pass
+    # We don't fail right away as we expect the keysever to continue
+    # Under "normal deployment" this should exit ?
+    # sys.exit(1)
 
 
 class EurekaRequests:
@@ -81,6 +134,7 @@ class EurekaRequests:
         url = f'{self._eureka_url}/vips/{svip_address}'
         return await self._get_request(url)
 
+    @retry_loop
     async def _get_request(self, url):
         """General GET request, to simplify things. Expect always JSON as headers set."""
         async with aiohttp.ClientSession(headers=self._headers) as session:
@@ -113,6 +167,7 @@ class EurekaClient(EurekaRequests):
             'Content-Type': 'application/json',
         }
 
+    @retry_loop(on_failure=_do_exit)
     async def register(self, metadata=None, lease_duration=60, lease_renewal_interval=20):
         """Register application with Eureka."""
         payload = {
@@ -151,6 +206,7 @@ class EurekaClient(EurekaRequests):
                 LOG.debug('Eureka register response %s' % resp.status)
             await session.close()
 
+    @retry_loop(on_failure=_do_exit)
     async def renew(self):
         """Renew the application's lease."""
         url = f'{self._eureka_url}/apps/{self._app_name}/{self._instance_id}'
@@ -160,6 +216,7 @@ class EurekaClient(EurekaRequests):
                 LOG.debug('Eureka renew response %s' % resp.status)
             await session.close()
 
+    @retry_loop(on_failure=_do_exit)
     async def deregister(self):
         """Deregister with the remote server, to avoid 500 eror."""
         url = f'{self._eureka_url}/apps/{self._app_name}/{self._instance_id}'
@@ -169,6 +226,7 @@ class EurekaClient(EurekaRequests):
                 LOG.debug('Eureka deregister response %s' % resp.status)
             await session.close()
 
+    @retry_loop
     async def update_metadata(self, key, value):
         """Update metadata of application."""
         url = f'{self._eureka_url}/apps/{self._app_name}/{self._instance_id}/metadata?{key}={value}'
