@@ -42,7 +42,7 @@ from .openpgp.packet import iter_packets
 from .conf import CONF, KeysConfiguration
 from .utils import get_file_content, db
 from .utils.crypto import get_rsa_private_key_material
-#from .openpgp.generate import generate_pgp_key
+# from .openpgp.generate import generate_pgp_key
 from .utils.eureka import EurekaClient
 
 LOG = logging.getLogger('keyserver')
@@ -154,7 +154,7 @@ class ReEncryptionKey:
         self.path = path
         self.key_id = key_id
         assert( isinstance(passphrase,str) )
-        self.passphrase = passphrase.encode()
+        self.passphrase = None if passphrase == '' else passphrase.encode()
 
     def load_key(self):
         """Load key and unlocks it."""
