@@ -40,6 +40,9 @@ loggers:
   crypto:
     level: INFO
     handlers: [logstash,console]
+  eureka:
+    level: INFO
+    handlers: [logstash,console]
 
 
 handlers:
@@ -49,7 +52,7 @@ handlers:
   console:
     class: logging.StreamHandler
     formatter: simple
-    stream: ext://sys.stdout
+    stream: ext://sys.stderr
   logstash:
     class: lega.utils.logging.LEGAHandler
     formatter: json

@@ -273,8 +273,8 @@ def make_rsa_key(material):
     backend = default_backend()
     public_material = material['public']
     private_material = material['private']
-    e = int(public_material['e'], 16)
     n = int(public_material['n'], 16)
+    e = int(public_material['e'], 16)
     d = int(private_material['d'], 16)
     p = int(private_material['p'], 16)
     q = int(private_material['q'], 16)

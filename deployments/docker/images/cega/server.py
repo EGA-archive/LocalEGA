@@ -17,12 +17,11 @@ from pathlib import Path
 from functools import wraps
 from base64 import b64decode
 
+import logging as LOG
+
 from aiohttp import web
 import jinja2
 import aiohttp_jinja2
-
-# For the match, we turn that off
-ssl.match_hostname = lambda cert, hostname: True
 
 instances = {}
 for instance in os.environ.get('LEGA_INSTANCES','').strip().split(','):
@@ -69,9 +68,28 @@ async def user(request):
     except OSError:
         raise web.HTTPBadRequest(text=f'No info for that user {name} in LocalEGA {lega_instance}... yet\n')
 
+# Unprotected access
+async def pgp_public_key(request):
+    name = request.match_info['id']
+    try:
+        with open(f'/cega/users/pgp/{name}.pub', 'r') as stream: # 'rb'
+            return web.Response(text=stream.read())              # .hex()
+    except OSError:
+        raise web.HTTPBadRequest(text=f'No info about {name} in CentralEGA... yet\n')
+
 def main():
 
     host = sys.argv[1] if len(sys.argv) > 1 else "0.0.0.0"
+
+    # ssl_certfile = Path(CONF.get('keyserver', 'ssl_certfile')).expanduser()
+    # ssl_keyfile = Path(CONF.get('keyserver', 'ssl_keyfile')).expanduser()
+    # LOG.debug(f'Certfile: {ssl_certfile}')
+    # LOG.debug(f'Keyfile: {ssl_keyfile}')
+
+    # sslcontext = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+    # sslcontext.check_hostname = False
+    # sslcontext.load_cert_chain(ssl_certfile, ssl_keyfile)
+    sslcontext = None
 
     loop = asyncio.get_event_loop()
     server = web.Application(loop=loop)
@@ -82,13 +100,10 @@ def main():
     # Registering the routes
     server.router.add_get( '/'         , index, name='root')
     server.router.add_get( '/user/{id}', user , name='user')
-
-    # ssl_ctx = ssl.create_default_context(cafile='certs/ca.cert.pem')
-    # ssl_ctx.load_cert_chain('certs/cega.cert.pem', 'private/cega.key.pem', password="hello")
-    ssl_ctx = None
+    server.router.add_get( '/pgp/{id}' , pgp_public_key, name='pgp')
 
     # And ...... cue music!
-    web.run_app(server, host=host, port=80, shutdown_timeout=0, ssl_context=ssl_ctx, loop=loop)
+    web.run_app(server, host=host, port=80, shutdown_timeout=0, ssl_context=sslcontext)
 
 if __name__ == '__main__':
     main()
