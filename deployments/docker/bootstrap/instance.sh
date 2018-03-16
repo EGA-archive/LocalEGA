@@ -448,8 +448,8 @@ services:
     tty: true
     expose:
       - "443"
-    ports:
-      - "${DOCKER_PORT_keyserver}:443"
+    #ports:
+    #  - "${DOCKER_PORT_keyserver}:443"
     volumes:
        - ./${INSTANCE}/ega.conf:/etc/ega/conf.ini:ro
        - ./${INSTANCE}/logger.yml:/etc/ega/logger.yml:ro

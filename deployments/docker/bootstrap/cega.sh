@@ -103,8 +103,8 @@ services:
     image: nbisweden/ega-base
     hostname: cega-users
     container_name: cega-users
-    ports:
-      - "9100:80"
+    #ports:
+    #  - "9100:80"
     expose:
       - "80"
     volumes:
@@ -122,8 +122,10 @@ services:
   ############################################
   cega-eureka:
     hostname: cega-eureka
-    ports:
-      - "8761:8761"
+    #ports:
+    #  - "8761:8761"
+    expose:
+      - 8761
     image: nbisweden/ega-base
     container_name: cega-eureka
     volumes:
