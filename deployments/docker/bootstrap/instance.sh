@@ -111,6 +111,9 @@ host = ega-db-${INSTANCE}
 username = ${DB_USER}
 password = ${DB_PASSWORD}
 try = ${DB_TRY}
+
+[eureka]
+endpoint = http://cega-eureka:8761
 EOF
 
 # echomsg "\t* SFTP Inbox port"
