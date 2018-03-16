@@ -57,7 +57,9 @@ async def index(request):
 
 @protected
 async def user(request):
-    key_id = request.match_info['id']
+    name = request.match_info['id']
+    lega_instance = request.match_info['lega']
+    users_dir = request.match_info['users_dir']
     try:
         with open(f'{users_dir}/{name}.yml', 'r') as stream:
             d = yaml.load(stream)
