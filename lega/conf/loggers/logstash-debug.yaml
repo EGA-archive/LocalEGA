@@ -16,6 +16,9 @@ loggers:
   keyserver:
     level: DEBUG
     handlers: [logstash,console]
+  eureka:
+    level: DEBUG
+    handlers: [logstash,console]
   vault:
     level: DEBUG
     handlers: [logstash,console]
@@ -73,7 +76,7 @@ handlers:
   console:
     class: logging.StreamHandler
     formatter: simple
-    stream: ext://sys.stdout
+    stream: ext://sys.stderr
   logstash:
     class: lega.utils.logging.LEGAHandler
     formatter: json
