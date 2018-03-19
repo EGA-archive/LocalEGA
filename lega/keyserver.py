@@ -459,14 +459,19 @@ async def check_ttl(request):
         return web.HTTPBadRequest()
 
 @routes.get('/temp/file/{file_id}')
-async def translate_file_id_to_filepath(request):
-    """Translate a file_id to a file_path"""
+async def id2info(request):
+    """Translate a file_id to a file info"""
     file_id = request.match_info['file_id']
-    LOG.debug(f'Translation {file_id} to filepath')
-    filepath = await db.get_filepath(request.app['db'], file_id)
-    LOG.debug(f'Filepath {filepath}')
-    if filepath:
-        return web.Response(text=filepath)
+    LOG.debug(f'Translation {file_id} to fileinfo')
+    fileinfo = await db.get_fileinfo(request.app['db'], file_id)
+    if fileinfo:
+        filepath, filesize, checksum, algo = fileinfo # unpack
+        return web.json_response({
+            'filepath': filepath,
+            'filesize': filesize,
+            'checksum': checksum,
+            'algo': algo,
+        })
     raise web.HTTPNotFound(text=f'Dunno anything about a file with id "{file_id}"\n')
 
 async def load_keys_conf(store):
