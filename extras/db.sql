@@ -45,17 +45,6 @@ CREATE FUNCTION insert_file(filename    files.filename%TYPE,
     END;
 $insert_file$ LANGUAGE plpgsql;
 
-CREATE FUNCTION translate_fileid_to_filepath(sid files.stable_id%TYPE)
-    RETURNS files.filepath%TYPE AS $translate_fileid_to_filepath$
-    #variable_conflict use_column
-    DECLARE
-        filepath files.filepath%TYPE;
-    BEGIN
-	SELECT filepath FROM files WHERE stable_id = sid LIMIT 1 INTO filepath;
-	RETURN filepath;
-    END;
-$translate_fileid_to_filepath$ LANGUAGE plpgsql;
-
 -- ##################################################
 --                      ERRORS
 -- ##################################################
