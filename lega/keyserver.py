@@ -174,7 +174,10 @@ async def temp_key(request):
     LOG.debug(f'Requested raw rsa keyfile with ID {requested_id}')
     value = _tmp_cache.get(requested_id)
     if value:
-        return web.Response(text=value.hex())
+        return web.json_response({
+            'id': requested_id,
+            'public': value.hex() # it should be 'private', but quick fix for Data-Out.
+        })
     else:
         LOG.warn(f"Requested raw keyfile for {requested_id} not found.")
         return web.HTTPNotFound()
