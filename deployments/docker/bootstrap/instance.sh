@@ -494,6 +494,29 @@ services:
       - lega_${INSTANCE}
     entrypoint: ["/bin/bash", "/usr/local/bin/entrypoint.sh"]
 
+  # Reencryptor
+  res-${INSTANCE}:
+    depends_on:
+      - db-${INSTANCE}
+      - keys-${INSTANCE}
+      - vault-${INSTANCE}
+    hostname: ega-res
+    ports:
+      - "${DOCKER_PORT_res}:8080"
+    container_name: ega-res-${INSTANCE}
+    image: nbisweden/ega-reencryptor
+    environment:
+      - LOCALEGA_KEYSERVER_URL=http://ega-keys-${INSTANCE}:443
+      - LOCALEGA_CEGA_URL=http://cega-users:80
+      - LOCALEGA_FILESERVER_URL=http://ega-keys-${INSTANCE}:443
+      - LOCALEGA_JWT_SECRET=LocalEGA
+    volumes:
+       - vault_${INSTANCE}:/ega/vault
+    restart: on-failure:3
+    networks:
+      - lega_${INSTANCE}
+      - cega
+
   # Logging & Monitoring (ELK: Elasticsearch, Logstash, Kibana).
   elasticsearch-${INSTANCE}:
     image: docker.elastic.co/elasticsearch/elasticsearch-oss:6.0.0

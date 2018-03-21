@@ -4,7 +4,7 @@ set -e
 DOCKER_PORT_inbox=2223
 DOCKER_PORT_mq=15673
 DOCKER_PORT_kibana=5602
-#DOCKER_PORT_keyserver=8444
+DOCKER_PORT_res=8081
 
 LEGA_GREETINGS="Welcome to Local EGA Finland @ CSC"
 CEGA_MQ_PASSWORD=$(generate_password 16)

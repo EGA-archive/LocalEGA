@@ -12,7 +12,7 @@ import java.io.IOException;
 @RunWith(Cucumber.class)
 @CucumberOptions(
         format = {"pretty", "html:target/cucumber"},
-        features = "src/test/resources/cucumber/features"
+        features = "src/test/resources/cucumber/features/ingestion.feature"
 )
 public class Tests {
 }

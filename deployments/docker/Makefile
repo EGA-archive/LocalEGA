@@ -21,7 +21,7 @@ network:
 up:network private/cega.yml private/ega_swe1.yml private/ega_fin1.yml
 	@docker-compose -f private/cega.yml -f private/ega_swe1.yml -f private/ega_fin1.yml \
 	 		up -d \
-			cega-mq cega-users cega-eureka mq-swe1 db-swe1 inbox-swe1 vault-swe1 ingest-swe1 keys-swe1 mq-fin1 inbox-fin1 db-fin1 vault-fin1 ingest-fin1 keys-fin1
+			cega-mq cega-users cega-eureka mq-swe1 db-swe1 inbox-swe1 vault-swe1 ingest-swe1 keys-swe1 res-swe1 mq-fin1 inbox-fin1 db-fin1 vault-fin1 ingest-fin1 keys-fin1 res-fin1
 
 all-up:
 	@docker-compose -f private/cega.yml -f private/ega_swe1.yml -f private/ega_fin1.yml up -d
