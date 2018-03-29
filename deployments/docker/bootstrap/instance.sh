@@ -410,8 +410,7 @@ services:
       - ./${INSTANCE}/ega.conf:/etc/ega/conf.ini:ro
       - ./${INSTANCE}/logger.yml:/etc/ega/logger.yml:ro
       - inbox_${INSTANCE}:/ega/inbox
-      # - ../../../lega:/root/.local/lib/python3.6/site-packages/lega
-      # - ~/_auth_ega:/root/auth
+      - ../../../lega:/root/.local/lib/python3.6/site-packages/lega
     restart: on-failure:3
     networks:
       - lega_${INSTANCE}
