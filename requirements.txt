@@ -8,3 +8,4 @@ cryptography==2.1.4
 pgpy
 psycopg2==2.7.4
 aiopg==0.13.0
+PyYaml
