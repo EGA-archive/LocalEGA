@@ -33,7 +33,7 @@ jobs:
         - docker-compose ps
       script:
         - sleep 10
-        - cd ../tests
+        - cd tests
         - mvn test -B
 
 notifications:
