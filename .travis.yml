@@ -1,28 +1,40 @@
-language: common
+language: python
 
-services:
-  - docker
+python: 3.6
 
-before_install:
-  # https://elk-docker.readthedocs.io/#es-not-starting-max-map-count
-  # mostly used by ELK stack; Solving issue #252
-  # - sudo sysctl -w vm.max_map_count=262144
-  - cd deployments/docker
-  - make bootstrap
-  - sudo chown -R travis private
+services: docker
 
-install:
-  - docker network create cega
-  - docker-compose up -d ${DOCKER_CONTAINERS}
-  - docker-compose ps
+# command to install dependencies
 
-script:
-  # https://docs.travis-ci.com/user/database-setup/#ElasticSearch
-  # takes a few seconds to start and that delays everything
-  # comment out sleep if no ELK stack is used; Solving issue #252
-  - sleep 10
-  - cd ../../tests
-  - mvn test -B
+stages:
+  - name: unit_tests
+    if: type IN (push, pull_request)
+  - name: integration_tests
+    if: type IN (pull_request)
+
+jobs:
+  include:
+    - stage: unit_tests
+      python: 3.6
+      before_script:
+        - pip install tox-travis
+      # command to run tests
+      script: tox
+    - stage: integration_tests
+      before_script:
+        # https://elk-docker.readthedocs.io/#es-not-starting-max-map-count
+        # mostly used by ELK stack; Solving issue #252
+        # - sudo sysctl -w vm.max_map_count=262144
+        - cd deployments/docker
+        - make bootstrap
+        - sudo chown -R travis private
+        - docker network create cega
+        - docker-compose up -d ${DOCKER_CONTAINERS}
+        - docker-compose ps
+      script:
+        - sleep 10
+        - cd tests
+        - mvn test -B
 
 notifications:
   email: false
