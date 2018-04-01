@@ -6,7 +6,9 @@ from unittest import mock
 
 
 class KeyserverTestCase(AioHTTPTestCase):
-    """Testing keyserver by importing the routes and mocking the innerworkings."""
+    """KeyServer
+
+    Testing keyserver by importing the routes and mocking the innerworkings."""
 
     async def get_application(self):
         """Retrieve the routes to a mock server."""
