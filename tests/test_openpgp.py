@@ -1,3 +1,6 @@
+'''OpenPGP
+
+Testing that the openpgp utilities with a given set of public/private keys and a simple file to decrypt'''
 import unittest
 import io
 
@@ -16,7 +19,9 @@ def fetch_private_key(key_id):
     return make_key(data)
 
 def test_session_key():
-    '''Check if the session key is correctly decrypted'''
+    '''Retrieve the session key
+
+    Get the session key (Decrypt with PGP Private Key and passphrase).'''
     name = cipher = session_key = None
     output = io.BytesIO()
     infile = io.BytesIO(bytes.fromhex(openpgp_data.ENC_FILE))
@@ -29,7 +34,7 @@ def test_session_key():
     assert( session_key.hex().upper() == openpgp_data.SESSION_KEY )
 
 def test_decryption():
-    '''Decrypt an encrypted file and match with its original'''
+    '''Decrypt an encrypted file and match with its original.'''
     name = cipher = session_key = None
     output = io.BytesIO()
     infile = io.BytesIO(bytes.fromhex(openpgp_data.ENC_FILE))
@@ -44,7 +49,7 @@ def test_decryption():
     assert( output.getvalue() == openpgp_data.ORG_FILE )
 
 def test_keyid_for_pubkey():
-    '''Get the keyID from armored pub key'''
+    '''Get the keyID from armored pub key.'''
     infile = io.BytesIO(openpgp_data.PGP_PUBKEY.encode())
     key_id = None
     for packet in iter_packets(unarmor(infile)):
@@ -56,7 +61,7 @@ def test_keyid_for_pubkey():
     assert( key_id == openpgp_data.KEY_ID )
 
 def test_keyid_for_pubkey_bin():
-    '''Get the keyID from binary pub key'''
+    '''Get the keyID from binary pub key.'''
     infile = io.BytesIO(bytes.fromhex(openpgp_data.PGP_PUBKEY_BIN))
     key_id = None
     for packet in iter_packets(infile):
@@ -68,7 +73,7 @@ def test_keyid_for_pubkey_bin():
     assert( key_id == openpgp_data.KEY_ID )
 
 def test_keyid_for_privkey():
-    '''Get the keyID from armored priv key'''
+    '''Get the keyID from armored priv key.'''
     infile = io.BytesIO(openpgp_data.PGP_PRIVKEY.encode())
     key_id, data = None, None
     for packet in iter_packets(unarmor(infile)):
@@ -80,7 +85,7 @@ def test_keyid_for_privkey():
     assert( key_id == openpgp_data.KEY_ID )
 
 def test_keyid_for_privkey_bin():
-    '''Get the keyID from binary priv key'''
+    '''Get the keyID from binary priv key.'''
     infile = io.BytesIO(bytes.fromhex(openpgp_data.PGP_PRIVKEY_BIN))
     key_id, data = None, None
     for packet in iter_packets(infile):
