@@ -327,7 +327,7 @@ def parse_public_key_material(data, buf=None):
     elif raw_pub_algorithm in (16, 20):
         # p, g, y
         p = get_mpi(data, buf=buf)
-        q = get_mpi(data, buf=buf)
+        g = get_mpi(data, buf=buf)
         y = get_mpi(data, buf=buf)
         return (raw_pub_algorithm, "elg", p, g, y)
     elif 100 <= raw_pub_algorithm <= 110:
