@@ -162,11 +162,7 @@ class Packet(object):
                                                                      self.name)
 
     def __repr__(self):
-        return "#{} | tag {:2} | {} bytes | pos {} ({}) | {}".format("new" if self.new_format else "old",
-                                                                     self.tag,
-                                                                     self.length,
-                                                                     self.org_pos, self.start_pos,
-                                                                     self.name)
+        return str(self)
 
 
 class PublicKeyPacket(Packet):
@@ -333,20 +329,23 @@ class PublicKeyEncryptedSessionKeyPacket(Packet):
 
     def __repr__(self):
         s = super().__repr__()
-        return f"{s} | keyID {self.key_id} ({lookup_pub_algorithm(self.raw_pub_algorithm)[0]})"
+        if self.key_id:
+            return f"{s} | keyID {self.key_id} ({lookup_pub_algorithm(self.raw_pub_algorithm)[0]})"
+        return s
 
-    def decrypt_session_key(self, call_keyserver):
+    def parse(self):
         assert( not self.partial )
         pos_start = self.data.tell()
         session_key_version = read_1_byte(self.data)
         if session_key_version != 3:
             raise PGPError(f"Unsupported encrypted session key packet, version {session_key_version}")
-
         self.key_id = self.data.read(8).hex()
         self.raw_pub_algorithm = read_1_byte(self.data)
         # Remainder is the encrypted key
         self.encrypted_data = get_mpi(self.data)
 
+    def decrypt_session_key(self, call_keyserver):
+        # Should be already parsed
         private_key, private_padding = call_keyserver(self.key_id)
 
         key_args = (private_padding, ) if private_padding else ()
@@ -625,7 +624,7 @@ PACKET_TYPES = {
     8: CompressedDataPacket,
     9: SymEncryptedDataPacket,
     11: LiteralDataPacket,
-    12: TrustPacket,
+    # 12: TrustPacket,
     13: UserIDPacket,
     14: PublicKeyPacket,
     # 17: UserAttributePacket,
