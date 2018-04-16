@@ -18,6 +18,7 @@ parser.add_argument('--connection',
 
 parser.add_argument('user', help='Elixir ID')
 parser.add_argument('filepath', help='Filepath in the user inbox')
+parser.add_argument('stableID', help='Stable ID to use in CentralEGA')
 
 unenc_group = parser.add_argument_group('unencrypted checksum')
 unenc_group.add_argument('--unenc')
@@ -28,11 +29,9 @@ enc_group.add_argument('--enc_algo', default='md5', help='[Default: md5]')
 
 args = parser.parse_args()
 
-stable_id = 'EGAF_'+str(uuid.uuid4())
+print('Ingesting file',args.stableID)
 
-print('Ingesting file',stable_id)
-
-message = { 'user': args.user, 'filepath': args.filepath, 'stable_id': stable_id }
+message = { 'user': args.user, 'filepath': args.filepath, 'stable_id': args.stableID }
 if args.enc:
     message['encrypted_integrity'] = { 'checksum': args.enc, 'algorithm': args.enc_algo, }
 if args.unenc:
