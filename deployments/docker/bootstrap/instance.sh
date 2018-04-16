@@ -493,6 +493,23 @@ services:
       - lega_${INSTANCE}
     entrypoint: ["/bin/bash", "/usr/local/bin/entrypoint.sh"]
 
+  # S3
+  s3-${INSTANCE}:
+    hostname: ega-s3-${INSTANCE}
+    container_name: ega-s3-${INSTANCE}
+    image: minio/minio
+    environment:
+     MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+     MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+    volumes:
+     - s3_${INSTANCE}:/data
+    restart: on-failure:3
+    networks:
+      - lega_${INSTANCE}
+    ports:
+     - "${DOCKER_PORT_minio}:9000"
+    command: server /data
+
   # Logging & Monitoring (ELK: Elasticsearch, Logstash, Kibana).
   elasticsearch-${INSTANCE}:
     image: docker.elastic.co/elasticsearch/elasticsearch-oss:6.0.0
@@ -539,6 +556,7 @@ volumes:
   inbox_${INSTANCE}:
   staging_${INSTANCE}:
   vault_${INSTANCE}:
+  s3_${INSTANCE}:
   elasticsearch_${INSTANCE}:
 EOF
 
@@ -571,7 +589,11 @@ CEGA_MQ_USER              = cega_${INSTANCE}
 CEGA_MQ_PASSWORD          = ${CEGA_MQ_PASSWORD}
 CEGA_REST_PASSWORD        = ${CEGA_REST_PASSWORD}
 #
+MINIO_ACCESS_KEY          = ${MINIO_ACCESS_KEY}
+MINIO_SECRET_KEY          = ${MINIO_SECRET_KEY}
+#
 DOCKER_PORT_inbox         = ${DOCKER_PORT_inbox}
 DOCKER_PORT_mq            = ${DOCKER_PORT_mq}
+DOCKER_PORT_minio         = ${DOCKER_PORT_minio}
 DOCKER_PORT_kibana        = ${DOCKER_PORT_kibana}
 EOF
