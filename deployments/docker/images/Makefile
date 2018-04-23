@@ -20,7 +20,7 @@ TARGET=nbisweden/ega
 
 all: base inbox
 
-base: PIP_EGA_PACKAGES=pika==0.11.0 psycopg2==2.7.4 cryptography==2.1.4 aiohttp==2.3.8 aiohttp-jinja2==0.13.0 pgpy fusepy aiopg==0.13.0
+base: PIP_EGA_PACKAGES=pika==0.11.0 psycopg2==2.7.4 cryptography==2.1.4 aiohttp==3.0.7 aiohttp-jinja2==0.13.0 pgpy fusepy aiopg==0.13.0
 base inbox:
 	docker build --build-arg checkout=$(CHECKOUT) \
                      --build-arg PIP_EGA_PACKAGES="$(PIP_EGA_PACKAGES)" \

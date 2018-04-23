@@ -1,11 +1,7 @@
 # -*- coding: utf-8 -*-
 
 '''
-####################################
-#
-# Database Connection
-#
-####################################
+Database Connection
 '''
 
 import sys
