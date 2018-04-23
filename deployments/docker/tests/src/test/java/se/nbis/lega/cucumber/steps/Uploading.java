@@ -30,11 +30,12 @@ public class Uploading implements En {
                 Encryptor encryptor = new Encryptor(new Key(new File(String.format("%s/%s/pgp/ega.pub", utils.getPrivateFolderPath(), instance))));
                 encryptor.setSigningAlgorithm(null);
                 encryptor.encrypt(rawFile, encryptedFile);
+                context.setEncryptedFile(encryptedFile);
+                context.setEncChecksum(utils.calculateMD5(encryptedFile));
             } catch (IOException | PGPException e) {
                 log.error(e.getMessage(), e);
                 Assert.fail(e.getMessage());
             }
-            context.setEncryptedFile(encryptedFile);
         });
 
         Given("^I have a file encrypted not with OpenPGP$", () -> {
