@@ -1,31 +1,10 @@
 #!/usr/bin/env python3
 
 '''\
-Keyserver
----------
-
 The Keyserver provides a REST endpoint for retrieving PGP and Re-encryption keys.
-Active keys endpoint (current key types supported are PGP and RSA):
-
-* ``/active/\{key_type\}`` - GET request for the active key
-* ``/active/\{key_type\}/private`` - GET request for the private part of the active key
-* ``/active/\{key_type\}/public`` - GET request for the public part of the active key
-
-Retrieve keys endpoint:
-
-* ``/retrieve/\{key_type\}/\{key_id\}`` - GET request for the active PGP key with a known keyID of fingerprint
-* ``/retrieve/\{key_type\}/\{key_id\}/private`` - GET request for the private part of the active PGP key with a known keyID of fingerprint
-* ``/retrieve/\{key_type\}/\{key_id\}/public`` - GET request for the public part of the active PGP key with a known keyID of fingerprint
-
-Admin endpoint:
-
-* ``/admin/unlock`` - POST request to unlock a key with a known path
-* ``/admin/ttl`` - GET request to check when keys will expire
-
+The keyserver also registers with Eureka service discovery.
 '''
-# Generate endpoint:
-#
-# * ``/generate/pgp`` - POST request to generate a PGP key pair
+
 
 import sys
 import asyncio

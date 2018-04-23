@@ -1,11 +1,7 @@
 # -*- coding: utf-8 -*-
 
 '''
-####################################
-#
-# Encryption/Decryption module
-#
-####################################
+Encryption/Decryption module
 '''
 
 import logging

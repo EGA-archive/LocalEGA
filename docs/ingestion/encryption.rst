@@ -34,3 +34,92 @@ key, from the staged file, making it harder for an attacker to decrypt
 the vault files. For the moment, losing that information is
 problematic, so we keep it in the vault file itself.
 
+OpenPGP
+^^^^^^^
+OpenPGP module based on RFC4880 https://tools.ietf.org/html/rfc4880.
+
+
+Keyserver REST API
+^^^^^^^^^^^^^^^^^^
+
+Active keys endpoint (current key types supported are PGP and RSA):
+
+* ``/active/<key_type>`` - GET request for the active key
+* ``/active/<key_type>/private`` - GET request for the private part of the active key
+* ``/active/<key_type>/public`` - GET request for the public part of the active key
+
+Retrieve keys endpoint:
+
+* ``/retrieve/<key_type>/<key_id>`` - GET request for the active PGP key with a known keyID of fingerprint
+* ``/retrieve/<key_type>/<key_id>/private`` - GET request for the private part of the active PGP key with a known keyID of fingerprint
+* ``/retrieve/<key_type>/<key_id>/public`` - GET request for the public part of the active PGP key with a known keyID of fingerprint
+
+Admin endpoint:
+
+* ``/admin/unlock`` - POST request to unlock a key with a known path
+* ``/admin/ttl`` - GET request to check when keys will expire
+
+Health Endpoint: ``/health`` will answer with ``200``
+
+.. note:: Example Request/Response are available illustrating response body content, note the similar structured content for both ``/active`` and ``/retrieve`` endpoints. In case the request is unsuccessful the response code is ``404``.
+    Based on the response structure, retrieving either the public or private part of a PGP/RSA key is achieved by retaining in the response either the private or the public part of the key.
+
+Example Request/Response
+------------------------
+
+``/active/pgp`` Request:
+
+.. sourcecode:: http
+
+  GET /active/pgp HTTP/1.1
+  Host: localhost:443
+  Accept: application/json
+
+``/active/pgp`` Response:
+
+.. sourcecode:: http
+
+  HTTP/1.1 200 OK
+  Content-Type: application/json
+  Body:
+    {
+       "type":"rsa",
+       "public":{
+          "n": "305981375",
+          "e": "00110"
+       },
+       "private":{
+          "d": "0928550",
+          "p": "2149",
+          "q": "08097",
+          "u": "8274"
+       }
+    }
+
+``/active/rsa`` Request:
+
+.. sourcecode:: http
+
+  GET /active/rsa HTTP/1.1
+  Host: localhost:443
+  Accept: application/json
+
+``/active/rsa`` Response:
+
+.. sourcecode:: http
+
+  HTTP/1.1 200 OK
+  Content-Type: application/json
+  Body:
+    {
+       "public":{
+          "n":78909,
+          "e":12412
+       },
+       "private":{
+          "d":12412,
+          "p":2141,
+          "q":1235
+       },
+       "id":"rsa.key.1"
+    }
