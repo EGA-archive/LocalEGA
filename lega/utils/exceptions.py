@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
-
+'''
+Exceptions
+'''
 
 # Errors for the users
 class FromUser(Exception):
