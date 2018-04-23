@@ -3,6 +3,8 @@
 #
 import os
 import sys
+import datetime
+from unittest.mock import MagicMock
 
 # Get the project root dir, which is the parent dir of this
 #sys.path.insert(0, os.path.dirname(os.getcwd()))
@@ -12,6 +14,16 @@ sys.path.insert(0, os.path.abspath('..'))
 import lega
 
 # -- General configuration ------------------------------------------------
+
+class Mock(MagicMock):
+    @classmethod
+    def __getattr__(cls, name):
+        return MagicMock()
+
+
+# Some modules need to be mocked
+MOCK_MODULES = ['fuse', 'yaml', 'pika', 'aiohttp', 'asyncio', 'psycopg2', 'aiopg']
+sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 # If your documentation needs a minimal Sphinx version, state it here.
 #
@@ -41,9 +53,12 @@ source_suffix = '.rst'
 # The master toctree document.
 master_doc = 'index'
 
+# Get current year
+current_year = str(datetime.date.today().year)
+
 # General information about the project.
 project = 'Local EGA'
-copyright = '2017, NBIS System Developers'
+copyright = f'2017 - {current_year}, NBIS System Developers'
 author = 'NBIS System Developers'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -73,6 +88,8 @@ pygments_style = 'sphinx'
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = False
 
+
+autosummary_generate = True
 
 # -- Options for HTML output ----------------------------------------------
 

@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
-
+"""
+Logs Formatter
+"""
 from logging import Formatter
 from logging.handlers import SocketHandler as handler # or DatagramHandler ?
 import json

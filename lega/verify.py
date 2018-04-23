@@ -1,17 +1,16 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-'''
-####################################
-#
-# Verifying the vault files
-#
-####################################
+'''Verifying the vault files
 
-This module checks the files in the vault, by decrypting them and
-recalculating their checksum.
-It the checksum still corresponds to the one of the original file,
+This module reads a message from the ``archived`` queue and
+recalculates the checksum of the requested vault file.
+
+It the checksum matches the corresponding information in the database,
 we consider that the vault has properly stored the file.
+
+Upon completion, a message is sent to the local exchange with the
+routing key: ``completed``.
 '''
 
 import sys

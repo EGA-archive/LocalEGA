@@ -21,7 +21,7 @@ For the LocalEGA inboxes:
     $ make install
     $ ldconfig -v
 
-You can also display more output information by compiling with ``make
+One can also display more output information by compiling with ``make
 debug1``, ``make debug2`` or ``make debug3``, instead of ``make
 install``. The latter does not display any information, ``debug1``
 displays the headlines, ``debug2`` displays even more, while
@@ -43,7 +43,7 @@ The settings are loaded, in order:
 * and finally from the file specified as the ``--conf`` argument.
 
 Therefore, there is no need to update the ``defaults.ini``. Instead,
-reset/update any key/value pairs by creating your own file and pass it
+reset/update any key/value pairs by creating a custom configuration file and pass it
 to ``--conf`` as a command-line argument.
 
 
@@ -81,7 +81,7 @@ Bootstrap
 =========
 
 In order to simplify the setup of LocalEGA's components, we have
-developped a few bootstrap scripts (one for the `Docker`_ deployment
+developed a few bootstrap scripts (one for the `Docker`_ deployment
 and one for the `OpenStack cloud`_ deployment).
 
 Those script create random passwords, configuration files, GnuPG keys,

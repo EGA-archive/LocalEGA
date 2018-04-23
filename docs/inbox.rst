@@ -10,11 +10,11 @@ either a password or an RSA key against the CentralEGA database
 itself. The user is chroot'ed into their home folder.
 
 The solution uses CentralEGA's user IDs but can also be extended to
-use Elixir IDs (of which we strip the @elixir-europe.org suffix).
+use Elixir IDs (of which we strip the ``@elixir-europe.org`` suffix).
 
 
 The procedure is as follows. The inbox is started without any created
-user. When a user wants to log into the inbox (actually, only sftp
+user. When a user wants to log into the inbox (actually, only ``sftp``
 uploads are allowed), the NSS module looks up the username in a local
 cache, and, if not found, queries the CentralEGA database. Upon
 return, we store the user credentials in the local cache and create
@@ -26,7 +26,7 @@ upon reboot (as a cache should).
 
 The user's home directory is created when its credentials are retrieved
 from CentralEGA. Moreover, for each user, we use FUSE mountpoint and
-chroot the user into it. The FUSE application is in charge of
+``chroot`` the user into it. The FUSE application is in charge of
 detecting when the file upload is completed and computing its
 checksum. This information is provided to CentralEGA via a
 :doc:`shovel mechanism on the local message broker <connection>`.
@@ -51,7 +51,7 @@ eg:
    # Central EGA
    #
    # The username will be appended to the endpoint
-   # eg the endpoint for 'john' will be 
+   # eg the endpoint for 'john' will be
    # http://cega_users/user/john
    #
    # Note: Change the cega_creds !
@@ -118,8 +118,8 @@ The cache directory is mounted as a ``ramfs`` partition of size
 200M. We use a directory per user, containing files for the user's
 password hash, ssh key and last access record. Files and directories
 in the cache are stored in memory, not on disk, giving us an extra
-performance boost. A ramfs partition does not survive a reboot, grow
-dynamically and does not use the swap partition (as a tmpfs partition
+performance boost. A ``ramfs`` partition does not survive a reboot, grow
+dynamically and does not use the swap partition (as a ``tmpfs`` partition
 would).
 
 We use OpenSSH (version 7.5p1) and its ``sftp`` component. The NSS+PAM
