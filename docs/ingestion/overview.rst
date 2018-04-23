@@ -3,7 +3,7 @@
 Ingestion Procedure
 ===================
 
-We decribe in this section the architecture of the ingestion
+We describe in this section the architecture of the ingestion
 procedure. We assume the files are already uploaded in the user inbox.
 
 .. image:: /static/CEGA-LEGA.png

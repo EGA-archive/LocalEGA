@@ -1,22 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+'''Listener moving files from staging area to vault.
+
+It simply consumes message from ``staged`` queue and upon completion,
+sends a message to the local exchange with the routing key :``archived``.
 '''
-####################################
-#
-# Listener moving files to the Vault
-#
-####################################
 
-It simply consumes message from the message queue configured in the [vault] section.
-
-It defaults to the `completed` queue.
-
-When a message is consumed, it must at least contain:
-* file_id
-* filepath
-* user_id
-'''
 
 import sys
 import logging
