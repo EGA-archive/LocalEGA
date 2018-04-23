@@ -1,3 +1,20 @@
+"""\
+Configuration Module provides a dictionary-like with configuration settings.
+It also loads the logging settings when ``setup`` is called.
+* The ``--log <file>`` argument is used to configuration where the logs go.
+  Without it, there is no logging capabilities.
+* The ``<file>`` can be a path to an ``INI`` or ``YAML`` format, or a string
+  representing the defaults loggers (ie default, debug or syslog)
+* The ``--conf <file>`` allows the user to override the configuration settings.
+  The settings are loaded, in order:
+    * from ``default.ini`` (located in the package)
+    * from ``/etc/ega/conf.ini``
+    * from the file specified as the ``--conf`` argument.
+* ``--list`` argument lists the content of the configuration file
+The files must be either in ``INI`` format or in ``YAML`` format, in
+which case, it must end in ``.yaml`` or ``.yml``.
+"""
+
 import sys
 import configparser
 import logging
@@ -11,31 +28,6 @@ _config_files =  [
     _here / 'defaults.ini',
     '/etc/ega/conf.ini'
  ]
-
-f"""\
-This module provides a dictionary-like with configuration settings.
-It also loads the logging settings when `setup` is called.
-
-The `--log <file>` argument is used to configuration where the logs go.
-Without it, there is no logging capabilities.
-
-The <file> can be a path to an `INI` or `YAML` format, or a string
-representing the defaults loggers (ie default, debug or syslog)
-
-
-The `--conf <file>` allows the user to override the configuration settings.
-The settings are loaded, in order:
-* from {_config_files[0]}
-* from {_config_files[1]}
-* from the file specified as the `--conf` argument.
-
-The files must be either in `INI` format or in `YAML` format, in
-which case, it must end in `.yaml` or `.yml`.
-
-See `https://github.com/NBISweden/LocalEGA` for a full documentation.
-
-:copyright: (c) 2017, NBIS System Developers.
-"""
 
 class Configuration(configparser.ConfigParser):
     log_conf = None

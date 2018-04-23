@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
-
+"""
+Computes the checksum.
+"""
 import logging
 import hashlib
 

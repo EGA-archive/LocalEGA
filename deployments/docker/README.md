@@ -1,10 +1,8 @@
 # Deploy LocalEGA using Docker
 
-# Bootstrap
+## Bootstrap
 
 First [create the EGA docker images](images) beforehand, with `make -C images`.
-
-This command will also create a docker network `cega` used by CEGA, network that is external to localEGA-fin and localEGA-swe.
 
 You can then [generate the private data](bootstrap), with either:
 
@@ -19,10 +17,19 @@ the necessary data (ie the GnuPG key, the RSA master key pair, the SSL
 certificates for internal communication, passwords, default users,
 etc...)
 
+It will also create a docker network `cega` used by CEGA,
+network that is external (more precisely a pre-existing network) to localEGA-fin and localEGA-swe.
+One can also create the network manually using `docker network create cega`.
+
+These networks are reflected in their corresponding YML files
+* `private/cega.yml`
+* `private/ega_swe1.yml`
+* `private/ega_fin1.yml`
+
 The passwords are in `private/<instance>/.trace` and the errors (if
 any) are in `private/.err`.
 
-# Running
+## Running
 
 	docker-compose up -d
 
