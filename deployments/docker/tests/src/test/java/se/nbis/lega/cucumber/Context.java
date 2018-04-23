@@ -10,6 +10,7 @@ import java.io.File;
 import java.io.IOException;
 import java.security.KeyPair;
 import java.util.List;
+import java.util.Map;
 
 @Data
 public class Context {
@@ -28,7 +29,10 @@ public class Context {
     private SFTPClient sftp;
     private File dataFolder;
     private File rawFile;
+    private String rawChecksum;
     private File encryptedFile;
+    private String encChecksum;
+    private Map<String, String> ingestionInformation;
 
     private boolean authenticationFailed;
 

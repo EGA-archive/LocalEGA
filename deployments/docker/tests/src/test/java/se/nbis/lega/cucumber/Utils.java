@@ -2,10 +2,7 @@ package se.nbis.lega.cucumber;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.dockerjava.api.DockerClient;
-import com.github.dockerjava.api.command.CreateContainerResponse;
-import com.github.dockerjava.api.model.Bind;
 import com.github.dockerjava.api.model.Container;
-import com.github.dockerjava.api.model.Volume;
 import com.github.dockerjava.core.DefaultDockerClientConfig;
 import com.github.dockerjava.core.DockerClientBuilder;
 import com.github.dockerjava.core.command.ExecStartResultCallback;
@@ -29,8 +26,6 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Properties;
 import java.util.UUID;
 
@@ -106,7 +101,7 @@ public class Utils {
     }
 
     /**
-     * Executes PSQL query.
+     * Executes SQL query.
      *
      * @param instance LocalEGA site.
      * @param query    Query to execute.
@@ -124,12 +119,11 @@ public class Utils {
      *
      * @param instance LocalEGA site.
      * @param user     Username.
-     * @throws IOException          In case of output error.
      * @throws InterruptedException In case the query execution is interrupted.
      */
-    public void removeUserFromCache(String instance, String user) throws IOException, InterruptedException {
+    public void removeUserFromCache(String instance, String user) throws InterruptedException {
         executeWithinContainer(findContainer(getProperty("images.name.inbox"), getProperty("container.prefix.inbox") + instance),
-			       String.format("rm -rf %s/%s", getProperty("inbox.cache.path"), user).split(" "));
+                String.format("rm -rf %s/%s", getProperty("inbox.cache.path"), user).split(" "));
     }
 
     /**
@@ -157,7 +151,6 @@ public class Utils {
         executeWithinContainer(findContainer(getProperty("images.name.inbox"), getProperty("container.prefix.inbox") + instance),
                 String.format("rm %s/%s/%s", getProperty("inbox.fuse.folder.path"), user, fileName).split(" "));
     }
-
 
     /**
      * Reads property from the trace file.
@@ -211,27 +204,27 @@ public class Utils {
     /**
      * Sends a JSON message to a RabbitMQ instance.
      *
-     * @param connection The address of the broker.
-     * @param user       Username.
-     * @param filepath   Filepath.
-     * @param enc        Encrypted file hash (MD5).
-     * @param unenc      Unencrypted file hash (MD5).
+     * @param connection        The address of the broker.
+     * @param user              Username.
+     * @param encryptedFileName Encrypted file name.
+     * @param encChecksum       Encrypted file hash (MD5).
+     * @param rawChecksum       Unencrypted file hash (MD5).
      * @throws Exception In case of broken connection.
      */
-    public void publishCEGA(String connection, String user, String filepath, String enc, String unenc) throws Exception {
+    public void publishCEGA(String connection, String user, String encryptedFileName, String rawChecksum, String encChecksum) throws Exception {
         Message message = new Message();
         message.setUser(user);
-        message.setFilepath(filepath);
-	message.setStableID("EGAF_" + UUID.randomUUID().toString());
+        message.setFilepath(encryptedFileName);
+        message.setStableID("EGAF_" + UUID.randomUUID().toString());
 
         Checksum unencrypted = new Checksum();
         unencrypted.setAlgorithm("md5");
-        unencrypted.setChecksum(unenc);
+        unencrypted.setChecksum(rawChecksum);
         message.setUnencryptedIntegrity(unencrypted);
 
         Checksum encrypted = new Checksum();
         encrypted.setAlgorithm("md5");
-        encrypted.setChecksum(enc);
+        encrypted.setChecksum(encChecksum);
         message.setEncryptedIntegrity(encrypted);
 
         ConnectionFactory factory = new ConnectionFactory();
