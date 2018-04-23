@@ -31,6 +31,7 @@ public class BeforeAfterHooks implements En {
         FileUtils.writeStringToFile(rawFile, "hello", Charset.defaultCharset());
         context.setDataFolder(dataFolder);
         context.setRawFile(rawFile);
+        context.setRawChecksum(context.getUtils().calculateMD5(rawFile));
     }
 
     @SuppressWarnings({"ConstantConditions", "ResultOfMethodCallIgnored"})

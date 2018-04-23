@@ -7,8 +7,12 @@ import org.junit.Assert;
 import se.nbis.lega.cucumber.Context;
 import se.nbis.lega.cucumber.Utils;
 
-import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 public class Ingestion implements En {
@@ -28,67 +32,85 @@ public class Ingestion implements En {
             }
         });
 
-        When("^I ingest file from the LocalEGA inbox using correct encrypted checksum$", () -> {
-            try {
-                File encryptedFile = context.getEncryptedFile();
-                String rawChecksum = utils.calculateMD5(context.getRawFile());
-                String encryptedChecksum = utils.calculateMD5(encryptedFile);
-                ingestFile(context, utils, encryptedFile.getName(), rawChecksum, encryptedChecksum);
-            } catch (IOException e) {
-                log.error(e.getMessage(), e);
-                Assert.fail(e.getMessage());
-            }
+        When("^I ingest file from the LocalEGA inbox using correct encrypted checksum$", () -> ingestFile(context));
+
+        When("^I ingest file from the LocalEGA inbox using wrong raw checksum$", () -> {
+            String rawChecksum = context.getRawChecksum();
+            context.setRawChecksum("wrong");
+            ingestFile(context);
+            context.setRawChecksum(rawChecksum);
         });
 
         When("^I ingest file from the LocalEGA inbox using wrong encrypted checksum$", () -> {
+            String encChecksum = context.getEncChecksum();
+            context.setEncChecksum("wrong");
+            ingestFile(context);
+            context.setEncChecksum(encChecksum);
+        });
+
+        Then("^I retrieve ingestion information", () -> {
             try {
-                ingestFile(context,
-                        utils,
-                        context.getEncryptedFile().getName(),
-                        utils.calculateMD5(context.getRawFile()), "wrong");
-            } catch (IOException e) {
+                String output = utils.executeDBQuery(context.getTargetInstance(),
+                        String.format("select * from files where filename = '%s'", context.getEncryptedFile().getName()));
+                List<String> header = Arrays.stream(output.split(System.getProperty("line.separator"))[0].split(" \\| ")).map(String::trim).collect(Collectors.toList());
+                List<String> fields = Arrays.stream(output.split(System.getProperty("line.separator"))[2].split(" \\| ")).map(String::trim).collect(Collectors.toList());
+                HashMap<String, String> ingestionInformation = new HashMap<>();
+                for (int i = 0; i < header.size(); i++) {
+                    ingestionInformation.put(header.get(i), fields.get(i));
+                }
+                context.setIngestionInformation(ingestionInformation);
+                System.out.println("ingestionInformation = " + ingestionInformation);
+            } catch (IOException | InterruptedException e) {
                 log.error(e.getMessage(), e);
                 Assert.fail(e.getMessage());
             }
         });
 
-        Then("^the file is ingested successfully$", () -> {
+        Then("^the ingestion status is \"([^\"]*)\"$", (String status) -> Assertions.assertThat(context.getIngestionInformation().get("status")).isEqualToIgnoringCase(status));
+
+        Then("^the raw checksum matches$", () -> Assertions.assertThat(context.getIngestionInformation().get("org_checksum")).isEqualToIgnoringCase(context.getRawChecksum()));
+
+        Then("^the encrypted checksum matches$", () -> Assertions.assertThat(context.getIngestionInformation().get("enc_checksum")).isEqualToIgnoringCase(context.getEncChecksum()));
+
+        Then("^and the file header matches$", () -> {
             try {
-                String output = utils.executeDBQuery(context.getTargetInstance(),
-                        String.format("select filepath from files where filename = '%s'", context.getEncryptedFile().getName()));
-                String vaultFileName = output.split(System.getProperty("line.separator"))[2].trim();
+                Map<String, String> ingestionInformation = context.getIngestionInformation();
                 String cat = utils.executeWithinContainer(utils.findContainer(utils.getProperty("images.name.vault"),
-                        utils.getProperty("container.prefix.vault") + context.getTargetInstance()), "cat", vaultFileName);
-                Assertions.assertThat(cat).startsWith("rsa.key.1|256|16|CTR");
-            } catch (IOException | InterruptedException e) {
+                        utils.getProperty("container.prefix.vault") + context.getTargetInstance()), "cat", ingestionInformation.get("filepath"));
+                Assertions.assertThat(cat).startsWith(ingestionInformation.get("reenc_info"));
+            } catch (InterruptedException e) {
                 log.error(e.getMessage(), e);
                 Assert.fail(e.getMessage());
             }
         });
 
-        Then("^ingestion failed$", () -> {
+        Then("^I see that the file is ingested successfully$", () -> {
             try {
-                String output = utils.executeDBQuery(context.getTargetInstance(),
-                        String.format("select filepath from files where filename = '%s'", context.getEncryptedFile().getName()));
-                String vaultFileName = output.split(System.getProperty("line.separator"))[2].trim();
-                Assertions.assertThat(vaultFileName).isEmpty();
-            } catch (IOException | InterruptedException e) {
+                Map<String, String> ingestionInformation = context.getIngestionInformation();
+                Assertions.assertThat(ingestionInformation.get("status")).isEqualToIgnoringCase("Archived");
+                Assertions.assertThat(ingestionInformation.get("org_checksum")).isEqualToIgnoringCase(context.getRawChecksum());
+                Assertions.assertThat(ingestionInformation.get("enc_checksum")).isEqualToIgnoringCase(context.getEncChecksum());
+                String cat = utils.executeWithinContainer(utils.findContainer(utils.getProperty("images.name.vault"),
+                        utils.getProperty("container.prefix.vault") + context.getTargetInstance()), "cat", ingestionInformation.get("filepath"));
+                Assertions.assertThat(cat).startsWith(ingestionInformation.get("reenc_info"));
+            } catch (InterruptedException e) {
                 log.error(e.getMessage(), e);
                 Assert.fail(e.getMessage());
             }
         });
+
     }
 
-    private void ingestFile(Context context, Utils utils, String encryptedFileName, String rawChecksum, String encryptedChecksum) {
+    private void ingestFile(Context context) {
         try {
-            utils.publishCEGA(String.format("amqp://%s:%s@localhost:5672/%s",
+            context.getUtils().publishCEGA(String.format("amqp://%s:%s@localhost:5672/%s",
                     context.getCegaMQUser(),
                     context.getCegaMQPassword(),
                     context.getCegaMQVHost()),
                     context.getUser(),
-                    encryptedFileName,
-                    encryptedChecksum,
-                    rawChecksum);
+                    context.getEncryptedFile().getName(),
+                    context.getRawChecksum(),
+                    context.getEncChecksum());
             Thread.sleep(1000);
         } catch (Exception e) {
             log.error(e.getMessage(), e);
