@@ -217,15 +217,19 @@ public class Utils {
         message.setFilepath(encryptedFileName);
         message.setStableID("EGAF_" + UUID.randomUUID().toString());
 
-        Checksum unencrypted = new Checksum();
-        unencrypted.setAlgorithm("md5");
-        unencrypted.setChecksum(rawChecksum);
-        message.setUnencryptedIntegrity(unencrypted);
+        if (StringUtils.isNotEmpty(rawChecksum)) {
+            Checksum unencrypted = new Checksum();
+            unencrypted.setAlgorithm("md5");
+            unencrypted.setChecksum(rawChecksum);
+            message.setUnencryptedIntegrity(unencrypted);
+        }
 
-        Checksum encrypted = new Checksum();
-        encrypted.setAlgorithm("md5");
-        encrypted.setChecksum(encChecksum);
-        message.setEncryptedIntegrity(encrypted);
+        if (StringUtils.isNotEmpty(encChecksum)) {
+            Checksum encrypted = new Checksum();
+            encrypted.setAlgorithm("md5");
+            encrypted.setChecksum(encChecksum);
+            message.setEncryptedIntegrity(encrypted);
+        }
 
         ConnectionFactory factory = new ConnectionFactory();
         factory.setUri(connection);
