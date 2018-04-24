@@ -30,7 +30,7 @@ Feature: Ingestion
     And I have CEGA MQ username and password
     And I ingest file from the LocalEGA inbox using correct encrypted checksum
     When I retrieve ingestion information
-    Then the ingestion status is "Received"
+    Then the ingestion status is "Error"
 
   Scenario: I.2 User ingests file encrypted with OpenPGP using a wrong key
     Given I am a user of LocalEGA instances:
@@ -101,5 +101,33 @@ Feature: Ingestion
     And I upload encrypted file to the LocalEGA inbox via SFTP
     And I have CEGA MQ username and password
     And I ingest file from the LocalEGA inbox using wrong encrypted checksum
+    When I retrieve ingestion information
+    Then the ingestion status is "Error"
+
+  Scenario: I.7 User ingests file encrypted with OpenPGP using a correct key, but raw checksum doesn't match with the supplied one
+    Given I am a user of LocalEGA instances:
+      | swe1 |
+    And I have an account at Central EGA
+    And I want to work with instance "swe1"
+    And I have correct private key
+    And I connect to the LocalEGA inbox via SFTP using private key
+    And I have a file encrypted with OpenPGP using a "swe1" key
+    And I upload encrypted file to the LocalEGA inbox via SFTP
+    And I have CEGA MQ username and password
+    And I ingest file from the LocalEGA inbox without providing raw checksum
+    When I retrieve ingestion information
+    Then the ingestion status is "Error"
+
+  Scenario: I.8 User ingests file encrypted with OpenPGP using a correct key, but encrypted checksum doesn't match with the supplied one
+    Given I am a user of LocalEGA instances:
+      | swe1 |
+    And I have an account at Central EGA
+    And I want to work with instance "swe1"
+    And I have correct private key
+    And I connect to the LocalEGA inbox via SFTP using private key
+    And I have a file encrypted with OpenPGP using a "swe1" key
+    And I upload encrypted file to the LocalEGA inbox via SFTP
+    And I have CEGA MQ username and password
+    And I ingest file from the LocalEGA inbox without providing encrypted checksum
     When I retrieve ingestion information
     Then the ingestion status is "Error"
