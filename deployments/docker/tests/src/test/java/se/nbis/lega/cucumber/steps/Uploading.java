@@ -14,6 +14,7 @@ import se.nbis.lega.cucumber.Utils;
 import javax.crypto.*;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 
@@ -59,6 +60,20 @@ public class Uploading implements En {
             try {
                 File encryptedFile = context.getEncryptedFile();
                 context.getSftp().put(encryptedFile.getAbsolutePath(), encryptedFile.getName());
+            } catch (IOException e) {
+                log.error(e.getMessage(), e);
+            }
+        });
+
+        When("^I upload companion files to the LocalEGA inbox via SFTP$", () -> {
+            try {
+                String encFilePath = context.getEncryptedFile().getAbsolutePath();
+                File rawChecksumFile = new File(encFilePath.substring(0, encFilePath.lastIndexOf(".")) + ".md5");
+                File encChecksumFile = new File(encFilePath + ".md5");
+                FileUtils.write(rawChecksumFile, context.getRawChecksum(), Charset.defaultCharset());
+                FileUtils.write(encChecksumFile, context.getEncChecksum(), Charset.defaultCharset());
+                context.getSftp().put(rawChecksumFile.getAbsolutePath(), rawChecksumFile.getName());
+                context.getSftp().put(encChecksumFile.getAbsolutePath(), encChecksumFile.getName());
             } catch (IOException e) {
                 log.error(e.getMessage(), e);
             }
