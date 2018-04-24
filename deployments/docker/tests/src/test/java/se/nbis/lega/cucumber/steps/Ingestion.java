@@ -59,7 +59,6 @@ public class Ingestion implements En {
                     ingestionInformation.put(header.get(i), fields.get(i));
                 }
                 context.setIngestionInformation(ingestionInformation);
-                System.out.println("ingestionInformation = " + ingestionInformation);
             } catch (IOException | InterruptedException e) {
                 log.error(e.getMessage(), e);
                 Assert.fail(e.getMessage());
@@ -103,7 +102,8 @@ public class Ingestion implements En {
 
     private void ingestFile(Context context) {
         try {
-            context.getUtils().publishCEGA(String.format("amqp://%s:%s@localhost:5672/%s",
+            Utils utils = context.getUtils();
+            utils.publishCEGA(String.format("amqp://%s:%s@localhost:5672/%s",
                     context.getCegaMQUser(),
                     context.getCegaMQPassword(),
                     context.getCegaMQVHost()),
@@ -111,11 +111,23 @@ public class Ingestion implements En {
                     context.getEncryptedFile().getName(),
                     context.getRawChecksum(),
                     context.getEncChecksum());
+            // It may take a while for relatively big files to be ingested.
+            // So we wait until ingestion status changes to something different from "In progress".
+            while ("In progress".equals(getIngestionStatus(context, utils))) {
+                Thread.sleep(1000);
+            }
+            // And we sleep one more second for entry to be updated in the database.
             Thread.sleep(1000);
         } catch (Exception e) {
             log.error(e.getMessage(), e);
             Assert.fail(e.getMessage());
         }
+    }
+
+    private String getIngestionStatus(Context context, Utils utils) throws IOException, InterruptedException {
+        String output = utils.executeDBQuery(context.getTargetInstance(),
+                String.format("select status from files where filename = '%s'", context.getEncryptedFile().getName()));
+        return output.split(System.getProperty("line.separator"))[2].trim();
     }
 
 }
