@@ -27,10 +27,11 @@ def test_session_key():
     infile = io.BytesIO(bytes.fromhex(openpgp_data.ENC_FILE))
     for packet in iter_packets(infile):
         if packet.tag == 1:
+            packet.parse()
             name, cipher, session_key = packet.decrypt_session_key(fetch_private_key)
         else:
             packet.skip()
-    
+
     assert( session_key.hex().upper() == openpgp_data.SESSION_KEY )
 
 def test_decryption():
@@ -40,6 +41,7 @@ def test_decryption():
     infile = io.BytesIO(bytes.fromhex(openpgp_data.ENC_FILE))
     for packet in iter_packets(infile):
         if packet.tag == 1:
+            packet.parse()
             name, cipher, session_key = packet.decrypt_session_key(fetch_private_key)
         elif packet.tag == 18:
             for literal_data in packet.process(session_key, cipher):
