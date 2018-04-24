@@ -48,6 +48,20 @@ public class Ingestion implements En {
             context.setEncChecksum(encChecksum);
         });
 
+        When("^I ingest file from the LocalEGA inbox without providing raw checksum$", () -> {
+            String rawChecksum = context.getRawChecksum();
+            context.setRawChecksum(null);
+            ingestFile(context);
+            context.setRawChecksum(rawChecksum);
+        });
+
+        When("^I ingest file from the LocalEGA inbox without providing encrypted checksum$", () -> {
+            String encChecksum = context.getEncChecksum();
+            context.setEncChecksum(null);
+            ingestFile(context);
+            context.setEncChecksum(encChecksum);
+        });
+
         Then("^I retrieve ingestion information", () -> {
             try {
                 String output = utils.executeDBQuery(context.getTargetInstance(),
@@ -74,21 +88,6 @@ public class Ingestion implements En {
         Then("^and the file header matches$", () -> {
             try {
                 Map<String, String> ingestionInformation = context.getIngestionInformation();
-                String cat = utils.executeWithinContainer(utils.findContainer(utils.getProperty("images.name.vault"),
-                        utils.getProperty("container.prefix.vault") + context.getTargetInstance()), "cat", ingestionInformation.get("filepath"));
-                Assertions.assertThat(cat).startsWith(ingestionInformation.get("reenc_info"));
-            } catch (InterruptedException e) {
-                log.error(e.getMessage(), e);
-                Assert.fail(e.getMessage());
-            }
-        });
-
-        Then("^I see that the file is ingested successfully$", () -> {
-            try {
-                Map<String, String> ingestionInformation = context.getIngestionInformation();
-                Assertions.assertThat(ingestionInformation.get("status")).isEqualToIgnoringCase("Archived");
-                Assertions.assertThat(ingestionInformation.get("org_checksum")).isEqualToIgnoringCase(context.getRawChecksum());
-                Assertions.assertThat(ingestionInformation.get("enc_checksum")).isEqualToIgnoringCase(context.getEncChecksum());
                 String cat = utils.executeWithinContainer(utils.findContainer(utils.getProperty("images.name.vault"),
                         utils.getProperty("container.prefix.vault") + context.getTargetInstance()), "cat", ingestionInformation.get("filepath"));
                 Assertions.assertThat(cat).startsWith(ingestionInformation.get("reenc_info"));

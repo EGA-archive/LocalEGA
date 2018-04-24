@@ -49,6 +49,7 @@ public class Uploading implements En {
                 File encryptedFile = new File(rawFile.getAbsolutePath() + ".enc");
                 FileUtils.writeByteArrayToFile(encryptedFile, encryptedContents);
                 context.setEncryptedFile(encryptedFile);
+                context.setEncChecksum(utils.calculateMD5(encryptedFile));
             } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | IllegalBlockSizeException | BadPaddingException | IOException e) {
                 log.error(e.getMessage(), e);
             }
