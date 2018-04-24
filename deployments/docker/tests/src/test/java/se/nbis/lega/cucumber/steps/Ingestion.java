@@ -62,6 +62,16 @@ public class Ingestion implements En {
             context.setEncChecksum(encChecksum);
         });
 
+        When("^I ingest file from the LocalEGA inbox without providing checksums$", () -> {
+            String rawChecksum = context.getRawChecksum();
+            String encChecksum = context.getEncChecksum();
+            context.setRawChecksum(null);
+            context.setEncChecksum(null);
+            ingestFile(context);
+            context.setRawChecksum(rawChecksum);
+            context.setEncChecksum(encChecksum);
+        });
+
         Then("^I retrieve ingestion information", () -> {
             try {
                 String output = utils.executeDBQuery(context.getTargetInstance(),

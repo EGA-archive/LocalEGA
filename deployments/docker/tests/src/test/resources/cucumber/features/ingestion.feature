@@ -104,7 +104,7 @@ Feature: Ingestion
     When I retrieve ingestion information
     Then the ingestion status is "Error"
 
-  Scenario: I.7 User ingests file encrypted with OpenPGP using a correct key, but raw checksum doesn't match with the supplied one
+  Scenario: I.7 User ingests file encrypted with OpenPGP using a correct key, but raw checksum isn't provided
     Given I am a user of LocalEGA instances:
       | swe1 |
     And I have an account at Central EGA
@@ -118,7 +118,7 @@ Feature: Ingestion
     When I retrieve ingestion information
     Then the ingestion status is "Error"
 
-  Scenario: I.8 User ingests file encrypted with OpenPGP using a correct key, but encrypted checksum doesn't match with the supplied one
+  Scenario: I.8 User ingests file encrypted with OpenPGP using a correct key, but encrypted checksum isn't provided
     Given I am a user of LocalEGA instances:
       | swe1 |
     And I have an account at Central EGA
@@ -131,3 +131,21 @@ Feature: Ingestion
     And I ingest file from the LocalEGA inbox without providing encrypted checksum
     When I retrieve ingestion information
     Then the ingestion status is "Error"
+
+  Scenario: I.9 User ingests file encrypted with OpenPGP using a correct key and providing checksums as companion files
+    Given I am a user of LocalEGA instances:
+      | swe1 |
+    And I have an account at Central EGA
+    And I want to work with instance "swe1"
+    And I have correct private key
+    And I connect to the LocalEGA inbox via SFTP using private key
+    And I have a file encrypted with OpenPGP using a "swe1" key
+    And I upload encrypted file to the LocalEGA inbox via SFTP
+    And I upload companion files to the LocalEGA inbox via SFTP
+    And I have CEGA MQ username and password
+    And I ingest file from the LocalEGA inbox without providing checksums
+    When I retrieve ingestion information
+    Then the ingestion status is "Archived"
+    And the raw checksum matches
+    And the encrypted checksum matches
+    And and the file header matches
