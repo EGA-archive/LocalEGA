@@ -15,6 +15,7 @@ import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
+import org.c02e.jpgpj.HashingAlgorithm;
 import se.nbis.lega.cucumber.publisher.Checksum;
 import se.nbis.lega.cucumber.publisher.Message;
 
@@ -188,17 +189,24 @@ public class Utils {
     }
 
     /**
-     * Calculates MD5 hash of a file.
+     * Calculates hash of a file.
      *
-     * @param file File to calculate hash for.
-     * @return MD5 hash.
+     * @param file             File to calculate hash for.
+     * @param hashingAlgorithm Algorithm to use for hashing.
+     * @return Hash. Defaults to MD5.
      * @throws IOException In case it's not possible ot read the file.
      */
-    public String calculateMD5(File file) throws IOException {
-        FileInputStream fileInputStream = new FileInputStream(file);
-        String md5 = DigestUtils.md5Hex(fileInputStream);
-        fileInputStream.close();
-        return md5;
+    public String calculateChecksum(File file, HashingAlgorithm hashingAlgorithm) throws IOException {
+        try (FileInputStream fileInputStream = new FileInputStream(file)) {
+            switch (hashingAlgorithm) {
+                case SHA256:
+                    return DigestUtils.sha256Hex(fileInputStream);
+                case MD5:
+                    return DigestUtils.md5Hex(fileInputStream);
+                default:
+                    throw new RuntimeException(hashingAlgorithm + " hashing algorithm is not supported by the test-suite.");
+            }
+        }
     }
 
     /**
@@ -207,11 +215,12 @@ public class Utils {
      * @param connection        The address of the broker.
      * @param user              Username.
      * @param encryptedFileName Encrypted file name.
+     * @param hashingAlgorithm  Hashing algorithm.
      * @param encChecksum       Encrypted file hash (MD5).
      * @param rawChecksum       Unencrypted file hash (MD5).
      * @throws Exception In case of broken connection.
      */
-    public void publishCEGA(String connection, String user, String encryptedFileName, String rawChecksum, String encChecksum) throws Exception {
+    public void publishCEGA(String connection, String user, String encryptedFileName, String hashingAlgorithm, String rawChecksum, String encChecksum) throws Exception {
         Message message = new Message();
         message.setUser(user);
         message.setFilepath(encryptedFileName);
@@ -219,14 +228,14 @@ public class Utils {
 
         if (StringUtils.isNotEmpty(rawChecksum)) {
             Checksum unencrypted = new Checksum();
-            unencrypted.setAlgorithm("md5");
+            unencrypted.setAlgorithm(hashingAlgorithm.toLowerCase());
             unencrypted.setChecksum(rawChecksum);
             message.setUnencryptedIntegrity(unencrypted);
         }
 
         if (StringUtils.isNotEmpty(encChecksum)) {
             Checksum encrypted = new Checksum();
-            encrypted.setAlgorithm("md5");
+            encrypted.setAlgorithm(hashingAlgorithm.toLowerCase());
             encrypted.setChecksum(encChecksum);
             message.setEncryptedIntegrity(encrypted);
         }

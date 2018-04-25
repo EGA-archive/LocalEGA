@@ -3,6 +3,7 @@ package se.nbis.lega.cucumber.steps;
 import cucumber.api.java8.En;
 import lombok.extern.slf4j.Slf4j;
 import org.assertj.core.api.Assertions;
+import org.c02e.jpgpj.HashingAlgorithm;
 import org.junit.Assert;
 import se.nbis.lega.cucumber.Context;
 import se.nbis.lega.cucumber.Utils;
@@ -32,34 +33,69 @@ public class Ingestion implements En {
             }
         });
 
-        When("^I ingest file from the LocalEGA inbox using correct encrypted checksum$", () -> ingestFile(context));
+        When("^I ingest file from the LocalEGA inbox using correct ([^\"]*) checksums$", (String algorithm) -> {
+            try {
+                HashingAlgorithm hashingAlgorithm = HashingAlgorithm.valueOf(algorithm);
+                context.setHashingAlgorithm(hashingAlgorithm);
+                context.setRawChecksum(utils.calculateChecksum(context.getRawFile(), hashingAlgorithm));
+                context.setEncChecksum(utils.calculateChecksum(context.getEncryptedFile(), hashingAlgorithm));
+                ingestFile(context);
+            } catch (IOException e) {
+                log.error(e.getMessage(), e);
+                Assert.fail(e.getMessage());
+            }
+        });
 
         When("^I ingest file from the LocalEGA inbox using wrong raw checksum$", () -> {
-            String rawChecksum = context.getRawChecksum();
-            context.setRawChecksum("wrong");
-            ingestFile(context);
-            context.setRawChecksum(rawChecksum);
+            try {
+                HashingAlgorithm hashingAlgorithm = HashingAlgorithm.MD5;
+                context.setHashingAlgorithm(hashingAlgorithm);
+                context.setRawChecksum("wrong");
+                context.setEncChecksum(utils.calculateChecksum(context.getEncryptedFile(), hashingAlgorithm));
+                ingestFile(context);
+            } catch (IOException e) {
+                log.error(e.getMessage(), e);
+                Assert.fail(e.getMessage());
+            }
         });
 
         When("^I ingest file from the LocalEGA inbox using wrong encrypted checksum$", () -> {
-            String encChecksum = context.getEncChecksum();
-            context.setEncChecksum("wrong");
-            ingestFile(context);
-            context.setEncChecksum(encChecksum);
+            try {
+                HashingAlgorithm hashingAlgorithm = HashingAlgorithm.MD5;
+                context.setHashingAlgorithm(hashingAlgorithm);
+                context.setRawChecksum(utils.calculateChecksum(context.getRawFile(), hashingAlgorithm));
+                context.setEncChecksum("wrong");
+                ingestFile(context);
+            } catch (IOException e) {
+                log.error(e.getMessage(), e);
+                Assert.fail(e.getMessage());
+            }
         });
 
         When("^I ingest file from the LocalEGA inbox without providing raw checksum$", () -> {
-            String rawChecksum = context.getRawChecksum();
-            context.setRawChecksum(null);
-            ingestFile(context);
-            context.setRawChecksum(rawChecksum);
+            try {
+                HashingAlgorithm hashingAlgorithm = HashingAlgorithm.MD5;
+                context.setHashingAlgorithm(hashingAlgorithm);
+                context.setRawChecksum(null);
+                context.setEncChecksum(utils.calculateChecksum(context.getEncryptedFile(), hashingAlgorithm));
+                ingestFile(context);
+            } catch (IOException e) {
+                log.error(e.getMessage(), e);
+                Assert.fail(e.getMessage());
+            }
         });
 
         When("^I ingest file from the LocalEGA inbox without providing encrypted checksum$", () -> {
-            String encChecksum = context.getEncChecksum();
-            context.setEncChecksum(null);
-            ingestFile(context);
-            context.setEncChecksum(encChecksum);
+            try {
+                HashingAlgorithm hashingAlgorithm = HashingAlgorithm.MD5;
+                context.setHashingAlgorithm(hashingAlgorithm);
+                context.setRawChecksum(utils.calculateChecksum(context.getRawFile(), hashingAlgorithm));
+                context.setEncChecksum(null);
+                ingestFile(context);
+            } catch (IOException e) {
+                log.error(e.getMessage(), e);
+                Assert.fail(e.getMessage());
+            }
         });
 
         When("^I ingest file from the LocalEGA inbox without providing checksums$", () -> {
@@ -118,6 +154,7 @@ public class Ingestion implements En {
                     context.getCegaMQVHost()),
                     context.getUser(),
                     context.getEncryptedFile().getName(),
+                    context.getHashingAlgorithm().name(),
                     context.getRawChecksum(),
                     context.getEncChecksum());
             // It may take a while for relatively big files to be ingested.

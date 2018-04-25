@@ -6,6 +6,7 @@ import net.schmizz.sshj.sftp.RemoteResourceInfo;
 import org.apache.commons.io.FileUtils;
 import org.bouncycastle.openpgp.PGPException;
 import org.c02e.jpgpj.Encryptor;
+import org.c02e.jpgpj.HashingAlgorithm;
 import org.c02e.jpgpj.Key;
 import org.junit.Assert;
 import se.nbis.lega.cucumber.Context;
@@ -32,7 +33,6 @@ public class Uploading implements En {
                 encryptor.setSigningAlgorithm(null);
                 encryptor.encrypt(rawFile, encryptedFile);
                 context.setEncryptedFile(encryptedFile);
-                context.setEncChecksum(utils.calculateMD5(encryptedFile));
             } catch (IOException | PGPException e) {
                 log.error(e.getMessage(), e);
                 Assert.fail(e.getMessage());
@@ -50,7 +50,6 @@ public class Uploading implements En {
                 File encryptedFile = new File(rawFile.getAbsolutePath() + ".enc");
                 FileUtils.writeByteArrayToFile(encryptedFile, encryptedContents);
                 context.setEncryptedFile(encryptedFile);
-                context.setEncChecksum(utils.calculateMD5(encryptedFile));
             } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | IllegalBlockSizeException | BadPaddingException | IOException e) {
                 log.error(e.getMessage(), e);
             }
@@ -67,11 +66,17 @@ public class Uploading implements En {
 
         When("^I upload companion files to the LocalEGA inbox via SFTP$", () -> {
             try {
+                HashingAlgorithm hashingAlgorithm = HashingAlgorithm.MD5;
+                context.setHashingAlgorithm(hashingAlgorithm);
                 String encFilePath = context.getEncryptedFile().getAbsolutePath();
-                File rawChecksumFile = new File(encFilePath.substring(0, encFilePath.lastIndexOf(".")) + ".md5");
-                File encChecksumFile = new File(encFilePath + ".md5");
-                FileUtils.write(rawChecksumFile, context.getRawChecksum(), Charset.defaultCharset());
-                FileUtils.write(encChecksumFile, context.getEncChecksum(), Charset.defaultCharset());
+                File rawChecksumFile = new File(encFilePath.substring(0, encFilePath.lastIndexOf(".")) + "." + hashingAlgorithm.name().toLowerCase());
+                File encChecksumFile = new File(encFilePath + "." + hashingAlgorithm.name().toLowerCase());
+                String rawChecksum = utils.calculateChecksum(context.getRawFile(), hashingAlgorithm);
+                context.setRawChecksum(rawChecksum);
+                FileUtils.write(rawChecksumFile, rawChecksum, Charset.defaultCharset());
+                String encChecksum = utils.calculateChecksum(context.getEncryptedFile(), hashingAlgorithm);
+                context.setEncChecksum(encChecksum);
+                FileUtils.write(encChecksumFile, encChecksum, Charset.defaultCharset());
                 context.getSftp().put(rawChecksumFile.getAbsolutePath(), rawChecksumFile.getName());
                 context.getSftp().put(encChecksumFile.getAbsolutePath(), encChecksumFile.getName());
             } catch (IOException e) {
