@@ -4,12 +4,12 @@ import lombok.Data;
 import net.schmizz.sshj.SSHClient;
 import net.schmizz.sshj.sftp.SFTPClient;
 import net.schmizz.sshj.userauth.keyprovider.KeyProvider;
-import net.schmizz.sshj.userauth.keyprovider.KeyProviderUtil;
+import org.c02e.jpgpj.HashingAlgorithm;
 
 import java.io.File;
 import java.io.IOException;
-import java.security.KeyPair;
 import java.util.List;
+import java.util.Map;
 
 @Data
 public class Context {
@@ -29,6 +29,10 @@ public class Context {
     private File dataFolder;
     private File rawFile;
     private File encryptedFile;
+    private HashingAlgorithm hashingAlgorithm;
+    private String rawChecksum;
+    private String encChecksum;
+    private Map<String, String> ingestionInformation;
 
     private boolean authenticationFailed;
 
