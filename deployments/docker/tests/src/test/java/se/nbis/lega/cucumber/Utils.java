@@ -223,7 +223,7 @@ public class Utils {
         Message message = new Message();
         message.setUser(user);
         message.setFilepath(encryptedFileName);
-        message.setStableID("EGAF" + rawChecksum.toLowerCase());
+        message.setStableID("EGAF" + String.valueOf(rawChecksum).toLowerCase());
 
         if (StringUtils.isNotEmpty(rawChecksum)) {
             Checksum unencrypted = new Checksum();
