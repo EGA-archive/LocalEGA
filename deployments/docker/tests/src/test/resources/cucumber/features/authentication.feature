@@ -28,7 +28,7 @@ Feature: Authentication
   Scenario: A.3 User exists in Central EGA, but uses incorrect private key for authentication
     Given I have an account at Central EGA
     And I want to work with instance "swe1"
-    And I have incorrect private key
+    But I have incorrect private key
     When I connect to the LocalEGA inbox via SFTP using private key
     Then authentication fails
 
@@ -38,7 +38,6 @@ Feature: Authentication
     And I have correct private key
     And I connect to the LocalEGA inbox via SFTP using private key
     And I disconnect from the LocalEGA inbox
-    And I am disconnected from the LocalEGA inbox
     And inbox is deleted for my user
     When I connect to the LocalEGA inbox via SFTP using private key
     Then authentication fails
