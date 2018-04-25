@@ -88,7 +88,7 @@ def work(master_key, data):
         encrypted_algo = encrypted_integrity['algorithm']
         if not encrypted_algo: # Fix in case CentralEGA sends null
             encrypted_algo = 'md5'
-    except KeyError:
+    except (KeyError, TypeError):
         LOG.info('Finding a companion file')
         encrypted_hash, encrypted_algo = checksum.get_from_companion(inbox_filepath)
         data['encrypted_integrity'] = {'checksum': encrypted_hash,
@@ -111,7 +111,7 @@ def work(master_key, data):
         unencrypted_algo = unencrypted_integrity['algorithm']
         if not unencrypted_algo: # Fix in case CentralEGA sends null
             unencrypted_algo = 'md5'
-    except KeyError:
+    except (KeyError, TypeError):
         # Strip the suffix first.
         LOG.info('Finding a companion file')
         unencrypted_hash, unencrypted_algo = checksum.get_from_companion(inbox_filepath.with_suffix(''))
