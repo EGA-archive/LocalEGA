@@ -28,7 +28,6 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.Properties;
-import java.util.UUID;
 
 /**
  * Utility methods for the test-suite.
@@ -224,7 +223,7 @@ public class Utils {
         Message message = new Message();
         message.setUser(user);
         message.setFilepath(encryptedFileName);
-        message.setStableID("EGAF_" + UUID.randomUUID().toString());
+        message.setStableID("EGAF" + rawChecksum.toLowerCase());
 
         if (StringUtils.isNotEmpty(rawChecksum)) {
             Checksum unencrypted = new Checksum();
