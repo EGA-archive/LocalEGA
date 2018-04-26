@@ -252,7 +252,7 @@ async def active_key_private(request):
         return web.HTTPBadRequest()
     key_id = _cache.get(active_key)
     LOG.debug(f'Requesting active %s (private) key', key_type.upper())
-    value = dict(_cache.get(key_id))
+    value = dict(_cache.get(key_id)) if key_id else None  # Avoid 500 server error
     if value:
         del value['public']
         return web.json_response(value)
@@ -287,7 +287,7 @@ async def active_key_public(request):
         return web.HTTPBadRequest()
     key_id = _cache.get(active_key)
     LOG.debug(f'Requesting active %s (public) key', key_type.upper())
-    value = dict(_cache.get(key_id))
+    value = dict(_cache.get(key_id)) if key_id else None  # Avoid 500 server error
     if value:
         del value['private']
         return web.json_response(value)
@@ -349,7 +349,7 @@ async def retrieve_key_private(request):
     else:
         return web.HTTPBadRequest()
     LOG.debug(f'Requested {key_type.upper()} (private) key with ID {requested_id}')
-    value = dict(_cache.get(key_id))
+    value = dict(_cache.get(key_id)) if _cache.get(key_id) else None  # Avoid 500 server error
     if value:
         del value['public']
         return web.json_response(value)
@@ -362,7 +362,7 @@ async def retrieve_key_private(request):
 async def retrieve_key_public(request):
     """Retrieve public part to reconstruct unlocked key.
 
-    :py:func:`lega.keyserver.active_key_private`
+    :py:func:`lega.keyserver.active_key_public`
     """
     requested_id = request.match_info['requested_id']
     key_type = request.match_info['key_type'].lower()
@@ -375,7 +375,7 @@ async def retrieve_key_public(request):
     else:
         return web.HTTPBadRequest()
     LOG.debug(f'Requested {key_type.upper()} (public) key with ID {requested_id}')
-    value = dict(_cache.get(key_id))
+    value = dict(_cache.get(key_id)) if _cache.get(key_id) else None  # Avoid 500 server error
     if value:
         del value['private']
         return web.json_response(value)
