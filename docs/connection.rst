@@ -122,6 +122,59 @@ LocalEGA instance, on the given ``vhost``.
 The exchanges and routing keys will be the same as all the other
 LocalEGA instances, since the clustering is done per ``vhost``.
 
+Message Format
+--------------
+
+It is necessary to agree on the format of the messages exchanged
+between Central EGA and any Local EGAs. Central EGA's messages are
+JSON-formatted and contain the following fields:
+
+* ``user``
+* ``filepath``
+* ``stable_id``
+* ``encrypted_integrity``:
+
+  - ``checksum``
+  - ``algorithm``
+
+* ``unencrypted_integrity``:
+
+  - ``checksum``
+  - ``algorithm``
+
+where ``user``, ``filepath`` and ``stable_id`` are compulsory.
+
+Local EGA instances must return messages containing:
+
+* ``user``
+* ``filepath``
+* ``stable_id``
+* ``status``:
+
+  - ``state``
+  - ``details``
+
+where ``state`` is either 'COMPLETED' or 'ERROR' (in which case,
+'details' contains an informal text description).
+
+For example, CentralEGA could send:
+
+.. code-block:: json
+
+    { "user": "john",
+      "filepath": "somedir/encrypted.file.gpg",
+      "stable_id": "EGAF0123456789012345"
+    }
+
+and LocalEGA could respond with:
+
+.. code-block:: json
+
+    { "user": "john",
+      "filepath": "somedir/encrypted.file.gpg",
+      "status": { "state": "COMPLETED", "details": "File ingested, refer to it with EGAF0123456789012345" }
+    }
+
 
 .. |connect| unicode:: U+21cc .. <->
 .. _RabbitMQ: http://www.rabbitmq.com
