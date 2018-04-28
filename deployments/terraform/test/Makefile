@@ -14,16 +14,17 @@ NOCOLOR=$'          \033[0m
 PGP_PUB=$(TERRAFORM_PATH)/private/pgp/ega.pub
 PGP_EMAIL=$(shell awk -F= '/PGP_EMAIL/ {print $$2}' $(TERRAFORM_PATH)/bootstrap/settings)
 
-CEGA_HOST=$()
-
 PREFIX_PATH=/
 ifdef $(findstring 'hellgate',$(CEGA_CONNECTION))
 PREFIX_PATH=/rabbitmq
 endif
 
 ##############################
+USER=ega-box-999
+#FILE=HG00458.unmapped.ILLUMINA.bwa.CHS.low_coverage.20130415.bam
+FILE=testfile
 
-.PHONY: upload submit user rabbitmqadmin check vault gpg_home
+.PHONY: upload submit user rabbitmqadmin check vault
 
 all: user upload submit rabbitmqadmin
 
@@ -31,46 +32,40 @@ echo:
 	@echo TERRAFORM_PATH=$(TERRAFORM_PATH)
 	@echo CEGA_IP=$(CEGA_IP)
 	@echo INBOX_IP=$(INBOX_IP)
-	@echo CEGA_MQ_PASSWORD=$(CEGA_MQ_PASSWORD)
-	@echo CEGA_MQ_CONNECTION=$(CEGA_MQ_CONNECTION)
 
-org:
-	@echo "${BULLET} Create a file named 'org' ${NOCOLOR}"
-	@echo "Hello, Niclas!" > $@
-
-enc: org
-	@echo "${BULLET} Encrypt 'org' into 'enc' ${NOCOLOR}"
+$(FILE).gpg: $(FILE)
+	@echo "${BULLET} Encrypt $< into $@ ${NOCOLOR}"
 	python ~/_ega/extras/encrypt.py $(PGP_PUB) $< > $@
 
-upload: user enc
-	@echo "${BULLET} Upload 'enc' to the Swedish Local EGA inbox ${NOCOLOR}"
-	sftp -i $(SSH_KEY_PRIV) -P 9000 toto@${INBOX_IP} <<< $$'put enc' &>/dev/null
+$(FILE).gpg.md5: $(FILE).gpg
+	@echo "${BULLET} Compute checksum of the encrypted file ${NOCOLOR} [algorithm: md5]"
+	printf '%s' $(shell md5 $< | cut -d' ' -f4) > $@
 
-enc.md5: enc
-	@echo "${BULLET} Compute checksum for 'enc' ${NOCOLOR} [algorithm: md5]"
-	md5 $< | cut -d' ' -f4 > $@
+$(FILE).md5: $(FILE)
+	@echo "${BULLET} Compute checksum of the original file ${NOCOLOR} [algorithm: md5]"
+	printf '%s' $(shell md5 $< | cut -d' ' -f4) > $@
 
-org.md5: org
-	@echo "${BULLET} Compute checksum for 'org' ${NOCOLOR} [algorithm: md5]"
-	md5 $< | cut -d' ' -f4 > $@
+upload: $(FILE).gpg $(FILE).gpg.md5 $(FILE).md5
+	@echo "${BULLET} Upload files to the Swedish Local EGA inbox ${NOCOLOR}"
+	cd $(<D) && sftp -i $(SSH_KEY_PRIV) -P 9000 $(USER)@${INBOX_IP} <<< $$'$(^F:%=put %\n)'
 
-submit: enc enc.md5 org.md5
+submit: $(FILE).gpg $(FILE).md5 $(FILE).gpg.md5
 	@echo "${BULLET} Publish message to Central EGA for ingestion ${NOCOLOR}"
-	python ~/_ega/extras/publish.py --connection $(subst cega_mq,$(CEGA_IP),$(CEGA_CONNECTION)) toto enc --unenc $(shell cat org.md5) --enc $(shell cat enc.md5)
+	python ~/_ega/extras/publish.py --connection $(subst cega_mq,$(CEGA_IP),$(CEGA_CONNECTION)) $(USER) $(FILE).gpg --unenc $(shell cat $(FILE).md5) --enc $(shell cat $(FILE).gpg.md5) EGAF$(shell cat $(FILE).md5)
 
-user: toto.yml
-	@echo "${BULLET} Add 'toto' to Central EGA ${NOCOLOR}"
+user: $(USER).yml
+	@echo "${BULLET} Add '$(USER)' to Central EGA ${NOCOLOR}"
 	scp $< centos@${CEGA_IP}:$< &>/dev/null
-	@echo "${BULLET} Grant 'toto' access to the Swedish Local EGA ${NOCOLOR}"
+	@echo "${BULLET} Grant '$(USER)' access to the Swedish Local EGA ${NOCOLOR}"
 	ssh -l centos ${CEGA_IP} "[[ -L /var/lib/cega/users/swe1/$< ]] || sudo ln -s ~/$< /var/lib/cega/users/swe1/$<" &>/dev/null
 
-toto.yml:
-	@echo "${BULLET} Create user 'toto' ${NOCOLOR}"
+$(USER).yml:
+	@echo "${BULLET} Create user '${USER}' ${NOCOLOR}"
 	@echo --- > $@
 	@echo "pubkey: $(shell cat $(SSH_KEY_PUB))" >> $@
 
 clean:
-	rm -rf org enc enc.md5 org.md5 toto.yml
+	rm -rf $(FILE).gpg $(FILE).md5 $(FILE).gpg.md5 $(USER).yml
 
 check:
 	@echo "${BULLET} Check the message broker in Central EGA ${NOCOLOR}"
@@ -85,15 +80,14 @@ vault:
 tell:
 	@echo
 	@echo   "\t---------------------------------------------------------------------------"
-	@printf "\t|  \033[43m\033[30m 1 \033[0m %-65s  |\n" "Create a user named 'toto'"
-	@printf "\t|  \033[43m\033[30m 2 \033[0m %-65s  |\n" "Add 'toto' to Central EGA [IP: ${CEGA_IP}]"
-	@printf "\t|  \033[43m\033[30m 3 \033[0m %-65s  |\n" "Grant 'toto' access to the Swedish Local EGA"
+	@printf "\t|  \033[43m\033[30m 1 \033[0m %-65s  |\n" "Create a user named '$(USER)'"
+	@printf "\t|  \033[43m\033[30m 2 \033[0m %-65s  |\n" "Add '$(USER)' to Central EGA [IP: ${CEGA_IP}]"
+	@printf "\t|  \033[43m\033[30m 3 \033[0m %-65s  |\n" "Grant '$(USER)' access to the Swedish Local EGA"
 	@echo   "\t---------------------------------------------------------------------------"
-	@printf "\t|  \033[43m\033[30m 4 \033[0m %-65s  |\n" "Create a file 'org' with 'Hello, Niclas!' as content"
-	@printf "\t|  \033[43m\033[30m 5 \033[0m %-65s  |\n" "Encrypt 'org' into 'enc'"
-	@printf "\t|  \033[43m\033[30m 6 \033[0m %-65s  |\n" "Upload 'enc' to the Swedish Local EGA inbox [IP: ${INBOX_IP}]"
-	@printf "\t|  \033[43m\033[30m 7 \033[0m %-65s  |\n" "Publish a message to Central EGA for ingestion of 'enc'"
-	@printf "\t|  \033[43m\033[30m 8 \033[0m %-65s  |\n" "Check the result in Central EGA's message broker"
-	@printf "\t|  \033[43m\033[30m 9 \033[0m %-65s  |\n" "Check the vault"
+	@printf "\t|  \033[43m\033[30m 4 \033[0m %-65s  |\n" "Encrypt '$(FILE)' into '$(FILE).gpg'"
+	@printf "\t|  \033[43m\033[30m 5 \033[0m %-65s  |\n" "Upload '$(FILE).gpg' to the Swedish Local EGA inbox [IP: ${INBOX_IP}]"
+	@printf "\t|  \033[43m\033[30m 6 \033[0m %-65s  |\n" "Publish a message to Central EGA for ingestion of '$(FILE).gpg'"
+	@printf "\t|  \033[43m\033[30m 7 \033[0m %-65s  |\n" "Check the result in Central EGA's message broker"
+	@printf "\t|  \033[43m\033[30m 8 \033[0m %-65s  |\n" "Check the vault"
 	@echo   "\t---------------------------------------------------------------------------"
 	@echo

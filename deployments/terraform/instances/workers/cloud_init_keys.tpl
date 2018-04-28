@@ -31,11 +31,6 @@ write_files:
     path: /etc/ega/ssl.key
     permissions: '0600'
   - encoding: b64
-    content: ${rsa_pub}
-    owner: ega:ega
-    path: /etc/ega/rsa/ega.pub
-    permissions: '0600'
-  - encoding: b64
     content: ${rsa_sec}
     owner: ega:ega
     path: /etc/ega/rsa/ega.sec
@@ -75,9 +70,10 @@ runcmd:
   - yum -y install nc nmap tcpdump iptables-services
   - systemctl start iptables.service
   - systemctl enable iptables.service
+  - pip3.6 install --upgrade pip
   - pip3.6 uninstall -y lega
-  - pip3.6 install aiohttp==2.3.8 cryptography==2.1.3
-  - pip3.6 install git+https://github.com/NBISweden/LocalEGA.git@feature/pgp
+  - pip3.6 install aiohttp==2.3.8 cryptography==2.1.3 psycopg2==2.7.4 aiopg==0.13.2 pika==0.11.0
+  - pip3.6 install git+https://github.com/NBISweden/LocalEGA.git
   - systemctl start ega-keyserver.service
   - systemctl enable ega-keyserver.service
 
