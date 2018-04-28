@@ -88,19 +88,6 @@ cat > ${PRIVATE}/users/taylor.yml <<EOF
 password_hash: $(${OPENSSL} passwd -1 ${EGA_USER_PASSWORD_TAYLOR})
 EOF
 
-mkdir -p ${PRIVATE}/users/{swe1,fin1}
-# They all have access to SWE1
-( # In a subshell
-    cd ${PRIVATE}/users/swe1
-    ln -s ../john.yml .
-    ln -s ../jane.yml .
-    ln -s ../taylor.yml .
-)
-# John has also access to FIN1
-(
-    cd ${PRIVATE}/users/fin1
-    ln -s ../john.yml .
-)
 
 echomsg "Generate SSL certificates for HTTPS"
 ${OPENSSL} req -x509 -newkey rsa:2048 -keyout ${PRIVATE}/cega.key -nodes -out ${PRIVATE}/cega.cert -sha256 -days 1000 -subj "/C=ES/ST=Catalunya/L=Barcelona/O=CEGA/OU=CEGA/CN=CentralEGA/emailAddress=central@ega.org"
@@ -224,6 +211,5 @@ do
 	echo
     } >> ${PRIVATE}/mq_users.sh
 done
-
 
 task_complete "Bootstrap complete"
