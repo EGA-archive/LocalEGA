@@ -34,7 +34,7 @@ git clone https://github.com/NBISweden/LocalEGA-auth.git ~/repo && cd ~/repo/src
 
 pip3.6 uninstall -y lega
 pip3.6 install pika==0.11.0 fusepy
-pip3.6 install git+https://github.com/NBISweden/LocalEGA.git@feature/pgp
+pip3.6 install git+https://github.com/NBISweden/LocalEGA.git
 
 cp /etc/nsswitch.conf /etc/nsswitch.conf.bak
 sed -i -e 's/^passwd:\(.*\)files/passwd:\1files ega/' /etc/nsswitch.conf
@@ -87,8 +87,10 @@ chmod 644 /etc/ega/config
 cat > /etc/hosts.allow <<EOF
 sshd: 192.168.10.0/24 : spawn (/usr/bin/logger -i -p authpriv.info "%d[%p]\: %h (allowed local)")&    : ALLOW
 sshd: 84.88.66.194    : spawn (/usr/bin/logger -i -p authpriv.info "%d[%p]\: %h (allowed fred@crg)")& : ALLOW
+sshd: 139.47.10.197   : spawn (/usr/bin/logger -i -p authpriv.info "%d[%p]\: %h (allowed fred@poblenou)")& : ALLOW
 sshd: .se             : spawn (/usr/bin/logger -i -p authpriv.info "%d[%p]\: %h (allowed .se)")&      : ALLOW
 ega: 84.88.66.194    : spawn (/usr/bin/logger -i -p authpriv.info "%d[%p]\: %h (allowed fred@crg)")& : ALLOW
+ega: 139.47.10.197   : spawn (/usr/bin/logger -i -p authpriv.info "%d[%p]\: %h (allowed fred@poblenou)")& : ALLOW
 ega: .se             : spawn (/usr/bin/logger -i -p authpriv.info "%d[%p]\: %h (allowed .se)")&      : ALLOW
 ALL : ALL             : spawn (/usr/bin/logger -i -p authpriv.info "%d[%p]\: %h (denied)")&           : DENY
 EOF
