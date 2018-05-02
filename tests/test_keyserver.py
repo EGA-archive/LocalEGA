@@ -1,10 +1,9 @@
 import unittest
 from aiohttp.test_utils import AioHTTPTestCase, unittest_run_loop
 from aiohttp import web
-from lega.keyserver import routes, Cache, PGPPrivateKey
+from lega.keyserver import routes, Cache, PGPPrivateKey, ReEncryptionKey
 import datetime
-import io
-from . import openpgp_data
+from . import openpgp_data, rsa_data
 # from unittest import mock
 
 
@@ -110,6 +109,40 @@ class CacheTestCase(unittest.TestCase):
         expected_value = [{"keyID": "test_key", "ttl": '10 days 240 hours 0 minutes 0 seconds'}, {"keyID": "no_ttl", "ttl": "Expiration not set."}]
         self.assertEqual(self._cache.check_ttl(), expected_value)
         self._cache.clear()
+
+
+class PGPLoadTestCase(unittest.TestCase):
+    """KeyServer PGP Key Load
+
+    Testing Loading PGP key."""
+
+    def setUp(self):
+        """Set up PGP key."""
+        self._infile = 'tests/resources/priv.pgp'
+        self._passphrase = openpgp_data.PGP_PASSPHRASE.decode("utf-8")
+        self._pgpdata = PGPPrivateKey(self._infile, self._passphrase)
+
+    def test_key_loaded(self):
+        """Testing the key data was properly loaded."""
+        value = self._pgpdata.load_key()
+        self.assertEqual(value, (openpgp_data.KEY_ID, openpgp_data.PGP_PRIVKEY_MATERIAL))
+
+
+class ReEncryptionLoadTestCase(unittest.TestCase):
+    """KeyServer ReEncryption Key Load
+
+    Testing Loading RSA key."""
+
+    def setUp(self):
+        """Set up PGP key."""
+        self._infile = 'tests/resources/priv.rsa'
+        self._passphrase = None  # Not Encrypted
+        self._rsadata = ReEncryptionKey(rsa_data.KEY_ID, self._infile, self._passphrase)
+
+    def test_key_loaded(self):
+        """Testing the key data was properly loaded."""
+        value = self._rsadata.load_key()
+        self.assertEqual(value, (rsa_data.KEY_ID, rsa_data.RSA_PRIVKEY_MATERIAL))
 
 
 if __name__ == '__main__':
