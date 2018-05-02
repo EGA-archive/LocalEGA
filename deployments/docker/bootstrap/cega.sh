@@ -133,8 +133,13 @@ services:
     command: ["python3.6", "/cega/server.py"]
     environment:
       - LEGA_INSTANCES
-      - CEGA_REST_swe1_PASSWORD
-      - CEGA_REST_fin1_PASSWORD
+EOF
+for INSTANCE in ${INSTANCES}
+do
+    echo "      - CEGA_REST_${INSTANCE}_PASSWORD" >> ${PRIVATE}/cega.yml
+done
+
+cat >> ${PRIVATE}/cega.yml <<EOF
 
   ############################################
   # Fake Eureka server
