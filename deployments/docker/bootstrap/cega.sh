@@ -95,13 +95,7 @@ EGA_USER_PGP_TAYLOR       = ./private/cega/users/pgp/taylor.pub
 EOF
 
 cat > ${PRIVATE}/cega.yml <<EOF
-version: '3.2'
-
-networks:
-    # user overlay in swarm mode
-    # default is bridge
-  cega:
-    driver: bridge
+version: '3.3'
 
 services:
 
@@ -114,50 +108,67 @@ services:
       - "15670:15672"
       - "5672:5672"
     image: rabbitmq:3.6.14-management
-    container_name: cega-mq
-    volumes:
-       - ./cega/mq/defs.json:/etc/rabbitmq/defs.json:ro
-       - ./cega/mq/rabbitmq.config:/etc/rabbitmq/rabbitmq.config:ro
+    configs:
+      - source: cega_defs.json
+        target: /etc/rabbitmq/defs.json
+      - source: cega_rabbitmq.config
+        target: /etc/rabbitmq/rabbitmq.config
     restart: on-failure:3
     networks:
       - cega
 
   cega-users:
-    env_file: cega/env
     image: nbisweden/ega-base
     hostname: cega-users
-    container_name: cega-users
-    #ports:
-    #  - "9100:80"
-    expose:
-      - "80"
+    configs:
+      - source: cega_server.py
+        target: /cega/server.py
+      - source: cega_users.html
+        target: /cega/users.html
     volumes:
       - ./cega/users:/cega/users:rw
-      - ../images/cega/users.html:/cega/users.html
-      - ../images/cega/server.py:/cega/server.py
-      # - ../..:/root/.local/lib/python3.6/site-packages:ro
     restart: on-failure:3
     networks:
       - cega
     command: ["python3.6", "/cega/server.py"]
+    environment:
+      - LEGA_INSTANCES
+      - CEGA_REST_swe1_PASSWORD
+      - CEGA_REST_fin1_PASSWORD
 
   ############################################
   # Fake Eureka server
   ############################################
   cega-eureka:
     hostname: cega-eureka
-    #ports:
-    #  - "8761:8761"
-    expose:
-      - 8761
     image: nbisweden/ega-base
-    container_name: cega-eureka
-    volumes:
-      - ../images/cega/eureka.py:/cega/eureka.py
+    configs:
+      - source: cega_eureka.py
+        target: /cega/eureka.py
     restart: on-failure:3
     networks:
       - cega
     command: ["python3.6", "/cega/eureka.py"]
+
+networks:
+  cega:
+    external: true
+
+volumes:
+  cega_users:
+    external: true
+
+configs:
+  cega_defs.json:
+    external: true
+  cega_rabbitmq.config:
+    external: true
+  cega_eureka.py:
+    external: true
+  cega_server.py:
+    external: true
+  cega_users.html:
+    external: true
 EOF
 
 # For the compose file
