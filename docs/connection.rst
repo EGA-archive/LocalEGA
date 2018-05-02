@@ -10,7 +10,7 @@ on network failure or connection problems. Naturally, this is configurable.
 
 The RabbitMQ message brokers of each LocalEGA are the **only**
 components with the necessary credentials to connect to Central
-EGA. The other LocalEGA components can not.
+EGA, the other LocalEGA components are not.
 
 We call ``CegaMQ`` and ``LegaMQ``, the RabbitMQ message brokers of,
 respectively, Central EGA and Local EGA.
@@ -144,7 +144,7 @@ JSON-formatted and contain the following fields:
 
 where ``user``, ``filepath`` and ``stable_id`` are compulsory.
 
-Local EGA instances must return messages containing:
+LocalEGA instances must return messages containing:
 
 * ``user``
 * ``filepath``
@@ -161,7 +161,8 @@ For example, CentralEGA could send:
 
 .. code-block:: json
 
-    { "user": "john",
+    {
+      "user": "john",
       "filepath": "somedir/encrypted.file.gpg",
       "stable_id": "EGAF0123456789012345"
     }
@@ -170,10 +171,14 @@ and LocalEGA could respond with:
 
 .. code-block:: json
 
-    { "user": "john",
-      "filepath": "somedir/encrypted.file.gpg",
-      "status": { "state": "COMPLETED", "details": "File ingested, refer to it with EGAF0123456789012345" }
-    }
+		{
+		   "user":"john",
+		   "filepath":"somedir/encrypted.file.gpg",
+		   "status":{
+		      "state":"COMPLETED",
+		      "details":"File ingested, refer to it with EGAF0123456789012345"
+		   }
+		}
 
 
 .. |connect| unicode:: U+21cc .. <->
