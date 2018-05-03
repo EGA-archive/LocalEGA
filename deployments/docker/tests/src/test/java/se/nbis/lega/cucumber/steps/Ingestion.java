@@ -1,6 +1,5 @@
 package se.nbis.lega.cucumber.steps;
 
-import com.github.dockerjava.api.model.Container;
 import cucumber.api.java8.En;
 import lombok.extern.slf4j.Slf4j;
 import org.assertj.core.api.Assertions;
@@ -34,17 +33,11 @@ public class Ingestion implements En {
             }
         });
 
-        When("^I turn off the keyserver$", () -> {
-            Container keysContainer = utils.findContainer(utils.getProperty("images.name.keys"),
-                    utils.getProperty("container.prefix.keys") + context.getTargetInstance());
-            utils.stopContainer(keysContainer);
-        });
+        When("^I turn off the keyserver$", () -> utils.stopContainer(utils.findContainer(utils.getProperty("images.name.keys"),
+                utils.getProperty("container.prefix.keys") + context.getTargetInstance())));
 
-        When("^I turn on the keyserver$", () -> {
-            Container keysContainer = utils.findContainer(utils.getProperty("images.name.keys"),
-                    utils.getProperty("container.prefix.keys") + context.getTargetInstance());
-            utils.startContainer(keysContainer);
-        });
+        When("^I turn on the keyserver$", () -> utils.startContainer(utils.findContainer(utils.getProperty("images.name.keys"),
+                utils.getProperty("container.prefix.keys") + context.getTargetInstance())));
 
         When("^I ingest file from the LocalEGA inbox using correct ([^\"]*) checksums$", (String algorithm) -> {
             try {
