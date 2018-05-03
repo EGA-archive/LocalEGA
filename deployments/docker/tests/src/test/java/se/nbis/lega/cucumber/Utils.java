@@ -188,6 +188,24 @@ public class Utils {
     }
 
     /**
+     * Starts container.
+     *
+     * @param container Container to be started.
+     */
+    public void startContainer(Container container) {
+        dockerClient.startContainerCmd(container.getId()).exec();
+    }
+
+    /**
+     * Stops container.
+     *
+     * @param container Container to be stopped.
+     */
+    public void stopContainer(Container container) {
+        dockerClient.stopContainerCmd(container.getId()).exec();
+    }
+
+    /**
      * Calculates hash of a file.
      *
      * @param file             File to calculate hash for.
