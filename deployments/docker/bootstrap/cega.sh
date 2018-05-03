@@ -177,4 +177,10 @@ configs:
 EOF
 
 # For the compose file
-echo -n "private/cega.yml" >> ${DOT_ENV} # no newline
+echo -n "${PRIVATE}/cega.yml" >> ${DOT_ENV} # no newline
+
+docker config create cega_defs.json ${PRIVATE}/cega/mq/defs.json || echomsg "cega_defs.json config exists"
+docker config create cega_rabbitmq.config ${PRIVATE}/cega/mq/rabbitmq.config || echomsg "cega_rabbitmq.config config exists"
+docker config create cega_eureka.py ${PRIVATE}/../images/cega/eureka.py || echomsg "cega_eureka.py config exists"
+docker config create cega_server.py ${PRIVATE}/../images/cega/server.py || echomsg "cega_server.py config exists"
+docker config create cega_users.html ${PRIVATE}/../images/cega/users.html || echomsg "cega_users.html config exists"

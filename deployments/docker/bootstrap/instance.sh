@@ -335,7 +335,7 @@ EOF
 # Creating the docker-compose file
 #########################################################################
 cat >> ${PRIVATE}/ega_${INSTANCE}.yml <<EOF
-version: '3.2'
+version: '3.3'
 
 networks:
   lega_${INSTANCE}:

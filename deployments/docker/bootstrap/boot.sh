@@ -59,6 +59,9 @@ cat >> ${PRIVATE}/cega/env <<EOF
 LEGA_INSTANCES=${INSTANCES// /,}
 EOF
 
+# Central EGA Message Broker. Must be run after the instances
+source ${HERE}/cega_mq.sh
+
 # Central EGA Users and Eureka server
 source ${HERE}/cega.sh
 
@@ -68,8 +71,5 @@ do
     echomsg "Generating private data for ${INSTANCE} [Default in ${SETTINGS}/${INSTANCE}]"
     source ${HERE}/instance.sh
 done
-
-# Central EGA Message Broker. Must be run after the instances
-source ${HERE}/cega_mq.sh
 
 task_complete "Bootstrap complete"

@@ -9,6 +9,8 @@ help:
 private/cega.yml private/ega_swe1.yml private/ega_fin1.yml private bootstrap:
 	@docker run --rm -it \
 		    -v /dev/urandom:/dev/random \
+		    -v /var/run/docker.sock:/var/run/docker.sock \
+		    -v $(shell which docker):/bin/docker \
 		    -v ${PWD}:/ega \
 		    -v ${PWD}/../../extras/db.sql:/tmp/db.sql \
 		    -v ${PWD}/../../extras/generate_pgp_key.py:/tmp/generate_pgp_key.py \
