@@ -189,4 +189,4 @@ Feature: Ingestion
     And I ingest file from the LocalEGA inbox without providing checksums
     And I turn on the database
     When I retrieve ingestion information
-    Then the ingestion status is "Error"
+    Then the ingestion status is "DBError"

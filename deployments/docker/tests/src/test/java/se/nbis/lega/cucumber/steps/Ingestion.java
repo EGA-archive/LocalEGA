@@ -131,7 +131,7 @@ public class Ingestion implements En {
                 context.setIngestionInformation(ingestionInformation);
             } catch (Exception e) {
                 log.error(e.getMessage(), e);
-                context.setIngestionInformation(Collections.singletonMap("status", "Error"));
+                context.setIngestionInformation(Collections.singletonMap("status", "DBError"));
             }
         });
 
