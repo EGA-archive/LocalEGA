@@ -43,6 +43,12 @@ public class Ingestion implements En {
         When("^I turn on the database", () -> utils.startContainer(utils.findContainer(utils.getProperty("images.name.db"),
                 utils.getProperty("container.prefix.db") + context.getTargetInstance())));
 
+        When("^I turn off the vault listener", () -> utils.stopContainer(utils.findContainer(utils.getProperty("images.name.mq"),
+                utils.getProperty("container.prefix.mq") + context.getTargetInstance())));
+
+        When("^I turn on the vault listener", () -> utils.startContainer(utils.findContainer(utils.getProperty("images.name.mq"),
+                utils.getProperty("container.prefix.mq") + context.getTargetInstance())));
+
         When("^I ingest file from the LocalEGA inbox using correct ([^\"]*) checksums$", (String algorithm) -> {
             try {
                 HashingAlgorithm hashingAlgorithm = HashingAlgorithm.valueOf(algorithm);
@@ -129,9 +135,11 @@ public class Ingestion implements En {
                     ingestionInformation.put(header.get(i), fields.get(i));
                 }
                 context.setIngestionInformation(ingestionInformation);
-            } catch (Exception e) {
+            } catch (IndexOutOfBoundsException e) {
+                context.setIngestionInformation(Collections.singletonMap("status", "NoEntry"));
+            } catch (InterruptedException | IOException e) {
                 log.error(e.getMessage(), e);
-                context.setIngestionInformation(Collections.singletonMap("status", "DBError"));
+                Assert.fail(e.getMessage());
             }
         });
 
