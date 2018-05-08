@@ -94,6 +94,7 @@ class EurekaRequests:
             'Content-Type': 'application/json',
         }
 
+    @retry_loop(on_failure=_do_exit)
     async def out_of_service(self, app_name, instance_id):
         """Take an instance out of service."""
         url = f'{self._eureka_url}/apps/{app_name}/{instance_id}/status?value={eureka_status[3]}'
@@ -145,6 +146,8 @@ class EurekaRequests:
             async with session.get(url) as resp:
                 if resp.status == 200:
                     return await resp.json()
+                else:
+                    return await resp.text()
 
 
 class EurekaClient(EurekaRequests):
@@ -202,6 +205,7 @@ class EurekaClient(EurekaRequests):
         LOG.debug('Registering %s', self._app_name)
         async with aiohttp.ClientSession(headers=self._headers) as session:
             async with session.post(url, data=json.dumps(payload)) as resp:
+                return resp.status
                 LOG.debug('Eureka register response %s' % resp.status)
 
     @retry_loop(on_failure=_do_exit)
@@ -211,6 +215,7 @@ class EurekaClient(EurekaRequests):
         LOG.debug('Renew lease for %s', self._app_name)
         async with aiohttp.ClientSession(headers=self._headers) as session:
             async with session.put(url) as resp:
+                return resp.status
                 LOG.debug('Eureka renew response %s' % resp.status)
 
     @retry_loop(on_failure=_do_exit)
@@ -220,15 +225,17 @@ class EurekaClient(EurekaRequests):
         LOG.debug('Deregister %s', self._app_name)
         async with aiohttp.ClientSession(headers=self._headers) as session:
             async with session.delete(url) as resp:
+                return resp.status
                 LOG.debug('Eureka deregister response %s' % resp.status)
 
-    @retry_loop
+    @retry_loop(on_failure=_do_exit)
     async def update_metadata(self, key, value):
         """Update metadata of application."""
         url = f'{self._eureka_url}/apps/{self._app_name}/{self._instance_id}/metadata?{key}={value}'
         LOG.debug(f'Update metadata for {self._app_name} instance {self._instance_id}')
         async with aiohttp.ClientSession(headers=self._headers) as session:
             async with session.put(url) as resp:
+                return resp.status
                 LOG.debug('Eureka update metadata response %s' % resp.status)
 
     def _generate_instance_id(self):
