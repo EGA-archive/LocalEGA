@@ -1,5 +1,7 @@
 package se.nbis.lega.cucumber.steps;
 
+import com.github.dockerjava.api.exception.ConflictException;
+import com.github.dockerjava.api.exception.InternalServerErrorException;
 import cucumber.api.java8.En;
 import lombok.extern.slf4j.Slf4j;
 import org.assertj.core.api.Assertions;
@@ -9,10 +11,7 @@ import se.nbis.lega.cucumber.Context;
 import se.nbis.lega.cucumber.Utils;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -32,6 +31,24 @@ public class Ingestion implements En {
                 Assert.fail(e.getMessage());
             }
         });
+
+        When("^I turn off the keyserver$", () -> utils.stopContainer(utils.findContainer(utils.getProperty("images.name.keys"),
+                utils.getProperty("container.prefix.keys") + context.getTargetInstance())));
+
+        When("^I turn on the keyserver$", () -> utils.startContainer(utils.findContainer(utils.getProperty("images.name.keys"),
+                utils.getProperty("container.prefix.keys") + context.getTargetInstance())));
+
+        When("^I turn off the database", () -> utils.stopContainer(utils.findContainer(utils.getProperty("images.name.db"),
+                utils.getProperty("container.prefix.db") + context.getTargetInstance())));
+
+        When("^I turn on the database", () -> utils.startContainer(utils.findContainer(utils.getProperty("images.name.db"),
+                utils.getProperty("container.prefix.db") + context.getTargetInstance())));
+
+        When("^I turn off the vault listener", () -> utils.stopContainer(utils.findContainer(utils.getProperty("images.name.mq"),
+                utils.getProperty("container.prefix.mq") + context.getTargetInstance())));
+
+        When("^I turn on the vault listener", () -> utils.startContainer(utils.findContainer(utils.getProperty("images.name.mq"),
+                utils.getProperty("container.prefix.mq") + context.getTargetInstance())));
 
         When("^I ingest file from the LocalEGA inbox using correct ([^\"]*) checksums$", (String algorithm) -> {
             try {
@@ -119,7 +136,9 @@ public class Ingestion implements En {
                     ingestionInformation.put(header.get(i), fields.get(i));
                 }
                 context.setIngestionInformation(ingestionInformation);
-            } catch (IOException | InterruptedException e) {
+            } catch (IndexOutOfBoundsException e) {
+                context.setIngestionInformation(Collections.singletonMap("status", "NoEntry"));
+            } catch (InterruptedException | IOException e) {
                 log.error(e.getMessage(), e);
                 Assert.fail(e.getMessage());
             }
@@ -171,9 +190,13 @@ public class Ingestion implements En {
     }
 
     private String getIngestionStatus(Context context, Utils utils) throws IOException, InterruptedException {
-        String output = utils.executeDBQuery(context.getTargetInstance(),
-                String.format("select status from files where filename = '%s'", context.getEncryptedFile().getName()));
-        return output.split(System.getProperty("line.separator"))[2].trim();
+        try {
+            String output = utils.executeDBQuery(context.getTargetInstance(),
+                    String.format("select status from files where filename = '%s'", context.getEncryptedFile().getName()));
+            return output.split(System.getProperty("line.separator"))[2].trim();
+        } catch (InternalServerErrorException | ConflictException e) {
+            return "Error";
+        }
     }
 
 }
