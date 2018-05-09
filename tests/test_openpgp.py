@@ -133,7 +133,7 @@ def test_keyid_for_privkey_bin():
     assert( key_id == openpgp_data.KEY_ID )
 
 def test_generate_pgp():
-    """Test genration of PGP armored key tuple."""
+    """Test generation of PGP armored key tuple."""
     key_pair = generate_pgp_key("name", "example@example.com", "No comment.")
     # Testing that it generates a tuple
     assert isinstance(key_pair, tuple)
