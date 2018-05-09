@@ -131,5 +131,9 @@ class EurekaClientTest(unittest.TestCase):
     @mock.patch('lega.utils.eureka.LOG')
     def test_connection_error(self, mock_logger):
         """Assert connection error."""
+<<<<<<< HEAD
+=======
+        # with self.assertRaises(aiohttp.ClientError):
+>>>>>>> 17db32876063689a6e43a643fb5477be3e4e5a3d
         self._loop.run_until_complete(self._eurekaclient.update_metadata('test', 'value'))
         mock_logger.error.assert_called_with("Could not connect to the Eureka.")
