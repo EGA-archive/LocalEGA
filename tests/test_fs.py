@@ -1,6 +1,7 @@
 import unittest
-from lega.fs import LegaFS
+from lega.fs import LegaFS, FuseOSError
 from unittest import mock
+import errno
 
 
 class TestLegaFS(unittest.TestCase):
@@ -10,13 +11,33 @@ class TestLegaFS(unittest.TestCase):
 
     def setUp(self):
         """Setting things up."""
-        connection = mock.MagicMock()
-        connection.channel.return_value = "test"
-        self._fs = LegaFS("/root/is/this/", "user", connection)
+        self._fs = LegaFS("/root/is/this/", "user", 'broker')
+
+    # Testing these is really optional, but good to do.
 
     @mock.patch('os.path.join')
-    def test_real_path(self, mockedjoin):
+    def test_real_path(self, mocked):
         """Test retrieve real path."""
-        mockedjoin.return_value = "/root/is/this/dir/to/use"
+        mocked.return_value = "/root/is/this/dir/to/use"
         result = self._fs._real_path('/dir/to/use')
         assert result == "/root/is/this/dir/to/use"
+
+    @mock.patch('os.lstat')
+    def test_getattr(self, mocked):
+        """Test get file attributes."""
+        mocked.return_value = mock.Mock(st_mode=33188, st_ino=14551755, st_dev=64768, st_nlink=1,
+                                        st_uid=90393, st_gid=101, st_size=4170, st_atime=1525082089,
+                                        st_mtime=1525081721, st_ctime=1525081724)
+        expected_result = {'st_uid': 90393, 'st_gid': 101, 'st_mode': 33188, 'st_size': 4170, 'st_nlink': 1,
+                           'st_atime': 1525082089, 'st_ctime': 1525081724, 'st_mtime': 1525081721}
+        result = self._fs.getattr('/dir/to/use')
+        assert result == expected_result
+
+    @mock.patch('os.access')
+    def test_no_access(self, mocked):
+        """Raise FuseOSError as user does not have access."""
+        # if this was not tested the errno missing module
+        # would not have been spotted
+        mocked.return_value = False
+        with self.assertRaises(FuseOSError):
+            self._fs.access('/some/paht', 'rb')
