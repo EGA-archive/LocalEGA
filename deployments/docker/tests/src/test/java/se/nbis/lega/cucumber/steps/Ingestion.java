@@ -1,5 +1,6 @@
 package se.nbis.lega.cucumber.steps;
 
+import com.github.dockerjava.api.exception.ConflictException;
 import com.github.dockerjava.api.exception.InternalServerErrorException;
 import cucumber.api.java8.En;
 import lombok.extern.slf4j.Slf4j;
@@ -193,7 +194,7 @@ public class Ingestion implements En {
             String output = utils.executeDBQuery(context.getTargetInstance(),
                     String.format("select status from files where filename = '%s'", context.getEncryptedFile().getName()));
             return output.split(System.getProperty("line.separator"))[2].trim();
-        } catch (InternalServerErrorException e) {
+        } catch (InternalServerErrorException | ConflictException e) {
             return "Error";
         }
     }
