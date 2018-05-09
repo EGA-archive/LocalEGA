@@ -1,7 +1,12 @@
 import unittest
+<<<<<<< HEAD
 from lega.fs import LegaFS, FuseOSError
 from unittest import mock
 import errno
+=======
+from lega.fs import LegaFS
+from unittest import mock
+>>>>>>> 17db32876063689a6e43a643fb5477be3e4e5a3d
 
 
 class TestLegaFS(unittest.TestCase):
@@ -11,6 +16,7 @@ class TestLegaFS(unittest.TestCase):
 
     def setUp(self):
         """Setting things up."""
+<<<<<<< HEAD
         self._fs = LegaFS("/root/is/this/", "user", 'broker')
 
     # Testing these is really optional, but good to do.
@@ -41,3 +47,15 @@ class TestLegaFS(unittest.TestCase):
         mocked.return_value = False
         with self.assertRaises(FuseOSError):
             self._fs.access('/some/paht', 'rb')
+=======
+        connection = mock.MagicMock()
+        connection.channel.return_value = "test"
+        self._fs = LegaFS("/root/is/this/", "user", connection)
+
+    @mock.patch('os.path.join')
+    def test_real_path(self, mockedjoin):
+        """Test retrieve real path."""
+        mockedjoin.return_value = "/root/is/this/dir/to/use"
+        result = self._fs._real_path('/dir/to/use')
+        assert result == "/root/is/this/dir/to/use"
+>>>>>>> 17db32876063689a6e43a643fb5477be3e4e5a3d
