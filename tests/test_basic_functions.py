@@ -5,6 +5,8 @@ import unittest
 from unittest import mock
 from lega.utils import get_file_content, sanitize_user_id
 import io
+from testfixtures import tempdir
+from . import openpgp_data
 
 
 class TestBasicFunctions(unittest.TestCase):
@@ -24,12 +26,14 @@ class TestBasicFunctions(unittest.TestCase):
         with self.assertRaises(UnsupportedHashAlgorithm):
             instantiate('unkownAlg')
 
-    def test_calculate(self):
+    @tempdir()
+    def test_calculate(self, dir):
         """Test Computes the checksum of the file-object."""
-        with open('tests/resources/priv.pgp', 'rb') as file_data:
+        path = dir.write('priv.pgp', openpgp_data.PGP_PRIVKEY.encode('utf-8'))
+        with open(path, 'rb') as file_data:
             data = file_data.read()
             file_hash = (hashlib.md5)(data).hexdigest()
-        assert calculate('tests/resources/priv.pgp', 'md5') == file_hash
+        assert calculate(path, 'md5') == file_hash
 
     def test_calculate_error(self):
         """Test nonexisting file."""
