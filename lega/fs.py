@@ -20,6 +20,7 @@ import os
 import logging
 import argparse
 import stat
+import errno
 
 from fuse import FUSE, FuseOSError, Operations
 
