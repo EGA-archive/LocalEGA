@@ -4,6 +4,8 @@ from aiohttp import web
 from lega.keyserver import routes, Cache, PGPPrivateKey, ReEncryptionKey
 import datetime
 from . import openpgp_data, rsa_data
+from testfixtures import TempDirectory
+import os
 # from unittest import mock
 
 
@@ -118,14 +120,16 @@ class PGPLoadTestCase(unittest.TestCase):
 
     def setUp(self):
         """Set up PGP key."""
-        self._infile = 'tests/resources/priv.pgp'
-        self._passphrase = openpgp_data.PGP_PASSPHRASE.decode("utf-8")
-        self._pgpdata = PGPPrivateKey(self._infile, self._passphrase)
+        pass
 
     def test_key_loaded(self):
         """Testing the key data was properly loaded."""
-        value = self._pgpdata.load_key()
-        self.assertEqual(value, (openpgp_data.KEY_ID, openpgp_data.PGP_PRIVKEY_MATERIAL))
+        _passphrase = openpgp_data.PGP_PASSPHRASE.decode("utf-8")
+        with TempDirectory() as dir:
+            dir.write('priv.pgp', openpgp_data.PGP_PRIVKEY.encode('utf-8'))
+            self._pgpdata = PGPPrivateKey(os.path.join(dir.path, 'priv.pgp'), _passphrase)
+            value = self._pgpdata.load_key()
+            self.assertEqual(value, (openpgp_data.KEY_ID, openpgp_data.PGP_PRIVKEY_MATERIAL))
 
 
 class ReEncryptionLoadTestCase(unittest.TestCase):
@@ -135,14 +139,16 @@ class ReEncryptionLoadTestCase(unittest.TestCase):
 
     def setUp(self):
         """Set up PGP key."""
-        self._infile = 'tests/resources/priv.rsa'
-        self._passphrase = None  # Not Encrypted
-        self._rsadata = ReEncryptionKey(rsa_data.KEY_ID, self._infile, self._passphrase)
+        pass
 
     def test_key_loaded(self):
         """Testing the key data was properly loaded."""
-        value = self._rsadata.load_key()
-        self.assertEqual(value, (rsa_data.KEY_ID, rsa_data.RSA_PRIVKEY_MATERIAL))
+        _passphrase = None  # Not Encrypted
+        with TempDirectory() as dir:
+            dir.write('priv.rsa', rsa_data.RSA_PRIVKEY.encode('utf-8'))
+            _rsadata = ReEncryptionKey(rsa_data.KEY_ID, os.path.join(dir.path, 'priv.rsa'), _passphrase)
+            value = _rsadata.load_key()
+            self.assertEqual(value, (rsa_data.KEY_ID, rsa_data.RSA_PRIVKEY_MATERIAL))
 
 
 if __name__ == '__main__':
