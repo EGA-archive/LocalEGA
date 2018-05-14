@@ -2,6 +2,7 @@
 
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/3dd83b28ec2041889bfb13641da76c5b)](https://www.codacy.com/app/NBIS/LocalEGA?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=NBISweden/LocalEGA&amp;utm_campaign=Badge_Grade)
 [![Build Status](https://travis-ci.org/NBISweden/LocalEGA.svg?branch=dev)](https://travis-ci.org/NBISweden/LocalEGA)
+[![Coverage Status](https://coveralls.io/repos/github/NBISweden/LocalEGA/badge.svg?branch=dev)](https://coveralls.io/github/NBISweden/LocalEGA?branch=dev)
 
 The [code](lega) is written in Python (3.6+).
 

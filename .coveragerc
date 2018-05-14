@@ -10,6 +10,7 @@ omit =
     lega/openpgp/constants.py
     lega/openpgp/__init__.py
     lega/utils/exceptions.py
+    lega/utils/logging.py
 
     # For now this should not be tested
     lega/outgest.py
