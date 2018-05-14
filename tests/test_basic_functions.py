@@ -15,7 +15,7 @@ class TestBasicFunctions(unittest.TestCase):
     Suite of basic tests for various functions."""
 
     def test_instantiate(self):
-        """Test instantiate algorithm."""
+        """Instantiate algorithm."""
         m1 = instantiate('md5')
         m2 = instantiate('sha256')
         data = 'data'.encode('utf-8')
@@ -28,12 +28,13 @@ class TestBasicFunctions(unittest.TestCase):
 
     @tempdir()
     def test_calculate(self, dir):
-        """Test Computes the checksum of the file-object."""
+        """Compute the checksum of the file-object."""
         path = dir.write('priv.pgp', openpgp_data.PGP_PRIVKEY.encode('utf-8'))
         with open(path, 'rb') as file_data:
             data = file_data.read()
             file_hash = (hashlib.md5)(data).hexdigest()
         assert calculate(path, 'md5') == file_hash
+        dir.cleanup()
 
     def test_calculate_error(self):
         """Test nonexisting file."""
@@ -46,13 +47,13 @@ class TestBasicFunctions(unittest.TestCase):
         assert is_valid('file/path', '20655cb038a3e76e5f27749a028101e7', 'md5') is True
 
     def test_companion_not_found(self):
-        """Test companion file not found."""
+        """Companion file not found."""
         with self.assertRaises(CompanionNotFound):
             get_from_companion('tests/resources/priv.pgp')
 
     @mock.patch('lega.utils.open')
     def test_get_file_content(self, mocked: mock.MagicMock):
-        """Testing reading file contents."""
+        """Reading file contents."""
         testStream = io.BytesIO()
         testStream.write(b'T.M.')
         testStream.seek(0)
@@ -60,11 +61,11 @@ class TestBasicFunctions(unittest.TestCase):
         assert 'T.M.' == get_file_content('data/file')
 
     def test_get_file_fail(self):
-        """Test reading file error. File does not exist."""
+        """Reading file error. File does not exist."""
         assert get_file_content('data/notexists.file') is None
 
     def test_sanitize_user_id(self):
-        """Test Sanitize User id."""
+        """Sanitize User id."""
         # A good test would be to see if it actually ends in @elixir-europe.org
         # because currently the function does not
         assert sanitize_user_id('user_1245@elixir-europe.org') == 'user_1245'
