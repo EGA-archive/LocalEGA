@@ -72,6 +72,12 @@ class KeyserverTestCase(AioHTTPTestCase):
         assert pgp_resp.status == 404
         assert rsa_resp.status == 404
 
+    @unittest_run_loop
+    async def test_admin_ttl_not_found(self):
+        """Admin ttl bad request."""
+        rsa_resp = await self.client.request("GET", "/admin/ttl")
+        assert rsa_resp.status == 400
+
 
 class CacheTestCase(unittest.TestCase):
     """KeyServer Cache
@@ -122,6 +128,10 @@ class PGPLoadTestCase(unittest.TestCase):
         """Set up PGP key."""
         pass
 
+    def teardown():
+        """Clean up temp directories."""
+        TempDirectory.cleanup_all()
+
     def test_key_loaded(self):
         """Testing the key data was properly loaded."""
         _passphrase = openpgp_data.PGP_PASSPHRASE.decode("utf-8")
@@ -140,6 +150,10 @@ class ReEncryptionLoadTestCase(unittest.TestCase):
     def setUp(self):
         """Set up PGP key."""
         pass
+
+    def teardown():
+        """Clean up temp directories."""
+        TempDirectory.cleanup_all()
 
     def test_key_loaded(self):
         """Testing the key data was properly loaded."""
