@@ -1,28 +1,30 @@
-'''OpenPGP
+"""OpenPGP
 
-Testing that the openpgp utilities with a given set of public/private keys and a simple file to decrypt'''
+Testing that the openpgp utilities with a given set of public/private keys and a simple file to decrypt."""
 import unittest
 import io
-from unittest.mock import patch, MagicMock
+from unittest import mock
 from lega.openpgp.packet import iter_packets
-from lega.openpgp.generate import generate_pgp_key
+from lega.openpgp.generate import generate_pgp_key, output_key
 from lega.openpgp.utils import make_key, unarmor
 from lega.openpgp.__main__ import fetch_private_key
 from . import openpgp_data
 import json
+import os
+from testfixtures import OutputCapture, tempdir, compare
 
 
 class PatchContextManager:
     """Following: https://stackoverflow.com/a/32127557 example."""
 
     def __init__(self, method, enter_return, exit_return=False):
-        self._patched = patch(method)
+        self._patched = mock.patch(method)
         self._enter_return = enter_return
         self._exit_return = exit_return
 
     def __enter__(self):
         res = self._patched.__enter__()
-        res.context = MagicMock()
+        res.context = mock.MagicMock()
         res.context.__enter__.return_value = self._enter_return
         res.context.__exit__.return_value = self._exit_return
         res.return_value = res.context
@@ -32,7 +34,7 @@ class PatchContextManager:
         return self._patched.__exit__()
 
 
-@patch('lega.openpgp.__main__.CONF.get')
+@mock.patch('lega.openpgp.__main__.CONF.get')
 def test_fetch_from_keyserver(mockedget):
     """Fetch key from keyserver."""
     mockedget.return_value = 'https://ega-keys/retrieve/pgp/%s'
@@ -52,6 +54,7 @@ def util_fetch_private_key(key_id):
             packet.skip()
     return make_key(data)
 
+
 def test_session_key():
     '''Retrieve the session key
 
@@ -67,6 +70,7 @@ def test_session_key():
             packet.skip()
 
     assert( session_key.hex().upper() == openpgp_data.SESSION_KEY )
+
 
 def test_decryption():
     '''Decrypt an encrypted file and match with its original.'''
@@ -84,6 +88,7 @@ def test_decryption():
                 packet.skip()
     assert( output.getvalue() == openpgp_data.ORG_FILE )
 
+
 def test_keyid_for_pubkey():
     '''Get the keyID from armored pub key.'''
     infile = io.BytesIO(openpgp_data.PGP_PUBKEY.encode())
@@ -95,6 +100,7 @@ def test_keyid_for_pubkey():
         else:
             packet.skip()
     assert( key_id == openpgp_data.KEY_ID )
+
 
 def test_keyid_for_pubkey_bin():
     '''Get the keyID from binary pub key.'''
@@ -120,6 +126,7 @@ def test_keyid_for_privkey():
             packet.skip()
     assert( key_id == openpgp_data.KEY_ID )
 
+
 def test_keyid_for_privkey_bin():
     '''Get the keyID from binary priv key.'''
     infile = io.BytesIO(bytes.fromhex(openpgp_data.PGP_PRIVKEY_BIN))
@@ -132,6 +139,7 @@ def test_keyid_for_privkey_bin():
             packet.skip()
     assert( key_id == openpgp_data.KEY_ID )
 
+
 def test_generate_pgp():
     """Test generation of PGP armored key tuple."""
     key_pair = generate_pgp_key("name", "example@example.com", "No comment.")
@@ -140,6 +148,32 @@ def test_generate_pgp():
     # Testing the armored structure
     assert key_pair[0].startswith('-----BEGIN PGP PUBLIC KEY BLOCK-----\n')
     assert key_pair[1].startswith('-----BEGIN PGP PRIVATE KEY BLOCK-----\n')
+
+
+def test_generate_pgp_password():
+    """Test generation of PGP armored key tuple with password."""
+    key_pair = generate_pgp_key("name", "example@example.com", "No comment.", "12345")
+    # Testing that it generates a tuple
+    assert isinstance(key_pair, tuple)
+    # Testing the armored structure
+    assert key_pair[0].startswith('-----BEGIN PGP PUBLIC KEY BLOCK-----\n')
+    assert key_pair[1].startswith('-----BEGIN PGP PRIVATE KEY BLOCK-----\n')
+
+
+def test_output_key_stdout():
+    """Test output PGP key to stdout."""
+    with OutputCapture() as out:
+        output_key(None, openpgp_data.PGP_PRIVKEY)
+        out.compare(openpgp_data.PGP_PRIVKEY)
+
+
+@tempdir()
+def test_output_key_file(dir):
+    """Test output PGP key to file."""
+    dir.write('test.pgp', openpgp_data.PGP_PRIVKEY.encode('utf-8'))
+    output_key(os.path.join(dir.path, 'file.pgp'), openpgp_data.PGP_PRIVKEY)
+    compare(dir.read('test.pgp'), dir.read('file.pgp'))
+    dir.cleanup()
 
 
 if __name__ == '__main__':
