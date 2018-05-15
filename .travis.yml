@@ -10,7 +10,7 @@ stages:
   - name: unit_tests
     if: type IN (push, pull_request)
   - name: integration_tests
-    if: type IN (pull_request)
+    if: type IN (push, pull_request)
 
 jobs:
   include:
@@ -20,11 +20,8 @@ jobs:
         - pip install tox-travis
       # command to run tests
       script: tox
-    - stage: integration_tests
+    - stage: integration_tests_common
       before_script:
-        # https://elk-docker.readthedocs.io/#es-not-starting-max-map-count
-        # mostly used by ELK stack; Solving issue #252
-        # - sudo sysctl -w vm.max_map_count=262144
         - cd deployments/docker
         - make bootstrap
         - sudo chown -R travis private
@@ -34,7 +31,19 @@ jobs:
       script:
         - sleep 10
         - cd tests
-        - mvn test -B
+        - mvn test -Dtest=CommonTests -B
+    - stage: integration_tests_robustness
+      before_script:
+        - cd deployments/docker
+        - make bootstrap
+        - sudo chown -R travis private
+        - docker network create cega
+        - docker-compose up -d ${DOCKER_CONTAINERS}
+        - docker-compose ps
+      script:
+        - sleep 10
+        - cd tests
+        - mvn test -Dtest=RobustnessTests -B
 
 notifications:
   email: false
