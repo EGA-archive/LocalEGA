@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.Properties;
 
 /**
@@ -191,18 +192,50 @@ public class Utils {
      * Starts container.
      *
      * @param container Container to be started.
+     * @return Container.
      */
-    public void startContainer(Container container) {
+    public Container startContainer(Container container) {
         dockerClient.startContainerCmd(container.getId()).exec();
+        return container;
     }
 
     /**
      * Stops container.
      *
      * @param container Container to be stopped.
+     * @return Container.
      */
-    public void stopContainer(Container container) {
+    public Container stopContainer(Container container) {
         dockerClient.stopContainerCmd(container.getId()).exec();
+        return container;
+    }
+
+    /**
+     * Restarts all the LocalEGA containers (the ones that starts with `ega-` or `ega-` prefix).
+     */
+    public void restartAllLocalEGAContainers() {
+        dockerClient.listContainersCmd().withShowAll(true).exec().
+                stream().
+                filter(c -> Arrays.stream(c.getNames()).anyMatch(n -> n.startsWith("/" + getProperty("container.prefix") + "-")
+                        || n.startsWith("/" + getProperty("container.prefix") + "_"))).
+                peek(this::stopContainer).
+                peek(c -> safeSleep(5000)).
+                peek(this::startContainer).
+                forEach(c -> safeSleep(5000));
+        safeSleep(10000);
+    }
+
+    /**
+     * Sleeps for some time without throwing an exception (to make it easier to use in lambdas).
+     *
+     * @param millis Time to sleep in milliseconds.
+     */
+    private void safeSleep(long millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException e) {
+            log.error(e.getMessage(), e);
+        }
     }
 
     /**
