@@ -219,7 +219,14 @@ public class Utils {
                 filter(c -> Arrays.stream(c.getNames()).anyMatch(n -> n.startsWith("/" + getProperty("container.prefix") + "-")
                         || n.startsWith("/" + getProperty("container.prefix") + "_"))).
                 peek(this::stopContainer).
-                forEach(this::startContainer);
+                peek(this::startContainer).
+                forEach(c -> {
+                    try {
+                        Thread.sleep(5000);
+                    } catch (InterruptedException e) {
+                        log.error(e.getMessage(), e);
+                    }
+                });
     }
 
     /**
