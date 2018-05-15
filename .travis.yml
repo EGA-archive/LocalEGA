@@ -7,20 +7,20 @@ services: docker
 # command to install dependencies
 
 stages:
-  - name: unit_tests
+  - name: unit tests
     if: type IN (push, pull_request)
-  - name: integration_tests
+  - name: integration tests
     if: type IN (push, pull_request)
 
 jobs:
   include:
-    - stage: unit_tests
+    - stage: unit tests
       python: 3.6
       before_script:
         - pip install tox-travis
       # command to run tests
       script: tox
-    - stage: integration_tests_common
+    - stage: integration tests
       before_script:
         - cd deployments/docker
         - make bootstrap
@@ -32,7 +32,7 @@ jobs:
         - sleep 10
         - cd tests
         - mvn test -Dtest=CommonTests -B
-    - stage: integration_tests_robustness
+    - stage: integration tests
       before_script:
         - cd deployments/docker
         - make bootstrap
