@@ -222,6 +222,7 @@ public class Utils {
                 peek(c -> safeSleep(5000)).
                 peek(this::startContainer).
                 forEach(c -> safeSleep(5000));
+        safeSleep(10000);
     }
 
     /**
