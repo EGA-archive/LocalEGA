@@ -23,8 +23,21 @@ yum -y install python36u python36u-pip unzip
 
 pip3.6 install PyYaml Markdown aiohttp==2.3.8 aiohttp-jinja2==0.13.0
 
-mkdir -p /var/lib/cega/users
-unzip -d /var/lib/cega/users /tmp/cega_users.zip
+USERS_DIR=/var/lib/cega/users
+mkdir -p ${USERS_DIR}/{swe1,fin1}
+unzip -d ${USERS_DIR} /tmp/cega_users.zip
+# They all have access to SWE1
+( # In a subshell
+    cd ${USERS_DIR}/swe1
+    ln -s ../john.yml .
+    ln -s ../jane.yml .
+    ln -s ../taylor.yml .
+)
+# John has also access to FIN1
+(
+    cd ${USERS_DIR}/fin1
+    ln -s ../john.yml .
+)
 systemctl start cega-users.service
 systemctl enable cega-users.service
 
