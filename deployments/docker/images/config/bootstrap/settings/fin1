@@ -6,7 +6,6 @@ DOCKER_PORT_mq=15673
 DOCKER_PORT_kibana=5602
 DOCKER_PORT_minio=9002
 #DOCKER_PORT_keyserver=8444
-DOCKER_PORT_config=8889
 
 LEGA_GREETINGS="Welcome to Local EGA Finland @ CSC"
 CEGA_MQ_PASSWORD=$(generate_password 16)

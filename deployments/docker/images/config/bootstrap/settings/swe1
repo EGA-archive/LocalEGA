@@ -6,7 +6,6 @@ DOCKER_PORT_mq=15672
 DOCKER_PORT_kibana=5601
 DOCKER_PORT_minio=9001
 #DOCKER_PORT_keyserver=8443
-DOCKER_PORT_config=8888
 
 LEGA_GREETINGS="Welcome to Local EGA Sweden @ NBIS"
 CEGA_MQ_PASSWORD=$(generate_password 16)
