@@ -98,7 +98,6 @@ data "template_file" "cloud_init" {
     mq_defs     = "${base64encode("${file("private/defs.json")}")}"
     cega_env    = "${base64encode("${file("private/env")}")}"
     cega_server = "${base64encode("${file("${path.module}/server.py")}")}"
-    cega_publish= "${base64encode("${file("${path.module}/publish.py")}")}"
     cega_users  = "${base64encode("${file("${data.archive_file.cega_users.output_path}")}")}"
     cega_html   = "${base64encode("${file("${path.module}/users.html")}")}"
     ega_slice   = "${base64encode("${file("../systemd/ega.slice")}")}"

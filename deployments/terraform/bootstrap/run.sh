@@ -83,9 +83,8 @@ chmod 744 ${PRIVATE}/pgp/ega.pub
 
 #########################################################################
 
-echomsg "\t* the RSA public and private key"
-${OPENSSL} genpkey -algorithm RSA -out ${PRIVATE}/rsa/ega.sec -pkeyopt rsa_keygen_bits:2048
-${OPENSSL} rsa -pubout -in ${PRIVATE}/rsa/ega.sec -out ${PRIVATE}/rsa/ega.pub
+echomsg "\t* the RSA private key"
+${OPENSSL} genpkey -algorithm RSA -pass pass:"${RSA_PASSPHRASE}" -out ${PRIVATE}/rsa/ega.sec -pkeyopt rsa_keygen_bits:2048 -aes-256-cbc
 
 #########################################################################
 
@@ -101,12 +100,12 @@ rsa : rsa.key.1
 pgp : pgp.key.1
 
 [rsa.key.1]
-public : /etc/ega/rsa/ega.pub
-private : /etc/ega/rsa/ega.sec
+path : /etc/ega/rsa/ega.sec
+passphrase : ${RSA_PASSPHRASE}
+expire: 30/MAR/19 08:00:00
 
 [pgp.key.1]
-public : /etc/ega/pgp/ega.pub
-private : /etc/ega/pgp/ega.sec
+path : /etc/ega/pgp/ega.sec
 passphrase : ${PGP_PASSPHRASE}
 expire: 30/MAR/19 08:00:00
 EOF
@@ -123,8 +122,8 @@ log = debug
 [ingestion]
 inbox = /ega/inbox/%(user_id)s
 # Keyserver communication
-keyserver_endpoint_pgp = https://ega_keys/retrieve/pgp/%s
-keyserver_endpoint_rsa = https://ega_keys/active/rsa
+keyserver_endpoint_pgp = http://ega_keys:443/retrieve/pgp/%s
+keyserver_endpoint_rsa = http://ega_keys:443/active/rsa
 decrypt_cmd = python3.6 -u -m lega.openpgp %(file)s
 
 ## Connecting to Local EGA
@@ -142,6 +141,11 @@ try = ${DB_TRY}
 
 [keyserver]
 port = 8443
+# There is an IPTable rule to forward 443 to 8443
+# since the server is started as non-root on 8443
+
+[eureka]
+endpoint = http://cega_eureka:8761
 EOF
 
 
@@ -223,6 +227,7 @@ MQ_USER=lega
 MQ_PASSWORD=${MQ_PASSWORD}
 EOF
 
+# CEGA_CONNECTION must be defined
 cat > ${PRIVATE}/mq_cega_defs.json <<EOF
 {"parameters":[{"value": {"src-uri": "amqp://",
 			  "src-exchange": "cega",
