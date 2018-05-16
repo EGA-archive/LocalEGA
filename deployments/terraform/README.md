@@ -57,3 +57,11 @@ The booted VMs use a CentOS7 Cloud image and are configured with
 
 You can then take a snapshot of them and call them 'EGA-common',
 'EGA-db', 'EGA-mq' and 'EGA-cega'.
+
+
+## Troubleshooting
+
+Comment out line 50 in case you have errors, to inspect them.
+In my case, I noticed the openssl version on my mac was old. So I use:
+
+	$ bootstrap/run.sh --openssl /usr/local/Cellar/openssl/1.0.2n/bin/openssl

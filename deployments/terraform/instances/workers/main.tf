@@ -55,7 +55,6 @@ data "template_file" "cloud_init_keys" {
     keys_conf         = "${base64encode("${file("${var.instance_data}/keys.conf")}")}"
     ssl_cert          = "${base64encode("${file("${var.instance_data}/certs/ssl.cert")}")}"
     ssl_key           = "${base64encode("${file("${var.instance_data}/certs/ssl.key")}")}"
-    rsa_pub           = "${base64encode("${file("${var.instance_data}/rsa/ega.pub")}")}"
     rsa_sec           = "${base64encode("${file("${var.instance_data}/rsa/ega.sec")}")}"
     pgp_pub           = "${base64encode("${file("${var.instance_data}/pgp/ega.pub")}")}"
     pgp_sec           = "${base64encode("${file("${var.instance_data}/pgp/ega.sec")}")}"
