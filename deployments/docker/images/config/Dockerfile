@@ -10,7 +10,7 @@ RUN curl https://start.spring.io/starter.tgz \
 -d type=maven-project \
 -d language=java \
 -d bootVersion=2.0.2.RELEASE \
--d baseDir=config \
+-d baseDir=server \
 -d groupId=se.nbis.lega \
 -d artifactId=config \
 -d name=config \
@@ -20,7 +20,7 @@ RUN curl https://start.spring.io/starter.tgz \
 -d javaVersion=1.8 \
 -d style=cloud-config-server | tar -xzvf -
 
-WORKDIR /ega/config
+WORKDIR /ega/server
 
 RUN ./mvnw package
 
@@ -33,7 +33,9 @@ RUN git config --global user.email "test@example.com"
 RUN git config --global user.name "NBIS System Developers"
 
 RUN echo $'server.port=8888 \n\
-spring.cloud.config.server.git.uri=file://ega/private\n'\
+spring.applicaiton.name=config\n\
+spring.profiles.active=fin\n\
+spring.cloud.config.server.git.uri=file://ega/config\n'\
 >> src/main/resources/application.properties
 
 RUN sed -i '5iimport org.springframework.cloud.config.server.EnableConfigServer;' src/main/java/se/nbis/lega/config/ConfigApplication.java

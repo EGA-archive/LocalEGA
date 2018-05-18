@@ -3,10 +3,10 @@ set -e
 
 [ ${BASH_VERSINFO[0]} -lt 4 ] && echo 'Bash 4 (or higher) is required' 1>&2 && exit 1
 
+INSTANCE=fin
 HERE=$(dirname ${BASH_SOURCE[0]})
-PRIVATE=${HERE}/../private
-DOT_ENV=${HERE}/../.env
-SETTINGS=${HERE}/settings
+PRIVATE=${HERE}/../config
+SETTINGS=${HERE}/${INSTANCE}
 EXTRAS=${HERE}/../../../extras
 
 # Defaults
@@ -38,38 +38,22 @@ while [[ $# -gt 0 ]]; do
     shift
 done
 
-[[ $VERBOSE == 'no' ]] && echo -en "Bootstrapping "
+[[ $VERBOSE == 'no' ]] && echo -en "Bootstrapping LEGA "
 
 source ${HERE}/defs.sh
 
-INSTANCES=$(ls ${SETTINGS} | xargs) # make it one line. ls -lx didn't work
+# NOT REQUIRED
+# INSTANCES=$(ls ${SETTINGS} | xargs) # make it one line. ls -lx didn't work
 
-rm_politely ${PRIVATE}
-mkdir -p ${PRIVATE}/cega
-backup ${DOT_ENV}
+mkdir -p ${PRIVATE}
+# exec 2>${PRIVATE}/.err
 
-exec 2>${PRIVATE}/.err
-
-cat > ${DOT_ENV} <<EOF
-COMPOSE_PROJECT_NAME=ega
-EOF
-echo -n "COMPOSE_FILE=" >> ${DOT_ENV} # no newline
-
-cat >> ${PRIVATE}/cega/env <<EOF
-LEGA_INSTANCES=${INSTANCES// /,}
-EOF
-
-# Central EGA Users and Eureka server
-source ${HERE}/cega.sh
-
+# NOT REQUIRED
 # Generate the configuration for each instance
-for INSTANCE in ${INSTANCES}
-do
-    echomsg "Generating private data for ${INSTANCE} [Default in ${SETTINGS}/${INSTANCE}]"
-    source ${HERE}/instance.sh
-done
-
-# Central EGA Message Broker. Must be run after the instances
-source ${HERE}/cega_mq.sh
+# for INSTANCE in ${INSTANCES}
+# do
+echomsg "Generating private data for ${INSTANCE} [Default in ${SETTINGS}]"
+source ${HERE}/instance.sh
+# done
 
 task_complete "Bootstrap complete"
