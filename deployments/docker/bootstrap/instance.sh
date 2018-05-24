@@ -88,16 +88,19 @@ cat > ${PRIVATE}/${INSTANCE}/ega.conf <<EOF
 [DEFAULT]
 log = /etc/ega/logger.yml
 
+[keyserver]
+port = 8443
+
 [ingestion]
 # Keyserver communication
-keyserver_endpoint_pgp = http://ega-keys-${INSTANCE}:443/retrieve/pgp/%s
-keyserver_endpoint_rsa = http://ega-keys-${INSTANCE}:443/active/rsa
+keyserver_endpoint_pgp = http://ega-keys-${INSTANCE}:8443/retrieve/pgp/%s
+keyserver_endpoint_rsa = http://ega-keys-${INSTANCE}:8443/active/rsa
 
 decrypt_cmd = python3.6 -u -m lega.openpgp %(file)s
 
 [outgestion]
 # Just for test
-keyserver_endpoint = https://ega-keys-${INSTANCE}:443/temp/file/%s
+keyserver_endpoint = https://ega-keys-${INSTANCE}:8443/temp/file/%s
 
 ## Connecting to Local EGA
 [broker]
@@ -448,9 +451,7 @@ services:
     depends_on:
       - db-${INSTANCE}
     expose:
-      - "443"
-    #ports:
-    #  - "${DOCKER_PORT_keyserver}:443"
+      - "8443"
     volumes:
        - ./${INSTANCE}/ega.conf:/etc/ega/conf.ini:ro
        - ./${INSTANCE}/logger.yml:/etc/ega/logger.yml:ro
@@ -468,7 +469,7 @@ services:
     networks:
       - lega_${INSTANCE}
       - cega
-    entrypoint: ["ega-keyserver","--keys","/etc/ega/keys.ini"]
+    entrypoint: ["gosu", "lega", "ega-keyserver","--keys","/etc/ega/keys.ini"]
 
   # Vault
   vault-${INSTANCE}:
