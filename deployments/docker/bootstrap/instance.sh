@@ -440,17 +440,6 @@ services:
       - lega_${INSTANCE}
     entrypoint: ["/bin/bash", "/usr/local/bin/entrypoint.sh"]
 
-  # Config server
-  config-${INSTANCE}:
-    hostname: ega-config-${INSTANCE}
-    container_name: ega-config-${INSTANCE}
-    image: nbisweden/ega-config
-    ports:
-      - "${DOCKER_PORT_config}:8888"
-    restart: on-failure:3
-    networks:
-      - lega_${INSTANCE}
-
   # Key server
   keys-${INSTANCE}:
     env_file: ${INSTANCE}/pgp.env
