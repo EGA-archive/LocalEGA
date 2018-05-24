@@ -11,10 +11,11 @@ from ..conf import CONF
 
 LOG = logging.getLogger('amqp')
 
+
 def get_connection(domain, blocking=True):
     '''
     Returns a blocking connection to the Message Broker supporting AMQP(S).
-    
+
     The host, portm virtual_host, username, password and
     heartbeat values are read from the CONF argument.
     So are the SSL options.
@@ -22,38 +23,38 @@ def get_connection(domain, blocking=True):
     assert domain in CONF.sections(), "Section not found in config file"
 
     params = {
-        'host': CONF.get(domain,'host',fallback='localhost'),
-        'port': CONF.getint(domain,'port',fallback=5672),
-        'virtual_host': CONF.get(domain,'vhost',fallback='/'),
+        'host': CONF.get_or_else(domain, 'host', 'localhost'),
+        'port': CONF.getint_or_else(domain, 'port', 5672),
+        'virtual_host': CONF.get_or_else(domain, 'vhost', '/'),
         'credentials': pika.PlainCredentials(
-            CONF.get(domain,'username'),
-            CONF.get(domain,'password')
+            CONF.get_or_else(domain, 'username', 'guest'),
+            CONF.get_or_else(domain, 'password', 'guest')
         ),
-        'connection_attempts': CONF.getint(domain,'connection_attempts',fallback=2),
+        'connection_attempts': CONF.getint_or_else(domain, 'connection_attempts', 2),
     }
-    heartbeat = CONF.getint(domain,'heartbeat', fallback=None)
-    if heartbeat is not None: # can be 0
+    heartbeat = CONF.getint_or_else(domain, 'heartbeat', None)
+    if heartbeat is not None:  # can be 0
         # heartbeat_interval instead of heartbeat like they say in the doc
         # https://pika.readthedocs.io/en/latest/modules/parameters.html#connectionparameters
         params['heartbeat_interval'] = heartbeat
         LOG.debug(f'Setting hearbeat to {heartbeat}')
 
     # SSL configuration
-    if CONF.getboolean(domain,'enable_ssl', fallback=False):
+    if CONF.getboolean_or_else(domain, 'enable_ssl', False):
         params['ssl'] = True
         params['ssl_options'] = {
-            'ca_certs' : CONF.get(domain,'cacert'),
-            'certfile' : CONF.get(domain,'cert'),
-            'keyfile'  : CONF.get(domain,'keyfile'),
-            'cert_reqs': 2, #ssl.CERT_REQUIRED is actually <VerifyMode.CERT_REQUIRED: 2>
+            'ca_certs': CONF.get_or_else(domain, 'cacert'),
+            'certfile': CONF.get_or_else(domain, 'cert'),
+            'keyfile':  CONF.get_or_else(domain, 'keyfile'),
+            'cert_reqs': 2,  # ssl.CERT_REQUIRED is actually <VerifyMode.CERT_REQUIRED: 2>
         }
 
     LOG.info(f'Getting a connection to {domain}')
     LOG.debug(params)
 
     if blocking:
-        return pika.BlockingConnection( pika.ConnectionParameters(**params) )
-    return pika.SelectConnection( pika.ConnectionParameters(**params) )
+        return pika.BlockingConnection(pika.ConnectionParameters(**params))
+    return pika.SelectConnection(pika.ConnectionParameters(**params))
 
 def publish(message, channel, exchange, routing, correlation_id=None):
     '''
@@ -66,7 +67,7 @@ def publish(message, channel, exchange, routing, correlation_id=None):
                           properties  = pika.BasicProperties(correlation_id=correlation_id or str(uuid.uuid4()),
                                                              content_type='application/json',
                                                              delivery_mode=2))
-    
+
 
 def consume(work, from_queue, to_routing):
     '''Blocking function, registering callback `work` to be called.
@@ -105,8 +106,8 @@ def consume(work, from_queue, to_routing):
 
         # Acknowledgment: Cancel the message resend in case MQ crashes
         LOG.debug(f'Sending ACK for message {message_id} (Correlation ID: {correlation_id})')
-        channel.basic_ack(delivery_tag=method_frame.delivery_tag)        
-            
+        channel.basic_ack(delivery_tag=method_frame.delivery_tag)
+
     # Let's do this
     try:
         from_channel.basic_consume(process_request, queue=from_queue)
@@ -115,5 +116,3 @@ def consume(work, from_queue, to_routing):
         from_channel.stop_consuming()
     finally:
         connection.close()
-
-
