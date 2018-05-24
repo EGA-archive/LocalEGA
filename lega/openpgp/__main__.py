@@ -20,7 +20,8 @@ def fetch_private_key(key_id):
     ssl_ctx.check_hostname = False
     ssl_ctx.verify_mode=ssl.CERT_NONE
     LOG.info('Retrieving the PGP Private Key %s', key_id)
-    keyurl = CONF.get('ingestion','keyserver_endpoint_pgp',raw=True) % key_id
+    keyurl = CONF.get_or_else('keyserver', 'endpoint_pgp', raw=True) % key_id
+    LOG.info(keyurl)
     try:
         req = Request(keyurl, headers={'content-type':'application/json'}, method='GET')
         LOG.info('Opening connection to %s', keyurl)
@@ -76,5 +77,3 @@ def main(args=None):
 
 if __name__ == '__main__':
     main()
-
-
