@@ -1,12 +1,16 @@
 """\
 Configuration Module provides a dictionary-like with configuration settings.
 It also loads the logging settings when ``setup`` is called.
+
 * The ``--log <file>`` argument is used to configuration where the logs go.
   Without it, there is no logging capabilities.
 * The ``<file>`` can be a path to an ``INI`` or ``YAML`` format, or a string
   representing the defaults loggers (ie default, debug or syslog)
 * The ``--conf <file>`` allows the user to override the configuration settings.
   The settings are loaded, in order:
+
+    * from environment variables (the naming convetion is according to
+    ``default.ini`` ``section`` and ``option``, both uppercased e.g. KEYSERVER_ENDPOINT_PGP or POSTGRES_DB);
     * from ``default.ini`` (located in the package)
     * from ``/etc/ega/conf.ini``
     * from the file specified as the ``--conf`` argument.
@@ -16,6 +20,7 @@ which case, it must end in ``.yaml`` or ``.yml``.
 """
 
 import sys
+import os
 import configparser
 import logging
 from logging.config import fileConfig, dictConfig
@@ -24,51 +29,51 @@ from pathlib import Path
 import yaml
 
 _here = Path(__file__).parent
-_config_files =  [
+_config_files = [
     _here / 'defaults.ini',
     '/etc/ega/conf.ini'
  ]
 
+
 class Configuration(configparser.ConfigParser):
+    """Configuration from config_files or environment variables or config server (e.g. Spring Cloud Config)."""
+
     log_conf = None
 
-    def _load_conf(self,args=None, encoding='utf-8'):
-        '''Loads a configuration file from `args`'''
+    BOOLEAN_STATES = {'1': True, 'yes': True, 'true': True, 'on': True,
+                      '0': False, 'no': False, 'false': False, 'off': False}
 
+    def _load_conf(self, args=None, encoding='utf-8'):
+        """Load a configuration file from `args`."""
         # Finding the --conf file
         try:
-            conf_file = Path(args[ args.index('--conf') + 1 ]).expanduser()
+            conf_file = Path(args[args.index('--conf') + 1]).expanduser()
             if conf_file not in _config_files:
-                _config_files.append( conf_file )
+                _config_files.append(conf_file)
                 print(f"Overriding configuration settings with {conf_file}", file=sys.stderr)
         except ValueError:
-            # print("--conf <file> was not mentioned\n"
-            #       "Using the default configuration files", file=sys.stderr)
             pass
-        except (TypeError, AttributeError): # if args = None
-            #print("Using the default configuration files",file=sys.stderr)
+        except (TypeError, AttributeError):  # if args = None
             pass
         except IndexError:
-            print("Wrong use of --conf <file>",file=sys.stderr)
+            print("Wrong use of --conf <file>", file=sys.stderr)
             raise ValueError("Wrong use of --conf <file>")
 
         self.read(_config_files, encoding=encoding)
 
-    def _load_log_file(self,filename):
-        '''Tries to load `filename` as configuration file'''
-
+    def _load_log_file(self, filename):
+        """Try to load `filename` as configuration file."""
         if not filename:
             print('No logging supplied', file=sys.stderr)
             self.log_conf = None
             return
 
-        assert( isinstance(filename,str) )
+        assert(isinstance(filename, str))
 
         # Try first if it is a default logger
         _logger = _here / f'loggers/{filename}.yaml'
         if _logger.exists():
             with open(_logger, 'r') as stream:
-                #print(f'Reading the default log configuration from: {_logger}', file=sys.stderr)
                 dictConfig(yaml.load(stream))
                 self.log_conf = _logger
                 return
@@ -81,17 +86,14 @@ class Configuration(configparser.ConfigParser):
             self.log_conf = None
             return
 
-        #print(f'Reading the log configuration from: {filename}', file=sys.stderr)
         if filename.suffix in ('.yaml', '.yml'):
             with open(filename, 'r') as stream:
-                #print(f"Loading YAML log configuration", file=sys.stderr)
                 dictConfig(yaml.load(stream))
                 self.log_conf = filename
                 return
 
         if filename.suffix in ('.ini', '.INI'):
             with open(filename, 'r') as stream:
-                #print(f"Loading INI log configuration", file=sys.stderr)
                 fileConfig(filename)
                 self.log_conf = filename
                 return
@@ -99,44 +101,83 @@ class Configuration(configparser.ConfigParser):
         print(f"Unsupported log format for {filename}", file=sys.stderr)
         self.log_conf = None
 
-    def _load_log_conf(self,args=None):
-        # Finding the --log file
+    def _load_log_conf(self, args=None):
+        """Finding the `--log` file."""
         try:
-            lconf = args[ args.index('--log') + 1 ]
-            #print("--log argument:",lconf,file=sys.stderr)
+            lconf = args[args.index('--log') + 1]
             self._load_log_file(lconf)
         except ValueError:
-            #print("--log <file> was not mentioned",file=sys.stderr)
-            self._load_log_file( self.get('DEFAULT','log',fallback=None) )
-        except (TypeError, AttributeError): # if args = None
-            pass # No log conf
+            self._load_log_file(self.get('DEFAULT', 'log', fallback=None))
+        except (TypeError, AttributeError):  # if args = None
+            pass  # No log conf
         except IndexError:
             print("Wrong use of --log <file>", file=sys.stderr)
-            #sys.exit(2)
         except Exception as e:
             print('Error with --log:', repr(e), file=sys.stderr)
-            #sys.exit(2)
 
-    def setup(self,args=None, encoding='utf-8'):
-        self._load_conf(args,encoding)
+    def setup(self, args=None, encoding='utf-8'):
+        """Setup, that is all."""
+        self._load_conf(args, encoding)
         self._load_log_conf(args)
 
-
     def __repr__(self):
-        '''Show the configuration files'''
+        """Show the configuration files."""
         res = 'Configuration files:\n\t* ' + '\n\t* '.join(str(s) for s in _config_files)
         if self.log_conf:
             res += '\nLogging settings loaded from ' + str(self.log_conf)
         return res
 
+    def get_or_else(self, section, option, default_value=None, raw=False):
+        if '_'.join([section.upper(), option.upper()]) in os.environ:
+            return os.environ.get('_'.join([section.upper(), option.upper()]), default_value)
+        elif self.has_option(section, option):
+            return self.get(section, option, fallback=default_value, raw=raw)
+        else:
+            print("VAR NOT FOUND")
+
+    def getint_or_else(self, section, option, default_value=None, raw=False):
+        if '_'.join([section.upper(), option.upper()]) in os.environ:
+            return self._get_conv_env_or_else(section, option, int, default_value)
+        elif self.has_option(section, option):
+            return self.getint(section, option, fallback=default_value, raw=raw)
+        else:
+            print("VAR NOT FOUND")
+
+    def getfloat_or_else(self, section, option, default_value=None, raw=False):
+        if '_'.join([section.upper(), option.upper()]) in os.environ:
+            return self._get_conv_env_or_else(section, option, float, default_value)
+        elif self.has_option(section, option):
+            return self.getfloat(section, option, fallback=default_value, raw=raw)
+        else:
+            print("VAR NOT FOUND")
+
+    def getboolean_or_else(self, section, option, default_value=None, raw=False):
+        if '_'.join([section.upper(), option.upper()]) in os.environ:
+            return self._get_conv_env_or_else(section, option, self._convert_to_boolean, default_value)
+        elif self.has_option(section, option):
+            return self.getboolean(section, option, fallback=default_value, raw=raw)
+        else:
+            print("VAR NOT FOUND")
+
+    def _get_conv_env_or_else(self, section, option, conv, default_value):
+        return conv(os.environ.get('_'.join([section.upper(), option.upper()]), default_value))
+
+    def _convert_to_boolean(self, value):
+        """Return a boolean value translating from other types if necessary."""
+        if value.lower() not in self.BOOLEAN_STATES:
+            raise ValueError('Not a boolean: %s' % value)
+            return self.BOOLEAN_STATES[value.lower()]
+
+
 CONF = Configuration()
 
 
 class KeysConfiguration(configparser.ConfigParser):
+    """Parse keyserver configuration."""
 
     def __init__(self, args=None, encoding='utf-8'):
-        '''Loads a configuration file from `args`'''
+        """Load a configuration file from `args`."""
         super().__init__()
         # Finding the --keys file. Raise Error otherwise
-        conf_file = Path(args[ args.index('--keys') + 1 ]).expanduser()
+        conf_file = Path(args[args.index('--keys') + 1]).expanduser()
         self.read(conf_file, encoding=encoding)

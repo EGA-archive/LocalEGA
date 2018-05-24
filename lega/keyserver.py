@@ -171,7 +171,7 @@ async def activate_key(key_name, data):
     elif key_name.startswith("rsa"):
         obj_key = ReEncryptionKey(key_name, data.get('path'), data.get('passphrase',None))
         _cache = _rsa_cache
-        
+
         ### Temporary
         with open(data.get('path'), 'rb') as infile:
             _tmp_cache.set(key_name,
@@ -508,15 +508,15 @@ def main(args=None):
 
     CONF.setup(args)
 
-    host = CONF.get('keyserver', 'host') # fallbacks are in defaults.ini
-    port = CONF.getint('keyserver', 'port')
-    keyserver_health = CONF.get('keyserver', 'health_endpoint')
-    keyserver_status = CONF.get('keyserver', 'status_endpoint')
+    host = CONF.get_or_else('keyserver', 'host')  # fallbacks are in defaults.ini
+    port = CONF.getint_or_else('keyserver', 'port')
+    keyserver_health = CONF.get_or_else('keyserver', 'health_endpoint')
+    keyserver_status = CONF.get_or_else('keyserver', 'status_endpoint')
 
-    eureka_endpoint = CONF.get('eureka', 'endpoint')
+    eureka_endpoint = CONF.get_or_else('eureka', 'endpoint')
 
-    # ssl_certfile = Path(CONF.get('keyserver', 'ssl_certfile')).expanduser()
-    # ssl_keyfile = Path(CONF.get('keyserver', 'ssl_keyfile')).expanduser()
+    # ssl_certfile = Path(CONF.get_or_else('keyserver', 'ssl_certfile')).expanduser()
+    # ssl_keyfile = Path(CONF.get_or_else('keyserver', 'ssl_keyfile')).expanduser()
     # LOG.debug(f'Certfile: {ssl_certfile}')
     # LOG.debug(f'Keyfile: {ssl_keyfile}')
 
@@ -533,7 +533,7 @@ def main(args=None):
 
     # Adding the keystore to the server
     keyserver['store'] = KeysConfiguration(args)
-    keyserver['interval'] = CONF.getint('eureka', 'interval')
+    keyserver['interval'] = CONF.getint_or_else('eureka', 'interval')
     keyserver['eureka'] = EurekaClient("keyserver", port=port, ip_addr=host,
                                        eureka_url=eureka_endpoint, hostname=host,
                                        health_check_url=f'http://{host}:{port}{keyserver_health}',
