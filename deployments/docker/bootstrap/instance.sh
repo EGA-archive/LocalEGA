@@ -88,11 +88,7 @@ cat > ${PRIVATE}/${INSTANCE}/ega.conf <<EOF
 [DEFAULT]
 log = /etc/ega/logger.yml
 
-[ingestion]
-# Keyserver communication
-keyserver_endpoint_pgp = http://ega-keys-${INSTANCE}:443/retrieve/pgp/%s
-keyserver_endpoint_rsa = http://ega-keys-${INSTANCE}:443/active/rsa
-
+[inbox]
 decrypt_cmd = python3.6 -u -m lega.openpgp %(file)s
 
 [outgestion]
@@ -103,11 +99,17 @@ keyserver_endpoint = https://ega-keys-${INSTANCE}:443/temp/file/%s
 [broker]
 host = ega-mq-${INSTANCE}
 
-[db]
+[postgres]
 host = ega-db-${INSTANCE}
-username = ${DB_USER}
+user = ${DB_USER}
 password = ${DB_PASSWORD}
 try = ${DB_TRY}
+
+[keyserver]
+# Keyserver communication
+endpoint_pgp = http://ega-keys-${INSTANCE}:443/retrieve/pgp/%s
+endpoint_rsa = http://ega-keys-${INSTANCE}:443/active/rsa
+
 
 [eureka]
 endpoint = http://cega-eureka:8761
@@ -437,6 +439,17 @@ services:
     networks:
       - lega_${INSTANCE}
     entrypoint: ["/bin/bash", "/usr/local/bin/entrypoint.sh"]
+
+  # Config server
+  config-${INSTANCE}:
+    hostname: ega-config-${INSTANCE}
+    container_name: ega-config-${INSTANCE}
+    image: nbisweden/ega-config
+    ports:
+      - "${DOCKER_PORT_config}:8888"
+    restart: on-failure:3
+    networks:
+      - lega_${INSTANCE}
 
   # Key server
   keys-${INSTANCE}:

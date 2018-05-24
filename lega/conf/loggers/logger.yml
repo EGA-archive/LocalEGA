@@ -1,0 +1,85 @@
+version: 1
+root:
+  level: NOTSET
+  handlers: [noHandler]
+
+loggers:
+  connect:
+    level: INFO
+    handlers: [console]
+  ingestion:
+    level: INFO
+    handlers: [console]
+  keyserver:
+    level: INFO
+    handlers: [console]
+  vault:
+    level: INFO
+    handlers: [console]
+  verify:
+    level: INFO
+    handlers: [console]
+  socket-utils:
+    level: INFO
+    handlers: [console]
+  inbox:
+    level: INFO
+    handlers: [console]
+  utils:
+    level: INFO
+    handlers: [console]
+  amqp:
+    level: INFO
+    handlers: [console]
+  db:
+    level: INFO
+    handlers: [console]
+  crypto:
+    level: INFO
+    handlers: [console]
+  asyncio:
+    level: INFO
+    handlers: [console]
+  aiopg:
+    level: INFO
+    handlers: [console]
+  aiohttp.access:
+    level: INFO
+    handlers: [console]
+  aiohttp.client:
+    level: INFO
+    handlers: [console]
+  aiohttp.internal:
+    level: INFO
+    handlers: [console]
+  aiohttp.server:
+    level: INFO
+    handlers: [console]
+  aiohttp.web:
+    level: INFO
+    handlers: [console]
+  aiohttp.websocket:
+    level: INFO
+    handlers: [console]
+
+
+handlers:
+  noHandler:
+    class: logging.NullHandler
+    level: NOTSET
+  console:
+    class: logging.StreamHandler
+    formatter: simple
+    stream: ext://sys.stdout
+
+formatters:
+  json:
+    (): lega.utils.logging.JSONFormatter
+    format: '(asctime) (name) (process) (processName) (levelname) (lineno) (funcName) (message)'
+  lega:
+    format: '[{asctime:<20}][{name}][{process:d} {processName:>15}][{levelname}] (L:{lineno}) {funcName}: {message}'
+    style: '{'
+    datefmt: '%Y-%m-%d %H:%M:%S'
+  simple:
+    format: '[{name:^10}][{levelname:^6}] (L{lineno}) {message}'
+    style: '{'
