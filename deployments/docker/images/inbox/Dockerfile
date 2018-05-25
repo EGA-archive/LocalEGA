@@ -19,7 +19,7 @@ RUN ssh-keygen -t rsa     -N '' -f /etc/ssh/ssh_host_rsa_key && \
     cd /root/ega-auth/src && \
     make install clean && \
     ldconfig -v && \
-    chown root:ega /ega/inbox && \
+    chown lega:lega /ega/inbox && \
     chmod 750 /ega/inbox && \
     chmod g+s /ega/inbox
 
