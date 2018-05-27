@@ -4,39 +4,11 @@ root:
   handlers: [noHandler]
 
 loggers:
-  connect:
+  lega:
     level: INFO
     handlers: [console]
-  ingestion:
-    level: INFO
-    handlers: [console]
-  keyserver:
-    level: INFO
-    handlers: [console]
-  vault:
-    level: INFO
-    handlers: [console]
-  verify:
-    level: INFO
-    handlers: [console]
-  socket-utils:
-    level: INFO
-    handlers: [console]
-  inbox:
-    level: INFO
-    handlers: [console]
-  utils:
-    level: INFO
-    handlers: [console]
-  amqp:
-    level: INFO
-    handlers: [console]
-  db:
-    level: INFO
-    handlers: [console]
-  crypto:
-    level: INFO
-    handlers: [console]
+    propagate: true
+    qualname: lega
   asyncio:
     level: INFO
     handlers: [console]

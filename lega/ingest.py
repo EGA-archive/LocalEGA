@@ -37,7 +37,7 @@ from .utils import db, exceptions, checksum, sanitize_user_id
 from .utils.amqp import consume, publish, get_connection
 from .utils.crypto import ingest as crypto_ingest
 
-LOG = logging.getLogger('ingestion')
+LOG = logging.getLogger(__name__)
 
 @db.catch_error
 def work(master_key, data):
@@ -71,7 +71,7 @@ def work(master_key, data):
     data['internal_data'] = internal_data
 
     # Find inbox
-    inbox = Path(CONF.get_or_else('inbox', 'path', raw=True) % {'user_id': user_id})
+    inbox = Path(CONF.get_value('inbox', 'path', raw=True) % {'user_id': user_id})
     LOG.info(f"Inbox area: {inbox}")
 
     # Check if file is in inbox
@@ -119,7 +119,7 @@ def work(master_key, data):
                                          'algorithm': unencrypted_algo }
 
     # Fetch staging area
-    staging_area = Path(CONF.get_or_else('inbox', 'staging'))
+    staging_area = Path(CONF.get_value('inbox', 'staging'))
     LOG.info(f"Staging area: {staging_area}")
     #staging_area.mkdir(parents=True, exist_ok=True) # re-create
 
@@ -139,7 +139,7 @@ def work(master_key, data):
     publish(data, broker.channel(), 'cega', 'files.processing')
 
     # Decrypting
-    cmd = CONF.get_or_else('inbox', 'decrypt_cmd', raw=True) % {'file': str(inbox_filepath)}
+    cmd = CONF.get_value('inbox', 'decrypt_cmd', raw=True) % {'file': str(inbox_filepath)}
     LOG.debug(f'GPG command: {cmd}\n')
     details, staging_checksum = crypto_ingest( cmd,
                                                str(inbox_filepath),
@@ -156,7 +156,7 @@ def work(master_key, data):
 
 
 def get_master_key():
-    keyurl = CONF.get_or_else('keyserver', 'endpoint_rsa')
+    keyurl = CONF.get_value('keyserver', 'endpoint_rsa')
     LOG.info(f'Retrieving the Master Public Key from {keyurl}')
     try:
         # Prepare to contact the Keyserver for the Master key

@@ -24,7 +24,7 @@ from .utils.crypto import get_rsa_private_key_material, serialize_rsa_private_ke
 # from .openpgp.generate import generate_pgp_key
 from .utils.eureka import EurekaClient
 
-LOG = logging.getLogger('keyserver')
+LOG = logging.getLogger(__name__)
 routes = web.RouteTableDef()
 
 class Cache:
@@ -508,15 +508,15 @@ def main(args=None):
 
     CONF.setup(args)
 
-    host = CONF.get_or_else('keyserver', 'host')  # fallbacks are in defaults.ini
-    port = CONF.getint_or_else('keyserver', 'port')
-    keyserver_health = CONF.get_or_else('keyserver', 'health_endpoint')
-    keyserver_status = CONF.get_or_else('keyserver', 'status_endpoint')
+    host = CONF.get_value('keyserver', 'host')  # fallbacks are in defaults.ini
+    port = CONF.get_value('keyserver', 'port', int)
+    keyserver_health = CONF.get_value('keyserver', 'health_endpoint')
+    keyserver_status = CONF.get_value('keyserver', 'status_endpoint')
 
-    eureka_endpoint = CONF.get_or_else('eureka', 'endpoint')
+    eureka_endpoint = CONF.get_value('eureka', 'endpoint')
 
-    # ssl_certfile = Path(CONF.get_or_else('keyserver', 'ssl_certfile')).expanduser()
-    # ssl_keyfile = Path(CONF.get_or_else('keyserver', 'ssl_keyfile')).expanduser()
+    # ssl_certfile = Path(CONF.get_value('keyserver', 'ssl_certfile')).expanduser()
+    # ssl_keyfile = Path(CONF.get_value('keyserver', 'ssl_keyfile')).expanduser()
     # LOG.debug(f'Certfile: {ssl_certfile}')
     # LOG.debug(f'Keyfile: {ssl_keyfile}')
 
@@ -533,7 +533,7 @@ def main(args=None):
 
     # Adding the keystore to the server
     keyserver['store'] = KeysConfiguration(args)
-    keyserver['interval'] = CONF.getint_or_else('eureka', 'interval')
+    keyserver['interval'] = CONF.get_value('eureka', 'interval', int)
     keyserver['eureka'] = EurekaClient("keyserver", port=port, ip_addr=host,
                                        eureka_url=eureka_endpoint, hostname=host,
                                        health_check_url=f'http://{host}:{port}{keyserver_health}',

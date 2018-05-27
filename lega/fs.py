@@ -28,7 +28,7 @@ from .conf import CONF
 from .utils.amqp import get_connection, publish
 from .utils.checksum import calculate, _DIGEST as algorithms
 
-LOG = logging.getLogger('inbox')
+LOG = logging.getLogger(__name__)
 
 ATTRIBUTES = ('st_uid', 'st_gid', 'st_mode', 'st_size',
               'st_nlink', 'st_atime', 'st_ctime', 'st_mtime')
