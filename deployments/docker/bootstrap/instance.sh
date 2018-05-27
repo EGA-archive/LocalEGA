@@ -23,8 +23,8 @@ fi
 # And....cue music
 #########################################################################
 
-mkdir -p $PRIVATE/${INSTANCE}/{pgp,rsa,certs,logs}
-chmod 700 $PRIVATE/${INSTANCE}/{pgp,rsa,certs,logs}
+mkdir -p $PRIVATE/${INSTANCE}/{pgp,certs,logs}
+chmod 700 $PRIVATE/${INSTANCE}/{pgp,certs,logs}
 
 echomsg "\t* the PGP key"
 
@@ -45,12 +45,6 @@ chmod 644 ${PRIVATE}/${INSTANCE}/pgp/ega2.pub
 
 #########################################################################
 
-echomsg "\t* the RSA private key"
-${OPENSSL} genpkey -algorithm RSA -pass pass:"${RSA_PASSPHRASE}" -out ${PRIVATE}/${INSTANCE}/rsa/ega.sec -pkeyopt rsa_keygen_bits:2048 -aes-256-cbc
-${OPENSSL} genpkey -algorithm RSA -pass pass:"${RSA_PASSPHRASE}" -out ${PRIVATE}/${INSTANCE}/rsa/ega2.sec -pkeyopt rsa_keygen_bits:2048 -aes-256-cbc
-
-#########################################################################
-
 echomsg "\t* the SSL certificates"
 ${OPENSSL} req -x509 -newkey rsa:2048 -keyout ${PRIVATE}/${INSTANCE}/certs/ssl.key -nodes -out ${PRIVATE}/${INSTANCE}/certs/ssl.cert -sha256 -days 1000 -subj ${SSL_SUBJ}
 
@@ -59,25 +53,14 @@ ${OPENSSL} req -x509 -newkey rsa:2048 -keyout ${PRIVATE}/${INSTANCE}/certs/ssl.k
 echomsg "\t* keys.conf"
 cat > ${PRIVATE}/${INSTANCE}/keys.conf <<EOF
 [DEFAULT]
-rsa : rsa.key.1
-pgp : pgp.key.1
+active : key.1
 
-[rsa.key.1]
-path : /etc/ega/rsa/ega.sec
-passphrase : ${RSA_PASSPHRASE}
-expire: 30/MAR/19 08:00:00
-
-[rsa.key.2]
-path : /etc/ega/rsa/ega2.sec
-passphrase : ${RSA_PASSPHRASE}
-expire: 30/MAR/19 08:00:00
-
-[pgp.key.1]
+[key.1]
 path : /etc/ega/pgp/ega.sec
 passphrase : ${PGP_PASSPHRASE}
 expire: 30/MAR/19 08:00:00
 
-[pgp.key.2]
+[key.2]
 path : /etc/ega/pgp/ega2.sec
 passphrase : ${PGP_PASSPHRASE}
 expire: 30/MAR/18 08:00:00
@@ -93,14 +76,13 @@ port = 8443
 
 [ingestion]
 # Keyserver communication
-keyserver_endpoint_pgp = http://ega-keys-${INSTANCE}:8443/retrieve/pgp/%s
-keyserver_endpoint_rsa = http://ega-keys-${INSTANCE}:8443/active/rsa
+keyserver_endpoint = http://ega-keys-${INSTANCE}:8443/retrieve/%s
 
-decrypt_cmd = python3.6 -u -m lega.openpgp %(file)s
+decrypt_cmd = python3.6 -u -m legacryptor reencrypt -i %(file)s
 
 [outgestion]
 # Just for test
-keyserver_endpoint = https://ega-keys-${INSTANCE}:8443/temp/file/%s
+keyserver_endpoint = http://ega-keys-${INSTANCE}:8443/retrieve/%s
 
 ## Connecting to Local EGA
 [broker]
@@ -460,8 +442,6 @@ services:
        - ./${INSTANCE}/certs/ssl.key:/etc/ega/ssl.key:ro
        - ./${INSTANCE}/pgp/ega.sec:/etc/ega/pgp/ega.sec:ro
        - ./${INSTANCE}/pgp/ega2.sec:/etc/ega/pgp/ega2.sec:ro
-       - ./${INSTANCE}/rsa/ega.sec:/etc/ega/rsa/ega.sec:ro
-       - ./${INSTANCE}/rsa/ega2.sec:/etc/ega/rsa/ega2.sec:ro
        - ../../../lega:/root/.local/lib/python3.6/site-packages/lega
     restart: on-failure:3
     external_links:
