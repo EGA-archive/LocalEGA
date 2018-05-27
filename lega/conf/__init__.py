@@ -39,7 +39,6 @@ class Configuration(configparser.ConfigParser):
     """Configuration from config_files or environment variables or config server (e.g. Spring Cloud Config)."""
 
     log_conf = None
-
     BOOLEAN_STATES = {'1': True, 'yes': True, 'true': True, 'on': True,
                       '0': False, 'no': False, 'false': False, 'off': False}
 
@@ -127,46 +126,18 @@ class Configuration(configparser.ConfigParser):
             res += '\nLogging settings loaded from ' + str(self.log_conf)
         return res
 
-    def get_or_else(self, section, option, default_value=None, raw=False):
-        if '_'.join([section.upper(), option.upper()]) in os.environ:
-            return os.environ.get('_'.join([section.upper(), option.upper()]), default_value)
-        elif self.has_option(section, option):
-            return self.get(section, option, fallback=default_value, raw=raw)
-        else:
-            print("VAR NOT FOUND")
+    def get_value(self, section, option, conv=str, default_value=None, raw=False):
+        result = os.environ.get('_'.join([section.upper(), option.upper()]), None)
+        if result:
+            return self._convert(result, conv)
+        elif result is None and self.has_option(section, option):
+            return self._convert(self.get(section, option, fallback=default_value, raw=raw), conv)
 
-    def getint_or_else(self, section, option, default_value=None, raw=False):
-        if '_'.join([section.upper(), option.upper()]) in os.environ:
-            return self._get_conv_env_or_else(section, option, int, default_value)
-        elif self.has_option(section, option):
-            return self.getint(section, option, fallback=default_value, raw=raw)
-        else:
-            print("VAR NOT FOUND")
-
-    def getfloat_or_else(self, section, option, default_value=None, raw=False):
-        if '_'.join([section.upper(), option.upper()]) in os.environ:
-            return self._get_conv_env_or_else(section, option, float, default_value)
-        elif self.has_option(section, option):
-            return self.getfloat(section, option, fallback=default_value, raw=raw)
-        else:
-            print("VAR NOT FOUND")
-
-    def getboolean_or_else(self, section, option, default_value=None, raw=False):
-        if '_'.join([section.upper(), option.upper()]) in os.environ:
-            return self._get_conv_env_or_else(section, option, self._convert_to_boolean, default_value)
-        elif self.has_option(section, option):
-            return self.getboolean(section, option, fallback=default_value, raw=raw)
-        else:
-            print("VAR NOT FOUND")
-
-    def _get_conv_env_or_else(self, section, option, conv, default_value):
-        return conv(os.environ.get('_'.join([section.upper(), option.upper()]), default_value))
-
-    def _convert_to_boolean(self, value):
-        """Return a boolean value translating from other types if necessary."""
-        if value.lower() not in self.BOOLEAN_STATES:
-            raise ValueError('Not a boolean: %s' % value)
+    def _convert(self, value, conv):
+        if conv == bool and value.lower() in self.BOOLEAN_STATES:
             return self.BOOLEAN_STATES[value.lower()]
+        else:
+            return conv(value)
 
 
 CONF = Configuration()

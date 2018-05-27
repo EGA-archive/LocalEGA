@@ -20,7 +20,7 @@ from cryptography.hazmat.primitives import serialization
 
 from . import exceptions, checksum
 
-LOG = logging.getLogger('crypto')
+LOG = logging.getLogger(__name__)
 
 ###########################################################
 # RSA Master Key

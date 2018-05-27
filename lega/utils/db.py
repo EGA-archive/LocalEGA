@@ -19,7 +19,7 @@ from ..conf import CONF
 from .exceptions import FromUser
 from .amqp import publish, get_connection
 
-LOG = logging.getLogger('db')
+LOG = logging.getLogger(__name__)
 
 class Status(Enum):
     Received = 'Received'
@@ -32,19 +32,19 @@ class Status(Enum):
 ##         DB connection            ##
 ######################################
 def fetch_args(d):
-    db_args = { 'user'     : d.get_or_else('postgres', 'user'),
-                'password' : d.get_or_else('postgres', 'password'),
-                'database' : d.get_or_else('postgres', 'dbname'),
-                'host'     : d.get_or_else('postgres', 'host'),
-                'port'     : d.getint_or_else('postgres', 'port')
+    db_args = { 'user'     : d.get_value('postgres', 'user'),
+                'password' : d.get_value('postgres', 'password'),
+                'database' : d.get_value('postgres', 'dbname'),
+                'host'     : d.get_value('postgres', 'host'),
+                'port'     : d.get_value('postgres', 'port', int)
     }
     LOG.info(f"Initializing a connection to: {db_args['host']}:{db_args['port']}/{db_args['database']}")
     return db_args
 
 async def _retry(run, on_failure=None, exception=psycopg2.OperationalError):
     '''Main retry loop'''
-    nb_try = CONF.getint_or_else('postgres', 'try', 1)
-    try_interval = CONF.getint_or_else('postgres', 'try_interval', 1)
+    nb_try = CONF.get_value('postgres', 'try', int, 1)
+    try_interval = CONF.get_value('postgres', 'try_interval', int, 1)
     LOG.debug(f"{nb_try} attempts (every {try_interval} seconds)")
     count = 0
     backoff = try_interval
