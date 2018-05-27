@@ -23,11 +23,11 @@ from .conf import CONF
 from .utils import db, checksum
 from .utils.crypto import decrypt_from_vault
 
-LOG = logging.getLogger('outgestion')
+LOG = logging.getLogger(__name__)
 
 
 def get_master_key():
-    keyurl = CONF.get_or_else('keyserver', 'endpoint_rsa')
+    keyurl = CONF.get_value('keyserver', 'endpoint_rsa')
     LOG.info(f'Retrieving the Master Public Key from {keyurl}')
     try:
         # Prepare to contact the Keyserver for the Master key

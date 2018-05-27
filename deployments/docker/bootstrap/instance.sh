@@ -153,37 +153,12 @@ root:
   handlers: [noHandler]
 
 loggers:
-  connect:
-    level: ${_LOG_LEVEL}
+  lega:
+    level: INFO
     handlers: [logstash,console]
-  ingestion:
-    level: ${_LOG_LEVEL}
-    handlers: [logstash,console]
-  keyserver:
-    level: ${_LOG_LEVEL}
-    handlers: [logstash,console]
-  vault:
-    level: ${_LOG_LEVEL}
-    handlers: [logstash,console]
-  verify:
-    level: ${_LOG_LEVEL}
-    handlers: [logstash,console]
+    propagate: true
+    qualname: lega
   socket-utils:
-    level: ${_LOG_LEVEL}
-    handlers: [logstash,console]
-  inbox:
-    level: ${_LOG_LEVEL}
-    handlers: [logstash,console]
-  utils:
-    level: ${_LOG_LEVEL}
-    handlers: [logstash,console]
-  amqp:
-    level: ${_LOG_LEVEL}
-    handlers: [logstash,console]
-  db:
-    level: ${_LOG_LEVEL}
-    handlers: [logstash,console]
-  crypto:
     level: ${_LOG_LEVEL}
     handlers: [logstash,console]
   asyncio:

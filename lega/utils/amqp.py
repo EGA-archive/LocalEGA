@@ -9,7 +9,7 @@ import uuid
 
 from ..conf import CONF
 
-LOG = logging.getLogger('amqp')
+LOG = logging.getLogger(__name__)
 
 
 def get_connection(domain, blocking=True):
@@ -23,16 +23,16 @@ def get_connection(domain, blocking=True):
     assert domain in CONF.sections(), "Section not found in config file"
 
     params = {
-        'host': CONF.get_or_else(domain, 'host', 'localhost'),
-        'port': CONF.getint_or_else(domain, 'port', 5672),
-        'virtual_host': CONF.get_or_else(domain, 'vhost', '/'),
+        'host': CONF.get_value(domain, 'host', default_value='localhost'),
+        'port': CONF.get_value(domain, 'port', int, default_value=5672),
+        'virtual_host': CONF.get_value(domain, 'vhost', default_value='/'),
         'credentials': pika.PlainCredentials(
-            CONF.get_or_else(domain, 'username', 'guest'),
-            CONF.get_or_else(domain, 'password', 'guest')
+            CONF.get_value(domain, 'username', default_value='guest'),
+            CONF.get_value(domain, 'password', default_value='guest')
         ),
-        'connection_attempts': CONF.getint_or_else(domain, 'connection_attempts', 2),
+        'connection_attempts': CONF.get_value(domain, 'connection_attempts', int, default_value=2),
     }
-    heartbeat = CONF.getint_or_else(domain, 'heartbeat', None)
+    heartbeat = CONF.get_value(domain, 'heartbeat', int, 0)
     if heartbeat is not None:  # can be 0
         # heartbeat_interval instead of heartbeat like they say in the doc
         # https://pika.readthedocs.io/en/latest/modules/parameters.html#connectionparameters
@@ -40,12 +40,12 @@ def get_connection(domain, blocking=True):
         LOG.debug(f'Setting hearbeat to {heartbeat}')
 
     # SSL configuration
-    if CONF.getboolean_or_else(domain, 'enable_ssl', False):
+    if CONF.get_value(domain, 'enable_ssl', bool, False):
         params['ssl'] = True
         params['ssl_options'] = {
-            'ca_certs': CONF.get_or_else(domain, 'cacert'),
-            'certfile': CONF.get_or_else(domain, 'cert'),
-            'keyfile':  CONF.get_or_else(domain, 'keyfile'),
+            'ca_certs': CONF.get_value(domain, 'cacert'),
+            'certfile': CONF.get_value(domain, 'cert'),
+            'keyfile':  CONF.get_value(domain, 'keyfile'),
             'cert_reqs': 2,  # ssl.CERT_REQUIRED is actually <VerifyMode.CERT_REQUIRED: 2>
         }
 
