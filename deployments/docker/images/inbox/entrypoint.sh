@@ -10,8 +10,8 @@ set -e
 # until nc -4 --send-only ${MQ_INSTANCE} 5672 </dev/null &>/dev/null; do sleep 1; done
 
 EGA_DB_IP=$(getent hosts ${DB_INSTANCE} | awk '{ print $1 }')
-EGA_UID=$(id -u ega)
-EGA_GID=$(id -g ega)
+EGA_UID=$(id -u lega)
+EGA_GID=$(id -g lega)
 
 cat > /etc/ega/auth.conf <<EOF
 enable_cega = yes
@@ -52,7 +52,7 @@ mount /ega/cache
 
 # Changing permissions
 echo "Changing permissions for /ega/inbox"
-chown root:ega /ega/inbox
+chown lega:lega /ega/inbox
 chmod 750 /ega/inbox
 chmod g+s /ega/inbox # setgid bit
 
