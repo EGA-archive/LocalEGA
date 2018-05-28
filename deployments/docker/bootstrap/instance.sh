@@ -88,14 +88,7 @@ cat > ${PRIVATE}/${INSTANCE}/ega.conf <<EOF
 [DEFAULT]
 log = /etc/ega/logger.yml
 
-[keyserver]
-port = 8443
-
-[ingestion]
-# Keyserver communication
-keyserver_endpoint_pgp = http://ega-keys-${INSTANCE}:8443/retrieve/pgp/%s
-keyserver_endpoint_rsa = http://ega-keys-${INSTANCE}:8443/active/rsa
-
+[inbox]
 decrypt_cmd = python3.6 -u -m lega.openpgp %(file)s
 
 [outgestion]
