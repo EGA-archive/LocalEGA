@@ -34,7 +34,7 @@ class Status(Enum):
 def fetch_args(d):
     db_args = { 'user'     : d.get_value('postgres', 'user'),
                 'password' : d.get_value('postgres', 'password'),
-                'database' : d.get_value('postgres', 'dbname'),
+                'database' : d.get_value('postgres', 'db'),
                 'host'     : d.get_value('postgres', 'host'),
                 'port'     : d.get_value('postgres', 'port', int)
     }
