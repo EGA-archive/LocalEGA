@@ -17,7 +17,7 @@ from .utils import (PGPError,
                     validate_private_data)
 from .iobuf import IOBuf
 
-LOG = logging.getLogger('openpgp')
+LOG = logging.getLogger(__name__)
 
 
 PACKET_TYPES = {} # Will be updated below

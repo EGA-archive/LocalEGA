@@ -13,14 +13,15 @@ from ..conf import CONF
 from .packet import iter_packets
 from .utils import make_key, PGPError
 
-LOG = logging.getLogger('openpgp')
+LOG = logging.getLogger(__name__)
 
 def fetch_private_key(key_id):
     ssl_ctx = ssl.create_default_context()
     ssl_ctx.check_hostname = False
     ssl_ctx.verify_mode=ssl.CERT_NONE
     LOG.info('Retrieving the PGP Private Key %s', key_id)
-    keyurl = CONF.get('ingestion','keyserver_endpoint_pgp',raw=True) % key_id
+    keyurl = CONF.get_value('keyserver', 'endpoint_pgp', raw=True) % key_id
+    LOG.info(f'Keyserver PGP endpoint: {keyurl}')
     try:
         req = Request(keyurl, headers={'content-type':'application/json'}, method='GET')
         LOG.info('Opening connection to %s', keyurl)
@@ -76,5 +77,3 @@ def main(args=None):
 
 if __name__ == '__main__':
     main()
-
-
