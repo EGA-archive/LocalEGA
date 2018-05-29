@@ -124,14 +124,19 @@ class Configuration(configparser.ConfigParser):
             res += '\nLogging settings loaded from ' + str(self.log_conf)
         return res
 
-    def get_value(self, section, option, conv=str, default_value=None, raw=False):
+    def get_value(self, section, option, conv=str, default=None, raw=False):
+        """"Get a specific value for this paramater either as env variable or from config files.
+
+        ``section`` and ``option`` are mandatory while ``conv``, ``default`` (fallback) and ``raw`` are optional.
+        """
         result = os.environ.get('_'.join([section.upper(), option.upper()]), None)
         if result:
             return self._convert(result, conv)
         elif result is None and self.has_option(section, option):
-            return self._convert(self.get(section, option, fallback=default_value, raw=raw), conv)
+            return self._convert(self.get(section, option, fallback=default, raw=raw), conv)
 
     def _convert(self, value, conv):
+        """Convert value properly to ``str``, ``float`` or ``int``, also consider ``bool`` type."""
         if conv == bool:
             val = value.lower()
             if val in ('y', 'yes', 't', 'true', 'on', '1'):
