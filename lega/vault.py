@@ -18,7 +18,7 @@ from .utils import db
 from .utils.amqp import consume
 
 
-LOG = logging.getLogger('vault')
+LOG = logging.getLogger(__name__)
 
 @db.catch_error
 def work(data):
@@ -29,7 +29,7 @@ def work(data):
     filepath      = Path(data['internal_data']['filepath'])
 
     # Create the target name from the file_id
-    vault_area = Path( CONF.get('vault','location') )
+    vault_area = Path(CONF.get_value('vault', 'path'))
     name = f"{file_id:0>20}" # filling with zeros, and 20 characters wide
     name_bits = [name[i:i+3] for i in range(0, len(name), 3)]
     target = vault_area.joinpath(*name_bits)

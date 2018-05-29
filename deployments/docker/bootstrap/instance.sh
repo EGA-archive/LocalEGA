@@ -88,14 +88,7 @@ cat > ${PRIVATE}/${INSTANCE}/ega.conf <<EOF
 [DEFAULT]
 log = /etc/ega/logger.yml
 
-[keyserver]
-port = 8443
-
 [ingestion]
-# Keyserver communication
-keyserver_endpoint_pgp = http://ega-keys-${INSTANCE}:8443/retrieve/pgp/%s
-keyserver_endpoint_rsa = http://ega-keys-${INSTANCE}:8443/active/rsa
-
 decrypt_cmd = python3.6 -u -m lega.openpgp %(file)s
 
 [outgestion]
@@ -106,11 +99,17 @@ keyserver_endpoint = https://ega-keys-${INSTANCE}:8443/temp/file/%s
 [broker]
 host = ega-mq-${INSTANCE}
 
-[db]
+[postgres]
 host = ega-db-${INSTANCE}
-username = ${DB_USER}
+user = ${DB_USER}
 password = ${DB_PASSWORD}
 try = ${DB_TRY}
+
+[keyserver]
+# Keyserver communication
+port = 8443
+endpoint_pgp = http://ega-keys-${INSTANCE}:8443/retrieve/pgp/%s
+endpoint_rsa = http://ega-keys-${INSTANCE}:8443/active/rsa
 
 [eureka]
 endpoint = http://cega-eureka:8761
@@ -154,37 +153,12 @@ root:
   handlers: [noHandler]
 
 loggers:
-  connect:
-    level: ${_LOG_LEVEL}
+  lega:
+    level: INFO
     handlers: [logstash,console]
-  ingestion:
-    level: ${_LOG_LEVEL}
-    handlers: [logstash,console]
-  keyserver:
-    level: ${_LOG_LEVEL}
-    handlers: [logstash,console]
-  vault:
-    level: ${_LOG_LEVEL}
-    handlers: [logstash,console]
-  verify:
-    level: ${_LOG_LEVEL}
-    handlers: [logstash,console]
+    propagate: true
+    qualname: lega
   socket-utils:
-    level: ${_LOG_LEVEL}
-    handlers: [logstash,console]
-  inbox:
-    level: ${_LOG_LEVEL}
-    handlers: [logstash,console]
-  utils:
-    level: ${_LOG_LEVEL}
-    handlers: [logstash,console]
-  amqp:
-    level: ${_LOG_LEVEL}
-    handlers: [logstash,console]
-  db:
-    level: ${_LOG_LEVEL}
-    handlers: [logstash,console]
-  crypto:
     level: ${_LOG_LEVEL}
     handlers: [logstash,console]
   asyncio:

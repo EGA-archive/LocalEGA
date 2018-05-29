@@ -7,7 +7,7 @@ import hashlib
 
 from .exceptions import UnsupportedHashAlgorithm, CompanionNotFound
 
-LOG = logging.getLogger('utils-checksum')
+LOG = logging.getLogger(__name__)
 
 # Main map
 _DIGEST = {

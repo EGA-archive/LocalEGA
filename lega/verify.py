@@ -20,7 +20,7 @@ from .conf import CONF
 from .utils import checksum, db, exceptions
 from .utils.amqp import consume
 
-LOG = logging.getLogger('verify')
+LOG = logging.getLogger(__name__)
 
 @db.catch_error
 def work(data):

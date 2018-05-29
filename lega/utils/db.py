@@ -19,7 +19,7 @@ from ..conf import CONF
 from .exceptions import FromUser
 from .amqp import publish, get_connection
 
-LOG = logging.getLogger('db')
+LOG = logging.getLogger(__name__)
 
 class Status(Enum):
     Received = 'Received'
@@ -32,19 +32,19 @@ class Status(Enum):
 ##         DB connection            ##
 ######################################
 def fetch_args(d):
-    db_args = { 'user'     : d.get('db','username'),
-                'password' : d.get('db','password'),
-                'database' : d.get('db','dbname'),
-                'host'     : d.get('db','host'),
-                'port'     : d.getint('db','port')
+    db_args = { 'user'     : d.get_value('postgres', 'user'),
+                'password' : d.get_value('postgres', 'password'),
+                'database' : d.get_value('postgres', 'db'),
+                'host'     : d.get_value('postgres', 'host'),
+                'port'     : d.get_value('postgres', 'port', conv=int)
     }
     LOG.info(f"Initializing a connection to: {db_args['host']}:{db_args['port']}/{db_args['database']}")
     return db_args
 
 async def _retry(run, on_failure=None, exception=psycopg2.OperationalError):
     '''Main retry loop'''
-    nb_try   = CONF.getint('db','try', fallback=1)
-    try_interval = CONF.getint('db','try_interval', fallback=1)
+    nb_try = CONF.get_value('postgres', 'try', conv=int, default=1)
+    try_interval = CONF.get_value('postgres', 'try_interval', conv=int, default=1)
     LOG.debug(f"{nb_try} attempts (every {try_interval} seconds)")
     count = 0
     backoff = try_interval
@@ -66,7 +66,7 @@ async def _retry(run, on_failure=None, exception=psycopg2.OperationalError):
         LOG.error(f"Database connection fail after {nb_try} attempts ...")
     else:
         LOG.error("Database connection attempts was set to 0 ...")
-        
+
     if on_failure:
         on_failure()
 
@@ -138,7 +138,7 @@ def insert_file(filename, user_id, stable_id):
                 return file_id
             else:
                 raise Exception('Database issue with insert_file')
- 
+
 
 def get_errors(from_user=False):
     query = 'SELECT * from errors WHERE from_user = true;' if from_user else 'SELECT * from errors;'
