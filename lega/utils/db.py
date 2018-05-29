@@ -36,15 +36,15 @@ def fetch_args(d):
                 'password' : d.get_value('postgres', 'password'),
                 'database' : d.get_value('postgres', 'db'),
                 'host'     : d.get_value('postgres', 'host'),
-                'port'     : d.get_value('postgres', 'port', int)
+                'port'     : d.get_value('postgres', 'port', conv=int)
     }
     LOG.info(f"Initializing a connection to: {db_args['host']}:{db_args['port']}/{db_args['database']}")
     return db_args
 
 async def _retry(run, on_failure=None, exception=psycopg2.OperationalError):
     '''Main retry loop'''
-    nb_try = CONF.get_value('postgres', 'try', int, 1)
-    try_interval = CONF.get_value('postgres', 'try_interval', int, 1)
+    nb_try = CONF.get_value('postgres', 'try', conv=int, default=1)
+    try_interval = CONF.get_value('postgres', 'try_interval', conv=int, default=1)
     LOG.debug(f"{nb_try} attempts (every {try_interval} seconds)")
     count = 0
     backoff = try_interval

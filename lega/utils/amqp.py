@@ -23,16 +23,16 @@ def get_connection(domain, blocking=True):
     assert domain in CONF.sections(), "Section not found in config file"
 
     params = {
-        'host': CONF.get_value(domain, 'host', default_value='localhost'),
-        'port': CONF.get_value(domain, 'port', int, default_value=5672),
-        'virtual_host': CONF.get_value(domain, 'vhost', default_value='/'),
+        'host': CONF.get_value(domain, 'host', default='localhost'),
+        'port': CONF.get_value(domain, 'port', conv=int, default=5672),
+        'virtual_host': CONF.get_value(domain, 'vhost', default='/'),
         'credentials': pika.PlainCredentials(
-            CONF.get_value(domain, 'username', default_value='guest'),
-            CONF.get_value(domain, 'password', default_value='guest')
+            CONF.get_value(domain, 'username', default='guest'),
+            CONF.get_value(domain, 'password', default='guest')
         ),
-        'connection_attempts': CONF.get_value(domain, 'connection_attempts', int, default_value=2),
+        'connection_attempts': CONF.get_value(domain, 'connection_attempts', conv=int, default=2),
     }
-    heartbeat = CONF.get_value(domain, 'heartbeat', int, 0)
+    heartbeat = CONF.get_value(domain, 'heartbeat', conv=int, default=0)
     if heartbeat is not None:  # can be 0
         # heartbeat_interval instead of heartbeat like they say in the doc
         # https://pika.readthedocs.io/en/latest/modules/parameters.html#connectionparameters
@@ -40,7 +40,7 @@ def get_connection(domain, blocking=True):
         LOG.debug(f'Setting hearbeat to {heartbeat}')
 
     # SSL configuration
-    if CONF.get_value(domain, 'enable_ssl', bool, False):
+    if CONF.get_value(domain, 'enable_ssl', conv=bool, default=False):
         params['ssl'] = True
         params['ssl_options'] = {
             'ca_certs': CONF.get_value(domain, 'cacert'),
