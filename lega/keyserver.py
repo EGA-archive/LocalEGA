@@ -509,7 +509,7 @@ def main(args=None):
     CONF.setup(args)
 
     host = CONF.get_value('keyserver', 'host')  # fallbacks are in defaults.ini
-    port = CONF.get_value('keyserver', 'port', int)
+    port = CONF.get_value('keyserver', 'port', conv=int)
     keyserver_health = CONF.get_value('keyserver', 'health_endpoint')
     keyserver_status = CONF.get_value('keyserver', 'status_endpoint')
 
@@ -533,7 +533,7 @@ def main(args=None):
 
     # Adding the keystore to the server
     keyserver['store'] = KeysConfiguration(args)
-    keyserver['interval'] = CONF.get_value('eureka', 'interval', int)
+    keyserver['interval'] = CONF.get_value('eureka', 'interval', conv=int)
     keyserver['eureka'] = EurekaClient("keyserver", port=port, ip_addr=host,
                                        eureka_url=eureka_endpoint, hostname=host,
                                        health_check_url=f'http://{host}:{port}{keyserver_health}',
