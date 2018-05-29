@@ -71,7 +71,7 @@ def work(master_key, data):
     data['internal_data'] = internal_data
 
     # Find inbox
-    inbox = Path(CONF.get_value('inbox', 'path', raw=True) % {'user_id': user_id})
+    inbox = Path(CONF.get_value('ingestion', 'path', raw=True) % {'user_id': user_id})
     LOG.info(f"Inbox area: {inbox}")
 
     # Check if file is in inbox
@@ -119,7 +119,7 @@ def work(master_key, data):
                                          'algorithm': unencrypted_algo }
 
     # Fetch staging area
-    staging_area = Path(CONF.get_value('inbox', 'staging'))
+    staging_area = Path(CONF.get_value('ingestion', 'staging'))
     LOG.info(f"Staging area: {staging_area}")
     #staging_area.mkdir(parents=True, exist_ok=True) # re-create
 
@@ -139,7 +139,7 @@ def work(master_key, data):
     publish(data, broker.channel(), 'cega', 'files.processing')
 
     # Decrypting
-    cmd = CONF.get_value('inbox', 'decrypt_cmd', raw=True) % {'file': str(inbox_filepath)}
+    cmd = CONF.get_value('ingestion', 'decrypt_cmd', raw=True) % {'file': str(inbox_filepath)}
     LOG.debug(f'GPG command: {cmd}\n')
     details, staging_checksum = crypto_ingest( cmd,
                                                str(inbox_filepath),

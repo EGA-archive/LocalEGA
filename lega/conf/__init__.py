@@ -39,8 +39,6 @@ class Configuration(configparser.ConfigParser):
     """Configuration from config_files or environment variables or config server (e.g. Spring Cloud Config)."""
 
     log_conf = None
-    BOOLEAN_STATES = {'1': True, 'yes': True, 'true': True, 'on': True,
-                      '0': False, 'no': False, 'false': False, 'off': False}
 
     def _load_conf(self, args=None, encoding='utf-8'):
         """Load a configuration file from `args`."""
@@ -134,8 +132,14 @@ class Configuration(configparser.ConfigParser):
             return self._convert(self.get(section, option, fallback=default_value, raw=raw), conv)
 
     def _convert(self, value, conv):
-        if conv == bool and value.lower() in self.BOOLEAN_STATES:
-            return self.BOOLEAN_STATES[value.lower()]
+        if conv == bool:
+            val = value.lower()
+            if val in ('y', 'yes', 't', 'true', 'on', '1'):
+                return True
+            elif val in ('n', 'no', 'f', 'false', 'off', '0'):
+                return False
+            else:
+                raise ValueError(f"Invalid truth value: {val}")
         else:
             return conv(value)
 

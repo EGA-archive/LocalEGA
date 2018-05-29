@@ -88,7 +88,7 @@ cat > ${PRIVATE}/${INSTANCE}/ega.conf <<EOF
 [DEFAULT]
 log = /etc/ega/logger.yml
 
-[inbox]
+[ingestion]
 decrypt_cmd = python3.6 -u -m lega.openpgp %(file)s
 
 [outgestion]
@@ -110,7 +110,6 @@ try = ${DB_TRY}
 port = 8443
 endpoint_pgp = http://ega-keys-${INSTANCE}:8443/retrieve/pgp/%s
 endpoint_rsa = http://ega-keys-${INSTANCE}:8443/active/rsa
-
 
 [eureka]
 endpoint = http://cega-eureka:8761
