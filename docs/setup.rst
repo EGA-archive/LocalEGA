@@ -38,6 +38,8 @@ using the ``--conf <file>`` switch to specify the configuration file.
 
 The settings are loaded, in order:
 
+* from environment variables (the naming convetion is according to
+  ``default.ini`` where ``section`` and ``option``, both uppercased e.g. ``KEYSERVER_ENDPOINT_PGP`` or ``POSTGRES_DB``);
 * from the package's ``defaults.ini``
 * from the file ``/etc/ega/conf.ini`` (if it exists)
 * and finally from the file specified as the ``--conf`` argument.
