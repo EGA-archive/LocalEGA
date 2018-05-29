@@ -37,7 +37,7 @@ from .utils import db, exceptions, checksum, sanitize_user_id
 from .utils.amqp import consume, publish, get_connection
 from .utils.crypto import ingest as crypto_ingest
 
-LOG = logging.getLogger('ingestion')
+LOG = logging.getLogger(__name__)
 
 @db.catch_error
 def work(master_key, data):
@@ -59,7 +59,7 @@ def work(master_key, data):
 
     # Use user_id, and not elixir_id
     user_id = sanitize_user_id(data['user'])
-    
+
     # Insert in database
     file_id = db.insert_file(filepath, user_id, stable_id)
 
@@ -71,7 +71,7 @@ def work(master_key, data):
     data['internal_data'] = internal_data
 
     # Find inbox
-    inbox = Path( CONF.get('ingestion','inbox',raw=True) % { 'user_id': user_id } )
+    inbox = Path(CONF.get_value('ingestion', 'path', raw=True) % {'user_id': user_id})
     LOG.info(f"Inbox area: {inbox}")
 
     # Check if file is in inbox
@@ -97,7 +97,7 @@ def work(master_key, data):
 
     assert( isinstance(encrypted_hash,str) )
     assert( isinstance(encrypted_algo,str) )
-    
+
     # Check integrity of encrypted file
     LOG.debug(f"Verifying the {encrypted_algo} checksum of encrypted file: {inbox_filepath}")
     if not checksum.is_valid(inbox_filepath, encrypted_hash, hashAlgo = encrypted_algo):
@@ -119,10 +119,10 @@ def work(master_key, data):
                                          'algorithm': unencrypted_algo }
 
     # Fetch staging area
-    staging_area = Path( CONF.get('ingestion','staging') )
+    staging_area = Path(CONF.get_value('ingestion', 'staging'))
     LOG.info(f"Staging area: {staging_area}")
     #staging_area.mkdir(parents=True, exist_ok=True) # re-create
-        
+
     # Create a unique name for the staging area
     unique_name = str(uuid.uuid5(uuid.NAMESPACE_OID, 'lega'))
     LOG.debug(f'Created an unique filename in the staging area: {unique_name}')
@@ -139,7 +139,7 @@ def work(master_key, data):
     publish(data, broker.channel(), 'cega', 'files.processing')
 
     # Decrypting
-    cmd = CONF.get('ingestion','decrypt_cmd',raw=True) % { 'file': str(inbox_filepath) }
+    cmd = CONF.get_value('ingestion', 'decrypt_cmd', raw=True) % {'file': str(inbox_filepath)}
     LOG.debug(f'GPG command: {cmd}\n')
     details, staging_checksum = crypto_ingest( cmd,
                                                str(inbox_filepath),
@@ -149,13 +149,14 @@ def work(master_key, data):
                                                target = staging_filepath)
     db.set_encryption(file_id, details, staging_checksum)
     LOG.debug(f'Re-encryption completed')
-    
+
     internal_data['filepath'] = str(staging_filepath)
     LOG.debug(f"Reply message: {data}")
     return data
 
+
 def get_master_key():
-    keyurl = CONF.get('ingestion','keyserver_endpoint_rsa')
+    keyurl = CONF.get_value('keyserver', 'endpoint_rsa')
     LOG.info(f'Retrieving the Master Public Key from {keyurl}')
     try:
         # Prepare to contact the Keyserver for the Master key
@@ -178,7 +179,7 @@ def main(args=None):
     LOG.info(f"Master Key ID: {master_key['id']}")
     LOG.debug(f"Master Key: {master_key}")
     do_work = partial(work, master_key)
-        
+
     # upstream link configured in local broker
     consume(do_work, 'files', 'staged')
 
