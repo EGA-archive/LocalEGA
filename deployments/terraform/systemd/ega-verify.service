@@ -1,0 +1,24 @@
+[Unit]
+Description=EGA Verifier service
+After=syslog.target
+After=network.target
+
+After=ega-vault.service
+
+[Service]
+Slice=ega.slice
+Type=simple
+User=ega
+Group=ega
+EnvironmentFile=/etc/ega/options
+ExecStart=/usr/bin/ega-verify $EGA_OPTIONS
+
+StandardOutput=syslog
+StandardError=syslog
+
+Restart=on-failure
+RestartSec=10
+TimeoutSec=600
+
+[Install]
+WantedBy=multi-user.target

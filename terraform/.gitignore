@@ -1,7 +1,0 @@
-ega.conf
-main.auto.tfvars
-snic.cloud.rc
-.terraform*
-*.tfstate*
-tests/
-instances/workers/*.zip

@@ -1,0 +1,16 @@
+[Unit]
+Description=EGA inbox server daemon
+After=network.target sshd-keygen.service
+Wants=sshd-keygen.service
+
+[Service]
+Type=notify
+EnvironmentFile=/etc/ega/options
+ExecStart=/usr/sbin/ega -D -f /etc/ega/config $OPTIONS
+ExecReload=/bin/kill -HUP $MAINPID
+KillMode=process
+Restart=on-failure
+RestartSec=42s
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,11 @@
+[Unit]
+Description=Mount EGA Directory
+
+[Mount]
+What=/dev/vdb
+Where=/ega
+Type=btrfs
+Options=defaults
+
+[Install]
+WantedBy=multi-user.target
