@@ -1,0 +1,72 @@
+version: 1
+root:
+  level: NOTSET
+  handlers: [noHandler]
+
+loggers:
+  connect:
+    level: INFO
+    handlers: [logstash,console]
+  frontend:
+    level: INFO
+    handlers: [logstash,console]
+  ingestion:
+    level: INFO
+    handlers: [logstash,console]
+  keyserver:
+    level: INFO
+    handlers: [logstash,console]
+  vault:
+    level: INFO
+    handlers: [logstash,console]
+  verify:
+    level: INFO
+    handlers: [logstash,console]
+  socket-utils:
+    level: INFO
+    handlers: [logstash,console]
+  inbox:
+    level: INFO
+    handlers: [logstash,console]
+  utils:
+    level: INFO
+    handlers: [logstash,console]
+  amqp:
+    level: INFO
+    handlers: [logstash,console]
+  db:
+    level: INFO
+    handlers: [logstash,console]
+  crypto:
+    level: INFO
+    handlers: [logstash,console]
+  eureka:
+    level: INFO
+    handlers: [logstash,console]
+
+
+handlers:
+  noHandler:
+    class: logging.NullHandler
+    level: NOTSET
+  console:
+    class: logging.StreamHandler
+    formatter: simple
+    stream: ext://sys.stderr
+  logstash:
+    class: lega.utils.logging.LEGAHandler
+    formatter: json
+    host: ega_monitor
+    port: 5600
+
+formatters:
+  json:
+    (): lega.utils.logging.JSONFormatter
+    format: '(asctime) (name) (process) (processName) (levelname) (lineno) (funcName) (message)'
+  lega:
+    format: '[{asctime:<20}][{name}][{process:d} {processName:>15}][{levelname}] (L:{lineno}) {funcName}: {message}'
+    style: '{'
+    datefmt: '%Y-%m-%d %H:%M:%S'
+  simple:
+    format: '[{name:^10}][{levelname:^6}] (L{lineno}) {message}'
+    style: '{'

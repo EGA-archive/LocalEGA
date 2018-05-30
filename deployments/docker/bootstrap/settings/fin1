@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+set -e
+
+DOCKER_PORT_inbox=2223
+DOCKER_PORT_mq=15673
+DOCKER_PORT_kibana=5602
+#DOCKER_PORT_keyserver=8444
+
+LEGA_GREETINGS="Welcome to Local EGA Finland @ CSC"
+CEGA_MQ_PASSWORD=$(generate_password 16)
+CEGA_REST_PASSWORD=$(generate_password 16)
+
+SSL_SUBJ="/C=FI/ST=Finland/L=Helsinki/O=CSC/OU=SysDevs/CN=LocalEGA/emailAddress=ega@csc.fi"
+
+DB_USER=lega
+DB_PASSWORD=$(generate_password 16)
+DB_TRY=30
+
+PGP_NAME="EGA Finland"
+PGP_COMMENT="@CSC"
+PGP_EMAIL="ega@csc.fi"
+PGP_PASSPHRASE=$(generate_password 16)
+
+RSA_PASSPHRASE=$(generate_password 16)
+
+LOG_LEVEL=INFO

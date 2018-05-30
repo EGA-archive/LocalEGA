@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+set -e
+
+LEGA_GREETINGS="Welcome to Local EGA Sweden @ NBIS"
+
+SSL_SUBJ="/C=SE/ST=Sweden/L=Uppsala/O=NBIS/OU=SysDevs/CN=LocalEGA/emailAddress=ega@nbis.se"
+
+DB_USER=lega
+DB_PASSWORD=$(generate_password 16)
+DB_TRY=30
+
+MQ_PASSWORD=$(generate_password 16)
+CEGA_PASSWORD=$(generate_password 16)
+
+PGP_NAME="EGA Sweden"
+PGP_COMMENT="@NBIS"
+PGP_EMAIL="ega@nbis.se"
+
+PGP_PASSPHRASE=$(generate_password 16)
+RSA_PASSPHRASE=$(generate_password 16)
+
+LOG_LEVEL=DEBUG
+
+EGA_UID=1001
+EGA_GID=1001 # I don't like that solution
+
+KIBANA_PASSWORD=$(generate_password 16)
+declare -A KIBANA_USERS=()
+KIBANA_USERS['lega']=$(${OPENSSL} passwd -apr1 -salt 8sFt66rZ ${KIBANA_PASSWORD})
+# Additional users
+KIBANA_USERS['dmytro']=$'$apr1$B/121b5s$753jzM8Bq8O91NXJmo3ey/'

@@ -1,0 +1,11 @@
+[Unit]
+Description=Mount EGA Inbox NFS Directory
+
+[Mount]
+What=ega_inbox:/ega/inbox
+Where=/ega/inbox
+Type=nfs
+Options=noauto,x-systemd.automount,x-systemd.device-timeout=10,timeo=14,x-systemd.idle-timeout=1min
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,84 @@
+version: 1
+root:
+  level: NOTSET
+  handlers: [noHandler]
+
+loggers:
+  openpgp:
+    level: DEBUG
+    handlers: [debugFile,console]
+  ingestion:
+    level: DEBUG
+    handlers: [debugFile,console]
+  keyserver:
+    level: DEBUG
+    handlers: [debugFile,console]
+  eureka:
+    level: DEBUG
+    handlers: [debugFile,console]
+  vault:
+    level: DEBUG
+    handlers: [debugFile,console]
+  verify:
+    level: DEBUG
+    handlers: [debugFile,console]
+  inbox:
+    level: DEBUG
+    handlers: [debugFile,console]
+  utils:
+    level: DEBUG
+    handlers: [debugFile,console]
+  amqp:
+    level: DEBUG
+    handlers: [debugFile,console]
+  db:
+    level: DEBUG
+    handlers: [debugFile,console]
+  crypto:
+    level: DEBUG
+    handlers: [debugFile,console]
+  asyncio:
+    level: DEBUG
+    handlers: [debugFile]
+  aiohttp.access:
+    level: DEBUG
+    handlers: [debugFile]
+  aiohttp.client:
+    level: DEBUG
+    handlers: [debugFile]
+  aiohttp.internal:
+    level: DEBUG
+    handlers: [debugFile]
+  aiohttp.server:
+    level: DEBUG
+    handlers: [debugFile]
+  aiohttp.web:
+    level: DEBUG
+    handlers: [debugFile]
+  aiohttp.websocket:
+    level: DEBUG
+    handlers: [debugFile]
+
+
+handlers:
+  noHandler:
+    class: logging.NullHandler
+    level: NOTSET
+  console:
+    class: logging.StreamHandler
+    formatter: simple
+    stream: ext://sys.stderr
+  debugFile:
+    class: logging.FileHandler
+    formatter: lega
+    filename: '/tmp/ega-debug.log'
+    mode: 'w'
+
+formatters:
+  lega:
+    format: '[{asctime:<20}][{name}][{process:d} {processName:>15}][{levelname}] (L:{lineno}) {funcName}: {message}'
+    style: '{'
+    datefmt: '%Y-%m-%d %H:%M:%S'
+  simple:
+    format: '[{name:^10}][{levelname:^6}] (L{lineno}) {message}'
+    style: '{'

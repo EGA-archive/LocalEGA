@@ -1,0 +1,12 @@
+{"rabbit_version":"3.6.14",
+ "vhosts":[{"name":"/"}],
+ "parameters":[],
+ "policies":[],
+ "queues":[{"name":"archived",   "vhost":"/","durable":true,"auto_delete":false,"arguments":{}},
+ 	   {"name":"staged",     "vhost":"/","durable":true,"auto_delete":false,"arguments":{}},
+	   {"name":"files",      "vhost":"/","durable":true,"auto_delete":false,"arguments":{}}],
+ "exchanges":[{"name":"lega","vhost":"/","type":"topic","durable":true,"auto_delete":false,"internal":false,"arguments":{}},
+              {"name":"cega","vhost":"/","type":"topic","durable":true,"auto_delete":false,"internal":false,"arguments":{}}],
+ "bindings":[{"source":"lega","vhost":"/","destination":"archived","destination_type":"queue","routing_key":"archived","arguments":{}},
+	     {"source":"lega","vhost":"/","destination":"staged","destination_type":"queue","routing_key":"staged","arguments":{}}]
+}

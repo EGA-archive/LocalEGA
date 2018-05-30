@@ -1,0 +1,8 @@
+[Unit]
+Description=EGA Slice
+DefaultDependencies=no
+Before=slices.target
+
+#[Slice]
+#CPUShares=512
+#MemoryLimit=2G
