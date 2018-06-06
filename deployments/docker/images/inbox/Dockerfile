@@ -23,6 +23,15 @@ RUN ssh-keygen -t rsa     -N '' -f /etc/ssh/ssh_host_rsa_key && \
     chmod 750 /ega/inbox && \
     chmod g+s /ega/inbox
 
+# S3 File System
+RUN pip3.6 install boto3 && \
+    yum -y install automake fuse fuse-devel gcc-c++ git libcurl-devel libxml2-devel make openssl-devel && \
+    git clone https://github.com/s3fs-fuse/s3fs-fuse.git && \
+    cd s3fs-fuse && \
+    ./autogen.sh && \
+    ./configure && \
+    make && make install
+
 COPY pam.ega /etc/pam.d/ega
 COPY sshd_config /etc/ega/sshd_config
 RUN cp /usr/sbin/sshd /usr/sbin/ega
