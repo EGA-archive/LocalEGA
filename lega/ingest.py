@@ -12,8 +12,7 @@ When a message is consumed, it must be of the form:
 * ``stable_id``
 * ``user_id``
 
-and optionally 2 more integrity fields, called ``encrypted_integrity``
-and ``unencrypted_integrity``, each with:
+and optionally an integrity field, called ``unencrypted_integrity``, with:
 
 * ``checksum`` value
 * ``algorithm`` - the associated hash algorithm
@@ -27,27 +26,25 @@ import logging
 from pathlib import Path
 import uuid
 import ssl
-from functools import partial
-from urllib.request import urlopen
 import json
-
+import shutil
 
 from .conf import CONF
 from .utils import db, exceptions, checksum, sanitize_user_id
 from .utils.amqp import consume, publish, get_connection
-from .utils.crypto import ingest as crypto_ingest
+
+from legacryptor.crypt4gh import get_header
 
 LOG = logging.getLogger('ingestion')
 
 @db.catch_error
-def work(master_key, data):
-    '''Main ingestion function
+def work(data):
+    '''Ingestion function
 
     The data is of the form:
 
     * user id
     * a filepath
-    * encrypted hash information (with both the hash value and the hash algorithm)
     * unencrypted hash information (with both the hash value and the hash algorithm)
 
     .. note:: The supported hash algorithm are, for the moment, MD5 and SHA256.
@@ -80,57 +77,6 @@ def work(master_key, data):
         raise exceptions.NotFoundInInbox(filepath) # return early
 
     # Ok, we have the file in the inbox
-    # Get the checksums now
-
-    try:
-        encrypted_integrity = data['encrypted_integrity']
-        encrypted_hash = encrypted_integrity['checksum']
-        encrypted_algo = encrypted_integrity['algorithm']
-        if not encrypted_algo: # Fix in case CentralEGA sends null
-            encrypted_algo = 'md5'
-    except (KeyError, TypeError):
-        LOG.info('Finding a companion file')
-        encrypted_hash, encrypted_algo = checksum.get_from_companion(inbox_filepath)
-        data['encrypted_integrity'] = {'checksum': encrypted_hash,
-                                       'algorithm': encrypted_algo }
-
-
-    assert( isinstance(encrypted_hash,str) )
-    assert( isinstance(encrypted_algo,str) )
-    
-    # Check integrity of encrypted file
-    LOG.debug(f"Verifying the {encrypted_algo} checksum of encrypted file: {inbox_filepath}")
-    if not checksum.is_valid(inbox_filepath, encrypted_hash, hashAlgo = encrypted_algo):
-        LOG.error(f"Invalid {encrypted_algo} checksum for {inbox_filepath}")
-        raise exceptions.Checksum(encrypted_algo, file=inbox_filepath, decrypted=False)
-    LOG.debug(f'Valid {encrypted_algo} checksum for {inbox_filepath}')
-
-    try:
-        unencrypted_integrity = data['unencrypted_integrity']
-        unencrypted_hash = unencrypted_integrity['checksum']
-        unencrypted_algo = unencrypted_integrity['algorithm']
-        if not unencrypted_algo: # Fix in case CentralEGA sends null
-            unencrypted_algo = 'md5'
-    except (KeyError, TypeError):
-        # Strip the suffix first.
-        LOG.info('Finding a companion file')
-        unencrypted_hash, unencrypted_algo = checksum.get_from_companion(inbox_filepath.with_suffix(''))
-        data['unencrypted_integrity'] = {'checksum': unencrypted_hash,
-                                         'algorithm': unencrypted_algo }
-
-    # Fetch staging area
-    staging_area = Path( CONF.get('ingestion','staging') )
-    LOG.info(f"Staging area: {staging_area}")
-    #staging_area.mkdir(parents=True, exist_ok=True) # re-create
-        
-    # Create a unique name for the staging area
-    unique_name = str(uuid.uuid5(uuid.NAMESPACE_OID, 'lega'))
-    LOG.debug(f'Created an unique filename in the staging area: {unique_name}')
-    staging_filepath = staging_area / unique_name
-
-    # Save progress in database
-    LOG.debug(f'Starting the re-encryption\n\tfrom {inbox_filepath}\n\tto {staging_filepath}')
-    db.set_progress(file_id, str(staging_filepath), encrypted_hash, encrypted_algo, unencrypted_hash, unencrypted_algo)
 
     # Sending a progress message to CentralEGA
     data['status'] = { 'state': 'PROCESSING', 'details': None }
@@ -138,34 +84,28 @@ def work(master_key, data):
     broker = get_connection('broker')
     publish(data, broker.channel(), 'cega', 'files.processing')
 
-    # Decrypting
-    cmd = CONF.get('ingestion','decrypt_cmd',raw=True) % { 'file': str(inbox_filepath) }
-    LOG.debug(f'GPG command: {cmd}\n')
-    details, staging_checksum = crypto_ingest( cmd,
-                                               str(inbox_filepath),
-                                               unencrypted_hash,
-                                               hash_algo = unencrypted_algo,
-                                               master_key = master_key,
-                                               target = staging_filepath)
-    db.set_encryption(file_id, details, staging_checksum)
-    LOG.debug(f'Re-encryption completed')
-    
-    internal_data['filepath'] = str(staging_filepath)
+    # Strip the header out and copy the file to the vault
+    with open(inbox_filepath, 'rb') as infile:
+        header = get_header(infile)
+
+        vault_area = Path( CONF.get('vault','location') )
+        name = f"{file_id:0>20}" # filling with zeros, and 20 characters wide
+        name_bits = [name[i:i+3] for i in range(0, len(name), 3)]
+        target = vault_area.joinpath(*name_bits)
+        LOG.debug(f'Target: {target}')
+        target.parent.mkdir(parents=True, exist_ok=True)
+
+        # Moving the file
+        starget = str(target)
+        LOG.debug(f'Moving the rest of {filepath} to {target}')
+        with open(starget, 'wb') as outfile:
+            shutil.copyfileobj(infile, outfile) # It will copy the rest only
+
+        LOG.debug(f'Vault copying completed')
+        internal_data['filepath'] = starget
+
     LOG.debug(f"Reply message: {data}")
     return data
-
-def get_master_key():
-    keyurl = CONF.get('ingestion','keyserver_endpoint_rsa')
-    LOG.info(f'Retrieving the Master Public Key from {keyurl}')
-    try:
-        # Prepare to contact the Keyserver for the Master key
-        with urlopen(keyurl) as response:
-            return json.loads(response.read().decode())
-    except Exception as e:
-        LOG.error(repr(e))
-        LOG.critical('Problem contacting the Keyserver. Ingestion Worker terminated')
-        sys.exit(1)
-
 
 def main(args=None):
     if not args:
@@ -173,14 +113,8 @@ def main(args=None):
 
     CONF.setup(args) # re-conf
 
-    master_key = get_master_key() # might exit
-
-    LOG.info(f"Master Key ID: {master_key['id']}")
-    LOG.debug(f"Master Key: {master_key}")
-    do_work = partial(work, master_key)
-        
     # upstream link configured in local broker
-    consume(do_work, 'files', 'staged')
+    consume(work, 'files', 'staged')
 
 if __name__ == '__main__':
     main()

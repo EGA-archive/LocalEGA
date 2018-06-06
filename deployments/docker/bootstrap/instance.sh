@@ -74,11 +74,15 @@ log = /etc/ega/logger.yml
 [keyserver]
 port = 8443
 
-[ingestion]
-# Keyserver communication
-keyserver_endpoint = http://ega-keys-${INSTANCE}:8443/retrieve/%s
+[inbox]
+driver = file
+#driver = s3
 
-decrypt_cmd = python3.6 -u -m legacryptor reencrypt -i %(file)s
+[s3]
+url = http://ega-s3-${INSTANCE}:9000
+access_key = ${S3_ACCESS_KEY}
+secret_key = ${S3_SECRET_KEY}
+#region = ${INSTANCE}
 
 [outgestion]
 # Just for test
@@ -236,6 +240,13 @@ POSTGRES_PASSWORD=${DB_PASSWORD}
 POSTGRES_DB=lega
 EOF
 
+cat > ${PRIVATE}/${INSTANCE}/s3.env <<EOF
+S3_ACCESS_KEY=${S3_ACCESS_KEY}
+S3_SECRET_KEY=${S3_SECRET_KEY}
+AWS_ACCESS_KEY_ID=${S3_ACCESS_KEY}
+AWS_SECRET_ACCESS_KEY=${S3_SECRET_KEY}
+EOF
+
 cat > ${PRIVATE}/${INSTANCE}/pgp.env <<EOF
 PGP_EMAIL=${PGP_EMAIL}
 PGP_PASSPHRASE=${PGP_PASSPHRASE}
@@ -381,6 +392,7 @@ services:
     env_file:
       - ${INSTANCE}/db.env
       - ${INSTANCE}/cega.env
+      - ${INSTANCE}/s3.env
     ports:
       - "${DOCKER_PORT_inbox}:9000"
     container_name: ega-inbox-${INSTANCE}
@@ -396,6 +408,7 @@ services:
       - ./${INSTANCE}/logger.yml:/etc/ega/logger.yml:ro
       - inbox_${INSTANCE}:/ega/inbox
       - ../../../lega:/root/.local/lib/python3.6/site-packages/lega
+      - ~/_auth_ega:/root/_auth_ega
     restart: on-failure:3
     networks:
       - lega_${INSTANCE}
@@ -413,11 +426,11 @@ services:
       - KEYSERVER_INSTANCE=ega-keys-${INSTANCE}
     volumes:
        - inbox_${INSTANCE}:/ega/inbox
-       - staging_${INSTANCE}:/ega/staging
        - ./${INSTANCE}/ega.conf:/etc/ega/conf.ini:ro
        - ./${INSTANCE}/logger.yml:/etc/ega/logger.yml:ro
        - ../images/worker/entrypoint.sh:/usr/local/bin/entrypoint.sh
        - ../../../lega:/root/.local/lib/python3.6/site-packages/lega
+       - ~/_cryptor/legacryptor:/root/.local/lib/python3.6/site-packages/legacryptor
     restart: on-failure:3
     networks:
       - lega_${INSTANCE}
@@ -463,7 +476,7 @@ services:
     environment:
       - MQ_INSTANCE=ega-mq-${INSTANCE}
     volumes:
-       - staging_${INSTANCE}:/ega/staging
+       - inbox_${INSTANCE}:/ega/inbox
        - vault_${INSTANCE}:/ega/vault
        - ./${INSTANCE}/ega.conf:/etc/ega/conf.ini:ro
        - ./${INSTANCE}/logger.yml:/etc/ega/logger.yml:ro
@@ -479,16 +492,14 @@ services:
     hostname: ega-s3-${INSTANCE}
     container_name: ega-s3-${INSTANCE}
     image: minio/minio
-    environment:
-     MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
-     MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+    env_file: ${INSTANCE}/s3.env
     volumes:
-     - s3_${INSTANCE}:/data
+      - s3_${INSTANCE}:/data
     restart: on-failure:3
     networks:
       - lega_${INSTANCE}
     ports:
-     - "${DOCKER_PORT_minio}:9000"
+      - "${DOCKER_PORT_s3}:9000"
     command: server /data
 
   # Logging & Monitoring (ELK: Elasticsearch, Logstash, Kibana).
@@ -535,7 +546,6 @@ services:
 # Use the default driver for volume creation
 volumes:
   inbox_${INSTANCE}:
-  staging_${INSTANCE}:
   vault_${INSTANCE}:
   s3_${INSTANCE}:
   elasticsearch_${INSTANCE}:
@@ -570,11 +580,11 @@ CEGA_MQ_USER              = cega_${INSTANCE}
 CEGA_MQ_PASSWORD          = ${CEGA_MQ_PASSWORD}
 CEGA_REST_PASSWORD        = ${CEGA_REST_PASSWORD}
 #
-MINIO_ACCESS_KEY          = ${MINIO_ACCESS_KEY}
-MINIO_SECRET_KEY          = ${MINIO_SECRET_KEY}
+S3_ACCESS_KEY             = ${S3_ACCESS_KEY}
+S3_SECRET_KEY             = ${S3_SECRET_KEY}
 #
 DOCKER_PORT_inbox         = ${DOCKER_PORT_inbox}
 DOCKER_PORT_mq            = ${DOCKER_PORT_mq}
-DOCKER_PORT_minio         = ${DOCKER_PORT_minio}
+DOCKER_PORT_s3            = ${DOCKER_PORT_s3}
 DOCKER_PORT_kibana        = ${DOCKER_PORT_kibana}
 EOF
