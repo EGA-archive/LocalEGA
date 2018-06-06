@@ -16,11 +16,13 @@ from pathlib import Path
 import ssl
 import struct
 
+import pgpy
+
 from .conf import CONF, KeysConfiguration
 from .utils import get_file_content, db
 from .utils.eureka import EurekaClient
 
-LOG = logging.getLogger('keyserver')
+LOG = logging.getLogger(__name__)
 routes = web.RouteTableDef()
 
 class Cache:
@@ -97,13 +99,13 @@ _active = None
 # Caching the keys
 ####################################
 
-async def activate_key(data):
+async def activate_key(path=None, expire=None, passphrase=None, **kwargs):
     """(Re)Activate a key."""
-    key, _ = pgpy.PGPKey.from_file(data.get('path'))
-    with key.unlock(data.get('passphrase')) as k:
+    key, _ = pgpy.PGPKey.from_file(path)
+    with key.unlock(passphrase) as k:
         key_id = k.fingerprint.keyid.upper()
         LOG.debug(f'Activating key: {key_id}')
-        _cache.set(key_id, k, ttl=data.get('expire', None))
+        _cache.set(key_id, k, ttl=expire)
 
 ####################################
 # Retrieve the active keys
@@ -139,12 +141,12 @@ async def retrieve_key(request):
 async def unlock_key(request):
     """Unlock a key via a POST request.
     POST request takes the form:
-    \{"type": "pgp", "private": "path/to/file.sec", "passphrase": "pass", "expire": "30/MAR/18 08:00:00"\}
+    \{"private": "path/to/file.sec", "passphrase": "pass", "expire": "30/MAR/18 08:00:00"\}
     """
     key_info = await request.json()
     LOG.debug(f'Admin unlocking: {key_info}')
     if all(k in key_info for k in("path", "passphrase", "expire")):
-        await activate_key(key_info['type'], key_info)
+        await activate_key(**key_info)
         return web.HTTPAccepted()
     else:
         return web.HTTPBadRequest()
@@ -163,10 +165,9 @@ async def check_ttl(request):
     """Evict from the cache if TTL expired
        and return the keys that survived""" # ehh...why? /Fred
     LOG.debug('Admin TTL')
-    pgp_expire = _pgp_cache.check_ttl()
-    rsa_expire = _rsa_cache.check_ttl()
-    if pgp_expire or rsa_expire:
-        return web.json_response(pgp_expire + rsa_expire)
+    expire = _cache.check_ttl()
+    if expire:
+        return web.json_response(expire)
     else:
         return web.HTTPBadRequest()
 
@@ -178,7 +179,7 @@ async def load_keys_conf(store):
             _active = value
     # Load all the keys in the store
     for section in store.sections():
-        await activate_key(section, dict(store.items(section)))
+        await activate_key(**dict(store.items(section)))
 
 alive = True  # used to set if the keyserer is alive in the shutdown
 
