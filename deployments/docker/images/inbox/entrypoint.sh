@@ -29,16 +29,14 @@ ega_gid = ${EGA_GID}
 # ega_gecos = EGA User
 # ega_shell = /sbin/nologin
 
-ega_dir = /ega/inbox
+ega_dir = /lega
 ega_dir_attrs = 2750 # rwxr-s---
 
 ##################
 # FUSE mount
 ##################
-ega_fuse_dir = /lega
 ega_fuse_exec = /usr/bin/ega-fs
-ega_fuse_flags = nodev,noexec,uid=${EGA_UID},gid=${EGA_GID},suid
-
+ega_fuse_flags = nodev,noexec,suid,default_permissions,allow_other,uid=${EGA_UID},gid=${EGA_GID},nonempty
 EOF
 
 # for the ramfs cache
