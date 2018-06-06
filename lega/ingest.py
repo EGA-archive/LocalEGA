@@ -24,9 +24,6 @@ routing key :``staged``.
 import sys
 import logging
 from pathlib import Path
-import uuid
-import ssl
-import json
 import shutil
 
 from .conf import CONF
@@ -35,7 +32,30 @@ from .utils.amqp import consume, publish, get_connection
 
 from legacryptor.crypt4gh import get_header
 
-LOG = logging.getLogger('ingestion')
+LOG = logging.getLogger(__name__)
+
+def run_checksum(data, integrity, filename):
+    try:
+        i = data[integrity]
+        h = i['checksum']
+        algo = i['algorithm']
+        if not algo: # Fix in case CentralEGA sends null
+            algo = 'md5'
+    except (KeyError, TypeError):
+        LOG.info('Finding a companion file')
+        h, algo = checksum.get_from_companion(filename)
+        data[integrity] = {'checksum': h, 'algorithm': algo }
+
+        assert( isinstance(h,str) )
+        assert( isinstance(algo,str) )
+
+        # Check integrity of encrypted file
+        LOG.debug(f"Verifying the {algo} checksum of file: {filename}")
+        if not checksum.is_valid(filename, h, hashAlgo = algo):
+            LOG.error(f"Invalid {algo} checksum for {filename}")
+            raise exceptions.Checksum(algo, file=filename, decrypted=False)
+        LOG.debug(f'Valid {algo} checksum for {filename}')
+
 
 @db.catch_error
 def work(data):
@@ -68,7 +88,7 @@ def work(data):
     data['internal_data'] = internal_data
 
     # Find inbox
-    inbox = Path( CONF.get('ingestion','inbox',raw=True) % { 'user_id': user_id } )
+    inbox = Path( CONF.get('inbox','location',raw=True) % user_id )
     LOG.info(f"Inbox area: {inbox}")
 
     # Check if file is in inbox
@@ -77,6 +97,10 @@ def work(data):
         raise exceptions.NotFoundInInbox(filepath) # return early
 
     # Ok, we have the file in the inbox
+
+    # Get the checksum
+    if CONF.getboolean('ingestion','do_checksum', fallback=False):
+        run_checksum(data, 'encrypted_integrity', inbox_filepath)
 
     # Sending a progress message to CentralEGA
     data['status'] = { 'state': 'PROCESSING', 'details': None }
