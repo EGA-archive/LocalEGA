@@ -35,8 +35,8 @@ ega_dir_attrs = 2750 # rwxr-s---
 ##################
 # FUSE mount
 ##################
-ega_fuse_exec = /usr/bin/ega-fs
-ega_fuse_flags = nodev,noexec,suid,default_permissions,allow_other,uid=${EGA_UID},gid=${EGA_GID},nonempty
+ega_fuse_exec = /usr/bin/ega-inbox
+ega_fuse_flags = nodev,noexec,suid,default_permissions,allow_other,uid=${EGA_UID},gid=${EGA_GID}
 EOF
 
 # for the ramfs cache

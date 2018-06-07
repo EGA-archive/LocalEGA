@@ -74,15 +74,30 @@ log = /etc/ega/logger.yml
 [keyserver]
 port = 8443
 
-[inbox]
-driver = file
-#driver = s3
+[quality_control]
+keyserver_endpoint = http://ega-keys-${INSTANCE}:8443/retrieve/%s
 
-[s3]
+[inbox]
+location = /ega/inbox/%s
+mode = 2750
+
+[vault]
+###########################
+# Back by POSIX fs
+###########################
+location = /ega/vault
+mode = 2750
+driver = FileMover
+
+###########################
+# Backed by S3
+###########################
+# driver = S3Mover
 url = http://ega-s3-${INSTANCE}:9000
 access_key = ${S3_ACCESS_KEY}
 secret_key = ${S3_SECRET_KEY}
 #region = ${INSTANCE}
+
 
 [outgestion]
 # Just for test
@@ -140,63 +155,17 @@ root:
   handlers: [noHandler]
 
 loggers:
-  connect:
+  lega:
     level: ${_LOG_LEVEL}
     handlers: [logstash,console]
-  ingestion:
-    level: ${_LOG_LEVEL}
-    handlers: [logstash,console]
-  keyserver:
-    level: ${_LOG_LEVEL}
-    handlers: [logstash,console]
-  vault:
-    level: ${_LOG_LEVEL}
-    handlers: [logstash,console]
-  verify:
-    level: ${_LOG_LEVEL}
-    handlers: [logstash,console]
-  socket-utils:
-    level: ${_LOG_LEVEL}
-    handlers: [logstash,console]
-  inbox:
-    level: ${_LOG_LEVEL}
-    handlers: [logstash,console]
-  utils:
-    level: ${_LOG_LEVEL}
-    handlers: [logstash,console]
-  amqp:
-    level: ${_LOG_LEVEL}
-    handlers: [logstash,console]
-  db:
-    level: ${_LOG_LEVEL}
-    handlers: [logstash,console]
-  crypto:
-    level: ${_LOG_LEVEL}
-    handlers: [logstash,console]
-  asyncio:
-    level: ${_LOG_LEVEL}
-    handlers: [logstash]
+    propagate: True
   aiopg:
     level: ${_LOG_LEVEL}
     handlers: [logstash]
-  aiohttp.access:
+  aiohttp:
     level: ${_LOG_LEVEL}
     handlers: [logstash]
-  aiohttp.client:
-    level: ${_LOG_LEVEL}
-    handlers: [logstash]
-  aiohttp.internal:
-    level: ${_LOG_LEVEL}
-    handlers: [logstash]
-  aiohttp.server:
-    level: ${_LOG_LEVEL}
-    handlers: [logstash]
-  aiohttp.web:
-    level: ${_LOG_LEVEL}
-    handlers: [logstash]
-  aiohttp.websocket:
-    level: ${_LOG_LEVEL}
-    handlers: [logstash]
+    propagate: True
 
 
 handlers:
@@ -434,7 +403,8 @@ services:
     restart: on-failure:3
     networks:
       - lega_${INSTANCE}
-    entrypoint: ["/bin/bash", "/usr/local/bin/entrypoint.sh"]
+    #entrypoint: ["/bin/bash", "/usr/local/bin/entrypoint.sh"]
+    entrypoint: ["/bin/sleep", "100000000000000"]
 
   # Key server
   keys-${INSTANCE}:
@@ -462,7 +432,7 @@ services:
     networks:
       - lega_${INSTANCE}
       - cega
-    entrypoint: ["gosu", "lega", "ega-keyserver","--keys","/etc/ega/keys.ini"]
+    entrypoint: ["ega-keyserver","--keys","/etc/ega/keys.ini"]
 
   # Vault
   vault-${INSTANCE}:
@@ -482,10 +452,12 @@ services:
        - ./${INSTANCE}/logger.yml:/etc/ega/logger.yml:ro
        - ../images/vault/entrypoint.sh:/usr/local/bin/entrypoint.sh
        - ../../../lega:/root/.local/lib/python3.6/site-packages/lega
+       - ~/_cryptor/legacryptor:/root/.local/lib/python3.6/site-packages/legacryptor
     restart: on-failure:3
     networks:
       - lega_${INSTANCE}
-    entrypoint: ["/bin/bash", "/usr/local/bin/entrypoint.sh"]
+    #entrypoint: ["/bin/bash", "/usr/local/bin/entrypoint.sh"]
+    entrypoint: ["/bin/sleep", "100000000000000"]
 
   # S3
   s3-${INSTANCE}:
@@ -502,53 +474,53 @@ services:
       - "${DOCKER_PORT_s3}:9000"
     command: server /data
 
-  # Logging & Monitoring (ELK: Elasticsearch, Logstash, Kibana).
-  elasticsearch-${INSTANCE}:
-    image: docker.elastic.co/elasticsearch/elasticsearch-oss:6.0.0
-    container_name: ega-elasticsearch-${INSTANCE}
-    volumes:
-      - ./${INSTANCE}/logs/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
-      - elasticsearch_${INSTANCE}:/usr/share/elasticsearch/data
-    environment:
-      ES_JAVA_OPTS: "-Xmx256m -Xms256m"
-    restart: on-failure:3
-    networks:
-      - lega_${INSTANCE}
+  # # Logging & Monitoring (ELK: Elasticsearch, Logstash, Kibana).
+  # elasticsearch-${INSTANCE}:
+  #   image: docker.elastic.co/elasticsearch/elasticsearch-oss:6.0.0
+  #   container_name: ega-elasticsearch-${INSTANCE}
+  #   volumes:
+  #     - ./${INSTANCE}/logs/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
+  #     - elasticsearch_${INSTANCE}:/usr/share/elasticsearch/data
+  #   environment:
+  #     ES_JAVA_OPTS: "-Xmx256m -Xms256m"
+  #   restart: on-failure:3
+  #   networks:
+  #     - lega_${INSTANCE}
 
-  logstash-${INSTANCE}:
-    image: docker.elastic.co/logstash/logstash-oss:6.0.0
-    container_name: ega-logstash-${INSTANCE}
-    volumes:
-      - ./${INSTANCE}/logs/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
-      - ./${INSTANCE}/logs/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
-    environment:
-      LS_JAVA_OPTS: "-Xmx256m -Xms256m"
-    depends_on:
-      - elasticsearch-${INSTANCE}
-    restart: on-failure:3
-    networks:
-      - lega_${INSTANCE}
+  # logstash-${INSTANCE}:
+  #   image: docker.elastic.co/logstash/logstash-oss:6.0.0
+  #   container_name: ega-logstash-${INSTANCE}
+  #   volumes:
+  #     - ./${INSTANCE}/logs/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
+  #     - ./${INSTANCE}/logs/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
+  #   environment:
+  #     LS_JAVA_OPTS: "-Xmx256m -Xms256m"
+  #   depends_on:
+  #     - elasticsearch-${INSTANCE}
+  #   restart: on-failure:3
+  #   networks:
+  #     - lega_${INSTANCE}
 
-  kibana-${INSTANCE}:
-    image: docker.elastic.co/kibana/kibana-oss:6.0.0
-    container_name: ega-kibana-${INSTANCE}
-    volumes:
-      - ./${INSTANCE}/logs/kibana.yml:/usr/share/kibana/config/kibana.yml:ro
-    ports:
-      - "${DOCKER_PORT_kibana}:5601"
-    depends_on:
-      - elasticsearch-${INSTANCE}
-      - logstash-${INSTANCE}
-    restart: on-failure:3
-    networks:
-      - lega_${INSTANCE}
+  # kibana-${INSTANCE}:
+  #   image: docker.elastic.co/kibana/kibana-oss:6.0.0
+  #   container_name: ega-kibana-${INSTANCE}
+  #   volumes:
+  #     - ./${INSTANCE}/logs/kibana.yml:/usr/share/kibana/config/kibana.yml:ro
+  #   ports:
+  #     - "${DOCKER_PORT_kibana}:5601"
+  #   depends_on:
+  #     - elasticsearch-${INSTANCE}
+  #     - logstash-${INSTANCE}
+  #   restart: on-failure:3
+  #   networks:
+  #     - lega_${INSTANCE}
 
 # Use the default driver for volume creation
 volumes:
   inbox_${INSTANCE}:
   vault_${INSTANCE}:
   s3_${INSTANCE}:
-  elasticsearch_${INSTANCE}:
+#  elasticsearch_${INSTANCE}:
 EOF
 
 echo -n ":private/ega_${INSTANCE}.yml" >> ${DOT_ENV} # no newline

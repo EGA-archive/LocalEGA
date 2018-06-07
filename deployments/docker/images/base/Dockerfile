@@ -36,12 +36,10 @@ RUN set -ex; \
 	yum -y remove wget dpkg; \
 	yum clean all
 
-RUN groupadd -r lega && useradd -r -g lega lega
+RUN groupadd -r ega && useradd -M -r -g ega ega
 
 ARG checkout=
 ARG PIP_EGA_PACKAGES=
 RUN pip3.6 install --upgrade pip && \
     pip3.6 install PyYaml ${PIP_EGA_PACKAGES} && \
     pip3.6 install git+https://github.com/NBISweden/LocalEGA.git@${checkout}
-
-

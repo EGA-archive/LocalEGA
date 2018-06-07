@@ -15,7 +15,6 @@ routing key: ``completed``.
 '''
 
 import sys
-import os
 import logging
 
 from legacryptor.crypt4gh import get_key_id
@@ -46,16 +45,18 @@ def work(data):
     LOG.debug(f'Verifying message: {data}')
 
     file_id = data.pop('internal_data') # can raise KeyError
-    filename, vault_filename, stable_id, header = db.get_details(file_id)
+    _, vault_path, stable_id, header = db.get_info(file_id)
 
     # Get it from the header and the keyserver
     privkey = get_priv_key(header)
 
-    # If you can decrypt and 
-    with open(vault_filename, 'rb') as infile, open(os.devnull, 'wb') as outfile:
-        decrypt(infile, outfile, privkey)
+    # If you can decrypt... the checksum is valid
+    with open(vault_path, 'rb') as infile:
+        decrypt(privkey, infile) # It will ignore the output
 
+    db.set_status(file_id, 'Completed')
     data['status'] = { 'state': 'COMPLETED', 'details': stable_id }
+    LOG.debug(f"Reply message: {data}")
     return data
 
 def main(args=None):
@@ -65,7 +66,7 @@ def main(args=None):
 
     CONF.setup(args) # re-conf
 
-    consume(work, 'archived', 'completed')
+    consume(work, 'staged', 'completed')
 
 if __name__ == '__main__':
     main()
