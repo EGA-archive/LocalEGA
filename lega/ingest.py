@@ -115,8 +115,9 @@ def work(mover, data):
     with open(inbox_filepath, 'rb') as infile:
         header = get_header(infile)
 
-        LOG.debug(f'Moving the rest of {filepath}')
-        target, target_size = mover.copy(infile, file_id) # It will copy the rest only
+        target = mover.location(file_id)
+        LOG.debug(f'Moving the rest of {filepath} to {target}')
+        target_size = mover.copy(infile, target) # It will copy the rest only
 
         LOG.debug(f'Vault copying completed')
         db.set_header(file_id, target, target_size, header)
