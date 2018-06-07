@@ -23,8 +23,7 @@ Users are handled throught Central EGA, directly.
       entry_points={
           'console_scripts': [
               'ega-ingest = lega.ingest:main',
-              'ega-fs = lega.fs:main',
-              'ega-vault = lega.vault:main',
+              'ega-inbox = lega.inbox:main',
               'ega-verify = lega.verify:main',
               'ega-monitor = lega.monitor:main',
               'ega-keyserver = lega.keyserver:main',

@@ -24,17 +24,20 @@ routing key :``staged``.
 import sys
 import logging
 from pathlib import Path
-import shutil
+from functools import partial
+from importlib import import_module
+
+from legacryptor.crypt4gh import get_header
 
 from .conf import CONF
 from .utils import db, exceptions, checksum, sanitize_user_id
 from .utils.amqp import consume, publish, get_connection
-
-from legacryptor.crypt4gh import get_header
+from . import vault
 
 LOG = logging.getLogger(__name__)
 
 def run_checksum(data, integrity, filename):
+    LOG.info('Checksuming %s', filename)
     try:
         i = data[integrity]
         h = i['checksum']
@@ -56,9 +59,8 @@ def run_checksum(data, integrity, filename):
             raise exceptions.Checksum(algo, file=filename, decrypted=False)
         LOG.debug(f'Valid {algo} checksum for {filename}')
 
-
 @db.catch_error
-def work(data):
+def work(mover, data):
     '''Ingestion function
 
     The data is of the form:
@@ -103,31 +105,24 @@ def work(data):
         run_checksum(data, 'encrypted_integrity', inbox_filepath)
 
     # Sending a progress message to CentralEGA
+    db.set_status(file_id, 'In progress')
     data['status'] = { 'state': 'PROCESSING', 'details': None }
     LOG.debug(f'Sending message to CentralEGA: {data}')
     broker = get_connection('broker')
     publish(data, broker.channel(), 'cega', 'files.processing')
 
-    # Strip the header out and copy the file to the vault
+    # Strip the header out and copy the rest of the file to the vault
     with open(inbox_filepath, 'rb') as infile:
         header = get_header(infile)
 
-        vault_area = Path( CONF.get('vault','location') )
-        name = f"{file_id:0>20}" # filling with zeros, and 20 characters wide
-        name_bits = [name[i:i+3] for i in range(0, len(name), 3)]
-        target = vault_area.joinpath(*name_bits)
-        LOG.debug(f'Target: {target}')
-        target.parent.mkdir(parents=True, exist_ok=True)
-
-        # Moving the file
-        starget = str(target)
-        LOG.debug(f'Moving the rest of {filepath} to {target}')
-        with open(starget, 'wb') as outfile:
-            shutil.copyfileobj(infile, outfile) # It will copy the rest only
+        LOG.debug(f'Moving the rest of {filepath}')
+        target, target_size = mover.copy(infile, file_id) # It will copy the rest only
 
         LOG.debug(f'Vault copying completed')
-        internal_data['filepath'] = starget
+        db.set_header(file_id, target, target_size, header)
+        data['internal_data'] = file_id # after db update
 
+    data['status'] = { 'state': 'ARCHIVED', 'message': 'File moved to the vault' }
     LOG.debug(f"Reply message: {data}")
     return data
 
@@ -137,8 +132,11 @@ def main(args=None):
 
     CONF.setup(args) # re-conf
 
+    storage = import_module(CONF.get('vault', 'driver', fallback='lega.vault.FileStorage'))
+    do_work = partial(work, storage())
+
     # upstream link configured in local broker
-    consume(work, 'files', 'staged')
+    consume(do_work, 'files', 'staged')
 
 if __name__ == '__main__':
     main()
