@@ -1,63 +1,59 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-'''Listener moving files from staging area to vault.
-
-It simply consumes message from ``staged`` queue and upon completion,
-sends a message to the local exchange with the routing key :``archived``.
-'''
-
-
-import sys
 import logging
-from pathlib import Path
-import shutil
 
 from .conf import CONF
-from .utils import db
-from .utils.amqp import consume
+
+LOG = logging.getLogger(__name__)
+
+class FileStorage():
+    def __init__(self):
+        import os
+        import shutil
+        from pathlib import Path
+        self.vault_area = Path(CONF.get('vault','location'))
+
+    def location(self, file_id):
+        name = f"{file_id:0>20}" # filling with zeros, and 20 characters wide
+        name_bits = [name[i:i+3] for i in range(0, len(name), 3)]
+        target = self.vault_area.joinpath(*name_bits)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        return str(target)
+
+    def copy(fileobj, location):
+        with open(location, 'wb') as h:
+            shutil.copyfileobj(fileobj, h)
+        return os.stat(location).st_size
 
 
-LOG = logging.getLogger('vault')
+class S3Storage():
+    def __init__(self):
+        import boto3
+        endpoint = CONF.get('vault','url')
+        region = CONF.get('vault','region')
+        self.bucket = CONF.get('vault','bucket', fallback='lega')
+        # access_key = CONF.get('vault','access_key')
+        # secret_key = CONF.get('vault','secret_key')
+        access_key = os.environ['S3_ACCESS_KEY']
+        secret_key = os.environ['S3_SECRET_KEY']
+        self.s3 = boto3.client('s3',
+                               endpoint_url=endpoint,
+                               region_name=region,
+                               use_ssl=False,
+                               verify=False,
+                               aws_access_key_id = access_key,
+                               aws_secret_access_key = secret_key)
+        #LOG.debug(f'S3 client: {self.s3!r}')
+        try:
+            LOG.debug('Creating "%s" bucket', self.bucket)
+            self.s3.create_bucket(Bucket=self.bucket)
+        except self.s3.exceptions.BucketAlreadyOwnedByYou as e:
+            LOG.debug(f'Ignoring ({type(e)}): {e}')
+        # No need to close anymore?
 
-@db.catch_error
-def work(data):
-    '''Procedure to handle a message'''
+    def location(self, file_id):
+        return str(file_id)
 
-    file_id       = data['internal_data']['file_id']
-    user_id       = data['internal_data']['user_id']
-    filepath      = Path(data['internal_data']['filepath'])
-
-    # Create the target name from the file_id
-    vault_area = Path( CONF.get('vault','location') )
-    name = f"{file_id:0>20}" # filling with zeros, and 20 characters wide
-    name_bits = [name[i:i+3] for i in range(0, len(name), 3)]
-    target = vault_area.joinpath(*name_bits)
-    LOG.debug(f'Target: {target}')
-
-    target.parent.mkdir(parents=True, exist_ok=True)
-
-    # Moving the file
-    starget = str(target)
-    LOG.debug(f'Moving {filepath} to {target}')
-    shutil.move(str(filepath), starget)
-
-    # Mark it as processed in DB
-    db.finalize_file(file_id, starget, target.stat().st_size)
-
-    # Send message to Archived queue
-    data['internal_data'] = file_id # I could have the details in here. Fetching from DB instead.
-    data['status'] = { 'state': 'ARCHIVED', 'message': 'File moved to the vault' }
-    return data
-
-def main(args=None):
-
-    if not args:
-        args = sys.argv[1:]
-
-    CONF.setup(args) # re-conf
-
-    consume(work, 'staged', 'archived')
-
-if __name__ == '__main__':
-    main()
+    def copy(fileobj, location):
+        self.s3.upload_fileobj(fileobj, self.bucket, location)
+        return 0 # todo: return size
