@@ -75,7 +75,7 @@ log = /etc/ega/logger.yml
 port = 8443
 
 [quality_control]
-keyserver_endpoint = http://ega-keys-${INSTANCE}:8443/retrieve/%s
+keyserver_endpoint = http://ega-keys-${INSTANCE}:8443/retrieve/%s/private
 
 [inbox]
 location = /ega/inbox/%s
@@ -87,12 +87,12 @@ mode = 2750
 ###########################
 location = /ega/vault
 mode = 2750
-driver = FileMover
+driver = FileStorage
 
 ###########################
 # Backed by S3
 ###########################
-# driver = S3Mover
+# driver = S3Storage
 url = http://ega-s3-${INSTANCE}:9000
 access_key = ${S3_ACCESS_KEY}
 secret_key = ${S3_SECRET_KEY}
@@ -101,7 +101,7 @@ secret_key = ${S3_SECRET_KEY}
 
 [outgestion]
 # Just for test
-keyserver_endpoint = http://ega-keys-${INSTANCE}:8443/retrieve/%s
+keyserver_endpoint = http://ega-keys-${INSTANCE}:8443/retrieve/%s/private
 
 ## Connecting to Local EGA
 [broker]
@@ -388,13 +388,12 @@ services:
     depends_on:
       - db-${INSTANCE}
       - mq-${INSTANCE}
-      - keys-${INSTANCE}
     image: nbisweden/ega-base
     environment:
       - MQ_INSTANCE=ega-mq-${INSTANCE}
-      - KEYSERVER_INSTANCE=ega-keys-${INSTANCE}
     volumes:
        - inbox_${INSTANCE}:/ega/inbox
+       - vault_${INSTANCE}:/ega/vault
        - ./${INSTANCE}/ega.conf:/etc/ega/conf.ini:ro
        - ./${INSTANCE}/logger.yml:/etc/ega/logger.yml:ro
        - ../images/worker/entrypoint.sh:/usr/local/bin/entrypoint.sh
@@ -403,8 +402,7 @@ services:
     restart: on-failure:3
     networks:
       - lega_${INSTANCE}
-    #entrypoint: ["/bin/bash", "/usr/local/bin/entrypoint.sh"]
-    entrypoint: ["/bin/sleep", "100000000000000"]
+    entrypoint: ["/bin/bash", "/usr/local/bin/entrypoint.sh"]
 
   # Key server
   keys-${INSTANCE}:
@@ -421,8 +419,8 @@ services:
        - ./${INSTANCE}/ega.conf:/etc/ega/conf.ini:ro
        - ./${INSTANCE}/logger.yml:/etc/ega/logger.yml:ro
        - ./${INSTANCE}/keys.conf:/etc/ega/keys.ini:ro
-       - ./${INSTANCE}/certs/ssl.cert:/etc/ega/ssl.cert:ro
-       - ./${INSTANCE}/certs/ssl.key:/etc/ega/ssl.key:ro
+       #- ./${INSTANCE}/certs/ssl.cert:/etc/ega/ssl.cert:ro
+       #- ./${INSTANCE}/certs/ssl.key:/etc/ega/ssl.key:ro
        - ./${INSTANCE}/pgp/ega.sec:/etc/ega/pgp/ega.sec:ro
        - ./${INSTANCE}/pgp/ega2.sec:/etc/ega/pgp/ega2.sec:ro
        - ../../../lega:/root/.local/lib/python3.6/site-packages/lega
@@ -434,23 +432,24 @@ services:
       - cega
     entrypoint: ["ega-keyserver","--keys","/etc/ega/keys.ini"]
 
-  # Vault
-  vault-${INSTANCE}:
+  # Quality Control
+  qc-${INSTANCE}:
     depends_on:
       - db-${INSTANCE}
       - mq-${INSTANCE}
       - inbox-${INSTANCE}
-    hostname: ega-vault
-    container_name: ega-vault-${INSTANCE}
+      - keys-${INSTANCE}
+    hostname: ega-qc
+    container_name: ega-qc-${INSTANCE}
     image: nbisweden/ega-base
     environment:
       - MQ_INSTANCE=ega-mq-${INSTANCE}
+      - KEYSERVER_INSTANCE=ega-keys-${INSTANCE}
     volumes:
-       - inbox_${INSTANCE}:/ega/inbox
        - vault_${INSTANCE}:/ega/vault
        - ./${INSTANCE}/ega.conf:/etc/ega/conf.ini:ro
        - ./${INSTANCE}/logger.yml:/etc/ega/logger.yml:ro
-       - ../images/vault/entrypoint.sh:/usr/local/bin/entrypoint.sh
+       - ../images/qc/entrypoint.sh:/usr/local/bin/entrypoint.sh
        - ../../../lega:/root/.local/lib/python3.6/site-packages/lega
        - ~/_cryptor/legacryptor:/root/.local/lib/python3.6/site-packages/legacryptor
     restart: on-failure:3

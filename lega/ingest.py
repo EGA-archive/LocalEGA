@@ -25,14 +25,12 @@ import sys
 import logging
 from pathlib import Path
 from functools import partial
-from importlib import import_module
 
 from legacryptor.crypt4gh import get_header
 
 from .conf import CONF
-from .utils import db, exceptions, checksum, sanitize_user_id
+from .utils import db, exceptions, checksum, sanitize_user_id, storage
 from .utils.amqp import consume, publish, get_connection
-from . import vault
 
 LOG = logging.getLogger(__name__)
 
@@ -105,7 +103,7 @@ def work(mover, data):
         run_checksum(data, 'encrypted_integrity', inbox_filepath)
 
     # Sending a progress message to CentralEGA
-    db.set_status(file_id, 'In progress')
+    db.set_status(file_id, db.Status.In_Progress)
     data['status'] = { 'state': 'PROCESSING', 'details': None }
     LOG.debug(f'Sending message to CentralEGA: {data}')
     broker = get_connection('broker')
@@ -120,7 +118,7 @@ def work(mover, data):
         target_size = mover.copy(infile, target) # It will copy the rest only
 
         LOG.debug(f'Vault copying completed')
-        db.set_header(file_id, target, target_size, header)
+        db.set_header(file_id, target, target_size, header.hex())
         data['internal_data'] = file_id # after db update
 
     data['status'] = { 'state': 'ARCHIVED', 'message': 'File moved to the vault' }
@@ -133,8 +131,8 @@ def main(args=None):
 
     CONF.setup(args) # re-conf
 
-    storage = import_module(CONF.get('vault', 'driver', fallback='lega.vault.FileStorage'))
-    do_work = partial(work, storage())
+    store = getattr(storage, CONF.get('vault', 'driver', fallback='FileStorage'))
+    do_work = partial(work, store())
 
     # upstream link configured in local broker
     consume(do_work, 'files', 'staged')

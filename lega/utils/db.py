@@ -13,6 +13,7 @@ from socket import gethostname
 from time import sleep
 import asyncio
 import aiopg
+from enum import Enum
 
 from ..conf import CONF
 from .exceptions import FromUser
@@ -20,12 +21,12 @@ from .amqp import publish, get_connection
 
 LOG = logging.getLogger('db')
 
-_statuses = set()
-_statuses.add('Received')
-_statuses.add('In progress')
-_statuses.add('Completed')
-_statuses.add('Archived')
-_statuses.add('Error')
+class Status(Enum):
+    Received = 'Received'
+    In_Progress = 'In progress'
+    Completed = 'Completed'
+    Archived = 'Archived'
+    Error = 'Error'
 
 ######################################
 ##         DB connection            ##
@@ -125,12 +126,8 @@ def connect():
 def insert_file(filename, user_id, stable_id):
     with connect() as conn:
         with conn.cursor() as cur:
-            cur.execute('SELECT insert_file(%(filename)s,%(user_id)s,%(stable_id)s, %(status)s);',{
-                'filename': filename,
-                'user_id': user_id,
-                'status' : 'Received',
-                'stable_id': stable_id,
-            })
+            cur.execute('SELECT insert_file(%(filename)s,%(user_id)s,%(stable_id)s,%(status)s);',
+                        { 'filename': filename, 'user_id': user_id, 'status' : Status.Received.value, 'stable_id': stable_id })
             file_id = (cur.fetchone())[0]
             if file_id:
                 LOG.debug(f'Created id {file_id} for {filename}')
@@ -165,11 +162,10 @@ def get_info(file_id):
 
 def set_status(file_id, status):
     assert file_id, 'Eh? No file_id?'
-    assert status in _statuses, 'Eh? Not a valid status?'
     LOG.debug(f'Updating status file_id {file_id} with "{status}"')
     with connect() as conn:
         with conn.cursor() as cur:
-            cur.execute('UPDATE files SET status = %(status)s WHERE id = %(file_id)s;', {'status': status, 'file_id': file_id })
+            cur.execute('UPDATE files SET status = %(status)s WHERE id = %(file_id)s;', {'status': status.value, 'file_id': file_id })
 
 def set_header(file_id, vault_path, vault_filesize, header):
     assert file_id, 'Eh? No file_id?'
@@ -183,7 +179,7 @@ def set_header(file_id, vault_path, vault_filesize, header):
                         '    vault_filesize = %(vault_filesize)s, '
                         '    header = %(header)s '
                         'WHERE id = %(file_id)s;',
-                        {'status': 'Archived',
+                        {'status': Status.Archived.value,
                          'file_id': file_id,
                          'vault_path': vault_path,
                          'vault_filesize': vault_filesize,

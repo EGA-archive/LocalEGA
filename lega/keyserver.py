@@ -46,18 +46,16 @@ class Cache:
         data = self._store.get(key)
         if not data:
             return None
-        else:
-            value, expire = data
-            if expire and time.time() > expire:
-                del self._store[key]
-                return None
-            return value
+        value, expire = data
+        if expire and time.time() > expire:
+            del self._store[key]
+            return None
+        return value
 
     def check_ttl(self):
         """Check ttl for all keys."""
         keys = []
-        for key, data in self._store.items():
-            value, expire = data
+        for key, (value, expire) in self._store.items():
             if expire and time.time() < expire:
                 keys.append({"keyID": key, "ttl": self._time_delta(expire)})
             if expire is None:
@@ -89,23 +87,28 @@ class Cache:
 
     def clear(self):
         """Clear all cache."""
-        self._store = dict()
+        #self._store = dict()
+        self._store.clear()
 
 
-_cache = Cache() # keys are uppercase
+_cache = Cache() # key IDs are uppercase
 _active = None
 
 ####################################
 # Caching the keys
 ####################################
 
-async def activate_key(path=None, expire=None, passphrase=None, **kwargs):
-    """(Re)Activate a key."""
+def _unlock_key(name, active=None, path=None, expire=None, passphrase=None, **kwargs):
+    """Unlocking a key and loading it in the cache."""
     key, _ = pgpy.PGPKey.from_file(path)
     with key.unlock(passphrase) as k:
         key_id = k.fingerprint.keyid.upper()
-        LOG.debug(f'Activating key: {key_id}')
+        LOG.debug(f'Activating key: {key_id} ({name})')
         _cache.set(key_id, k, ttl=expire)
+        if active and name == active:
+            global _active
+            _active = key_id
+           
 
 ####################################
 # Retrieve the active keys
@@ -115,24 +118,30 @@ async def activate_key(path=None, expire=None, passphrase=None, **kwargs):
 async def retrieve_active_key(request):
     key_type = request.match_info['key_type'].lower()
     LOG.debug(f'Requesting active ({key_type}) key')
+    if key_type not in ('public', 'private'):
+        return web.HTTPForbidden() # web.HTTPBadRequest()
+    if _active is None:
+        return web.HTTPNotFound()
     k = _cache.get(_active)
     if k:
-        value = k.pubkey if key_type == 'public' else k
-        return web.json_response(bytes(value))
+        value = bytes(k.pubkey if key_type == 'public' else k)
+        return web.Response(body=value) # web.Response(text=value.hex())
     else:
         LOG.warn(f"Requested active ({key_type}) key not found.")
         return web.HTTPNotFound()
 
-@routes.get('/retrieve/{key_type}/{requested_id}')
+@routes.get('/retrieve/{requested_id}/{key_type}')
 async def retrieve_key(request):
     requested_id = request.match_info['requested_id']
     key_type = request.match_info['key_type'].lower()
+    if key_type not in ('public', 'private'):
+        return web.HTTPForbidden() # web.HTTPBadRequest()
     key_id = requested_id[-16:].upper()
     LOG.debug(f'Requested {key_type.upper()} key with ID {requested_id}')
     k = _cache.get(key_id)
     if k:
-        value = k.pubkey if key_type == 'public' else k
-        return web.json_response(value)
+        value = bytes(k.pubkey if key_type == 'public' else k)
+        return web.Response(body=value) # web.Response(text=value.hex())
     else:
         LOG.warn(f"Requested key {requested_id} not found.")
         return web.HTTPNotFound()
@@ -146,7 +155,7 @@ async def unlock_key(request):
     key_info = await request.json()
     LOG.debug(f'Admin unlocking: {key_info}')
     if all(k in key_info for k in("path", "passphrase", "expire")):
-        await activate_key(**key_info)
+        _unlock_key('whichname?', **key_info)
         return web.HTTPAccepted()
     else:
         return web.HTTPBadRequest()
@@ -174,12 +183,15 @@ async def check_ttl(request):
 async def load_keys_conf(store):
     """Parse and load keys configuration."""
     # Cache the active key names
+    active = None
     for name, value in store.defaults().items():
         if name == 'active':
-            _active = value
+            LOG.debug('Setting active key to %s', value)
+            active = value
+            break
     # Load all the keys in the store
     for section in store.sections():
-        await activate_key(**dict(store.items(section)))
+        _unlock_key(section, **dict(store.items(section))) # includes defaults
 
 alive = True  # used to set if the keyserer is alive in the shutdown
 
@@ -262,7 +274,7 @@ def main(args=None):
     keyserver.on_shutdown.append(shutdown)
     keyserver.on_cleanup.append(cleanup)
 
-    LOG.info(f"Start keyserver on {host}:{port}")
+    LOG.info(f"Start keyserver on {host}:{port} | ")
     web.run_app(keyserver, host=host, port=port, shutdown_timeout=0, ssl_context=sslcontext)
 
 
