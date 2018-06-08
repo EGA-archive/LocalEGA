@@ -1,0 +1,89 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: lega-inbox
+  namespace: localega
+  labels:
+    role: inbox
+spec:
+  replicas: 1
+  serviceName: "lega-inbox"
+  selector:
+    matchLabels:
+      app: lega-inbox
+  template:
+    metadata:
+      labels:
+        app: lega-inbox
+        role: inbox
+    spec:
+      containers:
+      - name: inbox
+        image: nbisweden/ega-inbox:latest
+        imagePullPolicy: IfNotPresent
+        command: ["/bin/bash", "/scripts/ega-entrypoint.sh"]
+        securityContext:
+          capabilities:
+            add:
+              - SYS_ADMIN
+          privileged: true
+        env:
+        - name: BROKER_HOST
+          value: lega-mq.localega.svc.cluster.local
+        - name: DB_INSTANCE
+          value: lega-db.localega.svc.cluster.local
+        - name: POSTGRES_DB
+          value: lega
+        - name: POSTGRES_USER
+          valueFrom:
+            configMapKeyRef:
+              name: lega-db-config
+              key: user
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: lega-db-secret
+              key: postgres_password
+        - name: CEGA_ENDPOINT
+          value: http://cega-users/user/
+        - name: CEGA_ENDPOINT_CREDS
+          valueFrom:
+            secretKeyRef:
+              name: cega-keys
+              key: credentials
+        - name: CEGA_ENDPOINT_JSON_PASSWD
+          value: .password_hash
+        - name: CEGA_ENDPOINT_JSON_PUBKEY
+          value: .pubkey
+        ports:
+        - name: lega-inbox
+          containerPort: 9000
+          protocol: TCP
+        volumeMounts:
+        - name: lega-inbox-entrypoint
+          mountPath: /scripts
+        - name: lega-inbox
+          mountPath: /ega/inbox
+        - name: devfuse
+          mountPath: /dev/fuse
+        - name: temp
+          mountPath: /temp
+      # restartPolicy: Always
+      volumes:
+      - name: lega-inbox-entrypoint
+        configMap:
+          name: lega-inbox-entrypoint
+          defaultMode: 0744
+      - name: devfuse
+        hostPath:
+          path: /dev/fuse
+      - name: temp
+        configMap:
+          name: lega-config
+          items:
+            - key: ega.conf
+              path: conf.ini
+          defaultMode: 0744
+      - name: lega-inbox
+        persistentVolumeClaim:
+          claimName: localega-inbox-storage
