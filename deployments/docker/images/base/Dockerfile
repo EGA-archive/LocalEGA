@@ -36,7 +36,7 @@ RUN set -ex; \
 	yum -y remove wget dpkg; \
 	yum clean all
 
-RUN groupadd -r ega && useradd -M -r -g ega ega
+RUN groupadd -r lega && useradd -M -r -g lega lega
 
 ARG checkout=
 ARG PIP_EGA_PACKAGES=
