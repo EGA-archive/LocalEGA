@@ -19,9 +19,12 @@ network:
 	@docker network inspect cega &>/dev/null || docker network create cega &>/dev/null
 
 up:network private/cega.yml private/ega_swe1.yml private/ega_fin1.yml
-	@docker-compose -f private/cega.yml -f private/ega_swe1.yml -f private/ega_fin1.yml \
-	 		up -d \
-			cega-mq cega-users cega-eureka mq-swe1 db-swe1 inbox-swe1 vault-swe1 ingest-swe1 keys-swe1 s3-swe1 mq-fin1 inbox-fin1 db-fin1 vault-fin1 ingest-fin1 keys-fin1 s3-fin1
+	@docker-compose -f private/cega.yml up -d 
+	@docker-compose -f private/cega.yml -f private/ega_swe1.yml \
+			up -d \
+			cega-mq cega-users cega-eureka \
+			mq-swe1 db-swe1 inbox-swe1 qc-swe1 ingest-swe1 keys-swe1 s3-swe1
+#	@docker-compose -f private/cega.yml -f private/ega_fin1.yml up -d mq-fin1 db-fin1 inbox-fin1 qc-fin1 ingest-fin1 keys-fin1 s3-fin1
 
 all-up:
 	@docker-compose -f private/cega.yml -f private/ega_swe1.yml -f private/ega_fin1.yml up -d
