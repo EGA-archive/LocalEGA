@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lega-keyserver
+  namespace: localega
+  labels:
+    role: keyserver
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: lega-keyserver
+  template:
+    metadata:
+      labels:
+        app: lega-keyserver
+        role: keyserver
+    spec:
+      containers:
+      - name: keyserver
+        image: nbisweden/ega-base:latest
+        imagePullPolicy: IfNotPresent
+        command: ["gosu","lega","ega-keyserver","--keys","/etc/ega/keys.ini"]
+        env:
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: lega-db-secret
+              key: postgres_password
+        - name: LEGA_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: lega-password
+              key: password
+        ports:
+        - name: lega-keys
+          containerPort: 8443
+          protocol: TCP
+        volumeMounts:
+        - name: keyserver-conf
+          mountPath: /etc/ega
+      volumes:
+        - name: keyserver-conf
+          projected:
+            sources:
+            - configMap:
+                name: lega-config
+                items:
+                  - key: ega.conf
+                    path: conf.ini
+                  - key: ssl.cert
+                    path: ssl.cert
+                  - key: ssl.key
+                    path: ssl.key
+                    mode: 0744
+            - configMap:
+                name: lega-keyserver-config
+                items:
+                  - key: keys.ini
+                    path: keys.ini
+                    mode: 0744
+            - configMap:
+                name: keyserver-secret
+                items:
+                  - key: ega.sec
+                    path: pgp/ega.sec
+                  - key: ega2.sec
+                    path: pgp/ega2.sec

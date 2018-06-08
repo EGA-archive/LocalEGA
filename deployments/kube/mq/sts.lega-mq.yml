@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: lega-mq
+  namespace: localega
+  labels:
+    role: broker
+spec:
+  replicas: 1
+  serviceName: "lega-mq"
+  selector:
+    matchLabels:
+      app: lega-mq
+  template:
+    metadata:
+      labels:
+        app: lega-mq
+        role: broker
+    spec:
+      containers:
+      - name: lega-mq
+        image: rabbitmq:3.6.14-management
+        imagePullPolicy: IfNotPresent
+        command: ["/scripts/ega-entrypoint.sh"]
+        env:
+          - name: CEGA_CONNECTION
+            value: amqp://<user>:<password>@<cega-ip>:5672/<queue>
+        ports:
+        - name: lega-mq
+          containerPort: 15672
+          protocol: TCP
+        - containerPort: 5672
+          name: amqp
+        volumeMounts:
+        - name: lega-mq-entrypoint
+          mountPath: /scripts
+        - name: rabbitmq
+          mountPath: /etc/rabbitmq
+        - name: temp
+          mountPath: /temp
+      volumes:
+      - name: lega-mq-entrypoint
+        configMap:
+          name: lega-mq-entrypoint
+          defaultMode: 0744
+      - name: temp
+        configMap:
+            name: lega-mq-config
+            items:
+              - key: defs.json
+                path: defs.json
+              - key: rabbitmq.config
+                path: rabbitmq.config
+            defaultMode: 0744
+  volumeClaimTemplates:
+    - metadata:
+        name: rabbitmq
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: 0.5Gi # make this bigger in production
