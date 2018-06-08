@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: cega-mq
+  namespace: localega
+  labels:
+    role: broker
+spec:
+  replicas: 1
+  serviceName: "cega-mq"
+  selector:
+    matchLabels:
+      app: cega-mq
+  template:
+    metadata:
+      labels:
+        app: cega-mq
+    spec:
+      containers:
+      - name: cega-mq
+        image: rabbitmq:3.6.14-management
+        imagePullPolicy: IfNotPresent
+        command: ["/scripts/cega-mq.sh"]
+        ports:
+        - name: cega-mq
+          containerPort: 15672
+          protocol: TCP
+        - containerPort: 5672
+          name: amqp
+        volumeMounts:
+        - name: cega-script
+          mountPath: /scripts
+        - name: temp
+          mountPath: /temp
+        - name: rabbitmq
+          mountPath: /etc/rabbitmq
+      volumes:
+      - name: cega-script
+        configMap:
+          name: cega-script
+          defaultMode: 0744
+      - name: temp
+        configMap:
+          name: cega-mq-config
+          items:
+            - key: defs.json
+              path: defs.json
+            - key: rabbitmq.config
+              path: rabbitmq.config
+          defaultMode: 0744
+  volumeClaimTemplates:
+    - metadata:
+        name: rabbitmq
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: 1Gi # make this bigger in production

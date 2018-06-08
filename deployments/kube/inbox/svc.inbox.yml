@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: lega-inbox
+  namespace: localega
+  labels:
+    app: lega-inbox
+spec:
+  type: NodePort
+  ports:
+  - port: 2222
+    targetPort: 9000
+    protocol: TCP
+  selector:
+    app: lega-inbox
