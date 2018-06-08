@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lega-ingest
+  namespace: localega
+  labels:
+    role: ingest
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: lega-ingest
+  template:
+    metadata:
+      labels:
+        app: lega-ingest
+        role: ingest
+    spec:
+      containers:
+      - name: ingest
+        image: nbisweden/ega-base:latest
+        imagePullPolicy: IfNotPresent
+        command: ["gosu", "lega", "ega-ingest"]
+        env:
+        - name: LEGA_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: lega-password
+              key: password
+        - name: S3_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: s3-keys
+              key: access_key
+        - name: S3_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: s3-keys
+              key: secret_key
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: s3-keys
+              key: access_key
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: s3-keys
+              key: secret_key
+        volumeMounts:
+        - name: lega-inbox
+          mountPath: /ega/inbox
+        - name: ingest-conf
+          mountPath: /etc/ega
+      restartPolicy: Always
+      volumes:
+      - name: ingest-conf
+        configMap:
+          name: lega-config
+          items:
+            - key: ega.conf
+              path: conf.ini
+          defaultMode: 0744
+      - name: lega-inbox
+        persistentVolumeClaim:
+          claimName: localega-inbox-storage

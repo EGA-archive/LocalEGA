@@ -1,0 +1,54 @@
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  name: minio
+  namespace: localega
+spec:
+  serviceName: minio
+  replicas: 1
+  template:
+    metadata:
+      annotations:
+        pod.alpha.Kubernetes.io/initialized: "true"
+      labels:
+        app: minio
+    spec:
+      containers:
+      - name: minio
+        env:
+        - name: MINIO_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: s3-keys
+              key: access_key
+        - name: MINIO_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: s3-keys
+              key: secret_key
+        image: minio/minio:latest
+        args:
+        - server
+        - /data
+        # - http://minio.localega.svc.cluster.local/data
+        ports:
+        - containerPort: 9000
+          hostPort: 9000
+        # These volume mounts are persistent. Each pod in the PetSet
+        # gets a volume mounted based on this field.
+        volumeMounts:
+        - name: data
+          mountPath: /data
+  # These are converted to volume claims by the controller
+  # and mounted at the paths mentioned above.
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+      annotations:
+        volume.beta.Kubernetes.io/storage-class: miniosc
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 0.5Gi

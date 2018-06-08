@@ -1,0 +1,50 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: lega-config
+  namespace: localega
+data:
+  ssl.cert: |-
+    <Place your ssl.cert file content>
+  ssl.key: |-
+    <Place your ssl.key file content>
+  ega.conf: |-
+    [DEFAULT]
+    log = /usr/lib/python3.6/site-packages/lega/conf/loggers/console.yaml
+
+    [keyserver]
+    port = 8443
+
+    [quality_control]
+    keyserver_endpoint = https://lega-keyserver.localega.svc.cluster.local:8443/retrieve/%s/private
+
+    [inbox]
+    location = /ega/inbox/%s
+    mode = 2750
+
+    [vault]
+    driver = S3Storage
+    url = http://minio.localega.svc.cluster.local:9000
+    access_key = <change me>
+    secret_key = <change me>
+    #region = lega
+
+
+    [outgestion]
+    # Just for test
+    keyserver_endpoint = https://lega-keyserver.localega.svc.cluster.local:8443/retrieve/%s/private
+
+    ## Connecting to Local EGA
+    [broker]
+    host = lega-mq.localega.svc.cluster.local
+    connection_attempts = 30
+    # delay in seconds
+    retry_delay = 10
+
+    [postgres]
+    host = lega-db.localega.svc.cluster.local
+    user = lega
+    try = 30
+
+    [eureka]
+    endpoint = http://cega-eureka.localega.svc.cluster.local:8761
