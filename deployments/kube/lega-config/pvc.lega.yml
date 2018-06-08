@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: localega-inbox-storage
+  namespace: localega
+spec:
+  storageClassName: inbox
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 0.5Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: localega-db-storage
+  namespace: localega
+spec:
+  storageClassName: postgres
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 0.5Gi
