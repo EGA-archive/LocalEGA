@@ -19,7 +19,7 @@ from ..conf import CONF
 from .exceptions import FromUser
 from .amqp import publish, get_connection
 
-LOG = logging.getLogger('db')
+LOG = logging.getLogger(__name__)
 
 class Status(Enum):
     Received = 'Received'
