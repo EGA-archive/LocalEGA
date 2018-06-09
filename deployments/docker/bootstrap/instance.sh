@@ -356,7 +356,6 @@ services:
     env_file:
       - ${INSTANCE}/db.env
       - ${INSTANCE}/cega.env
-      - ${INSTANCE}/s3.env
     ports:
       - "${DOCKER_PORT_inbox}:9000"
     container_name: ega-inbox-${INSTANCE}
@@ -384,6 +383,7 @@ services:
       - db-${INSTANCE}
       - mq-${INSTANCE}
     image: nbisweden/ega-base
+    env_file: ${INSTANCE}/s3.env
     environment:
       - MQ_INSTANCE=ega-mq-${INSTANCE}
     volumes:
@@ -391,7 +391,7 @@ services:
        - vault_${INSTANCE}:/ega/vault
        - ./${INSTANCE}/ega.conf:/etc/ega/conf.ini:ro
        - ./${INSTANCE}/logger.yml:/etc/ega/logger.yml:ro
-       - ../images/worker/entrypoint.sh:/usr/local/bin/entrypoint.sh
+       - ../images/ingestion/entrypoint.sh:/usr/local/bin/entrypoint.sh
        - ../../../lega:/root/.local/lib/python3.6/site-packages/lega
        - ~/_cryptor/legacryptor:/root/.local/lib/python3.6/site-packages/legacryptor
     restart: on-failure:3
@@ -415,8 +415,8 @@ services:
        - ./${INSTANCE}/ega.conf:/etc/ega/conf.ini:ro
        - ./${INSTANCE}/logger.yml:/etc/ega/logger.yml:ro
        - ./${INSTANCE}/keys.conf:/etc/ega/keys.ini:ro
-       #- ./${INSTANCE}/certs/ssl.cert:/etc/ega/ssl.cert:ro
-       #- ./${INSTANCE}/certs/ssl.key:/etc/ega/ssl.key:ro
+       - ./${INSTANCE}/certs/ssl.cert:/etc/ega/ssl.cert:ro
+       - ./${INSTANCE}/certs/ssl.key:/etc/ega/ssl.key:ro
        - ./${INSTANCE}/pgp/ega.sec:/etc/ega/pgp/ega.sec:ro
        - ./${INSTANCE}/pgp/ega2.sec:/etc/ega/pgp/ega2.sec:ro
        - ../../../lega:/root/.local/lib/python3.6/site-packages/lega
@@ -438,6 +438,7 @@ services:
     hostname: ega-qc
     container_name: ega-qc-${INSTANCE}
     image: nbisweden/ega-base
+    env_file: ${INSTANCE}/s3.env
     environment:
       - MQ_INSTANCE=ega-mq-${INSTANCE}
       - KEYSERVER_INSTANCE=ega-keys-${INSTANCE}
@@ -513,8 +514,8 @@ services:
 # Use the default driver for volume creation
 volumes:
   inbox_${INSTANCE}:
-  vault_${INSTANCE}:
   s3_${INSTANCE}:
+  vault_${INSTANCE}:
 #  elasticsearch_${INSTANCE}:
 EOF
 
