@@ -28,3 +28,5 @@ S3_ACCESS_KEY=$(generate_password 16)
 S3_SECRET_KEY=$(generate_password 32)
 
 LOG_LEVEL=INFO
+
+LEGA_PASSWORD=$(generate_password 32)

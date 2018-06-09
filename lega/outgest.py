@@ -23,7 +23,7 @@ from .conf import CONF
 from .utils import db, checksum
 from .utils.crypto import decrypt_from_vault
 
-LOG = logging.getLogger('outgestion')
+LOG = logging.getLogger(__name__)
 
 def get_master_key():
     keyurl = CONF.get('ingestion','keyserver_endpoint_rsa')

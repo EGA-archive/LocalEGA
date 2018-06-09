@@ -27,27 +27,26 @@ from fuse import FUSE, FuseOSError, Operations
 
 from .conf import CONF
 from .utils.amqp import get_connection, publish
-from .utils.checksum import calculate, _DIGEST as algorithms
+from .utils.checksum import calculate, supported_algorithms
 
 LOG = logging.getLogger(__name__)
 
-def debugme(func):
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        # Skip self
-        _args = args[1:]
-        LOG.debug("%s args: " + ("%s " * len(_args)), func.__name__, *_args)
-        return func(*args, **kwargs)
-    return wrapper
+# def print_func(func):
+#     @wraps(func)
+#     def wrapper(*args, **kwargs):
+#         # Skip self
+#         _args = args[1:]
+#         LOG.debug("%s args: " + ("%s " * len(_args)), func.__name__, *_args)
+#         return func(*args, **kwargs)
+#     return wrapper
 
 class LegaFS(Operations):
-    def __init__(self, user, options, domain, rootdir, **kwargs):
+    def __init__(self, user, options, rootdir, **kwargs):
 
         LOG.debug('Mount options: %s', options)
         self.user = user
         self.root = rootdir
         self.pending = {}
-        self.domain = domain
         self.channel = None
         self.connection = None
         LOG.debug("# Landing location: %s", self.root)
@@ -59,14 +58,14 @@ class LegaFS(Operations):
 
     def send_message(self, path):
         if not self.channel:
-            self.connection = get_connection(self.domain)
+            self.connection = get_connection('broker') # local broker
             self.channel = self.connection.channel()
 
         LOG.debug("File %s just landed", path)
         real_path = self.real_path(path)
         msg = { 'user': self.user, 'filepath': path }
 
-        if path.endswith(tuple(algorithms.keys())):
+        if path.endswith(supported_algorithms()):
             with open(real_path, 'rt', encoding='utf-8') as f:
                 msg['content'] = f.read()
             publish(msg, self.channel, 'cega', 'files.inbox.checksums')
@@ -86,7 +85,7 @@ class LegaFS(Operations):
         return dict((key, getattr(st, key)) for key in ('st_uid', 'st_gid', 'st_mode', 'st_size',
                                                         'st_nlink', 'st_atime', 'st_ctime', 'st_mtime'))
 
-    #@debugme
+    #@print_func
     def readdir(self, path, fh):
         yield '.'
         full_path = self.real_path(path)
@@ -108,11 +107,11 @@ class LegaFS(Operations):
     def chmod(self, path, mode):
         return os.chmod(self.real_path(path), mode)
 
-    #@debugme
+    #@print_func
     def rmdir(self, path):
         return os.rmdir(self.real_path(path))
 
-    #@debugme
+    #@print_func
     def mkdir(self, path, mode):
         return os.mkdir(self.real_path(path), mode)
 
@@ -126,7 +125,7 @@ class LegaFS(Operations):
     def unlink(self, path):
         return os.unlink(self.real_path(path))
 
-    #@debugme
+    #@print_func
     def rename(self, old, new):
         return os.rename(self.real_path(old), self.real_path(new))
 
@@ -136,11 +135,11 @@ class LegaFS(Operations):
     # File methods
     # ============
 
-    #@debugme
+    #@print_func
     def open(self, path, flags):
         return os.open(self.real_path(path), flags)
     
-    #@debugme
+    #@print_func
     def create(self, path, mode, fi=None):
         return os.open(self.real_path(path), os.O_WRONLY | os.O_CREAT, mode)
 
@@ -148,32 +147,32 @@ class LegaFS(Operations):
         os.lseek(fh, offset, os.SEEK_SET)
         return os.read(fh, length)
 
-    #@debugme
+    #@print_func
     def write(self, path, buf, offset, fh):
         os.lseek(fh, offset, os.SEEK_SET)
         return os.write(fh, buf)
 
-    #@debugme
+    #@print_func
     def truncate(self, path, length, fh=None):
         with open(self.real_path(path), 'r+') as f:
             f.truncate(length)
 
-    #@debugme
+    #@print_func
     def release(self, path, fh):
         if path in self.pending: # Send message
             self.send_message(path)
         # Close file last.
         return os.close(fh)
 
-    #@debugme
+    #@print_func
     def flush(self, path, fh):
         return os.fsync(fh)
 
-    #@debugme
+    #@print_func
     def fsync(self, path, fdatasync, fh):
         return os.fsync(fh)
 
-    #@debugme
+    #@print_func
     def destroy(self, path):
         if self.connection:
             self.connection.close()
@@ -249,7 +248,7 @@ def main():
     try:
         if foreground:
             options['foreground'] = True
-        FUSE(LegaFS(user, options, 'broker', rootdir), mountpoint, **options) # options might get updated
+        FUSE(LegaFS(user, options, rootdir), mountpoint, **options) # options might get updated
     except RuntimeError as e:
         if str(e) == '1':  # not empty
             LOG.debug(f'Already mounted')

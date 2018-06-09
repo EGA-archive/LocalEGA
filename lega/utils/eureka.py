@@ -22,7 +22,7 @@ eureka_status = {
     4: 'UNKNOWN',
 }
 
-LOG = logging.getLogger('eureka')
+LOG = logging.getLogger(__name__)
 
 
 async def _retry(run, on_failure=None):
