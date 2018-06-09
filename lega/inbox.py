@@ -46,7 +46,7 @@ class LegaFS(Operations):
         LOG.debug('Mount options: %s', options)
         self.user = user
         self.root = rootdir
-        self.pending = {}
+        self.pending = set()
         self.channel = None
         self.connection = None
         LOG.debug("# Landing location: %s", self.root)
@@ -141,6 +141,7 @@ class LegaFS(Operations):
     
     #@print_func
     def create(self, path, mode, fi=None):
+        self.pending.add(path)
         return os.open(self.real_path(path), os.O_WRONLY | os.O_CREAT, mode)
 
     def read(self, path, length, offset, fh):
@@ -156,6 +157,7 @@ class LegaFS(Operations):
     def truncate(self, path, length, fh=None):
         with open(self.real_path(path), 'r+') as f:
             f.truncate(length)
+            self.pending.add(path)
 
     #@print_func
     def release(self, path, fh):
