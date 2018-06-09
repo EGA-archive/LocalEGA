@@ -251,16 +251,14 @@ def main(args=None):
 
     eureka_endpoint = CONF.get('eureka', 'endpoint')
 
-    # ssl_certfile = Path(CONF.get('keyserver', 'ssl_certfile')).expanduser()
-    # ssl_keyfile = Path(CONF.get('keyserver', 'ssl_keyfile')).expanduser()
-    # LOG.debug(f'Certfile: {ssl_certfile}')
-    # LOG.debug(f'Keyfile: {ssl_keyfile}')
+    ssl_certfile = Path(CONF.get('keyserver', 'ssl_certfile')).expanduser()
+    ssl_keyfile = Path(CONF.get('keyserver', 'ssl_keyfile')).expanduser()
+    LOG.debug(f'Certfile: {ssl_certfile}')
+    LOG.debug(f'Keyfile: {ssl_keyfile}')
 
-    # sslcontext = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-    # sslcontext.check_hostname = False
-    # sslcontext.load_cert_chain(ssl_certfile, ssl_keyfile)
-
-    sslcontext = None # Turning off SSL for the moment
+    sslcontext = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+    sslcontext.check_hostname = False
+    sslcontext.load_cert_chain(ssl_certfile, ssl_keyfile)
 
     loop = asyncio.get_event_loop()
 
