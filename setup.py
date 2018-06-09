@@ -25,7 +25,6 @@ Users are handled throught Central EGA, directly.
               'ega-ingest = lega.ingest:main',
               'ega-inbox = lega.inbox:main',
               'ega-verify = lega.verify:main',
-              'ega-monitor = lega.monitor:main',
               'ega-keyserver = lega.keyserver:main',
               'ega-outgest = lega.outgest:main', # just for testing
               'ega-conf = lega.conf.__main__:main',
@@ -35,7 +34,7 @@ Users are handled throught Central EGA, directly.
       # install_requires=[
       #     'pika==0.11.0',
       #     'colorama==0.3.7',
-      #     'psycopg2==2.7.4',
+      #     'psycopg2-binary==2.7.4',
       #     'aiopg'==0.13.0,
       #     'aiohttp==2.3.8',
       #     'aiohttp-jinja2==0.13.0',
