@@ -39,5 +39,5 @@ cleanall:
 delete:
 	@docker images $(TARGET)-* --format "{{.Repository}} {{.Tag}}" | awk '{ if ($$2 != "$(TAG)" && $$2 != "latest") print $$1":"$$2; }' | uniq | while read n; do docker rmi $$n; done
 
-erase: # erasing all but base
-	@docker images $(TARGET)-inbox -q | uniq | while read n; do docker rmi -f $$n; done
+erase: # erasing all including base
+	@docker images $(TARGET)-* -q | uniq | while read n; do docker rmi -f $$n; done
