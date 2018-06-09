@@ -48,12 +48,12 @@ class FileStorage():
 #         as they do for the built-in `open` function.
 #     """
 
-#     def __init__(self, s3, path, mode='rb', blocksize = 1<<22): # 1<<22 = 4194304 = 4MB
+#     def __init__(self, storage, path, mode='rb', blocksize = 1<<22): # 1<<22 = 4194304 = 4MB
 #         # self.mode = mode
 #         # if mode not in {'rb', 'wb', 'ab'}:
 #         #     raise NotImplementedError(f"File mode must be {{'rb', 'wb', 'ab'}}, not {mode}")
 #         self.path = path
-#         self.s3 = s3
+#         self.s3 = storage.s3
 #         self.loc = 0
 #         self.start = None
 #         self.end = None
@@ -263,6 +263,11 @@ class FileStorage():
 #         self.bucket.upload_fileobj(fileobj, location)
 #         return 0 # todo: return size
 
-#     # @contextmanager
-#     # def get(self, path, data):
-#     #     self.bucket.download_fileobj(path, data)
+#     @contextmanager
+#     def open(self, path, mode = 'rb'):
+#         if mode != 'rb':
+#             raise NotImplementedError("Mode not supported")
+#         f = S3FileReader(self, path, mode=mode)
+#         yield f
+#         f.close()
+    
