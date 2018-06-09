@@ -7,13 +7,16 @@ import hashlib
 
 from .exceptions import UnsupportedHashAlgorithm, CompanionNotFound
 
-LOG = logging.getLogger('utils-checksum')
+LOG = logging.getLogger(__name__)
 
 # Main map
 _DIGEST = {
     'md5': hashlib.md5,
     'sha256': hashlib.sha256,
 }
+
+def supported_algorithms():
+    return tuple(_DIGEST.keys())
 
 def instantiate(algo):
     try:

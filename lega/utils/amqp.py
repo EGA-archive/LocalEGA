@@ -9,7 +9,7 @@ import uuid
 
 from ..conf import CONF
 
-LOG = logging.getLogger('amqp')
+LOG = logging.getLogger(__name__)
 
 def get_connection(domain, blocking=True):
     '''

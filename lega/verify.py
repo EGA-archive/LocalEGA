@@ -15,6 +15,7 @@ routing key: ``completed``.
 '''
 
 import sys
+import os
 import logging
 from functools import partial
 from urllib.request import urlopen
@@ -34,7 +35,7 @@ def get_records(header):
     LOG.info(f'Retrieving the Private Key from {keyurl}')
     with urlopen(keyurl) as response:
         privkey = response.read()
-        return header_to_records(privkey, header)
+        return header_to_records(privkey, header, os.environ['LEGA_PASSWORD'])
 
 @db.catch_error
 def work(mover, data):
@@ -49,8 +50,8 @@ def work(mover, data):
     records = get_records(bytes.fromhex(header)) # might raise exception
     r = records[0] # only first one
 
-    LOG.info(f'Session Key: {r.session_key.hex()}')
-    LOG.info(f'         IV: {r.iv.hex()}')
+    # LOG.info(f'Session Key: {r.session_key.hex()}')
+    # LOG.info(f'         IV: {r.iv.hex()}')
     
     LOG.debug('Opening vault file: %s', vault_path)
     # If you can decrypt... the checksum is valid

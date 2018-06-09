@@ -216,11 +216,6 @@ AWS_ACCESS_KEY_ID=${S3_ACCESS_KEY}
 AWS_SECRET_ACCESS_KEY=${S3_SECRET_KEY}
 EOF
 
-cat > ${PRIVATE}/${INSTANCE}/pgp.env <<EOF
-PGP_EMAIL=${PGP_EMAIL}
-PGP_PASSPHRASE=${PGP_PASSPHRASE}
-EOF
-
 cat >> ${PRIVATE}/cega/env <<EOF
 CEGA_REST_${INSTANCE}_PASSWORD=${CEGA_REST_PASSWORD}
 EOF
@@ -406,7 +401,6 @@ services:
 
   # Key server
   keys-${INSTANCE}:
-    env_file: ${INSTANCE}/pgp.env
     hostname: ega-keys-${INSTANCE}
     container_name: ega-keys-${INSTANCE}
     image: nbisweden/ega-base
@@ -415,6 +409,8 @@ services:
       - db-${INSTANCE}
     expose:
       - "8443"
+    environment:
+      - LEGA_PASSWORD=${LEGA_PASSWORD}
     volumes:
        - ./${INSTANCE}/ega.conf:/etc/ega/conf.ini:ro
        - ./${INSTANCE}/logger.yml:/etc/ega/logger.yml:ro
@@ -445,6 +441,7 @@ services:
     environment:
       - MQ_INSTANCE=ega-mq-${INSTANCE}
       - KEYSERVER_INSTANCE=ega-keys-${INSTANCE}
+      - LEGA_PASSWORD=${LEGA_PASSWORD}
     volumes:
        - vault_${INSTANCE}:/ega/vault
        - ./${INSTANCE}/ega.conf:/etc/ega/conf.ini:ro
@@ -455,8 +452,7 @@ services:
     restart: on-failure:3
     networks:
       - lega_${INSTANCE}
-    #entrypoint: ["/bin/bash", "/usr/local/bin/entrypoint.sh"]
-    entrypoint: ["/bin/sleep", "100000000000000"]
+    entrypoint: ["/bin/bash", "/usr/local/bin/entrypoint.sh"]
 
   # S3
   s3-${INSTANCE}:
@@ -558,4 +554,6 @@ DOCKER_PORT_inbox         = ${DOCKER_PORT_inbox}
 DOCKER_PORT_mq            = ${DOCKER_PORT_mq}
 DOCKER_PORT_s3            = ${DOCKER_PORT_s3}
 DOCKER_PORT_kibana        = ${DOCKER_PORT_kibana}
+#
+LEGA_PASSWORD             = ${LEGA_PASSWORD}
 EOF

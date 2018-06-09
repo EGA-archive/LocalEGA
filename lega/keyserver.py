@@ -7,15 +7,17 @@ The keyserver also registers with Eureka service discovery.
 
 
 import sys
-import asyncio
-from aiohttp import web
+import os
 import logging
 import time
 import datetime
+import asyncio
 from pathlib import Path
 import ssl
-import struct
+import secrets
+import string
 
+from aiohttp import web
 import pgpy
 
 from .conf import CONF, KeysConfiguration
@@ -30,32 +32,39 @@ class Cache:
 
     def __init__(self, max_size=10, ttl=None):
         """Initialise cache."""
-        self._store = dict()
-        self._max_size = max_size
-        self._ttl = ttl
-        self._FMT = '%d/%b/%y %H:%M:%S'
+        self.store = dict()
+        self.max_size = max_size
+        self.ttl = ttl
+        self.FMT = '%d/%b/%y %H:%M:%S'
+        self.key = os.environ['LEGA_PASSWORD'] # must exist
 
-    def set(self, key, value, ttl=None):
+    def set(self, keyid, key, ttl=None):
         """Assign in the store to the the key the value, its ttl."""
         self._check_limit()
-        ttl = self._ttl if not ttl else self._parse_date_time(ttl)
-        self._store[key] = (value, ttl)
+        ttl = self.ttl if not ttl else self._parse_date_time(ttl)
+        assert key.is_protected and key.is_unlocked, "The PGPKey must be protected and unlocked"
+        key.protect(self.key, pgpy.constants.SymmetricKeyAlgorithm.AES256, pgpy.constants.HashAlgorithm.SHA256) # re-protect
+        self.store[keyid] = (bytes(key.pubkey), bytes(key), ttl)
 
-    def get(self, key):
+    def get(self, keyid, key_type):
         """Retrieve value based on key."""
-        data = self._store.get(key)
+        data = self.store.get(keyid)
         if not data:
             return None
-        value, expire = data
+        pubkey, privkey, expire = data
         if expire and time.time() > expire:
-            del self._store[key]
+            del self.store[keyid]
             return None
-        return value
+        if key_type == 'public':
+            return pubkey
+        if key_type == 'private':
+            return privkey
+        return None
 
     def check_ttl(self):
         """Check ttl for all keys."""
         keys = []
-        for key, (value, expire) in self._store.items():
+        for key, (value, expire) in self.store.items():
             if expire and time.time() < expire:
                 keys.append({"keyID": key, "ttl": self._time_delta(expire)})
             if expire is None:
@@ -65,9 +74,9 @@ class Cache:
     def _time_delta(self, expire):
         """"Convert time left in human readable format."""
         # A lot of back and forth transformation
-        end_time = datetime.datetime.fromtimestamp(expire).strftime(self._FMT)
-        today = datetime.datetime.today().strftime(self._FMT)
-        tdelta = datetime.datetime.strptime(end_time, self._FMT) - datetime.datetime.strptime(today, self._FMT)
+        end_time = datetime.datetime.fromtimestamp(expire).strftime(self.FMT)
+        today = datetime.datetime.today().strftime(self.FMT)
+        tdelta = datetime.datetime.strptime(end_time, self.FMT) - datetime.datetime.strptime(today, self.FMT)
 
         if tdelta.days > 0:
             tdelta = datetime.timedelta(days=tdelta.days, seconds=tdelta.seconds)
@@ -78,17 +87,17 @@ class Cache:
 
         Example of set time and date 30/MAR/18 08:00:00 .
         """
-        return time.mktime(datetime.datetime.strptime(date_time, self._FMT).timetuple())
+        return time.mktime(datetime.datetime.strptime(date_time, self.FMT).timetuple())
 
     def _check_limit(self):
         """Check if current cache size exceeds maximum cache size and pop the oldest item in this case."""
-        if len(self._store) >= self._max_size:
-            self._store.popitem(last=False)
+        if len(self.store) >= self.max_size:
+            self.store.popitem(last=False)
 
     def clear(self):
         """Clear all cache."""
-        #self._store = dict()
-        self._store.clear()
+        #self.store = dict()
+        self.store.clear()
 
 
 _cache = Cache() # key IDs are uppercase
@@ -104,6 +113,7 @@ def _unlock_key(name, active=None, path=None, expire=None, passphrase=None, **kw
     with key.unlock(passphrase) as k:
         key_id = k.fingerprint.keyid.upper()
         LOG.debug(f'Activating key: {key_id} ({name})')
+        assert not k.is_public, f"The key {name} should be private"
         _cache.set(key_id, k, ttl=expire)
         if active and name == active:
             global _active
@@ -122,10 +132,9 @@ async def retrieve_active_key(request):
         return web.HTTPForbidden() # web.HTTPBadRequest()
     if _active is None:
         return web.HTTPNotFound()
-    k = _cache.get(_active)
+    k = _cache.get(_active, key_type)
     if k:
-        value = bytes(k.pubkey if key_type == 'public' else k)
-        return web.Response(body=value) # web.Response(text=value.hex())
+        return web.Response(body=k) # web.Response(text=k.hex())
     else:
         LOG.warn(f"Requested active ({key_type}) key not found.")
         return web.HTTPNotFound()
@@ -138,10 +147,9 @@ async def retrieve_key(request):
         return web.HTTPForbidden() # web.HTTPBadRequest()
     key_id = requested_id[-16:].upper()
     LOG.debug(f'Requested {key_type.upper()} key with ID {requested_id}')
-    k = _cache.get(key_id)
+    k = _cache.get(key_id, key_type)
     if k:
-        value = bytes(k.pubkey if key_type == 'public' else k)
-        return web.Response(body=value) # web.Response(text=value.hex())
+        return web.Response(body=k) # web.Response(text=value.hex())
     else:
         LOG.warn(f"Requested key {requested_id} not found.")
         return web.HTTPNotFound()
@@ -274,7 +282,7 @@ def main(args=None):
     keyserver.on_shutdown.append(shutdown)
     keyserver.on_cleanup.append(cleanup)
 
-    LOG.info(f"Start keyserver on {host}:{port} | ")
+    LOG.info(f"Start keyserver on {host}:{port}")
     web.run_app(keyserver, host=host, port=port, shutdown_timeout=0, ssl_context=sslcontext)
 
 
