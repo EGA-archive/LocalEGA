@@ -141,6 +141,7 @@ async def retrieve_active_key(request):
 
 @routes.get('/retrieve/{requested_id}/{key_type}')
 async def retrieve_key(request):
+    LOG.debug('Retrieve key')
     requested_id = request.match_info['requested_id']
     key_type = request.match_info['key_type'].lower()
     if key_type not in ('public', 'private'):
@@ -246,8 +247,8 @@ def main(args=None):
 
     host = CONF.get('keyserver', 'host') # fallbacks are in defaults.ini
     port = CONF.getint('keyserver', 'port')
-    keyserver_health = CONF.get('keyserver', 'health_endpoint')
-    keyserver_status = CONF.get('keyserver', 'status_endpoint')
+    health_check_url='http://{}:{}{}'.format(host, port, CONF.get('keyserver', 'health_endpoint'))
+    status_check_url='http://{}:{}{}'.format(host, port, CONF.get('keyserver', 'status_endpoint'))
 
     eureka_endpoint = CONF.get('eureka', 'endpoint')
 
@@ -270,8 +271,8 @@ def main(args=None):
     keyserver['interval'] = CONF.getint('eureka', 'interval')
     keyserver['eureka'] = EurekaClient("keyserver", port=port, ip_addr=host,
                                        eureka_url=eureka_endpoint, hostname=host,
-                                       health_check_url=f'http://{host}:{port}{keyserver_health}',
-                                       status_check_url=f'http://{host}:{port}{keyserver_status}',
+                                       health_check_url=health_check_url,
+                                       status_check_url=status_check_url,
                                        loop=loop)
 
     # Registering some initialization and cleanup routines

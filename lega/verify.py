@@ -32,13 +32,23 @@ def get_records(header):
     keyid = get_key_id(header)
     LOG.info(f'Key ID {keyid}')
     keyurl = CONF.get('quality_control', 'keyserver_endpoint', raw=True) % keyid
-    LOG.info(f'Retrieving the Private Key from {keyurl}')
-    with urlopen(keyurl) as response:
+    use_ssl = CONF.getboolean('quality_control', 'use_ssl')
+    LOG.info(f'Retrieving the Private Key from {keyurl} (use_ssl: {use_ssl})')
+
+    if use_ssl:
+        ctx=None
+    else: # no verification
+        import ssl
+        ctx = ssl.create_default_context()
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
+
+    with urlopen(keyurl, context=ctx) as response:
         privkey = response.read()
         return header_to_records(privkey, header, os.environ['LEGA_PASSWORD'])
 
 @db.catch_error
-def work(mover, data):
+def work(chunk_size, mover, data):
     '''Verifying that the file in the vault does decrypt properly'''
 
     LOG.debug(f'Verifying message: {data}')
@@ -56,7 +66,7 @@ def work(mover, data):
     LOG.debug('Opening vault file: %s', vault_path)
     # If you can decrypt... the checksum is valid
     with mover.open(vault_path, 'rb') as infile:
-        body_decrypt(r, infile) # It will ignore the output
+        body_decrypt(r, infile, chunk_size=chunk_size) # It will ignore the output
 
     db.set_status(file_id, db.Status.Completed)
     data['status'] = { 'state': 'COMPLETED', 'details': stable_id }
@@ -71,7 +81,8 @@ def main(args=None):
     CONF.setup(args) # re-conf
 
     store = getattr(storage, CONF.get('vault', 'driver', fallback='FileStorage'))
-    do_work = partial(work, store())
+    chunk_size = CONF.getint('vault', 'chunk_size', fallback=1<<22) # 4 MB
+    do_work = partial(work, chunk_size, store())
 
     consume(do_work, 'staged', 'completed')
 

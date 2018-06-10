@@ -42,6 +42,7 @@ Users are handled throught Central EGA, directly.
       #     'sphinx_rtd_theme',
       #     'cryptography==2.1.4',
       #     'pgpy',
+      #     'boto3',
       # ],
 )
           

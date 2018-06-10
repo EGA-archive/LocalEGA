@@ -58,7 +58,7 @@ def run_checksum(data, integrity, filename):
         LOG.debug(f'Valid {algo} checksum for {filename}')
 
 @db.catch_error
-def work(mover, data):
+def work(fs, data):
     '''Ingestion function
 
     The data is of the form:
@@ -113,12 +113,12 @@ def work(mover, data):
     with open(inbox_filepath, 'rb') as infile:
         header = get_header(infile)
 
-        target = mover.location(file_id)
-        LOG.debug(f'Moving the rest of {filepath} to {target}')
-        target_size = mover.copy(infile, target) # It will copy the rest only
+        target = fs.location(file_id)
+        LOG.debug(f'[{fs.__class__.__name__}] Moving the rest of {filepath} to {target}')
+        target_size = fs.copy(infile, target) # It will copy the rest only
 
         LOG.debug(f'Vault copying completed')
-        db.set_header(file_id, target, target_size, header.hex())
+        db.set_info(file_id, target, target_size, header) # header bytes will be .hex()
         data['internal_data'] = file_id # after db update
 
     data['status'] = { 'state': 'ARCHIVED', 'message': 'File moved to the vault' }
@@ -131,8 +131,8 @@ def main(args=None):
 
     CONF.setup(args) # re-conf
 
-    store = getattr(storage, CONF.get('vault', 'driver', fallback='FileStorage'))
-    do_work = partial(work, store())
+    fs = getattr(storage, CONF.get('vault', 'driver', fallback='FileStorage'))
+    do_work = partial(work, fs())
 
     # upstream link configured in local broker
     consume(do_work, 'files', 'staged')
