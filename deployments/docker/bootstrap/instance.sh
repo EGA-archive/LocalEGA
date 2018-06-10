@@ -388,7 +388,7 @@ services:
       - MQ_INSTANCE=ega-mq-${INSTANCE}
     volumes:
        - inbox_${INSTANCE}:/ega/inbox
-       - vault_${INSTANCE}:/ega/vault
+       #- vault_${INSTANCE}:/ega/vault
        - ./${INSTANCE}/ega.conf:/etc/ega/conf.ini:ro
        - ./${INSTANCE}/logger.yml:/etc/ega/logger.yml:ro
        - ../images/ingestion/entrypoint.sh:/usr/local/bin/entrypoint.sh
@@ -426,7 +426,7 @@ services:
     networks:
       - lega_${INSTANCE}
       - cega
-    entrypoint: ["ega-keyserver","--keys","/etc/ega/keys.ini"]
+    entrypoint: ["gosu","lega","ega-keyserver","--keys","/etc/ega/keys.ini"]
 
   # Quality Control
   qc-${INSTANCE}:
@@ -444,7 +444,7 @@ services:
       - KEYSERVER_INSTANCE=ega-keys-${INSTANCE}
       - LEGA_PASSWORD=${LEGA_PASSWORD}
     volumes:
-       - vault_${INSTANCE}:/ega/vault
+       #- vault_${INSTANCE}:/ega/vault
        - ./${INSTANCE}/ega.conf:/etc/ega/conf.ini:ro
        - ./${INSTANCE}/logger.yml:/etc/ega/logger.yml:ro
        - ../images/qc/entrypoint.sh:/usr/local/bin/entrypoint.sh
@@ -517,7 +517,7 @@ services:
 volumes:
   inbox_${INSTANCE}:
   s3_${INSTANCE}:
-  vault_${INSTANCE}:
+#  vault_${INSTANCE}:
 #  elasticsearch_${INSTANCE}:
 EOF
 
