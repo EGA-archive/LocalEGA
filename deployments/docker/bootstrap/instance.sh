@@ -370,8 +370,8 @@ services:
       - ./${INSTANCE}/ega.conf:/etc/ega/conf.ini:ro
       - ./${INSTANCE}/logger.yml:/etc/ega/logger.yml:ro
       - inbox_${INSTANCE}:/ega/inbox
-      - ../../../lega:/root/.local/lib/python3.6/site-packages/lega
-      - ~/_auth_ega:/root/_auth_ega
+      #- ../../../lega:/root/.local/lib/python3.6/site-packages/lega
+      #- ~/_auth_ega:/root/_auth_ega
     restart: on-failure:3
     networks:
       - lega_${INSTANCE}
@@ -392,8 +392,8 @@ services:
        - ./${INSTANCE}/ega.conf:/etc/ega/conf.ini:ro
        - ./${INSTANCE}/logger.yml:/etc/ega/logger.yml:ro
        - ../images/ingestion/entrypoint.sh:/usr/local/bin/entrypoint.sh
-       - ../../../lega:/root/.local/lib/python3.6/site-packages/lega
-       - ~/_cryptor/legacryptor:/root/.local/lib/python3.6/site-packages/legacryptor
+       #- ../../../lega:/root/.local/lib/python3.6/site-packages/lega
+       #- ~/_cryptor/legacryptor:/root/.local/lib/python3.6/site-packages/legacryptor
     restart: on-failure:3
     networks:
       - lega_${INSTANCE}
@@ -419,7 +419,7 @@ services:
        - ./${INSTANCE}/certs/ssl.key:/etc/ega/ssl.key:ro
        - ./${INSTANCE}/pgp/ega.sec:/etc/ega/pgp/ega.sec:ro
        - ./${INSTANCE}/pgp/ega2.sec:/etc/ega/pgp/ega2.sec:ro
-       - ../../../lega:/root/.local/lib/python3.6/site-packages/lega
+       #- ../../../lega:/root/.local/lib/python3.6/site-packages/lega
     restart: on-failure:3
     external_links:
       - cega-eureka:cega-eureka
@@ -448,8 +448,8 @@ services:
        - ./${INSTANCE}/ega.conf:/etc/ega/conf.ini:ro
        - ./${INSTANCE}/logger.yml:/etc/ega/logger.yml:ro
        - ../images/qc/entrypoint.sh:/usr/local/bin/entrypoint.sh
-       - ../../../lega:/root/.local/lib/python3.6/site-packages/lega
-       - ~/_cryptor/legacryptor:/root/.local/lib/python3.6/site-packages/legacryptor
+       #- ../../../lega:/root/.local/lib/python3.6/site-packages/lega
+       #- ~/_cryptor/legacryptor:/root/.local/lib/python3.6/site-packages/legacryptor
     restart: on-failure:3
     networks:
       - lega_${INSTANCE}
