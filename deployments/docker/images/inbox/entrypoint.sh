@@ -13,6 +13,9 @@ EGA_DB_IP=$(getent hosts ${DB_INSTANCE} | awk '{ print $1 }')
 EGA_UID=$(id -u lega)
 EGA_GID=$(id -g lega)
 
+# For the home directories
+mkdir -m 750 /lega
+
 cat > /etc/ega/auth.conf <<EOF
 enable_cega = yes
 cega_endpoint = ${CEGA_ENDPOINT}
