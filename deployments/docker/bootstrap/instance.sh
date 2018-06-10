@@ -75,7 +75,7 @@ log = /etc/ega/logger.yml
 port = 8443
 
 [quality_control]
-keyserver_endpoint = http://ega-keys-${INSTANCE}:8443/retrieve/%s/private
+keyserver_endpoint = https://ega-keys-${INSTANCE}:8443/retrieve/%s/private
 
 [inbox]
 location = /ega/inbox/%s
@@ -87,12 +87,12 @@ mode = 2750
 ###########################
 location = /ega/vault
 mode = 2750
-driver = FileStorage
+#driver = FileStorage
 
 ###########################
 # Backed by S3
 ###########################
-# driver = S3Storage
+driver = S3Storage
 url = http://ega-s3-${INSTANCE}:9000
 access_key = ${S3_ACCESS_KEY}
 secret_key = ${S3_SECRET_KEY}
@@ -101,7 +101,7 @@ secret_key = ${S3_SECRET_KEY}
 
 [outgestion]
 # Just for test
-keyserver_endpoint = http://ega-keys-${INSTANCE}:8443/retrieve/%s/private
+keyserver_endpoint = https://ega-keys-${INSTANCE}:8443/retrieve/%s/private
 
 ## Connecting to Local EGA
 [broker]
@@ -460,7 +460,9 @@ services:
     hostname: ega-s3-${INSTANCE}
     container_name: ega-s3-${INSTANCE}
     image: minio/minio
-    env_file: ${INSTANCE}/s3.env
+    environment:
+      - MINIO_ACCESS_KEY=${S3_ACCESS_KEY}
+      - MINIO_SECRET_KEY=${S3_SECRET_KEY}
     volumes:
       - s3_${INSTANCE}:/data
     restart: on-failure:3

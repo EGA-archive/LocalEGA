@@ -167,7 +167,7 @@ def set_status(file_id, status):
         with conn.cursor() as cur:
             cur.execute('UPDATE files SET status = %(status)s WHERE id = %(file_id)s;', {'status': status.value, 'file_id': file_id })
 
-def set_header(file_id, vault_path, vault_filesize, header):
+def set_info(file_id, vault_path, vault_filesize, header):
     assert file_id, 'Eh? No file_id?'
     assert vault_path, 'Eh? No vault name?'
     LOG.debug(f'Updating status file_id {file_id}')
@@ -183,7 +183,7 @@ def set_header(file_id, vault_path, vault_filesize, header):
                          'file_id': file_id,
                          'vault_path': vault_path,
                          'vault_filesize': vault_filesize,
-                         'header': header,
+                         'header': header.hex(),
                         })
 
 ######################################
