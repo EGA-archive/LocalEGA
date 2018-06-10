@@ -112,9 +112,9 @@ class S3FileReader(object):
         if length < 0: # the rest of the file
             length = self.size - self.loc 
 
-        out = self._fetch(self.loc, self.loc + length)
+        end = min(self.loc + length, self.size) # in case it's too much
+        out = self._fetch(self.loc, end)
         self.loc += len(out)
-        LOG.debug('DATA %s: %s', len(out), out[:10].hex())
         return out
 
     def close(self):
@@ -154,8 +154,10 @@ class S3FileReader(object):
         return self.readinto(b)
 
     def _fetch(self, start, end, max_attempts=10):
-        end = self.size if end > self.size else end
-        LOG.debug("Fetch: Bucket: %s, File=%s, Range: %s-%s, Chunk: %s", self.bucket, self.path, start, end, end-start)
+        # if end > self.size:
+        #     end = self.size
+        assert end <= self.size
+        #LOG.debug("Fetch: Bucket: %s, File=%s, Range: %s-%s, Chunk: %s", self.bucket, self.path, start, end, end-start)
         for i in range(max_attempts):
             try:
                 resp = self.s3.get_object(Bucket=self.bucket, Key=self.path, Range='bytes=%i-%i' % (start, end - 1))
