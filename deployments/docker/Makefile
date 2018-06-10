@@ -19,7 +19,6 @@ network:
 	@docker network inspect cega &>/dev/null || docker network create cega &>/dev/null
 
 up:network private/cega.yml private/ega_swe1.yml private/ega_fin1.yml
-	@docker-compose -f private/cega.yml up -d 
 	@docker-compose -f private/cega.yml -f private/ega_swe1.yml \
 			up -d \
 			cega-mq cega-users cega-eureka \
