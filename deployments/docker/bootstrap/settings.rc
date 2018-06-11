@@ -4,10 +4,9 @@ set -e
 DOCKER_PORT_inbox=2222
 DOCKER_PORT_mq=15672
 DOCKER_PORT_kibana=5601
-DOCKER_PORT_s3=9001
-#DOCKER_PORT_keyserver=8443
+DOCKER_PORT_s3=9000
+DOCKER_PORT_keyserver=8443
 
-LEGA_GREETINGS="Welcome to Local EGA Sweden @ NBIS"
 CEGA_MQ_PASSWORD=$(generate_password 16)
 CEGA_REST_PASSWORD=$(generate_password 16)
 
@@ -15,14 +14,16 @@ SSL_SUBJ="/C=SE/ST=Sweden/L=Uppsala/O=NBIS/OU=SysDevs/CN=LocalEGA/emailAddress=e
 
 DB_USER=lega
 DB_PASSWORD=$(generate_password 16)
-DB_TRY=30
 
-PGP_NAME="EGA Sweden"
-PGP_COMMENT="@NBIS"
-PGP_EMAIL="ega@nbis.se"
+# if [ -z "${DB_USER}" -o "${DB_USER}" == "postgres" ]; then
+#     echo "Choose a database user (but not 'postgres')"
+#     exit 4
+# fi
+
+PGP_NAME="LocalEGA"
+PGP_COMMENT="@lega"
+PGP_EMAIL="local-ega@ega.eu"
 PGP_PASSPHRASE=$(generate_password 16)
-
-RSA_PASSPHRASE=$(generate_password 16)
 
 S3_ACCESS_KEY=$(generate_password 16)
 S3_SECRET_KEY=$(generate_password 32)

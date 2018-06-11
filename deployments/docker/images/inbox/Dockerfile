@@ -19,6 +19,7 @@ RUN ssh-keygen -t rsa     -N '' -f /etc/ssh/ssh_host_rsa_key && \
     make install clean && \
     ldconfig -v
 
+COPY banner /ega/banner
 COPY pam.ega /etc/pam.d/ega
 COPY sshd_config /etc/ega/sshd_config
 RUN cp /usr/sbin/sshd /usr/sbin/ega
