@@ -11,7 +11,10 @@ import se.nbis.lega.cucumber.Context;
 import se.nbis.lega.cucumber.Utils;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -144,22 +147,6 @@ public class Ingestion implements En {
         });
 
         Then("^the ingestion status is \"([^\"]*)\"$", (String status) -> Assertions.assertThat(context.getIngestionInformation().get("status")).isEqualToIgnoringCase(status));
-
-        Then("^the raw checksum matches$", () -> Assertions.assertThat(context.getIngestionInformation().get("org_checksum")).isEqualToIgnoringCase(context.getRawChecksum()));
-
-        Then("^the encrypted checksum matches$", () -> Assertions.assertThat(context.getIngestionInformation().get("enc_checksum")).isEqualToIgnoringCase(context.getEncChecksum()));
-
-        Then("^and the file header matches$", () -> {
-            try {
-                Map<String, String> ingestionInformation = context.getIngestionInformation();
-                String cat = utils.executeWithinContainer(utils.findContainer(utils.getProperty("images.name.vault"),
-                        utils.getProperty("container.name.vault")), "cat", ingestionInformation.get("filepath"));
-                Assertions.assertThat(cat).startsWith(ingestionInformation.get("reenc_info"));
-            } catch (InterruptedException e) {
-                log.error(e.getMessage(), e);
-                Assert.fail(e.getMessage());
-            }
-        });
 
     }
 
