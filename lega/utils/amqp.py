@@ -29,7 +29,8 @@ def get_connection(domain, blocking=True):
             CONF.get(domain,'username'),
             CONF.get(domain,'password')
         ),
-        'connection_attempts': CONF.getint(domain,'connection_attempts',fallback=2),
+        'connection_attempts': CONF.getint(domain,'connection_attempts',fallback=10),
+        'retry_delay': CONF.getint(domain,'retry_delay',fallback=10), # seconds
     }
     heartbeat = CONF.getint(domain,'heartbeat', fallback=None)
     if heartbeat is not None: # can be 0
