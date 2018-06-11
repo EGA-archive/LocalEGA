@@ -30,7 +30,7 @@ class DBTest(unittest.TestCase):
     def test_get_details(self, mock_connect):
         """DB get details."""
         mock_connect().__enter__().cursor().__enter__().fetchone.return_value = self._query_result
-        result = get_details('file_id')
+        result = get_info('file_id')
         assert result[0] == ("example", "result")
 
     # Just need to verify that the cursor is called with execute
@@ -53,5 +53,5 @@ class DBTest(unittest.TestCase):
     def test_set_status(self, mock_connect):
         """DB set encryption."""
         # Values are not important in this call
-        set_encryption('file_id', Status.In_Progress)
+        set_status('file_id', Status.In_Progress)
         mock_connect().__enter__().cursor().__enter__().execute.assert_called()
