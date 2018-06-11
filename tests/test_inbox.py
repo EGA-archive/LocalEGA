@@ -18,7 +18,7 @@ class TestLegaFS(unittest.TestCase):
     def test_real_path(self, mocked):
         """Test retrieve real path."""
         mocked.return_value = "/root/is/this/dir/to/use"
-        result = self._fs._real_path('/dir/to/use')
+        result = self._fs.real_path('/dir/to/use')
         assert result == "/root/is/this/dir/to/use"
 
     @mock.patch('os.lstat')
