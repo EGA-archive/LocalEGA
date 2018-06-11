@@ -21,7 +21,6 @@ from aiohttp import web
 import pgpy
 
 from .conf import CONF, KeysConfiguration
-from .utils import get_file_content, db
 from .utils.eureka import EurekaClient
 
 LOG = logging.getLogger(__name__)
@@ -210,8 +209,6 @@ async def renew_lease(eureka, interval):
 
 async def init(app):
     '''Initialization running before the loop.run_forever'''
-    app['db'] = await db.create_pool(loop=app.loop)
-    LOG.info('DB Connection pool created')
     app['renew_eureka'] = app.loop.create_task(renew_lease(app['eureka'], app['interval']))
     # Note: will exit on failure
     load_keys_conf(app['store'])
@@ -222,8 +219,6 @@ async def shutdown(app):
     '''Function run after a KeyboardInterrupt. After that: cleanup'''
     LOG.info('Shutting down the database engine')
     global alive
-    app['db'].close()
-    await app['db'].wait_closed()
     await app['eureka'].deregister()
     alive = False
 
