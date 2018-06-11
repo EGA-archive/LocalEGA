@@ -74,7 +74,7 @@ retry_delay = 10
 
 [postgres]
 host = db
-username = ${DB_USER}
+user = ${DB_USER}
 password = ${DB_PASSWORD}
 try = 30
 
@@ -335,7 +335,7 @@ services:
     volumes:
        - ./lega/conf.ini:/etc/ega/conf.ini:ro
        - ./lega/logger.yml:/etc/ega/logger.yml:ro
-       - ./lega/keys.conf:/etc/ega/keys.ini:ro
+       - ./lega/keys.ini:/etc/ega/keys.ini:ro
        - ./lega/certs/ssl.cert:/etc/ega/ssl.cert:ro
        - ./lega/certs/ssl.key:/etc/ega/ssl.key:ro
        - ./lega/pgp/ega.sec:/etc/ega/pgp/ega.sec:ro
