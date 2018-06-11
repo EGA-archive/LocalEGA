@@ -221,8 +221,8 @@ def main():
     assert user, "You did not specify the user in the mount options"
     LOG.info(f'Mounting inbox for EGA User "{user}"')
 
-    rootdir = CONF.get('inbox', 'location', raw=True) % user
-    mode = int(CONF.get('inbox', 'mode'), 8)
+    rootdir = CONF.get_value('inbox', 'location', raw=True) % user
+    mode = int(CONF.get_value('inbox', 'mode'), 8)
     uid = options.get('uid', None)
     gid = options.get('gid', None)
 
