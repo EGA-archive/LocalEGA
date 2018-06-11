@@ -43,6 +43,7 @@ Users are handled throught Central EGA, directly.
       #     'cryptography==2.1.4',
       #     'pgpy',
       #     'boto3',
+      #     'git+https://github.com/NBISweden/LocalEGA-cryptor.git',
       # ],
 )
           
