@@ -1,5 +1,5 @@
 import unittest
-from lega.fs import LegaFS, FuseOSError, parse_options
+from lega.inbox import LegaFS, FuseOSError, parse_options
 from unittest import mock
 
 
