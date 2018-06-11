@@ -36,14 +36,15 @@ class Cache:
         self.max_size = max_size
         self.ttl = ttl
         self.FMT = '%d/%b/%y %H:%M:%S'
-        self.key = os.environ['LEGA_PASSWORD'] # must exist
+        self.key = os.environ.get('LEGA_PASSWORD', None)  # must exist
+        assert self.key, "The key needs a password."
 
     def set(self, keyid, key, ttl=None):
         """Assign in the store to the the key the value, its ttl."""
         self._check_limit()
         ttl = self.ttl if not ttl else self._parse_date_time(ttl)
         assert key.is_protected and key.is_unlocked, "The PGPKey must be protected and unlocked"
-        key.protect(self.key, pgpy.constants.SymmetricKeyAlgorithm.AES256, pgpy.constants.HashAlgorithm.SHA256) # re-protect
+        key.protect(self.key, pgpy.constants.SymmetricKeyAlgorithm.AES256, pgpy.constants.HashAlgorithm.SHA256)  # re-protect
         self.store[keyid] = (bytes(key.pubkey), bytes(key), ttl)
 
     def get(self, keyid, key_type):
@@ -64,7 +65,7 @@ class Cache:
     def check_ttl(self):
         """Check ttl for all keys."""
         keys = []
-        for key, (value, expire) in self.store.items():
+        for key, (_, _, expire) in self.store.items():
             if expire and time.time() < expire:
                 keys.append({"keyID": key, "ttl": self._time_delta(expire)})
             if expire is None:
@@ -100,7 +101,7 @@ class Cache:
         self.store.clear()
 
 
-_cache = Cache() # key IDs are uppercase
+_cache = None  # key IDs are uppercase
 _active = None
 
 ####################################
@@ -110,15 +111,15 @@ _active = None
 def _unlock_key(name, active=None, path=None, expire=None, passphrase=None, **kwargs):
     """Unlocking a key and loading it in the cache."""
     key, _ = pgpy.PGPKey.from_file(path)
+    assert not key.is_public, f"The key {name} should be private"
     with key.unlock(passphrase) as k:
         key_id = k.fingerprint.keyid.upper()
         LOG.debug(f'Activating key: {key_id} ({name})')
-        assert not k.is_public, f"The key {name} should be private"
         _cache.set(key_id, k, ttl=expire)
         if active and name == active:
             global _active
             _active = key_id
-           
+
 
 ####################################
 # Retrieve the active keys
@@ -189,7 +190,7 @@ async def check_ttl(request):
     else:
         return web.HTTPBadRequest()
 
-async def load_keys_conf(store):
+def load_keys_conf(store):
     """Parse and load keys configuration."""
     # Cache the active key names
     active = None
@@ -202,7 +203,7 @@ async def load_keys_conf(store):
     for section in store.sections():
         _unlock_key(section, **dict(store.items(section))) # includes defaults
 
-alive = True  # used to set if the keyserer is alive in the shutdown
+alive = True  # used to set if the keyserver is alive in the shutdown
 
 async def renew_lease(eureka, interval):
     '''Renew eureka lease at specific interval.'''
@@ -217,7 +218,7 @@ async def init(app):
     LOG.info('DB Connection pool created')
     app['renew_eureka'] = app.loop.create_task(renew_lease(app['eureka'], app['interval']))
     # Note: will exit on failure
-    await load_keys_conf(app['store'])
+    load_keys_conf(app['store'])
     await app['eureka'].register()
     LOG.info('Keyserver registered with Eureka.')
 
