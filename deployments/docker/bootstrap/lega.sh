@@ -22,8 +22,8 @@ ${OPENSSL} req -x509 -newkey rsa:2048 -keyout ${PRIVATE}/lega/certs/ssl.key -nod
 
 #########################################################################
 
-echomsg "\t* keys.conf"
-cat > ${PRIVATE}/lega/keys.conf <<EOF
+echomsg "\t* keys.ini"
+cat > ${PRIVATE}/lega/keys.ini <<EOF
 [DEFAULT]
 active : key.1
 
@@ -38,8 +38,8 @@ passphrase : ${PGP_PASSPHRASE}
 expire: 30/MAR/18 08:00:00
 EOF
 
-echomsg "\t* ega.conf"
-cat > ${PRIVATE}/lega/ega.conf <<EOF
+echomsg "\t* conf.ini"
+cat > ${PRIVATE}/lega/conf.ini <<EOF
 [DEFAULT]
 log = /etc/ega/logger.yml
 
@@ -72,7 +72,7 @@ connection_attempts = 30
 # delay in seconds
 retry_delay = 10
 
-[db]
+[postgres]
 host = db
 username = ${DB_USER}
 password = ${DB_PASSWORD}
@@ -290,7 +290,7 @@ services:
     devices:
       - /dev/fuse
     volumes:
-      - ./lega/ega.conf:/etc/ega/conf.ini:ro
+      - ./lega/conf.ini:/etc/ega/conf.ini:ro
       - ./lega/logger.yml:/etc/ega/logger.yml:ro
       - inbox:/ega/inbox
       #- ../../../lega:/root/.local/lib/python3.6/site-packages/lega
@@ -314,7 +314,7 @@ services:
       - AWS_SECRET_ACCESS_KEY=${S3_SECRET_KEY}
     volumes:
        - inbox:/ega/inbox
-       - ./lega/ega.conf:/etc/ega/conf.ini:ro
+       - ./lega/conf.ini:/etc/ega/conf.ini:ro
        - ./lega/logger.yml:/etc/ega/logger.yml:ro
        #- ../../../lega:/root/.local/lib/python3.6/site-packages/lega
        #- ~/_cryptor/legacryptor:/root/.local/lib/python3.6/site-packages/legacryptor
@@ -333,7 +333,7 @@ services:
     environment:
       - LEGA_PASSWORD=${LEGA_PASSWORD}
     volumes:
-       - ./lega/ega.conf:/etc/ega/conf.ini:ro
+       - ./lega/conf.ini:/etc/ega/conf.ini:ro
        - ./lega/logger.yml:/etc/ega/logger.yml:ro
        - ./lega/keys.conf:/etc/ega/keys.ini:ro
        - ./lega/certs/ssl.cert:/etc/ega/ssl.cert:ro
@@ -366,7 +366,7 @@ services:
       - AWS_ACCESS_KEY_ID=${S3_ACCESS_KEY}
       - AWS_SECRET_ACCESS_KEY=${S3_SECRET_KEY}
     volumes:
-       - ./lega/ega.conf:/etc/ega/conf.ini:ro
+       - ./lega/conf.ini:/etc/ega/conf.ini:ro
        - ./lega/logger.yml:/etc/ega/logger.yml:ro
        #- ../../../lega:/root/.local/lib/python3.6/site-packages/lega
        #- ~/_cryptor/legacryptor:/root/.local/lib/python3.6/site-packages/legacryptor
