@@ -102,7 +102,7 @@ class Cache:
 
 
 _cache = None  # key IDs are uppercase
-_active = None
+_active = None # will be a KeyID (not a key name)
 
 ####################################
 # Caching the keys
@@ -193,12 +193,8 @@ async def check_ttl(request):
 def load_keys_conf(store):
     """Parse and load keys configuration."""
     # Cache the active key names
-    active = None
-    for name, value in store.defaults().items():
-        if name == 'active':
-            LOG.debug('Setting active key to %s', value)
-            active = value
-            break
+    global _cache
+    _cache = Cache()
     # Load all the keys in the store
     for section in store.sections():
         _unlock_key(section, **dict(store.items(section))) # includes defaults
