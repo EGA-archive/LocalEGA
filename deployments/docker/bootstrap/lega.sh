@@ -69,7 +69,8 @@ keyserver_endpoint = https://keys:8443/retrieve/%s/private
 [broker]
 host = mq
 connection_attempts = 30
-retry_delay = 10 #seconds
+# delay in seconds
+retry_delay = 10
 
 [db]
 host = db
