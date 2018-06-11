@@ -8,26 +8,23 @@ Feature: Ingestion
     Given I have an account at Central EGA
     And I have correct private key
     And I connect to the LocalEGA inbox via SFTP using private key
-    And I have a file encrypted with OpenPGP using a LocalEGA's pubic key
+    And I have a file encrypted with Crypt4GH using a LocalEGA's pubic key
     And I upload encrypted file to the LocalEGA inbox via SFTP
     And I have CEGA MQ username and password
     And I ingest file from the LocalEGA inbox using correct <algo> checksums
     When I retrieve ingestion information
     Then the ingestion status is "Archived"
-    And the raw checksum matches
-    And the encrypted checksum matches
-    And and the file header matches
 
-  Examples:
-    | algo   |
-    | MD5    |
-    | SHA256 |
+    Examples:
+      | algo   |
+      | MD5    |
+      | SHA256 |
 
   Scenario: I.1 User ingests file encrypted not with OpenPGP
     Given I have an account at Central EGA
     And I have correct private key
     And I connect to the LocalEGA inbox via SFTP using private key
-    And I have a file encrypted not with OpenPGP
+    And I have a file encrypted not with Crypt4GH
     And I upload encrypted file to the LocalEGA inbox via SFTP
     And I have CEGA MQ username and password
     And I ingest file from the LocalEGA inbox using correct MD5 checksums
@@ -38,7 +35,7 @@ Feature: Ingestion
     Given I have an account at Central EGA
     And I have correct private key
     And I connect to the LocalEGA inbox via SFTP using private key
-    And I have a file encrypted with OpenPGP using a LocalEGA's pubic key
+    And I have a file encrypted with Crypt4GH using a LocalEGA's pubic key
     And I upload encrypted file to the LocalEGA inbox via SFTP
     And I have CEGA MQ username and password
     And inbox is deleted for my user
@@ -50,7 +47,7 @@ Feature: Ingestion
     Given I have an account at Central EGA
     And I have correct private key
     And I connect to the LocalEGA inbox via SFTP using private key
-    And I have a file encrypted with OpenPGP using a LocalEGA's pubic key
+    And I have a file encrypted with Crypt4GH using a LocalEGA's pubic key
     And I upload encrypted file to the LocalEGA inbox via SFTP
     And I have CEGA MQ username and password
     And file is removed from the inbox
@@ -62,7 +59,7 @@ Feature: Ingestion
     Given I have an account at Central EGA
     And I have correct private key
     And I connect to the LocalEGA inbox via SFTP using private key
-    And I have a file encrypted with OpenPGP using a LocalEGA's pubic key
+    And I have a file encrypted with Crypt4GH using a LocalEGA's pubic key
     And I upload encrypted file to the LocalEGA inbox via SFTP
     And I have CEGA MQ username and password
     And I ingest file from the LocalEGA inbox using wrong raw checksum
@@ -73,7 +70,7 @@ Feature: Ingestion
     Given I have an account at Central EGA
     And I have correct private key
     And I connect to the LocalEGA inbox via SFTP using private key
-    And I have a file encrypted with OpenPGP using a LocalEGA's pubic key
+    And I have a file encrypted with Crypt4GH using a LocalEGA's pubic key
     And I upload encrypted file to the LocalEGA inbox via SFTP
     And I have CEGA MQ username and password
     And I ingest file from the LocalEGA inbox using wrong encrypted checksum
@@ -84,7 +81,7 @@ Feature: Ingestion
     Given I have an account at Central EGA
     And I have correct private key
     And I connect to the LocalEGA inbox via SFTP using private key
-    And I have a file encrypted with OpenPGP using a LocalEGA's pubic key
+    And I have a file encrypted with Crypt4GH using a LocalEGA's pubic key
     And I upload encrypted file to the LocalEGA inbox via SFTP
     And I have CEGA MQ username and password
     And I ingest file from the LocalEGA inbox without providing raw checksum
@@ -95,7 +92,7 @@ Feature: Ingestion
     Given I have an account at Central EGA
     And I have correct private key
     And I connect to the LocalEGA inbox via SFTP using private key
-    And I have a file encrypted with OpenPGP using a LocalEGA's pubic key
+    And I have a file encrypted with Crypt4GH using a LocalEGA's pubic key
     And I upload encrypted file to the LocalEGA inbox via SFTP
     And I have CEGA MQ username and password
     And I ingest file from the LocalEGA inbox without providing encrypted checksum
@@ -106,22 +103,19 @@ Feature: Ingestion
     Given I have an account at Central EGA
     And I have correct private key
     And I connect to the LocalEGA inbox via SFTP using private key
-    And I have a file encrypted with OpenPGP using a LocalEGA's pubic key
+    And I have a file encrypted with Crypt4GH using a LocalEGA's pubic key
     And I upload encrypted file to the LocalEGA inbox via SFTP
     And I upload companion files to the LocalEGA inbox via SFTP
     And I have CEGA MQ username and password
     And I ingest file from the LocalEGA inbox without providing checksums
     When I retrieve ingestion information
     Then the ingestion status is "Archived"
-    And the raw checksum matches
-    And the encrypted checksum matches
-    And and the file header matches
 
   Scenario: I.10 User ingests file encrypted with OpenPGP using a correct key and checksums, but the keyserver doesn't respond
     Given I have an account at Central EGA
     And I have correct private key
     And I connect to the LocalEGA inbox via SFTP using private key
-    And I have a file encrypted with OpenPGP using a LocalEGA's pubic key
+    And I have a file encrypted with Crypt4GH using a LocalEGA's pubic key
     And I upload encrypted file to the LocalEGA inbox via SFTP
     And I upload companion files to the LocalEGA inbox via SFTP
     And I have CEGA MQ username and password
@@ -135,7 +129,7 @@ Feature: Ingestion
     Given I have an account at Central EGA
     And I have correct private key
     And I connect to the LocalEGA inbox via SFTP using private key
-    And I have a file encrypted with OpenPGP using a LocalEGA's pubic key
+    And I have a file encrypted with Crypt4GH using a LocalEGA's pubic key
     And I upload encrypted file to the LocalEGA inbox via SFTP
     And I upload companion files to the LocalEGA inbox via SFTP
     And I have CEGA MQ username and password
@@ -149,7 +143,7 @@ Feature: Ingestion
     Given I have an account at Central EGA
     And I have correct private key
     And I connect to the LocalEGA inbox via SFTP using private key
-    And I have a file encrypted with OpenPGP using a LocalEGA's pubic key
+    And I have a file encrypted with Crypt4GH using a LocalEGA's pubic key
     And I upload encrypted file to the LocalEGA inbox via SFTP
     And I upload companion files to the LocalEGA inbox via SFTP
     And I have CEGA MQ username and password
