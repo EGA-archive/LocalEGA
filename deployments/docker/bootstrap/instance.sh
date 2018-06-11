@@ -391,13 +391,12 @@ services:
        #- vault_${INSTANCE}:/ega/vault
        - ./${INSTANCE}/ega.conf:/etc/ega/conf.ini:ro
        - ./${INSTANCE}/logger.yml:/etc/ega/logger.yml:ro
-       - ../images/ingestion/entrypoint.sh:/usr/local/bin/entrypoint.sh
        #- ../../../lega:/root/.local/lib/python3.6/site-packages/lega
        #- ~/_cryptor/legacryptor:/root/.local/lib/python3.6/site-packages/legacryptor
     restart: on-failure:3
     networks:
       - lega_${INSTANCE}
-    entrypoint: ["/bin/bash", "/usr/local/bin/entrypoint.sh"]
+    entrypoint: ["gosu", "lega", "ega-ingest"]
 
   # Key server
   keys-${INSTANCE}:
@@ -447,13 +446,12 @@ services:
        #- vault_${INSTANCE}:/ega/vault
        - ./${INSTANCE}/ega.conf:/etc/ega/conf.ini:ro
        - ./${INSTANCE}/logger.yml:/etc/ega/logger.yml:ro
-       - ../images/qc/entrypoint.sh:/usr/local/bin/entrypoint.sh
        #- ../../../lega:/root/.local/lib/python3.6/site-packages/lega
        #- ~/_cryptor/legacryptor:/root/.local/lib/python3.6/site-packages/legacryptor
     restart: on-failure:3
     networks:
       - lega_${INSTANCE}
-    entrypoint: ["/bin/bash", "/usr/local/bin/entrypoint.sh"]
+    entrypoint: ["gosu", "lega", "ega-verify"]
 
   # S3
   s3-${INSTANCE}:

@@ -1,5 +1,5 @@
 import unittest
-from lega.utils.db import insert_file, get_errors, set_error, get_details, set_progress, set_encryption, finalize_file
+from lega.utils.db import insert_file, get_errors, set_error, get_info, set_info, set_status, Status
 from unittest import mock
 
 
@@ -43,22 +43,15 @@ class DBTest(unittest.TestCase):
         mock_connect().__enter__().cursor().__enter__().execute.assert_called()
 
     @mock.patch('lega.utils.db.connect')
-    def test_set_progress(self, mock_connect):
+    def test_set_info(self, mock_connect):
         """DB set progress."""
         # Values are not important in this call
-        set_progress("file_id", 'staging_name', 'enc_checksum', 'enc_checksum_algo', 'org_checksum', 'org_checksum_algo')
+        set_info("file_id", '/ega/vault/000/000/0a1', 1000, b'header')
         mock_connect().__enter__().cursor().__enter__().execute.assert_called()
 
     @mock.patch('lega.utils.db.connect')
-    def test_set_encryption(self, mock_connect):
+    def test_set_status(self, mock_connect):
         """DB set encryption."""
         # Values are not important in this call
-        set_encryption('file_id', 'info', 'digest')
-        mock_connect().__enter__().cursor().__enter__().execute.assert_called()
-
-    @mock.patch('lega.utils.db.connect')
-    def test_finalize_file(self, mock_connect):
-        """DB finalise file."""
-        # Values are not important in this call
-        finalize_file('file_id', 'file_path', 100)
+        set_encryption('file_id', Status.In_Progress)
         mock_connect().__enter__().cursor().__enter__().execute.assert_called()

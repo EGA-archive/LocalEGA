@@ -41,5 +41,8 @@ RUN groupadd -r lega && useradd -M -r -g lega lega
 ARG checkout=
 ARG PIP_EGA_PACKAGES=
 RUN pip3.6 install --upgrade pip && \
-    pip3.6 install PyYaml ${PIP_EGA_PACKAGES} && \
-    pip3.6 install git+https://github.com/NBISweden/LocalEGA.git@${checkout}
+    pip3.6 install PyYaml ${PIP_EGA_PACKAGES}
+
+RUN pip3.6 install git+https://github.com/NBISweden/LocalEGA.git@${checkout}
+
+RUN pip3.6 install git+https://github.com/NBISweden/LocalEGA-cryptor.git
