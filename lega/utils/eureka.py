@@ -10,7 +10,6 @@ import aiohttp
 import logging
 import json
 import uuid
-import sys
 from functools import wraps
 
 

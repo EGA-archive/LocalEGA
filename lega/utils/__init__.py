@@ -4,7 +4,7 @@ Utility functions used internally.
 
 import logging
 
-LOG = logging.getLogger('utils')
+LOG = logging.getLogger(__name__)
 
 def get_file_content(f, mode='rb'):
     try:

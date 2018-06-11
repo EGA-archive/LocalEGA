@@ -31,8 +31,8 @@ LOG = logging.getLogger(__name__)
 def get_records(header):
     keyid = get_key_id(header)
     LOG.info(f'Key ID {keyid}')
-    keyurl = CONF.get('quality_control', 'keyserver_endpoint', raw=True) % keyid
-    use_ssl = CONF.getboolean('quality_control', 'use_ssl')
+    keyurl = CONF.get_value('quality_control', 'keyserver_endpoint', raw=True) % keyid
+    use_ssl = CONF.get_value('quality_control', 'verify_certificate', conv=bool)
     LOG.info(f'Retrieving the Private Key from {keyurl} (use_ssl: {use_ssl})')
 
     if use_ssl:
@@ -80,8 +80,8 @@ def main(args=None):
 
     CONF.setup(args) # re-conf
 
-    store = getattr(storage, CONF.get('vault', 'driver', fallback='FileStorage'))
-    chunk_size = CONF.getint('vault', 'chunk_size', fallback=1<<22) # 4 MB
+    store = getattr(storage, CONF.get_value('vault', 'driver', default='FileStorage'))
+    chunk_size = CONF.get_value('vault', 'chunk_size', conv=int, default=1<<22) # 4 MB
     do_work = partial(work, chunk_size, store())
 
     consume(do_work, 'staged', 'completed')
