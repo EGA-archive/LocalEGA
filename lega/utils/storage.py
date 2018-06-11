@@ -12,7 +12,7 @@ LOG = logging.getLogger(__name__)
 
 class FileStorage():
     def __init__(self):
-        self.vault_area = Path(CONF.get('vault','location'))
+        self.vault_area = Path(CONF.get_value('vault', 'location'))
 
     def location(self, file_id):
         name = f"{file_id:0>20}" # filling with zeros, and 20 characters wide
@@ -184,11 +184,11 @@ class S3Storage():
         import socket
         import io
 
-        endpoint = CONF.get('vault','url')
-        region = CONF.get('vault','region')
-        bucket = CONF.get('vault','bucket', fallback='lega')
-        # access_key = CONF.get('vault','access_key')
-        # secret_key = CONF.get('vault','secret_key')
+        endpoint = CONF.get_value('vault', 'url')
+        region = CONF.get_value('vault', 'region')
+        bucket = CONF.get_value('vault', 'bucket', default='lega')
+        # access_key = CONF.get_value('vault', 'access_key')
+        # secret_key = CONF.get_value('vault', 'secret_key')
         access_key = os.environ['S3_ACCESS_KEY']
         secret_key = os.environ['S3_SECRET_KEY']
         self.s3 = boto3.client('s3',

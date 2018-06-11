@@ -26,7 +26,7 @@ from .utils.crypto import decrypt_from_vault
 LOG = logging.getLogger(__name__)
 
 def get_master_key():
-    keyurl = CONF.get('ingestion','keyserver_endpoint_rsa')
+    keyurl = CONF.get_value('keyserver', 'endpoint_rsa')
     LOG.info(f'Retrieving the Master Public Key from {keyurl}')
     try:
         # Prepare to contact the Keyserver for the Master key
@@ -36,6 +36,7 @@ def get_master_key():
         LOG.error(repr(e))
         LOG.critical('Problem contacting the Keyserver. Ingestion Worker terminated')
         sys.exit(1)
+
 
 def get_info(fileid):
     # put your dirty hands in the database
@@ -65,10 +66,10 @@ def main(args=None):
     LOG.debug(f"Vault path: {filepath}")
 
     # Decrypting
-    with open(filepath,'rb') as infile: #tempfile.TemporaryFile() as outfile, 
+    with open(filepath,'rb') as infile: #tempfile.TemporaryFile() as outfile,
         hasher = checksum.instantiate(org_checksum_algo)
         decrypt_from_vault(infile, master_key, hasher=hasher) # outfile=None
-        
+
         # Check integrity of decrypted file
         if org_checksum != hasher.hexdigest():
             print("Aiiieeee...bummer.... Invalid checksum")

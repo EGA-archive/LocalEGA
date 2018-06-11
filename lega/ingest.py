@@ -76,7 +76,7 @@ def work(fs, data):
 
     # Use user_id, and not elixir_id
     user_id = sanitize_user_id(data['user'])
-    
+
     # Insert in database
     file_id = db.insert_file(filepath, user_id, stable_id)
 
@@ -88,7 +88,7 @@ def work(fs, data):
     data['internal_data'] = internal_data
 
     # Find inbox
-    inbox = Path( CONF.get('inbox','location',raw=True) % user_id )
+    inbox = Path(CONF.get_value('inbox', 'location', raw=True) % user_id)
     LOG.info(f"Inbox area: {inbox}")
 
     # Check if file is in inbox
@@ -99,7 +99,7 @@ def work(fs, data):
     # Ok, we have the file in the inbox
 
     # Get the checksum
-    if CONF.getboolean('ingestion','do_checksum', fallback=False):
+    if CONF.get_value('ingestion', 'do_checksum', conv=bool, default=False):
         run_checksum(data, 'encrypted_integrity', inbox_filepath)
 
     # Sending a progress message to CentralEGA
@@ -131,7 +131,7 @@ def main(args=None):
 
     CONF.setup(args) # re-conf
 
-    fs = getattr(storage, CONF.get('vault', 'driver', fallback='FileStorage'))
+    fs = getattr(storage, CONF.get_value('vault', 'driver', default='FileStorage'))
     do_work = partial(work, fs())
 
     # upstream link configured in local broker
