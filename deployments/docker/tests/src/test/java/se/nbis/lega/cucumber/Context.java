@@ -17,8 +17,6 @@ public class Context {
     private final Utils utils;
 
     private String user;
-    private List<String> instances;
-    private String targetInstance;
     private KeyProvider keyProvider;
     private String cegaMQUser;
     private String cegaMQPassword;

@@ -25,11 +25,11 @@ public class Uploading implements En {
     public Uploading(Context context) {
         Utils utils = context.getUtils();
 
-        Given("^I have a file encrypted with OpenPGP using a \"([^\"]*)\" key$", (String instance) -> {
+        Given("^I have a file encrypted with OpenPGP using a LocalEGA's pubic key$", () -> {
             File rawFile = context.getRawFile();
             File encryptedFile = new File(rawFile.getAbsolutePath() + ".enc");
             try {
-                Encryptor encryptor = new Encryptor(new Key(new File(String.format("%s/%s/pgp/ega.pub", utils.getPrivateFolderPath(), instance))));
+                Encryptor encryptor = new Encryptor(new Key(new File(String.format("%s/%s/pgp/ega.pub", utils.getPrivateFolderPath(), utils.getProperty("instance.name")))));
                 encryptor.setSigningAlgorithm(null);
                 encryptor.encrypt(rawFile, encryptedFile);
                 context.setEncryptedFile(encryptedFile);
