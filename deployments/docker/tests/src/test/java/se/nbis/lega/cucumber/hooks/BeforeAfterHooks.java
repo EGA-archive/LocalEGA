@@ -43,7 +43,7 @@ public class BeforeAfterHooks implements En {
         String user = context.getUser();
         Arrays.stream(cegaUsersFolder.listFiles((dir, name) -> name.startsWith(user))).forEach(File::delete);
         utils.removeUserFromCache(user);
-        utils.removeUserInbox(user);
+//        utils.removeUserInbox(user);
     }
 
 }
