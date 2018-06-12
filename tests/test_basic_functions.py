@@ -1,10 +1,8 @@
 from lega.utils.checksum import instantiate, calculate, is_valid, get_from_companion, supported_algorithms
-from lega.keyserver import _unlock_key, load_keys_conf, Cache
 from lega.utils.exceptions import UnsupportedHashAlgorithm, CompanionNotFound
 import hashlib
 import unittest
 from unittest import mock
-from test.support import EnvironmentVarGuard
 from lega.utils import get_file_content, sanitize_user_id
 import io
 from testfixtures import tempdir
@@ -15,11 +13,6 @@ class TestBasicFunctions(unittest.TestCase):
     """Basic Tests
 
     Suite of basic tests for various functions."""
-
-    def setUp(self):
-        """Initialise fixtures."""
-        self.env = EnvironmentVarGuard()
-        self.env.set('LEGA_PASSWORD', 'value')
 
     def test_instantiate(self):
         """Instantiate algorithm."""
@@ -81,31 +74,3 @@ class TestBasicFunctions(unittest.TestCase):
         """Should get a tuple of supported algorithms"""
         result = supported_algorithms()
         self.assertEqual(('md5', 'sha256'), result)
-
-    # @tempdir()
-    # # @mock.patch('lega.keyserver._cache')
-    # def test_unlock_key(self, filedir):
-    #     """Should unlock a private key and return the key ID."""
-    #     sec_keyfile = filedir.write('sec_key.asc', pgp_data.PGP_PRIVKEY.encode('utf-8'))
-    #
-    #     # class CacheObj:
-    #     #     def get(self):
-    #     #         return pgp_data.PGP_PRIVKEY_BIN
-    #     # with self.env:
-    #     #     mock_cache.return_value = Cache()
-    #     _unlock_key(pgp_data.PGP_NAME, path=sec_keyfile, passphrase=pgp_data.PGP_PASSPHRASE)
-    #     # mock_cache.return_value.get(pgp_data.KEY_ID, 'private').assert_called()
-    #     # print(dir(result))
-    #     self.assertTrue(False)
-    #     filedir.cleanup()
-
-    @tempdir()
-    @mock.patch('lega.keyserver._cache')
-    def test_unlock_key_public(self, mock_cache, filedir):
-        """Trying to unlock public key should return assertion error."""
-        pub_keyfile = filedir.write('pub_key.asc', pgp_data.PGP_PUBKEY.encode('utf-8'))
-        with self.env:
-            mock_cache.return_value = Cache()
-        with self.assertRaises(AssertionError):
-            _unlock_key(pgp_data.PGP_NAME, path=pub_keyfile)
-        filedir.cleanup()
