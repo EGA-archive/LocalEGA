@@ -15,6 +15,9 @@ _DIGEST = {
     'sha256': hashlib.sha256,
 }
 
+def supported_algorithms():
+    return tuple(_DIGEST.keys())
+
 def instantiate(algo):
     try:
         return (_DIGEST[algo])()

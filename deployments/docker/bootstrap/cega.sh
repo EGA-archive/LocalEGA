@@ -3,8 +3,6 @@ set -e
 
 echomsg "Generating fake Central EGA users"
 
-[[ -x $(readlink ${OPENSSL}) ]] && echo "${OPENSSL} is not executable. Adjust the setting with --openssl" && exit 3
-
 mkdir -p ${PRIVATE}/cega/users/pgp
 
 EGA_USER_PASSWORD_JOHN=$(generate_password 16)
@@ -41,30 +39,20 @@ cat > ${PRIVATE}/cega/users/taylor.yml <<EOF
 password_hash: $(${OPENSSL} passwd -1 ${EGA_USER_PASSWORD_TAYLOR})
 EOF
 
-mkdir -p ${PRIVATE}/cega/users/{swe1,fin1}
-chmod 777 ${PRIVATE}/cega/users/{swe1,fin1}
-# They all have access to SWE1
+mkdir -p ${PRIVATE}/cega/users/lega
+chmod 777 ${PRIVATE}/cega/users/lega
+# They all have access to the lega instance
 ( # In a subshell
-    cd ${PRIVATE}/cega/users/swe1
+    cd ${PRIVATE}/cega/users/lega
     ln -s ../john.yml .
     ln -s ../jane.yml .
     ln -s ../taylor.yml .
 )
-# John has also access to FIN1
-(
-    cd ${PRIVATE}/cega/users/fin1
-    ln -s ../john.yml .
-)
 
 echomsg "Generating PGP keys for EGA users"
 
-if [[ -f /tmp/generate_pgp_key.py ]]; then
-    # Running in a container
-    GEN_KEY="python3.6 /tmp/generate_pgp_key.py"
-else
-    # Running on host, outside a container
-    GEN_KEY="python ${EXTRAS}/generate_pgp_key.py"
-fi
+# Running in a container
+GEN_KEY="python3.6 /tmp/generate_pgp_key.py"
 
 ${GEN_KEY} "John Travolta" "john@ega.eu" "John" --passphrase "hi-john" --pub ${PRIVATE}/cega/users/pgp/john.pub --priv ${PRIVATE}/cega/users/pgp/john.sec --armor
 chmod 644 ${PRIVATE}/cega/users/pgp/john.pub
@@ -160,5 +148,56 @@ services:
     command: ["python3.6", "/cega/eureka.py"]
 EOF
 
-# For the compose file
-echo -n "private/cega.yml" >> ${DOT_ENV} # no newline
+# Only one instance, called 'lega'
+cat > ${PRIVATE}/cega/env <<EOF
+LEGA_INSTANCES=lega
+CEGA_REST_lega_PASSWORD=${CEGA_REST_PASSWORD}
+EOF
+
+echomsg "Generating passwords for the Message Broker"
+
+function rabbitmq_hash {
+    # 1) Generate a random 32 bit salt
+    # 2) Concatenate that with the UTF-8 representation of the password
+    # 3) Take the SHA-256 hash
+    # 4) Concatenate the salt again
+    # 5) Convert to base64 encoding
+    local SALT=${2:-$(${OPENSSL:-openssl} rand -hex 4)}
+    {
+	printf ${SALT} | xxd -p -r
+	( printf ${SALT} | xxd -p -r; printf $1 ) | ${OPENSSL:-openssl} dgst -binary -sha256
+    } | base64
+}
+
+mkdir -p ${PRIVATE}/cega/mq
+cat > ${PRIVATE}/cega/mq/defs.json <<EOF
+{"rabbit_version":"3.6.11",
+ "users":[{"name":"lega","password_hash":"$(rabbitmq_hash $CEGA_MQ_PASSWORD)","hashing_algorithm":"rabbit_password_hashing_sha256","tags":"administrator"}],
+ "vhosts":[{"name":"lega"}],
+ "permissions":[{"user":"lega", "vhost":"lega", "configure":".*", "write":".*", "read":".*"}],
+ "parameters":[],
+ "global_parameters":[{"name":"cluster_name", "value":"rabbit@localhost"}],
+ "policies":[],
+ "queues":[{"name":"inbox",           "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{}},
+           {"name":"inbox.checksums", "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{}},
+	   {"name":"files",           "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{}},
+	   {"name":"completed",       "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{}},
+	   {"name":"errors",          "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{}}],
+ "exchanges":[{"name":"localega.v1", "vhost":"lega", "type":"topic", "durable":true, "auto_delete":false, "internal":false, "arguments":{}}],
+ "bindings":[{"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{},"destination":"inbox","routing_key":"files.inbox"},
+	     {"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{},"destination":"inbox.checksums","routing_key":"files.inbox.checksums"},
+	     {"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{},"destination":"files","routing_key":"files"},
+	     {"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{},"destination":"completed","routing_key":"files.completed"},
+	     {"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{},"destination":"errors","routing_key":"files.error"}]
+}
+EOF
+
+cat > ${PRIVATE}/cega/mq/rabbitmq.config <<EOF
+%% -*- mode: erlang -*-
+%%
+[{rabbit,[{loopback_users, [ ] },
+	  {disk_free_limit, "1GB"}]},
+ {rabbitmq_management, [ {load_definitions, "/etc/rabbitmq/defs.json"} ]}
+].
+EOF
+

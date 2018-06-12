@@ -37,14 +37,13 @@ public class BeforeAfterHooks implements En {
     @After
     public void tearDown() throws IOException, InterruptedException {
         Utils utils = context.getUtils();
-        String targetInstance = context.getTargetInstance();
 
         FileUtils.deleteDirectory(context.getDataFolder());
-        File cegaUsersFolder = new File(utils.getPrivateFolderPath() + "/cega/users/" + targetInstance);
+        File cegaUsersFolder = new File(utils.getPrivateFolderPath() + "/cega/users/" + utils.getProperty("instance.name"));
         String user = context.getUser();
         Arrays.stream(cegaUsersFolder.listFiles((dir, name) -> name.startsWith(user))).forEach(File::delete);
-        utils.removeUserFromCache(targetInstance, user);
-        utils.removeUserInbox(targetInstance, user);
+        utils.removeUserFromCache(user);
+//        utils.removeUserInbox(user);
     }
 
 }
