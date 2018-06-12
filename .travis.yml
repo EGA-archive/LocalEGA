@@ -26,7 +26,7 @@ jobs:
         - make bootstrap
         - sudo chown -R travis private
         - docker network create cega
-        - docker-compose up -d ${DOCKER_CONTAINERS}
+        - make up
         - docker-compose ps
       script:
         - sleep 10
