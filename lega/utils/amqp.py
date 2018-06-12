@@ -30,7 +30,8 @@ def get_connection(domain, blocking=True):
             CONF.get_value(domain, 'username', default='guest'),
             CONF.get_value(domain, 'password', default='guest')
         ),
-        'connection_attempts': CONF.get_value(domain, 'connection_attempts', conv=int, default=2),
+        'connection_attempts': CONF.get_value(domain, 'connection_attempts', conv=int, default=10),
+        'retry_delay': CONF.get_value(domain,'retry_delay', conv=int, default=10), # seconds
     }
     heartbeat = CONF.get_value(domain, 'heartbeat', conv=int, default=0)
     if heartbeat is not None:  # can be 0

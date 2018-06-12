@@ -8,12 +8,12 @@ import sys
 import traceback
 from functools import wraps
 import logging
-from enum import Enum
 import psycopg2
 from socket import gethostname
 from time import sleep
 import asyncio
 import aiopg
+from enum import Enum
 
 from ..conf import CONF
 from .exceptions import FromUser
@@ -126,12 +126,8 @@ def connect():
 def insert_file(filename, user_id, stable_id):
     with connect() as conn:
         with conn.cursor() as cur:
-            cur.execute('SELECT insert_file(%(filename)s,%(user_id)s,%(stable_id)s, %(status)s);',{
-                'filename': filename,
-                'user_id': user_id,
-                'status' : Status.Received.value,
-                'stable_id': stable_id,
-            })
+            cur.execute('SELECT insert_file(%(filename)s,%(user_id)s,%(stable_id)s,%(status)s);',
+                        { 'filename': filename, 'user_id': user_id, 'status' : Status.Received.value, 'stable_id': stable_id })
             file_id = (cur.fetchone())[0]
             if file_id:
                 LOG.debug(f'Created id {file_id} for {filename}')
@@ -157,49 +153,38 @@ def set_error(file_id, error, from_user=False):
             cur.execute('SELECT insert_error(%(file_id)s,%(msg)s,%(from_user)s);',
                         {'msg':f"[{hostname}][{error.__class__.__name__}] {error!s}", 'file_id': file_id, 'from_user': from_user})
 
-def get_details(file_id):
+def get_info(file_id):
     with connect() as conn:
         with conn.cursor() as cur:
-            query = 'SELECT filename, org_checksum, org_checksum_algo, filepath, stable_id, reenc_checksum from files WHERE id = %(file_id)s;'
+            query = 'SELECT inbox_path, vault_path, stable_id, header from files WHERE id = %(file_id)s;'
             cur.execute(query, { 'file_id': file_id})
             return cur.fetchone()
 
-def set_progress(file_id, staging_name, enc_checksum, enc_checksum_algo, org_checksum, org_checksum_algo):
+def set_status(file_id, status):
     assert file_id, 'Eh? No file_id?'
-    assert staging_name, 'Eh? No staging name?'
+    LOG.debug(f'Updating status file_id {file_id} with "{status}"')
+    with connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute('UPDATE files SET status = %(status)s WHERE id = %(file_id)s;', {'status': status.value, 'file_id': file_id })
+
+def set_info(file_id, vault_path, vault_filesize, header):
+    assert file_id, 'Eh? No file_id?'
+    assert vault_path, 'Eh? No vault name?'
     LOG.debug(f'Updating status file_id {file_id}')
     with connect() as conn:
         with conn.cursor() as cur:
             cur.execute('UPDATE files '
                         'SET status = %(status)s, '
-                        '    staging_name = %(name)s, '
-                        '    enc_checksum = %(enc_checksum)s, enc_checksum_algo = %(enc_checksum_algo)s, '
-                        '    org_checksum = %(org_checksum)s, org_checksum_algo = %(org_checksum_algo)s '
+                        '    vault_path = %(vault_path)s, '
+                        '    vault_filesize = %(vault_filesize)s, '
+                        '    header = %(header)s '
                         'WHERE id = %(file_id)s;',
-                        {'status': Status.In_Progress.value,
+                        {'status': Status.Archived.value,
                          'file_id': file_id,
-                         'name': staging_name,
-                         'enc_checksum': enc_checksum, 'enc_checksum_algo': enc_checksum_algo,
-                         'org_checksum': org_checksum, 'org_checksum_algo': org_checksum_algo,
+                         'vault_path': vault_path,
+                         'vault_filesize': vault_filesize,
+                         'header': header.hex(),
                         })
-
-def set_encryption(file_id, info, digest):
-    assert file_id, 'Eh? No file_id?'
-    with connect() as conn:
-        with conn.cursor() as cur:
-            cur.execute('UPDATE files SET reenc_info = %(reenc_info)s, reenc_checksum = %(digest)s, status = %(status)s WHERE id = %(file_id)s;',
-                        {'reenc_info': info, 'file_id': file_id, 'digest': digest, 'status': Status.Completed.value})
-
-def finalize_file(file_id, filepath, filesize):
-    assert file_id, 'Eh? No file_id?'
-    assert filepath, 'Eh? No filepath?'
-    LOG.debug(f'Setting final name for file_id {file_id}: {filepath}')
-    with connect() as conn:
-        with conn.cursor() as cur:
-            cur.execute('UPDATE files '
-                        'SET status = %(status)s, filepath = %(filepath)s, reenc_size = %(filesize)s '
-                        'WHERE id = %(file_id)s;',
-                        {'filepath': filepath, 'file_id': file_id, 'status': Status.Archived.value, 'filesize': filesize})
 
 ######################################
 ##           Async code             ##
@@ -214,17 +199,6 @@ async def create_pool(loop):
     db_args = fetch_args(CONF)
     return await aiopg.create_pool(**db_args, loop=loop, echo=True)
 
-async def get_fileinfo(conn, file_id):
-    assert file_id, 'Eh? No file ID?'
-    try:
-        LOG.debug(f'File Info for {file_id}')
-        with (await conn.cursor()) as cur:
-            query = "SELECT filepath, reenc_size, reenc_checksum, 'sha256' FROM files WHERE stable_id = %(file_id)s LIMIT 1;"
-            await cur.execute(query, {'file_id': file_id})
-            return (await cur.fetchone())
-    except psycopg2.InternalError as pgerr:
-        LOG.debug(f'File Info for {file_id}: {pgerr!r}')
-        return None
 
 ######################################
 ##           Decorator              ##

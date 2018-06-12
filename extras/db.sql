@@ -3,7 +3,7 @@
 SET TIME ZONE 'Europe/Stockholm';
 
 CREATE TYPE status AS ENUM ('Received', 'In progress', 'Completed', 'Archived', 'Error');
-CREATE TYPE hash_algo AS ENUM ('md5', 'sha256');
+-- CREATE TYPE hash_algo AS ENUM ('md5', 'sha256');
 
 CREATE EXTENSION pgcrypto;
 
@@ -13,33 +13,27 @@ CREATE EXTENSION pgcrypto;
 CREATE TABLE files (
         id             SERIAL, PRIMARY KEY(id), UNIQUE (id),
 	elixir_id      TEXT NOT NULL,
-	filename       TEXT NOT NULL,
-	enc_checksum   TEXT,
-	enc_checksum_algo hash_algo,
-	org_checksum   TEXT,
-	org_checksum_algo hash_algo,
+	inbox_path     TEXT NOT NULL,
 	status         status,
-	staging_name   TEXT,
+	vault_path     TEXT,
+	vault_filesize INTEGER,
 	stable_id      TEXT,
-	filepath       TEXT,
-	reenc_info     TEXT,
-	reenc_size     INTEGER,
-	reenc_checksum TEXT, -- sha256
+	header         TEXT, -- crypt4gh
 	created_at     TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT clock_timestamp(),
 	last_modified  TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT clock_timestamp()
 );
 
-CREATE FUNCTION insert_file(filename    files.filename%TYPE,
-			    eid         files.elixir_id%TYPE,
-			    stable_id   files.stable_id%TYPE,
-			    status      files.status%TYPE)
+CREATE FUNCTION insert_file(inpath files.inbox_path%TYPE,
+			    eid    files.elixir_id%TYPE,
+			    sid    files.stable_id%TYPE,
+			    status files.status%TYPE)
     RETURNS files.id%TYPE AS $insert_file$
     #variable_conflict use_column
     DECLARE
         file_id files.id%TYPE;
     BEGIN
-	INSERT INTO files (filename,elixir_id,stable_id,status)
-	VALUES(filename,eid,stable_id,status) RETURNING files.id
+	INSERT INTO files (inbox_path,elixir_id,stable_id,status)
+	VALUES(inpath,eid,sid,status) RETURNING files.id
 	INTO file_id;
 	RETURN file_id;
     END;

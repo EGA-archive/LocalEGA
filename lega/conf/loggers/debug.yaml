@@ -4,60 +4,11 @@ root:
   handlers: [noHandler]
 
 loggers:
-  openpgp:
+  lega:
     level: DEBUG
     handlers: [debugFile,console]
-  ingestion:
-    level: DEBUG
-    handlers: [debugFile,console]
-  keyserver:
-    level: DEBUG
-    handlers: [debugFile,console]
-  eureka:
-    level: DEBUG
-    handlers: [debugFile,console]
-  vault:
-    level: DEBUG
-    handlers: [debugFile,console]
-  verify:
-    level: DEBUG
-    handlers: [debugFile,console]
-  inbox:
-    level: DEBUG
-    handlers: [debugFile,console]
-  utils:
-    level: DEBUG
-    handlers: [debugFile,console]
-  amqp:
-    level: DEBUG
-    handlers: [debugFile,console]
-  db:
-    level: DEBUG
-    handlers: [debugFile,console]
-  crypto:
-    level: DEBUG
-    handlers: [debugFile,console]
-  asyncio:
-    level: DEBUG
-    handlers: [debugFile]
-  aiohttp.access:
-    level: DEBUG
-    handlers: [debugFile]
-  aiohttp.client:
-    level: DEBUG
-    handlers: [debugFile]
-  aiohttp.internal:
-    level: DEBUG
-    handlers: [debugFile]
-  aiohttp.server:
-    level: DEBUG
-    handlers: [debugFile]
-  aiohttp.web:
-    level: DEBUG
-    handlers: [debugFile]
-  aiohttp.websocket:
-    level: DEBUG
-    handlers: [debugFile]
+    propagate: True
+    qualname: lega
 
 
 handlers:

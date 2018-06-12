@@ -2,16 +2,19 @@
 
 set -e
 
-# DB_INSTANCE env must be defined
+# Some env must be defined
 [[ -z "${DB_INSTANCE}" ]] && echo 'Environment DB_INSTANCE is empty' 1>&2 && exit 1
-
-# [[ -z "${MQ_INSTANCE}" ]] && echo 'Environment MQ_INSTANCE is empty' 1>&2 && exit 1
-# echo "Waiting for Local Message Broker"
-# until nc -4 --send-only ${MQ_INSTANCE} 5672 </dev/null &>/dev/null; do sleep 1; done
+[[ -z "${CEGA_ENDPOINT}" ]] && echo 'Environment CEGA_ENDPOINT is empty' 1>&2 && exit 1
+[[ -z "${CEGA_ENDPOINT_CREDS}" ]] && echo 'Environment CEGA_ENDPOINT_CREDS is empty' 1>&2 && exit 1
+[[ -z "${CEGA_ENDPOINT_JSON_PASSWD}" ]] && echo 'Environment CEGA_ENDPOINT_JSON_PASSWD is empty' 1>&2 && exit 1
+[[ -z "${CEGA_ENDPOINT_JSON_PUBKEY}" ]] && echo 'Environment CEGA_ENDPOINT_JSON_PUBKEY is empty' 1>&2 && exit 1
 
 EGA_DB_IP=$(getent hosts ${DB_INSTANCE} | awk '{ print $1 }')
 EGA_UID=$(id -u lega)
 EGA_GID=$(id -g lega)
+
+# For the home directories
+mkdir -m 750 /lega
 
 cat > /etc/ega/auth.conf <<EOF
 enable_cega = yes
@@ -29,16 +32,14 @@ ega_gid = ${EGA_GID}
 # ega_gecos = EGA User
 # ega_shell = /sbin/nologin
 
-ega_dir = /ega/inbox
+ega_dir = /lega
 ega_dir_attrs = 2750 # rwxr-s---
 
 ##################
 # FUSE mount
 ##################
-ega_fuse_dir = /lega
-ega_fuse_exec = /usr/bin/ega-fs
-ega_fuse_flags = nodev,noexec,uid=${EGA_UID},gid=${EGA_GID},suid
-
+ega_fuse_exec = /usr/bin/ega-inbox
+ega_fuse_flags = nodev,noexec,suid,default_permissions,allow_other,uid=${EGA_UID},gid=${EGA_GID}
 EOF
 
 # for the ramfs cache
@@ -46,9 +47,6 @@ mkdir -p /ega/cache
 sed -i -e '/ega/ d' /etc/fstab
 echo "ramfs /ega/cache ramfs   size=200m 0 0" >> /etc/fstab
 mount /ega/cache
-
-# Greetings per site
-[[ -z "${LEGA_GREETINGS}" ]] || echo ${LEGA_GREETING} > /ega/banner
 
 # Changing permissions
 echo "Changing permissions for /ega/inbox"

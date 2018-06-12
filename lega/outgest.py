@@ -25,7 +25,6 @@ from .utils.crypto import decrypt_from_vault
 
 LOG = logging.getLogger(__name__)
 
-
 def get_master_key():
     keyurl = CONF.get_value('keyserver', 'endpoint_rsa')
     LOG.info(f'Retrieving the Master Public Key from {keyurl}')

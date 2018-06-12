@@ -1,6 +1,6 @@
--------------------------
+--------------
 Python Modules
--------------------------
+--------------
 
 .. automodule:: lega
    :members:
@@ -10,10 +10,8 @@ Python Modules
 
     lega.conf
     lega.utils
-    lega.openpgp
-    lega.fs
+    lega.inbox
     lega.ingest
-    lega.vault
     lega.verify
     lega.keyserver
 
@@ -28,24 +26,18 @@ Utility Functions
 
     lega.utils.amqp
     lega.utils.checksum
-    lega.utils.crypto
     lega.utils.db
+    lega.utils.storage
     lega.utils.eureka
     lega.utils.exceptions
     lega.utils.logging
-
-*******
-OpenPGP
-*******
-
-.. automodule:: lega.openpgp
 
 
 **********
 FUSE layer
 **********
 
-.. automodule:: lega.fs
+.. automodule:: lega.inbox
 
 
 ********************
@@ -55,16 +47,9 @@ Re-Encryption Worker
 .. automodule:: lega.ingest
    :members:
 
-**********************************
-Listener moving files to the Vault
-**********************************
-
-.. automodule:: lega.vault
-   :members:
-
-*************************
-Verifying the vault files
-*************************
+***************
+Quality Control
+***************
 
 .. automodule:: lega.verify
    :members:

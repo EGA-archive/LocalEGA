@@ -6,7 +6,6 @@ set -e
 HERE=$(dirname ${BASH_SOURCE[0]})
 PRIVATE=${HERE}/../private
 DOT_ENV=${HERE}/../.env
-SETTINGS=${HERE}/settings
 EXTRAS=${HERE}/../../../extras
 
 # Defaults
@@ -26,6 +25,7 @@ function usage {
     echo ""
 }
 
+
 # While there are arguments or '--' is reached
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -42,34 +42,25 @@ done
 
 source ${HERE}/defs.sh
 
-INSTANCES=$(ls ${SETTINGS} | xargs) # make it one line. ls -lx didn't work
+[[ -x $(readlink ${OPENSSL}) ]] && echo "${OPENSSL} is not executable. Adjust the setting with --openssl" && exit 3
 
 rm_politely ${PRIVATE}
-mkdir -p ${PRIVATE}/cega
-backup ${DOT_ENV}
-
+mkdir -p ${PRIVATE}/{cega,lega}
 exec 2>${PRIVATE}/.err
-
+backup ${DOT_ENV}
 cat > ${DOT_ENV} <<EOF
-COMPOSE_PROJECT_NAME=ega
+COMPOSE_PROJECT_NAME=lega
+COMPOSE_FILE=private/cega.yml:private/lega.yml
 EOF
-echo -n "COMPOSE_FILE=" >> ${DOT_ENV} # no newline
+# Don't use ${PRIVATE}, since it's running in a container: wrong path then.
 
-cat >> ${PRIVATE}/cega/env <<EOF
-LEGA_INSTANCES=${INSTANCES// /,}
-EOF
+source ${HERE}/settings.rc
 
 # Central EGA Users and Eureka server
 source ${HERE}/cega.sh
 
 # Generate the configuration for each instance
-for INSTANCE in ${INSTANCES}
-do
-    echomsg "Generating private data for ${INSTANCE} [Default in ${SETTINGS}/${INSTANCE}]"
-    source ${HERE}/instance.sh
-done
-
-# Central EGA Message Broker. Must be run after the instances
-source ${HERE}/cega_mq.sh
+echomsg "Generating private data for a LocalEGA instance"
+source ${HERE}/lega.sh
 
 task_complete "Bootstrap complete"
