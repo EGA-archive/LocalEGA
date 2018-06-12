@@ -199,17 +199,6 @@ async def create_pool(loop):
     db_args = fetch_args(CONF)
     return await aiopg.create_pool(**db_args, loop=loop, echo=True)
 
-async def get_fileinfo(conn, file_id):
-    assert file_id, 'Eh? No file ID?'
-    try:
-        LOG.debug(f'File Info for {file_id}')
-        with (await conn.cursor()) as cur:
-            query = "SELECT filepath, reenc_size, reenc_checksum, 'sha256' FROM files WHERE stable_id = %(file_id)s LIMIT 1;"
-            await cur.execute(query, {'file_id': file_id})
-            return (await cur.fetchone())
-    except psycopg2.InternalError as pgerr:
-        LOG.debug(f'File Info for {file_id}: {pgerr!r}')
-        return None
 
 ######################################
 ##           Decorator              ##
