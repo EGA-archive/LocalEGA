@@ -58,6 +58,7 @@ class CacheTestCase(unittest.TestCase):
 
     def setUp(self):
         """Initialise fixtures."""
+        self.FMT = '%d/%b/%y %H:%M:%S'
         self.env = EnvironmentVarGuard()
         self.env.set('LEGA_PASSWORD', 'value')
         self._key, _ = pgpy.PGPKey.from_blob(pgp_data.PGP_PRIVKEY)
@@ -95,12 +96,16 @@ class CacheTestCase(unittest.TestCase):
 
     def test_check_ttl(self):
         """Check TTL of keys, should return a value."""
-        date_1 = datetime.datetime.strptime(datetime.datetime.now().strftime('%d/%b/%y %H:%M:%S'), "%d/%b/%y %H:%M:%S")
-        expected_value = [{"keyID": "test_key", "ttl": '10 days 240 hours 0 minutes 0 seconds'}]
+        date_1 = datetime.datetime.strptime(datetime.datetime.now().strftime(self.FMT), self.FMT)
+        end_date = date_1 + datetime.timedelta(days=10)
         with self._key.unlock(pgp_data.PGP_PASSPHRASE) as privkey:
-            end_date = date_1 + datetime.timedelta(days=10)
             self._cache.set('test_key', privkey, end_date.strftime('%d/%b/%y %H:%M:%S'))
-            self.assertEqual(self._cache.check_ttl(), expected_value)
+        today = datetime.datetime.today().strftime(self.FMT)
+        tdelta = end_date - datetime.datetime.strptime(today, self.FMT)
+        tdelta = datetime.timedelta(days=tdelta.days, seconds=tdelta.seconds)
+        expected_value = [{"keyID": "test_key",
+                           "ttl": f"{tdelta.days} days {tdelta.days * 24 + tdelta.seconds // 3600} hours {(tdelta.seconds % 3600) // 60} minutes {tdelta.seconds} seconds"}]
+        self.assertEqual(self._cache.check_ttl(), expected_value)
         self._cache.clear()
 
 
