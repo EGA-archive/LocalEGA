@@ -2,17 +2,15 @@ package se.nbis.lega.cucumber.steps;
 
 import cucumber.api.java8.En;
 import lombok.extern.slf4j.Slf4j;
-import org.bouncycastle.openpgp.PGPException;
-import org.c02e.jpgpj.CompressionAlgorithm;
-import org.c02e.jpgpj.EncryptionAlgorithm;
-import org.c02e.jpgpj.Encryptor;
-import org.c02e.jpgpj.Key;
+import org.apache.commons.io.FileUtils;
 import org.junit.Assert;
 import se.nbis.lega.cucumber.Context;
 import se.nbis.lega.cucumber.Utils;
 
+import javax.crypto.Cipher;
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
 import java.io.File;
-import java.io.IOException;
 import java.io.RandomAccessFile;
 
 @Slf4j
@@ -23,20 +21,22 @@ public class Robustness implements En {
 
         When("^the system is restarted$", utils::restartAllLocalEGAContainers);
 
-        Given("^I have a big file encrypted with OpenPGP using a \"([^\"]*)\" key$", (String instance) -> {
+        // TODO: Don't load large file in memory - stream it
+        Given("^I have a big file encrypted with Crypt4GH using a LocalEGA's pubic key$", () -> {
             try {
                 File rawFile = context.getRawFile();
                 try (RandomAccessFile randomAccessFile = new RandomAccessFile(rawFile, "rw")) {
                     randomAccessFile.setLength(1024 * 1024 * 10);
                 }
+                KeyGenerator keygenerator = KeyGenerator.getInstance("DES");
+                SecretKey desKey = keygenerator.generateKey();
+                Cipher desCipher = Cipher.getInstance("DES");
+                desCipher.init(Cipher.ENCRYPT_MODE, desKey);
+                byte[] encryptedContents = desCipher.doFinal(FileUtils.readFileToByteArray(rawFile));
                 File encryptedFile = new File(rawFile.getAbsolutePath() + ".enc");
-                Encryptor encryptor = new Encryptor(new Key(new File(String.format("%s/%s/pgp/ega.pub", utils.getPrivateFolderPath(), instance))));
-                encryptor.setEncryptionAlgorithm(EncryptionAlgorithm.AES256);
-                encryptor.setCompressionAlgorithm(CompressionAlgorithm.Uncompressed);
-                encryptor.setSigningAlgorithm(null);
-                encryptor.encrypt(rawFile, encryptedFile);
+                FileUtils.writeByteArrayToFile(encryptedFile, encryptedContents);
                 context.setEncryptedFile(encryptedFile);
-            } catch (IOException | PGPException e) {
+            } catch (Exception e) {
                 log.error(e.getMessage(), e);
                 Assert.fail(e.getMessage());
             }
