@@ -5,7 +5,6 @@ import lombok.extern.slf4j.Slf4j;
 import net.schmizz.sshj.sftp.RemoteResourceInfo;
 import no.ifi.uio.crypt4gh.stream.Crypt4GHOutputStream;
 import org.apache.commons.io.FileUtils;
-import org.c02e.jpgpj.HashingAlgorithm;
 import org.junit.Assert;
 import se.nbis.lega.cucumber.Context;
 import se.nbis.lega.cucumber.Utils;
