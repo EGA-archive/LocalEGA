@@ -126,18 +126,18 @@ public class Utils {
                 String.format("rm -rf %s/%s", getProperty("inbox.cache.path"), user).split(" "));
     }
 
-    /**
-     * Removes the user's inbox.
-     *
-     * @param user     Username.
-     * @throws InterruptedException In case the query execution is interrupted.
-     */
-    public void removeUserInbox(String user) throws InterruptedException {
-        executeWithinContainer(findContainer(getProperty("images.name.inbox"), getProperty("container.name.inbox")),
-                String.format("umount -l %s/%s", getProperty("inbox.fuse.folder.path"), user).split(" "));
-        executeWithinContainer(findContainer(getProperty("images.name.inbox"), getProperty("container.name.inbox")),
-                String.format("rm -rf %s/%s", getProperty("inbox.real.folder.path"), user).split(" "));
-    }
+//    /**
+//     * Removes the user's inbox.
+//     *
+//     * @param user     Username.
+//     * @throws InterruptedException In case the query execution is interrupted.
+//     */
+//    public void removeUserInbox(String user) throws InterruptedException {
+//        executeWithinContainer(findContainer(getProperty("images.name.inbox"), getProperty("container.name.inbox")),
+//                String.format("umount -l %s/%s", getProperty("inbox.fuse.folder.path"), user).split(" "));
+//        executeWithinContainer(findContainer(getProperty("images.name.inbox"), getProperty("container.name.inbox")),
+//                String.format("rm -rf %s/%s", getProperty("inbox.real.folder.path"), user).split(" "));
+//    }
 
     /**
      * Removes the uploaded file from the inbox.
@@ -147,7 +147,7 @@ public class Utils {
      */
     public void removeUploadedFileFromInbox(String user, String fileName) throws InterruptedException {
         executeWithinContainer(findContainer(getProperty("images.name.inbox"), getProperty("container.name.inbox")),
-                String.format("rm %s/%s/%s", getProperty("inbox.fuse.folder.path"), user, fileName).split(" "));
+                String.format("rm %s/%s/%s", getProperty("inbox.folder.path"), user, fileName).split(" "));
     }
 
     /**
