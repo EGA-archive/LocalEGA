@@ -27,9 +27,6 @@ public class Context {
     private File dataFolder;
     private File rawFile;
     private File encryptedFile;
-    private HashingAlgorithm hashingAlgorithm;
-    private String rawChecksum;
-    private String encChecksum;
     private Map<String, String> ingestionInformation;
 
     private boolean authenticationFailed;
