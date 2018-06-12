@@ -2,6 +2,7 @@ import unittest
 from lega.inbox import LegaFS, FuseOSError, parse_options, main
 from unittest import mock
 import types
+from testfixtures import TempDirectory
 
 
 class TestLegaFS(unittest.TestCase):
@@ -11,7 +12,14 @@ class TestLegaFS(unittest.TestCase):
 
     def setUp(self):
         """Setting things up."""
-        self._fs = LegaFS("/root/is/this/", "user", 'broker')
+        self._dir = TempDirectory()
+        self._fs = LegaFS("/root/is/this/", "user", self._dir.path)
+        self._path = self._dir.write('test.smth', 'test'.encode('utf-8'))
+        self._path = self._dir.write('test.md5', 'md5'.encode('utf-8'))
+
+    def tearDown(self):
+        """Remove setup variables."""
+        self._dir.cleanup_all()
 
     # Testing these is really optional, but good to do.
 
@@ -143,3 +151,25 @@ class TestLegaFS(unittest.TestCase):
         """Test parse options, should exit because args missing."""
         with self.assertRaises(SystemExit):
             parse_options()
+
+    def test_truncate(self):
+        """Test LegaFS truncate, should add path to pending."""
+        self._fs.truncate('test.md5', 1)
+        self.assertEqual({'test.md5'}, self._fs.pending)
+
+    @mock.patch('lega.inbox.publish')
+    @mock.patch('lega.inbox.get_connection')
+    @mock.patch('os.close')
+    def test_release(self, mock_closed, mock_broker, mock_publish):
+        """Test LegaFS release, should send message and close file."""
+        self._fs.pending.add('test.smth')
+        self._fs.release('test.smth', 1)
+        mock_closed.assert_called()
+
+    @mock.patch('lega.inbox.publish')
+    @mock.patch('lega.inbox.get_connection')
+    def test_send_message(self, mock_broker, mock_publish):
+        """"Sending message should try to publish info to broker."""
+        self._fs.send_message('test.smth')
+        self._fs.send_message('test.md5')
+        mock_publish.assert_called()

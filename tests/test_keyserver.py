@@ -134,12 +134,13 @@ class TestBasicFunctionsKeyserver(unittest.TestCase):
             _unlock_key(pgp_data.PGP_NAME, path=pub_keyfile)
         filedir.cleanup()
 
-    # @mock.patch('lega.keyserver.ssl')
-    # @mock.patch('lega.keyserver.web')
-    # def test_load_args(self, mock_webapp, mock_ssl):
-    #     """Should start the webapp."""
-    #     main()
-    #     mock_webapp.assert_called()
+    @mock.patch('lega.keyserver.ssl')
+    @mock.patch('lega.keyserver.web')
+    @mock.patch('lega.keyserver.asyncio')
+    def test_load_args(self, mock_async, mock_webapp, mock_ssl):
+        """Should start the webapp, with a configuration and fake key list."""
+        main(['--keys', '/keys/list'])
+        mock_webapp.run_app.assert_called()
 
 
 if __name__ == '__main__':
