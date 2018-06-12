@@ -14,8 +14,6 @@ import datetime
 import asyncio
 from pathlib import Path
 import ssl
-import secrets
-import string
 
 from aiohttp import web
 import pgpy
