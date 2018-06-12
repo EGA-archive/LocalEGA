@@ -17,8 +17,6 @@ public class Context {
     private final Utils utils;
 
     private String user;
-    private List<String> instances;
-    private String targetInstance;
     private KeyProvider keyProvider;
     private String cegaMQUser;
     private String cegaMQPassword;
@@ -29,9 +27,6 @@ public class Context {
     private File dataFolder;
     private File rawFile;
     private File encryptedFile;
-    private HashingAlgorithm hashingAlgorithm;
-    private String rawChecksum;
-    private String encChecksum;
     private Map<String, String> ingestionInformation;
 
     private boolean authenticationFailed;

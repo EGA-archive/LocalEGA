@@ -29,6 +29,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Properties;
+import java.util.UUID;
 
 /**
  * Utility methods for the test-suite.
@@ -104,71 +105,66 @@ public class Utils {
     /**
      * Executes SQL query.
      *
-     * @param instance LocalEGA site.
-     * @param query    Query to execute.
+     * @param query Query to execute.
      * @return Query output.
      * @throws IOException          In case of output error.
      * @throws InterruptedException In case the query execution is interrupted.
      */
-    public String executeDBQuery(String instance, String query) throws IOException, InterruptedException {
-        return executeWithinContainer(findContainer(getProperty("images.name.db"), getProperty("container.prefix.db") + instance),
-                "psql", "-U", readTraceProperty(instance, "DB_USER"), "-d", "lega", "-c", query);
+    public String executeDBQuery(String query) throws IOException, InterruptedException {
+        return executeWithinContainer(findContainer(getProperty("images.name.db"), getProperty("container.name.db")),
+                "psql", "-U", readTraceProperty("DB_USER"), "-d", "lega", "-c", query);
     }
 
     /**
      * Removes the user from the local database.
      *
-     * @param instance LocalEGA site.
      * @param user     Username.
      * @throws InterruptedException In case the query execution is interrupted.
      */
-    public void removeUserFromCache(String instance, String user) throws InterruptedException {
-        executeWithinContainer(findContainer(getProperty("images.name.inbox"), getProperty("container.prefix.inbox") + instance),
+    public void removeUserFromCache(String user) throws InterruptedException {
+        executeWithinContainer(findContainer(getProperty("images.name.inbox"), getProperty("container.name.inbox")),
                 String.format("rm -rf %s/%s", getProperty("inbox.cache.path"), user).split(" "));
     }
 
-    /**
-     * Removes the user's inbox.
-     *
-     * @param instance LocalEGA site.
-     * @param user     Username.
-     * @throws InterruptedException In case the query execution is interrupted.
-     */
-    public void removeUserInbox(String instance, String user) throws InterruptedException {
-        executeWithinContainer(findContainer(getProperty("images.name.inbox"), getProperty("container.prefix.inbox") + instance),
-                String.format("umount -l %s/%s", getProperty("inbox.fuse.folder.path"), user).split(" "));
-        executeWithinContainer(findContainer(getProperty("images.name.inbox"), getProperty("container.prefix.inbox") + instance),
-                String.format("rm -rf %s/%s", getProperty("inbox.real.folder.path"), user).split(" "));
-    }
+//    /**
+//     * Removes the user's inbox.
+//     *
+//     * @param user     Username.
+//     * @throws InterruptedException In case the query execution is interrupted.
+//     */
+//    public void removeUserInbox(String user) throws InterruptedException {
+//        executeWithinContainer(findContainer(getProperty("images.name.inbox"), getProperty("container.name.inbox")),
+//                String.format("umount -l %s/%s", getProperty("inbox.fuse.folder.path"), user).split(" "));
+//        executeWithinContainer(findContainer(getProperty("images.name.inbox"), getProperty("container.name.inbox")),
+//                String.format("rm -rf %s/%s", getProperty("inbox.real.folder.path"), user).split(" "));
+//    }
 
     /**
      * Removes the uploaded file from the inbox.
      *
-     * @param instance LocalEGA site.
      * @param user     Username.
      * @throws InterruptedException In case the query execution is interrupted.
      */
-    public void removeUploadedFileFromInbox(String instance, String user, String fileName) throws InterruptedException {
-        executeWithinContainer(findContainer(getProperty("images.name.inbox"), getProperty("container.prefix.inbox") + instance),
-                String.format("rm %s/%s/%s", getProperty("inbox.fuse.folder.path"), user, fileName).split(" "));
+    public void removeUploadedFileFromInbox(String user, String fileName) throws InterruptedException {
+        executeWithinContainer(findContainer(getProperty("images.name.inbox"), getProperty("container.name.inbox")),
+                String.format("rm %s/%s/%s", getProperty("inbox.folder.path"), user, fileName).split(" "));
     }
 
     /**
      * Reads property from the trace file.
      *
-     * @param instance LocalEGA site.
      * @param property Property name.
      * @return Property value.
      * @throws IOException In case it's not possible to read trace file.
      */
-    public String readTraceProperty(String instance, String property) throws IOException {
-        File trace = new File(String.format("%s/%s/%s", getPrivateFolderPath(), instance, getProperty("trace.file.name")));
+    public String readTraceProperty(String property) throws IOException {
+        File trace = new File(String.format("%s/%s/%s", getPrivateFolderPath(), getProperty("instance.name"), getProperty("trace.file.name")));
         return FileUtils.readLines(trace, Charset.defaultCharset()).
                 stream().
                 filter(l -> l.startsWith(property)).
                 map(p -> p.split(" = ")[1]).
                 findAny().
-                orElseThrow(() -> new RuntimeException(String.format("Property %s not found for instance %s", property, instance))).
+                orElseThrow(() -> new RuntimeException(String.format("Property %s not found!", property))).
                 trim();
     }
 
@@ -216,8 +212,8 @@ public class Utils {
     public void restartAllLocalEGAContainers() {
         dockerClient.listContainersCmd().withShowAll(true).exec().
                 stream().
-                filter(c -> Arrays.stream(c.getNames()).anyMatch(n -> n.startsWith("/" + getProperty("container.prefix") + "-")
-                        || n.startsWith("/" + getProperty("container.prefix") + "_"))).
+                filter(c -> Arrays.stream(c.getNames()).anyMatch(n -> n.startsWith("/" + getProperty("container.name") + "-")
+                        || n.startsWith("/" + getProperty("container.name") + "_"))).
                 peek(this::stopContainer).
                 peek(c -> safeSleep(5000)).
                 peek(this::startContainer).
@@ -238,26 +234,26 @@ public class Utils {
         }
     }
 
-    /**
-     * Calculates hash of a file.
-     *
-     * @param file             File to calculate hash for.
-     * @param hashingAlgorithm Algorithm to use for hashing.
-     * @return Hash. Defaults to MD5.
-     * @throws IOException In case it's not possible ot read the file.
-     */
-    public String calculateChecksum(File file, HashingAlgorithm hashingAlgorithm) throws IOException {
-        try (FileInputStream fileInputStream = new FileInputStream(file)) {
-            switch (hashingAlgorithm) {
-                case SHA256:
-                    return DigestUtils.sha256Hex(fileInputStream);
-                case MD5:
-                    return DigestUtils.md5Hex(fileInputStream);
-                default:
-                    throw new RuntimeException(hashingAlgorithm + " hashing algorithm is not supported by the test-suite.");
-            }
-        }
-    }
+//    /**
+//     * Calculates hash of a file.
+//     *
+//     * @param file             File to calculate hash for.
+//     * @param hashingAlgorithm Algorithm to use for hashing.
+//     * @return Hash. Defaults to MD5.
+//     * @throws IOException In case it's not possible ot read the file.
+//     */
+//    public String calculateChecksum(File file, HashingAlgorithm hashingAlgorithm) throws IOException {
+//        try (FileInputStream fileInputStream = new FileInputStream(file)) {
+//            switch (hashingAlgorithm) {
+//                case SHA256:
+//                    return DigestUtils.sha256Hex(fileInputStream);
+//                case MD5:
+//                    return DigestUtils.md5Hex(fileInputStream);
+//                default:
+//                    throw new RuntimeException(hashingAlgorithm + " hashing algorithm is not supported by the test-suite.");
+//            }
+//        }
+//    }
 
     /**
      * Sends a JSON message to a RabbitMQ instance.
@@ -265,30 +261,27 @@ public class Utils {
      * @param connection        The address of the broker.
      * @param user              Username.
      * @param encryptedFileName Encrypted file name.
-     * @param hashingAlgorithm  Hashing algorithm.
-     * @param encChecksum       Encrypted file hash (MD5).
-     * @param rawChecksum       Unencrypted file hash (MD5).
      * @throws Exception In case of broken connection.
      */
-    public void publishCEGA(String connection, String user, String encryptedFileName, String hashingAlgorithm, String rawChecksum, String encChecksum) throws Exception {
+    public void publishCEGA(String connection, String user, String encryptedFileName) throws Exception {
         Message message = new Message();
         message.setUser(user);
         message.setFilepath(encryptedFileName);
-        message.setStableID("EGAF" + String.valueOf(rawChecksum).toLowerCase());
+        message.setStableID("EGAF" + UUID.randomUUID().toString().toLowerCase());
 
-        if (StringUtils.isNotEmpty(rawChecksum)) {
-            Checksum unencrypted = new Checksum();
-            unencrypted.setAlgorithm(hashingAlgorithm.toLowerCase());
-            unencrypted.setChecksum(rawChecksum);
-            message.setUnencryptedIntegrity(unencrypted);
-        }
-
-        if (StringUtils.isNotEmpty(encChecksum)) {
-            Checksum encrypted = new Checksum();
-            encrypted.setAlgorithm(hashingAlgorithm.toLowerCase());
-            encrypted.setChecksum(encChecksum);
-            message.setEncryptedIntegrity(encrypted);
-        }
+//        if (StringUtils.isNotEmpty(rawChecksum)) {
+//            Checksum unencrypted = new Checksum();
+//            unencrypted.setAlgorithm(hashingAlgorithm.toLowerCase());
+//            unencrypted.setChecksum(rawChecksum);
+//            message.setUnencryptedIntegrity(unencrypted);
+//        }
+//
+//        if (StringUtils.isNotEmpty(encChecksum)) {
+//            Checksum encrypted = new Checksum();
+//            encrypted.setAlgorithm(hashingAlgorithm.toLowerCase());
+//            encrypted.setChecksum(encChecksum);
+//            message.setEncryptedIntegrity(encrypted);
+//        }
 
         ConnectionFactory factory = new ConnectionFactory();
         factory.setUri(connection);

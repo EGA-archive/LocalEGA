@@ -32,7 +32,7 @@ _here = Path(__file__).parent
 _config_files = [
     _here / 'defaults.ini',
     '/etc/ega/conf.ini'
- ]
+]
 
 
 class Configuration(configparser.ConfigParser):

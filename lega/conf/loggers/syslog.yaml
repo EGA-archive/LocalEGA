@@ -4,45 +4,11 @@ root:
   handlers: [noHandler]
 
 loggers:
-  connect:
+  lega:
     level: DEBUG
     handlers: [syslog]
-  frontend:
-    level: DEBUG
-    handlers: [syslog]
-  keyserver:
-    level: DEBUG
-    handlers: [syslog]
-  ingestion:
-    level: DEBUG
-    handlers: [syslog]
-  vault:
-    level: DEBUG
-    handlers: [syslog]
-  verify:
-    level: DEBUG
-    handlers: [syslog]
-  socket-utils:
-    level: DEBUG
-    handlers: [syslog]
-  inbox:
-    level: DEBUG
-    handlers: [syslog]
-  utils:
-    level: DEBUG
-    handlers: [syslog]
-  amqp:
-    level: DEBUG
-    handlers: [syslog]
-  db:
-    level: DEBUG
-    handlers: [syslog]
-  eureka:
-    level: DEBUG
-    handlers: [syslog]
-  crypto:
-    level: DEBUG
-    handlers: [syslog]
+    propagate: True
+    qualname: lega
   asyncio:
     level: DEBUG
     handlers: [syslogSimple]

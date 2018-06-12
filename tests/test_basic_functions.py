@@ -1,12 +1,15 @@
-from lega.utils.checksum import instantiate, calculate, is_valid, get_from_companion
+from lega.utils.checksum import instantiate, calculate, is_valid, get_from_companion, supported_algorithms
 from lega.utils.exceptions import UnsupportedHashAlgorithm, CompanionNotFound
+from lega.conf.__main__ import main
 import hashlib
 import unittest
 from unittest import mock
 from lega.utils import get_file_content, sanitize_user_id
 import io
 from testfixtures import tempdir
-from . import openpgp_data
+from . import pgp_data
+import sys
+from io import StringIO
 
 
 class TestBasicFunctions(unittest.TestCase):
@@ -27,14 +30,14 @@ class TestBasicFunctions(unittest.TestCase):
             instantiate('unkownAlg')
 
     @tempdir()
-    def test_calculate(self, dir):
+    def test_calculate(self, filedir):
         """Compute the checksum of the file-object."""
-        path = dir.write('priv.pgp', openpgp_data.PGP_PRIVKEY.encode('utf-8'))
+        path = filedir.write('priv.pgp', pgp_data.PGP_PRIVKEY.encode('utf-8'))
         with open(path, 'rb') as file_data:
             data = file_data.read()
             file_hash = (hashlib.md5)(data).hexdigest()
         assert calculate(path, 'md5') == file_hash
-        dir.cleanup()
+        filedir.cleanup()
 
     def test_calculate_error(self):
         """Test nonexisting file."""
@@ -42,7 +45,7 @@ class TestBasicFunctions(unittest.TestCase):
 
     @mock.patch('lega.utils.checksum.calculate')
     def test_is_valid(self, mock):
-        """Test is valid, mocking calculate."""
+        """Test is_valid function, mocking calculate."""
         mock.return_value = '20655cb038a3e76e5f27749a028101e7'
         assert is_valid('file/path', '20655cb038a3e76e5f27749a028101e7', 'md5') is True
 
@@ -53,7 +56,7 @@ class TestBasicFunctions(unittest.TestCase):
 
     @mock.patch('lega.utils.open')
     def test_get_file_content(self, mocked: mock.MagicMock):
-        """Reading file contents."""
+        """Reading file contents, should get the proper contents."""
         testStream = io.BytesIO()
         testStream.write(b'T.M.')
         testStream.seek(0)
@@ -65,7 +68,22 @@ class TestBasicFunctions(unittest.TestCase):
         assert get_file_content('data/notexists.file') is None
 
     def test_sanitize_user_id(self):
-        """Sanitize User id."""
+        """Sanitize User ID, should get just the user ID."""
         # A good test would be to see if it actually ends in @elixir-europe.org
         # because currently the function does not
         assert sanitize_user_id('user_1245@elixir-europe.org') == 'user_1245'
+
+    def test_supported_algorithms(self):
+        """Should get a tuple of supported algorithms."""
+        result = supported_algorithms()
+        self.assertEqual(('md5', 'sha256'), result)
+
+    def test_config_main(self):
+        """Testing main configuration."""
+        with mock.patch('sys.stdout', new=StringIO()) as fake_stdout:
+                main(['--conf', 'fake/conf.ini'])
+                self.assertTrue(fake_stdout.getvalue(), 'Configuration files:')
+
+        with mock.patch('sys.stdout', new=StringIO()) as fake_stdout:
+                main(['--list'])
+                self.assertTrue(fake_stdout.getvalue(), 'Configuration values:')

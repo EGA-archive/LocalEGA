@@ -4,45 +4,11 @@ root:
   handlers: [noHandler]
 
 loggers:
-  connect:
-    level: INFO
+  lega:
+    level: DEBUG
     handlers: [logstash,console]
-  frontend:
-    level: INFO
-    handlers: [logstash,console]
-  ingestion:
-    level: INFO
-    handlers: [logstash,console]
-  keyserver:
-    level: INFO
-    handlers: [logstash,console]
-  vault:
-    level: INFO
-    handlers: [logstash,console]
-  verify:
-    level: INFO
-    handlers: [logstash,console]
-  socket-utils:
-    level: INFO
-    handlers: [logstash,console]
-  inbox:
-    level: INFO
-    handlers: [logstash,console]
-  utils:
-    level: INFO
-    handlers: [logstash,console]
-  amqp:
-    level: INFO
-    handlers: [logstash,console]
-  db:
-    level: INFO
-    handlers: [logstash,console]
-  crypto:
-    level: INFO
-    handlers: [logstash,console]
-  eureka:
-    level: INFO
-    handlers: [logstash,console]
+    propagate: True
+    qualname: lega
 
 
 handlers:

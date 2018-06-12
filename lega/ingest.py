@@ -12,8 +12,7 @@ When a message is consumed, it must be of the form:
 * ``stable_id``
 * ``user_id``
 
-and optionally 2 more integrity fields, called ``encrypted_integrity``
-and ``unencrypted_integrity``, each with:
+and optionally an integrity field, called ``unencrypted_integrity``, with:
 
 * ``checksum`` value
 * ``algorithm`` - the associated hash algorithm
@@ -25,29 +24,47 @@ routing key :``staged``.
 import sys
 import logging
 from pathlib import Path
-import uuid
-import ssl
 from functools import partial
-from urllib.request import urlopen
-import json
 
+from legacryptor.crypt4gh import get_header
 
 from .conf import CONF
-from .utils import db, exceptions, checksum, sanitize_user_id
+from .utils import db, exceptions, checksum, sanitize_user_id, storage
 from .utils.amqp import consume, publish, get_connection
-from .utils.crypto import ingest as crypto_ingest
 
 LOG = logging.getLogger(__name__)
 
+def run_checksum(data, integrity, filename):
+    LOG.info('Checksuming %s', filename)
+    try:
+        i = data[integrity]
+        h = i['checksum']
+        algo = i['algorithm']
+        if not algo: # Fix in case CentralEGA sends null
+            algo = 'md5'
+    except (KeyError, TypeError):
+        LOG.info('Finding a companion file')
+        h, algo = checksum.get_from_companion(filename)
+        data[integrity] = {'checksum': h, 'algorithm': algo }
+
+        assert( isinstance(h,str) )
+        assert( isinstance(algo,str) )
+
+        # Check integrity of encrypted file
+        LOG.debug(f"Verifying the {algo} checksum of file: {filename}")
+        if not checksum.is_valid(filename, h, hashAlgo = algo):
+            LOG.error(f"Invalid {algo} checksum for {filename}")
+            raise exceptions.Checksum(algo, file=filename, decrypted=False)
+        LOG.debug(f'Valid {algo} checksum for {filename}')
+
 @db.catch_error
-def work(master_key, data):
-    '''Main ingestion function
+def work(fs, data):
+    '''Ingestion function
 
     The data is of the form:
 
     * user id
     * a filepath
-    * encrypted hash information (with both the hash value and the hash algorithm)
     * unencrypted hash information (with both the hash value and the hash algorithm)
 
     .. note:: The supported hash algorithm are, for the moment, MD5 and SHA256.
@@ -71,7 +88,7 @@ def work(master_key, data):
     data['internal_data'] = internal_data
 
     # Find inbox
-    inbox = Path(CONF.get_value('ingestion', 'path', raw=True) % {'user_id': user_id})
+    inbox = Path(CONF.get_value('inbox', 'location', raw=True) % user_id)
     LOG.info(f"Inbox area: {inbox}")
 
     # Check if file is in inbox
@@ -80,93 +97,33 @@ def work(master_key, data):
         raise exceptions.NotFoundInInbox(filepath) # return early
 
     # Ok, we have the file in the inbox
-    # Get the checksums now
 
-    try:
-        encrypted_integrity = data['encrypted_integrity']
-        encrypted_hash = encrypted_integrity['checksum']
-        encrypted_algo = encrypted_integrity['algorithm']
-        if not encrypted_algo: # Fix in case CentralEGA sends null
-            encrypted_algo = 'md5'
-    except (KeyError, TypeError):
-        LOG.info('Finding a companion file')
-        encrypted_hash, encrypted_algo = checksum.get_from_companion(inbox_filepath)
-        data['encrypted_integrity'] = {'checksum': encrypted_hash,
-                                       'algorithm': encrypted_algo }
-
-
-    assert( isinstance(encrypted_hash,str) )
-    assert( isinstance(encrypted_algo,str) )
-
-    # Check integrity of encrypted file
-    LOG.debug(f"Verifying the {encrypted_algo} checksum of encrypted file: {inbox_filepath}")
-    if not checksum.is_valid(inbox_filepath, encrypted_hash, hashAlgo = encrypted_algo):
-        LOG.error(f"Invalid {encrypted_algo} checksum for {inbox_filepath}")
-        raise exceptions.Checksum(encrypted_algo, file=inbox_filepath, decrypted=False)
-    LOG.debug(f'Valid {encrypted_algo} checksum for {inbox_filepath}')
-
-    try:
-        unencrypted_integrity = data['unencrypted_integrity']
-        unencrypted_hash = unencrypted_integrity['checksum']
-        unencrypted_algo = unencrypted_integrity['algorithm']
-        if not unencrypted_algo: # Fix in case CentralEGA sends null
-            unencrypted_algo = 'md5'
-    except (KeyError, TypeError):
-        # Strip the suffix first.
-        LOG.info('Finding a companion file')
-        unencrypted_hash, unencrypted_algo = checksum.get_from_companion(inbox_filepath.with_suffix(''))
-        data['unencrypted_integrity'] = {'checksum': unencrypted_hash,
-                                         'algorithm': unencrypted_algo }
-
-    # Fetch staging area
-    staging_area = Path(CONF.get_value('ingestion', 'staging'))
-    LOG.info(f"Staging area: {staging_area}")
-    #staging_area.mkdir(parents=True, exist_ok=True) # re-create
-
-    # Create a unique name for the staging area
-    unique_name = str(uuid.uuid5(uuid.NAMESPACE_OID, 'lega'))
-    LOG.debug(f'Created an unique filename in the staging area: {unique_name}')
-    staging_filepath = staging_area / unique_name
-
-    # Save progress in database
-    LOG.debug(f'Starting the re-encryption\n\tfrom {inbox_filepath}\n\tto {staging_filepath}')
-    db.set_progress(file_id, str(staging_filepath), encrypted_hash, encrypted_algo, unencrypted_hash, unencrypted_algo)
+    # Get the checksum
+    if CONF.get_value('ingestion', 'do_checksum', conv=bool, default=False):
+        run_checksum(data, 'encrypted_integrity', inbox_filepath)
 
     # Sending a progress message to CentralEGA
+    db.set_status(file_id, db.Status.In_Progress)
     data['status'] = { 'state': 'PROCESSING', 'details': None }
     LOG.debug(f'Sending message to CentralEGA: {data}')
     broker = get_connection('broker')
     publish(data, broker.channel(), 'cega', 'files.processing')
 
-    # Decrypting
-    cmd = CONF.get_value('ingestion', 'decrypt_cmd', raw=True) % {'file': str(inbox_filepath)}
-    LOG.debug(f'GPG command: {cmd}\n')
-    details, staging_checksum = crypto_ingest( cmd,
-                                               str(inbox_filepath),
-                                               unencrypted_hash,
-                                               hash_algo = unencrypted_algo,
-                                               master_key = master_key,
-                                               target = staging_filepath)
-    db.set_encryption(file_id, details, staging_checksum)
-    LOG.debug(f'Re-encryption completed')
+    # Strip the header out and copy the rest of the file to the vault
+    with open(inbox_filepath, 'rb') as infile:
+        header = get_header(infile)
 
-    internal_data['filepath'] = str(staging_filepath)
+        target = fs.location(file_id)
+        LOG.debug(f'[{fs.__class__.__name__}] Moving the rest of {filepath} to {target}')
+        target_size = fs.copy(infile, target) # It will copy the rest only
+
+        LOG.debug(f'Vault copying completed')
+        db.set_info(file_id, target, target_size, header) # header bytes will be .hex()
+        data['internal_data'] = file_id # after db update
+
+    data['status'] = { 'state': 'ARCHIVED', 'message': 'File moved to the vault' }
     LOG.debug(f"Reply message: {data}")
     return data
-
-
-def get_master_key():
-    keyurl = CONF.get_value('keyserver', 'endpoint_rsa')
-    LOG.info(f'Retrieving the Master Public Key from {keyurl}')
-    try:
-        # Prepare to contact the Keyserver for the Master key
-        with urlopen(keyurl) as response:
-            return json.loads(response.read().decode())
-    except Exception as e:
-        LOG.error(repr(e))
-        LOG.critical('Problem contacting the Keyserver. Ingestion Worker terminated')
-        sys.exit(1)
-
 
 def main(args=None):
     if not args:
@@ -174,11 +131,8 @@ def main(args=None):
 
     CONF.setup(args) # re-conf
 
-    master_key = get_master_key() # might exit
-
-    LOG.info(f"Master Key ID: {master_key['id']}")
-    LOG.debug(f"Master Key: {master_key}")
-    do_work = partial(work, master_key)
+    fs = getattr(storage, CONF.get_value('vault', 'driver', default='FileStorage'))
+    do_work = partial(work, fs())
 
     # upstream link configured in local broker
     consume(do_work, 'files', 'staged')

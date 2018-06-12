@@ -32,16 +32,6 @@ class CompanionNotFound(FromUser):
     def __repr__(self):
         return f'Companion file not found for {self.name}'
         
-class GPGDecryption(FromUser):
-    def __init__(self, retcode, errormsg, filename):
-        self.retcode = retcode
-        self.error = errormsg
-        self.filename = filename
-    def __str__(self):
-        return f'Decryption error'
-    def __repr__(self):
-        return f'Decryption error ({self.retcode}): {self.error}'
-
 class Checksum(FromUser):
     def __init__(self, algo, file=None, decrypted=False):
         self.algo = algo
