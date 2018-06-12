@@ -33,7 +33,7 @@ def get_records(header):
     LOG.info(f'Key ID {keyid}')
     keyurl = CONF.get_value('quality_control', 'keyserver_endpoint', raw=True) % keyid
     verify = CONF.get_value('quality_control', 'verify_certificate', conv=bool)
-    LOG.info(f'Retrieving the Private Key from {keyurl} (use_ssl: {use_ssl})')
+    LOG.info(f'Retrieving the Private Key from {keyurl} (use_ssl: {verify})')
 
     if verify:
         ctx=None # nothing to be done: done by default in urlopen
