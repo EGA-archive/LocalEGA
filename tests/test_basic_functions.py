@@ -1,5 +1,6 @@
 from lega.utils.checksum import instantiate, calculate, is_valid, get_from_companion, supported_algorithms
 from lega.utils.exceptions import UnsupportedHashAlgorithm, CompanionNotFound
+from lega.conf.__main__ import main
 import hashlib
 import unittest
 from unittest import mock
@@ -7,6 +8,8 @@ from lega.utils import get_file_content, sanitize_user_id
 import io
 from testfixtures import tempdir
 from . import pgp_data
+import sys
+from io import StringIO
 
 
 class TestBasicFunctions(unittest.TestCase):
@@ -71,6 +74,16 @@ class TestBasicFunctions(unittest.TestCase):
         assert sanitize_user_id('user_1245@elixir-europe.org') == 'user_1245'
 
     def test_supported_algorithms(self):
-        """Should get a tuple of supported algorithms"""
+        """Should get a tuple of supported algorithms."""
         result = supported_algorithms()
         self.assertEqual(('md5', 'sha256'), result)
+
+    def test_config_main(self):
+        """Testing main configuration."""
+        with mock.patch('sys.stdout', new=StringIO()) as fake_stdout:
+                main(['--conf', 'fake/conf.ini'])
+                self.assertTrue(fake_stdout.getvalue(), 'Configuration files:')
+
+        with mock.patch('sys.stdout', new=StringIO()) as fake_stdout:
+                main(['--list'])
+                self.assertTrue(fake_stdout.getvalue(), 'Configuration values:')
