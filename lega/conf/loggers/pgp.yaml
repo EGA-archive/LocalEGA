@@ -4,9 +4,11 @@ root:
   handlers: [noHandler]
 
 loggers:
-  openpgp:
+  lega:
     level: DEBUG
     handlers: [console]
+    propagate: True
+    qualname: lega
 
 handlers:
   noHandler:
@@ -21,4 +23,3 @@ formatters:
   simple:
     format: '[{levelname:^7}] | {filename:^12} | L{lineno:<3} | {message}'
     style: '{'
-
