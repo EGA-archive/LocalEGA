@@ -51,7 +51,7 @@ def get_records(header):
 def work(chunk_size, mover, data):
     '''Verifying that the file in the vault does decrypt properly'''
 
-    LOG.debug(f'Verifying message: {data}')
+    LOG.info('Verification | message: %s', data)
 
     file_id = data.pop('internal_data') # can raise KeyError
     _, vault_path, stable_id, header = db.get_info(file_id)
@@ -60,14 +60,13 @@ def work(chunk_size, mover, data):
     records = get_records(bytes.fromhex(header)) # might raise exception
     r = records[0] # only first one
 
-    # LOG.info(f'Session Key: {r.session_key.hex()}')
-    # LOG.info(f'         IV: {r.iv.hex()}')
-    
-    LOG.debug('Opening vault file: %s', vault_path)
+    LOG.info('Opening vault file: %s', vault_path)
     # If you can decrypt... the checksum is valid
     with mover.open(vault_path, 'rb') as infile:
+        LOG.info('Decrypting (chunk size: %s)', chunk_size)
         body_decrypt(r, infile, chunk_size=chunk_size) # It will ignore the output
 
+    LOG.info('Verification completed. Updating database.')
     db.set_status(file_id, db.Status.Completed)
     data['status'] = { 'state': 'COMPLETED', 'details': stable_id }
     LOG.debug(f"Reply message: {data}")
