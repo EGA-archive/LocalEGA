@@ -21,12 +21,12 @@ Feature: Authentication
     When I connect to the LocalEGA inbox via SFTP using private key
     Then authentication fails
 
-  Scenario: A.3 User exists in Central EGA and tries to connect to LocalEGA, but the inbox was not created for him
-    Given I have an account at Central EGA
-    And I have correct private key
-    And I connect to the LocalEGA inbox via SFTP using private key
-    And I disconnect from the LocalEGA inbox
-    And inbox is deleted for my user
-    When I connect to the LocalEGA inbox via SFTP using private key
-    Then authentication fails
+#  Scenario: A.3 User exists in Central EGA and tries to connect to LocalEGA, but the inbox was not created for him
+#    Given I have an account at Central EGA
+#    And I have correct private key
+#    And I connect to the LocalEGA inbox via SFTP using private key
+#    And I disconnect from the LocalEGA inbox
+#    And inbox is deleted for my user
+#    When I connect to the LocalEGA inbox via SFTP using private key
+#    Then authentication fails
 

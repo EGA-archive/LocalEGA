@@ -53,13 +53,13 @@ public class Authentication implements En {
 
         Given("^I have incorrect private key$", () -> generateKeypair(context));
 
-        Given("^inbox is deleted for my user$", () -> {
-            try {
-                utils.removeUserInbox(context.getUser());
-            } catch (InterruptedException e) {
-                log.error(e.getMessage(), e);
-            }
-        });
+//        Given("^inbox is deleted for my user$", () -> {
+//            try {
+//                utils.removeUserInbox(context.getUser());
+//            } catch (InterruptedException e) {
+//                log.error(e.getMessage(), e);
+//            }
+//        });
 
         Given("^file is removed from the inbox$", () -> {
             try {
@@ -75,15 +75,15 @@ public class Authentication implements En {
 
         When("^I am disconnected from the LocalEGA inbox$", () -> Assert.assertFalse(isConnected(context)));
 
-        When("^inbox is not created for me$", () -> {
-            try {
-                disconnect(context);
-                utils.removeUserInbox(context.getUser());
-                connect(context);
-            } catch (InterruptedException e) {
-                log.error(e.getMessage(), e);
-            }
-        });
+//        When("^inbox is not created for me$", () -> {
+//            try {
+//                disconnect(context);
+//                utils.removeUserInbox(context.getUser());
+//                connect(context);
+//            } catch (InterruptedException e) {
+//                log.error(e.getMessage(), e);
+//            }
+//        });
 
         Then("^I'm logged in successfully$", () -> Assert.assertFalse(context.isAuthenticationFailed()));
 
