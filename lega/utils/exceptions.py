@@ -42,6 +42,14 @@ class Checksum(FromUser):
     def __repr__(self):
         return 'Invalid {} checksum for the {} file: {}'.format(self.algo, 'original' if self.decrypted else 'encrypted', self.file)
 
+class WrongPGPKey(FromUser):
+    def __init__(self, msg):
+        self.msg = msg
+    def __str__(self):
+        return f'Using the wrong PGP key'
+    def __repr__(self):
+        return f'Using the wrong PGP key: {self.msg}'
+
 # Any other exception is caught by us
 class MessageError(Exception):
     def __str__(self):
