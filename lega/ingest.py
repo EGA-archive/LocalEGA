@@ -18,7 +18,7 @@ and optionally an integrity field, called ``unencrypted_integrity``, with:
 * ``algorithm`` - the associated hash algorithm
 
 Upon completion, a message is sent to the local exchange with the
-routing key :``staged``.
+routing key :``archived``.
 '''
 
 import sys
@@ -141,7 +141,7 @@ def main(args=None):
     do_work = partial(work, fs())
 
     # upstream link configured in local broker
-    consume(do_work, 'files', 'staged')
+    consume(do_work, 'files', 'archived')
 
 if __name__ == '__main__':
     main()

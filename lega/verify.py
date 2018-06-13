@@ -3,7 +3,7 @@
 
 '''Verifying the vault files
 
-This module reads a message from the ``staged`` queue, decrypts the
+This module reads a message from the ``archived`` queue, decrypts the
 files and recalculates its checksum.
 
 It the checksum matches the corresponding information in the file,
@@ -100,7 +100,7 @@ def main(args=None):
     chunk_size = CONF.get_value('vault', 'chunk_size', conv=int, default=1<<22) # 4 MB
     do_work = partial(work, chunk_size, store())
 
-    consume(do_work, 'staged', 'completed')
+    consume(do_work, 'archived', 'completed')
 
 if __name__ == '__main__':
     main()
