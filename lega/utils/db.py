@@ -231,13 +231,13 @@ def catch_error(func):
 
             try:
                 data = args[-1] # data is the last argument
-                internal_data = data.pop('internal_data', None) # delete if exists
-                file_id = internal_data['file_id'] # raise KeyError if missing
+                org_msg = data.get('org_msg', None)
+                file_id = data['file_id'] # raise KeyError if missing
                 set_error(file_id, e, from_user)
                 if from_user: # Send to CEGA
-                    data['status'] = { 'state': 'ERROR', 'message': str(e) } # str = Informal
-                    LOG.info(f'Sending user error to local broker: {data}')
-                    publish(data, get_connection('broker').channel(), 'cega', 'files.error')
+                    org_msg['status'] = { 'state': 'ERROR', 'message': str(e) } # str = Informal
+                    LOG.info(f'Sending user error to local broker: {org_msg}')
+                    publish(org_msg, get_connection('broker').channel(), 'cega', 'files.error')
             except Exception as e2:
                 LOG.error(f'While treating {e}, we caught {e2!r}')
                 print(repr(e), 'caused', repr(e2), file=sys.stderr)

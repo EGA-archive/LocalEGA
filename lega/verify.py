@@ -19,6 +19,7 @@ import os
 import logging
 from functools import partial
 from urllib.request import urlopen
+from urllib.error import HTTPError
 
 from legacryptor.crypt4gh import get_key_id, header_to_records, body_decrypt
 
@@ -43,9 +44,15 @@ def get_records(header):
         ctx.check_hostname = False
         ctx.verify_mode = ssl.CERT_NONE
 
-    with urlopen(keyurl, context=ctx) as response:
-        privkey = response.read()
-        return header_to_records(privkey, header, os.environ['LEGA_PASSWORD'])
+    try:
+        with urlopen(keyurl, context=ctx) as response:
+            privkey = response.read()
+            return header_to_records(privkey, header, os.environ['LEGA_PASSWORD'])
+    except HTTPError as e:
+        LOG.error(e)
+        if e.code == 404: # If key not found, then probably wrong key.
+            raise exceptions.WrongPGPKey(str(e))
+        # TODO: adjust properly so that we catch User errors from System errors.
 
 @db.catch_error
 def work(chunk_size, mover, data):
