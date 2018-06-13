@@ -13,7 +13,7 @@ Feature: Ingestion
     And I have CEGA MQ username and password
     And I ingest file from the LocalEGA inbox
     When I retrieve ingestion information
-    Then the ingestion status is "Archived"
+    Then the ingestion status is "Completed"
 
   Scenario: I.1 User ingests file encrypted not with OpenPGP
     Given I have an account at Central EGA
@@ -64,7 +64,7 @@ Feature: Ingestion
     And I ingest file from the LocalEGA inbox
     And I turn on the keyserver
     When I retrieve ingestion information
-    Then the ingestion status is "Archived"
+    Then the ingestion status is "Completed"
 
   Scenario: I.4 User ingests file encrypted with OpenPGP using a correct key and checksums, but the vault listener is down
     Given I have an account at Central EGA

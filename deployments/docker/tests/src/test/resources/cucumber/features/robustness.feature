@@ -14,7 +14,7 @@ Feature: Robustness
     And I have CEGA MQ username and password
     And I ingest file from the LocalEGA inbox
     When I retrieve ingestion information
-    Then the ingestion status is "Archived"
+    Then the ingestion status is "Completed"
 #
 #  Scenario: R.2 User ingests a big file encrypted with OpenPGP using a correct key and providing checksums as companion files
 #    Given I have an account at Central EGA
