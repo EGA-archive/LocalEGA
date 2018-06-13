@@ -24,7 +24,7 @@ from legacryptor.crypt4gh import get_key_id, header_to_records, body_decrypt
 
 from .conf import CONF
 from .utils import db, exceptions, storage
-from .utils.amqp import consume
+from .utils.amqp import consume, publish, get_connection
 
 LOG = logging.getLogger(__name__)
 
@@ -53,8 +53,10 @@ def work(chunk_size, mover, data):
 
     LOG.info('Verification | message: %s', data)
 
-    file_id = data.pop('internal_data') # can raise KeyError
-    _, vault_path, stable_id, header = db.get_info(file_id)
+    file_id = data['file_id']
+    header = data['header'] # in hex
+    vault_path = data['vault_path']
+    stable_id = data['stable_id']
 
     # Get it from the header and the keyserver
     records = get_records(bytes.fromhex(header)) # might raise exception
@@ -68,9 +70,17 @@ def work(chunk_size, mover, data):
 
     LOG.info('Verification completed. Updating database.')
     db.set_status(file_id, db.Status.Completed)
-    data['status'] = { 'state': 'COMPLETED', 'details': stable_id }
-    LOG.debug(f"Reply message: {data}")
-    return data
+
+    # Send to QC
+    data.pop('status', None)
+    LOG.debug(f'Sending message to QC: {data}')
+    broker = get_connection('broker')
+    publish(data, broker.channel(), 'lega', 'qc') # We keep the org msg in there
+
+    org_msg = data['org_msg']
+    org_msg['status'] = { 'state': 'COMPLETED', 'details': stable_id }
+    LOG.debug(f"Reply message: {org_msg}")
+    return org_msg
 
 def main(args=None):
 

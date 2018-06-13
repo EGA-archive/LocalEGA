@@ -183,7 +183,7 @@ def set_info(file_id, vault_path, vault_filesize, header):
                          'file_id': file_id,
                          'vault_path': vault_path,
                          'vault_filesize': vault_filesize,
-                         'header': header.hex(),
+                         'header': header,
                         })
 
 ######################################
