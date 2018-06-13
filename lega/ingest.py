@@ -80,12 +80,12 @@ def work(fs, data):
     # Insert in database
     file_id = db.insert_file(filepath, user_id, stable_id)
 
-    # early record
-    internal_data = {
+    msg = {
         'file_id': file_id,
         'user_id': user_id,
+        'stable_id': stable_id,
+        'org_msg': data.copy(),
     }
-    data['internal_data'] = internal_data
 
     # Find inbox
     inbox = Path(CONF.get_value('inbox', 'location', raw=True) % user_id)
@@ -102,8 +102,11 @@ def work(fs, data):
     if CONF.get_value('ingestion', 'do_checksum', conv=bool, default=False):
         run_checksum(data, 'encrypted_integrity', inbox_filepath)
 
-    # Sending a progress message to CentralEGA
+    # Record in database
     db.set_status(file_id, db.Status.In_Progress)
+    msg['status'] = db.Status.In_Progress.value
+
+    # Sending a progress message to CentralEGA
     data['status'] = { 'state': 'PROCESSING', 'details': None }
     LOG.debug(f'Sending message to CentralEGA: {data}')
     broker = get_connection('broker')
@@ -118,12 +121,15 @@ def work(fs, data):
         target_size = fs.copy(infile, target) # It will copy the rest only
 
         LOG.debug(f'Vault copying completed')
-        db.set_info(file_id, target, target_size, header) # header bytes will be .hex()
-        data['internal_data'] = file_id # after db update
+        header_hex = header.hex()
+        db.set_info(file_id, target, target_size, header_hex) # header bytes will be .hex()
+        msg['header'] = header_hex
+        msg['vault_path'] = target
+        msg['vault_type'] = fs.__class__.__name__
 
-    data['status'] = { 'state': 'ARCHIVED', 'message': 'File moved to the vault' }
-    LOG.debug(f"Reply message: {data}")
-    return data
+    msg['status'] = db.Status.Archived.value
+    LOG.debug(f"Reply message: {msg}")
+    return msg
 
 def main(args=None):
     if not args:
