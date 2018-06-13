@@ -58,4 +58,4 @@ Feature: Checksumming
 #    And I have CEGA MQ username and password
 #    And I ingest file from the LocalEGA inbox without providing checksums
 #    When I retrieve ingestion information
-#    Then the ingestion status is "Archived"
+#    Then the ingestion status is "Completed"

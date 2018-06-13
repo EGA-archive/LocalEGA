@@ -293,7 +293,7 @@ services:
       - ./lega/conf.ini:/etc/ega/conf.ini:ro
       - ./lega/logger.yml:/etc/ega/logger.yml:ro
       - inbox:/ega/inbox
-      #- ../../../lega:/root/.local/lib/python3.6/site-packages/lega
+      - ../../../lega:/home/lega/.local/lib/python3.6/site-packages/lega
       #- ~/_auth_ega:/root/_auth_ega
     restart: on-failure:3
     networks:
@@ -316,7 +316,7 @@ services:
        - inbox:/ega/inbox
        - ./lega/conf.ini:/etc/ega/conf.ini:ro
        - ./lega/logger.yml:/etc/ega/logger.yml:ro
-       #- ../../../lega:/root/.local/lib/python3.6/site-packages/lega
+       - ../../../lega:/home/lega/.local/lib/python3.6/site-packages/lega
        #- ~/_cryptor/legacryptor:/root/.local/lib/python3.6/site-packages/legacryptor
     restart: on-failure:3
     networks:
@@ -340,7 +340,7 @@ services:
        - ./lega/certs/ssl.key:/etc/ega/ssl.key:ro
        - ./lega/pgp/ega.sec:/etc/ega/pgp/ega.sec:ro
        - ./lega/pgp/ega2.sec:/etc/ega/pgp/ega2.sec:ro
-       #- ../../../lega:/root/.local/lib/python3.6/site-packages/lega
+       - ../../../lega:/home/lega/.local/lib/python3.6/site-packages/lega
     restart: on-failure:3
     external_links:
       - cega-eureka:cega-eureka
@@ -368,7 +368,7 @@ services:
     volumes:
        - ./lega/conf.ini:/etc/ega/conf.ini:ro
        - ./lega/logger.yml:/etc/ega/logger.yml:ro
-       #- ../../../lega:/root/.local/lib/python3.6/site-packages/lega
+       - ../../../lega:/home/lega/.local/lib/python3.6/site-packages/lega
        #- ~/_cryptor/legacryptor:/root/.local/lib/python3.6/site-packages/legacryptor
     restart: on-failure:3
     networks:
