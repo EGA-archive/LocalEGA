@@ -62,7 +62,7 @@ class Cache:
     def check_ttl(self):
         """Check ttl for all keys."""
         keys = []
-        for key, (_, _, expire) in self.store.items():
+        for key, (_, _, _, _, expire) in self.store.items():
             if expire and time.time() < expire:
                 keys.append({"keyID": key, "ttl": self._time_delta(expire)})
             if expire is None:
