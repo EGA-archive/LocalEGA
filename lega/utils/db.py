@@ -15,6 +15,8 @@ import asyncio
 import aiopg
 from enum import Enum
 
+from legacryptor.exceptions import InvalidFormatError, VersionError, MDCError
+
 from ..conf import CONF
 from .exceptions import FromUser
 from .amqp import publish, get_connection
@@ -100,14 +102,15 @@ def _do_exit():
 ######################################
 ##         "Classic" code           ##
 ######################################
+_conn = None
 def cache_connection(func):
     '''Decorator to cache the database connection'''
-    cache = {} # must be a dict or an array
     @wraps(func)
     def wrapper(*args, **kwargs):
-        if 'conn' not in cache or cache['conn'].closed:
-            cache['conn'] = func(*args, **kwargs)
-        return cache['conn']
+        global _conn
+        if _conn is None or _conn.closed:
+            _conn = func(*args, **kwargs)
+        return _conn
     return wrapper
 
 @cache_connection
@@ -146,7 +149,7 @@ def get_errors(from_user=False):
 def set_error(file_id, error, from_user=False):
     assert file_id, 'Eh? No file_id?'
     assert error, 'Eh? No error?'
-    LOG.debug(f'Setting error for {file_id}: {error!s}')
+    LOG.debug(f'Setting error for {file_id}: {error!s} | Cause: {error.__cause__}')
     hostname = gethostname()
     with connect() as conn:
         with conn.cursor() as cur:
@@ -203,14 +206,14 @@ async def create_pool(loop):
 ######################################
 ##           Decorator              ##
 ######################################
+_channel = None
 
 def catch_error(func):
     '''Decorator to store the raised exception in the database'''
     @wraps(func)
     def wrapper(*args):
         try:
-            res = func(*args)
-            return res
+            return func(*args)
         except Exception as e:
             if isinstance(e,AssertionError):
                 raise e
@@ -226,22 +229,37 @@ def catch_error(func):
             #fname = os.path.split(frame.f_code.co_filename)[1]
             fname = frame.f_code.co_filename
             LOG.error(f'Exception: {exc_type} in {fname} on line: {lineno}')
-            LOG.error(repr(e)) # repr = Technical
             from_user = isinstance(e,FromUser)
+            cause = e.__cause__ or e
+            LOG.error(f'Capturing error (from user: {from_user}): {cause!r}') # repr = Technical
 
             try:
                 data = args[-1] # data is the last argument
-                org_msg = data.get('org_msg', None)
-                file_id = data['file_id'] # raise KeyError if missing
-                set_error(file_id, e, from_user)
-                if from_user: # Send to CEGA
-                    org_msg['status'] = { 'state': 'ERROR', 'message': str(e) } # str = Informal
+                file_id = data.get('file_id', None)
+                if file_id:
+                    set_error(file_id, cause, from_user)
+                if from_user: # Send to CentralEGA
+                    org_msg = data.get('org_msg', data) # If no org_msg inside, then it is org_msg itself.
+                    org_msg['status'] = { 'state': 'ERROR', 'message': str(cause) } # str = Informal
                     LOG.info(f'Sending user error to local broker: {org_msg}')
-                    publish(org_msg, get_connection('broker').channel(), 'cega', 'files.error')
+                    global _channel
+                    if _channel is None:
+                        _channel = get_connection('broker').channel()
+                    publish(org_msg, _channel, 'cega', 'files.error')
             except Exception as e2:
                 LOG.error(f'While treating {e}, we caught {e2!r}')
                 print(repr(e), 'caused', repr(e2), file=sys.stderr)
             return None
+    return wrapper
+
+def crypt4gh_to_user_errors(func):
+    '''Decorator to convert Crypt4GH exceptions to User Errors'''
+    @wraps(func)
+    def wrapper(*args):
+        try:
+            return func(*args)
+        except (InvalidFormatError, VersionError, MDCError) as e:
+            raise FromUser() from e
     return wrapper
 
 # Testing connection with `python -m lega.utils.db`

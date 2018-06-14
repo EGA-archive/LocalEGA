@@ -55,7 +55,8 @@ def get_records(header):
         # TODO: adjust properly so that we catch User errors from System errors.
 
 @db.catch_error
-def work(chunk_size, mover, data):
+@db.crypt4gh_to_user_errors
+def work(chunk_size, mover, channel, data):
     '''Verifying that the file in the vault does decrypt properly'''
 
     LOG.info('Verification | message: %s', data)
@@ -81,8 +82,7 @@ def work(chunk_size, mover, data):
     # Send to QC
     data.pop('status', None)
     LOG.debug(f'Sending message to QC: {data}')
-    broker = get_connection('broker')
-    publish(data, broker.channel(), 'lega', 'qc') # We keep the org msg in there
+    publish(data, channel, 'lega', 'qc') # We keep the org msg in there
 
     org_msg = data['org_msg']
     org_msg['status'] = { 'state': 'COMPLETED', 'details': stable_id }
@@ -98,9 +98,11 @@ def main(args=None):
 
     store = getattr(storage, CONF.get_value('vault', 'driver', default='FileStorage'))
     chunk_size = CONF.get_value('vault', 'chunk_size', conv=int, default=1<<22) # 4 MB
-    do_work = partial(work, chunk_size, store())
 
-    consume(do_work, 'archived', 'completed')
+    broker = get_connection('broker')
+    do_work = partial(work, chunk_size, store(), broker.channel())
+
+    consume(do_work, broker, 'archived', 'completed')
 
 if __name__ == '__main__':
     main()

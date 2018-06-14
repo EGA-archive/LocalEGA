@@ -14,7 +14,8 @@ EGA_UID=$(id -u lega)
 EGA_GID=$(id -g lega)
 
 # For the home directories
-mkdir -m 750 /lega
+mkdir -p /lega
+chmod 750 /lega
 
 cat > /etc/ega/auth.conf <<EOF
 enable_cega = yes
