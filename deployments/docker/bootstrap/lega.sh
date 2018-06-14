@@ -41,7 +41,7 @@ EOF
 echomsg "\t* conf.ini"
 cat > ${PRIVATE}/lega/conf.ini <<EOF
 [DEFAULT]
-log = /etc/ega/logger.yml
+log = console
 
 [keyserver]
 port = 8443
