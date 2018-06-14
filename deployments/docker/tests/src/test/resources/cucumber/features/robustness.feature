@@ -1,9 +1,6 @@
 Feature: Robustness
   As a user I want the system to be robust and fault-tolerant
 
-  Background:
-    Given My username is "test"
-
   Scenario: R.0 User ingests file encrypted with OpenPGP using a correct key and providing checksums as companion files after full system restart
     Given I have an account at Central EGA
     And I have correct private key
