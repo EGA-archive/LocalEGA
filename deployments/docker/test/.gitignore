@@ -1,0 +1,5 @@
+*.bam
+*.c4ga
+*.c4ga.md5
+*.md5
+mq.env
