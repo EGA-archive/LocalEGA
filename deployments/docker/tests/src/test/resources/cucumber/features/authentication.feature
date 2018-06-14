@@ -1,9 +1,6 @@
 Feature: Authentication
   As a user I want to be able to authenticate against LocalEGA inbox
 
-  Background:
-    Given My username is "test"
-
   Scenario: A.0 User exists in Central EGA and uses correct private key for authentication for the correct instance
     Given I have an account at Central EGA
     And I have correct private key

@@ -1,9 +1,6 @@
 Feature: Ingestion
   As a user I want to be able to ingest files from the LocalEGA inbox
 
-  Background:
-    Given My username is "test"
-
   Scenario: I.0 User ingests file encrypted with OpenPGP using a correct key
     Given I have an account at Central EGA
     And I have correct private key
