@@ -1,9 +1,6 @@
 Feature: Checksumming
   Deprecated, keeping it around just in case
 
-  Background:
-    Given My username is "test"
-
 #  Scenario: User ingests file encrypted with OpenPGP using a correct key, but raw checksum doesn't match with the supplied one
 #    Given I have an account at Central EGA
 #    And I have correct private key
