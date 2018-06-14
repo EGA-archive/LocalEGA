@@ -115,16 +115,16 @@ public class Utils {
                 "psql", "-U", readTraceProperty("DB_USER"), "-d", "lega", "-c", query);
     }
 
-    /**
-     * Removes the user from the local database.
-     *
-     * @param user     Username.
-     * @throws InterruptedException In case the query execution is interrupted.
-     */
-    public void removeUserFromCache(String user) throws InterruptedException {
-        executeWithinContainer(findContainer(getProperty("images.name.inbox"), getProperty("container.name.inbox")),
-                String.format("rm -rf %s/%s", getProperty("inbox.cache.path"), user).split(" "));
-    }
+    // /**
+    //  * Removes the user from the local database.
+    //  *
+    //  * @param user     Username.
+    //  * @throws InterruptedException In case the query execution is interrupted.
+    //  */
+    // public void removeUserFromCache(String user) throws InterruptedException {
+    //     executeWithinContainer(findContainer(getProperty("images.name.inbox"), getProperty("container.name.inbox")),
+    //             String.format("rm -rf %s/%s", getProperty("inbox.cache.path"), user).split(" "));
+    // }
 
 //    /**
 //     * Removes the user's inbox.
