@@ -17,8 +17,9 @@ class testIngest(unittest.TestCase):
         mock.get_from_companion.assert_called()
         mock.is_valid.assert_called()
 
+    @mock.patch('lega.ingest.get_connection')
     @mock.patch('lega.ingest.consume')
-    def test_main(self, mock_consume):
+    def test_main(self, mock_consume, mock_connection):
         """Test main verify, by mocking cosume call."""
         mock_consume.return_value = mock.MagicMock()
         main()

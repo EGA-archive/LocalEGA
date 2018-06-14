@@ -39,7 +39,10 @@ class DBTest(unittest.TestCase):
     @mock.patch('lega.utils.db.connect')
     def test_set_error(self, mock_connect):
         """DB set error."""
-        set_error('file_id', 'error')
+        error = mock.MagicMock()
+        error.__cause__ = mock.MagicMock(name='__cause__')
+        error.__cause__.return_value = 'something'
+        set_error('file_id', error)
         mock_connect().__enter__().cursor().__enter__().execute.assert_called()
 
     @mock.patch('lega.utils.db.connect')

@@ -54,8 +54,9 @@ class testVerify(unittest.TestCase):
             mocked.assert_called()
         filedir.cleanup()
 
+    @mock.patch('lega.verify.get_connection')
     @mock.patch('lega.verify.consume')
-    def test_main(self, mock_consume):
+    def test_main(self, mock_consume, mock_connection):
         """Test main verify, by mocking cosume call."""
         mock_consume.return_value = mock.MagicMock()
         main()
