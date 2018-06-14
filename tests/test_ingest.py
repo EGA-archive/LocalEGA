@@ -1,6 +1,7 @@
 import unittest
-from lega.ingest import main, run_checksum
+from lega.ingest import main, run_checksum, work
 from unittest import mock
+from testfixtures import tempdir
 
 
 class testIngest(unittest.TestCase):
