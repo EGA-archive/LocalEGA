@@ -58,7 +58,8 @@ def run_checksum(data, integrity, filename):
         LOG.debug(f'Valid {algo} checksum for {filename}')
 
 @db.catch_error
-def work(fs, data):
+@db.crypt4gh_to_user_errors
+def work(fs, channel, data):
     '''Ingestion function
 
     The data is of the form:
@@ -109,18 +110,17 @@ def work(fs, data):
     # Sending a progress message to CentralEGA
     data['status'] = { 'state': 'PROCESSING', 'details': None }
     LOG.debug(f'Sending message to CentralEGA: {data}')
-    broker = get_connection('broker')
-    publish(data, broker.channel(), 'cega', 'files.processing')
+    publish(data, channel, 'cega', 'files.processing')
 
     # Strip the header out and copy the rest of the file to the vault
     with open(inbox_filepath, 'rb') as infile:
         header = get_header(infile)
 
         target = fs.location(file_id)
-        LOG.debug(f'[{fs.__class__.__name__}] Moving the rest of {filepath} to {target}')
+        LOG.info(f'[{fs.__class__.__name__}] Moving the rest of {filepath} to {target}')
         target_size = fs.copy(infile, target) # It will copy the rest only
 
-        LOG.debug(f'Vault copying completed')
+        LOG.info(f'Vault copying completed. Updating database')
         header_hex = header.hex()
         db.set_info(file_id, target, target_size, header_hex) # header bytes will be .hex()
         msg['header'] = header_hex
@@ -138,10 +138,11 @@ def main(args=None):
     CONF.setup(args) # re-conf
 
     fs = getattr(storage, CONF.get_value('vault', 'driver', default='FileStorage'))
-    do_work = partial(work, fs())
+    broker = get_connection('broker')
+    do_work = partial(work, fs(), broker.channel())
 
     # upstream link configured in local broker
-    consume(do_work, 'files', 'archived')
+    consume(do_work, broker, 'files', 'archived')
 
 if __name__ == '__main__':
     main()

@@ -70,7 +70,7 @@ def publish(message, channel, exchange, routing, correlation_id=None):
                                                              delivery_mode=2))
 
 
-def consume(work, from_queue, to_routing):
+def consume(work, connection, from_queue, to_routing):
     '''Blocking function, registering callback `work` to be called.
 
     from_broker must be a pair (from_connection: pika:Connection, from_queue: str)
@@ -85,7 +85,6 @@ def consume(work, from_queue, to_routing):
     '''
 
     assert( from_queue and to_routing )
-    connection = get_connection('broker')
 
     LOG.debug(f'Consuming message from {from_queue}')
 
