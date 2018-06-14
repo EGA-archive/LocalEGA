@@ -1,6 +1,7 @@
 from lega.utils.checksum import instantiate, calculate, is_valid, get_from_companion, supported_algorithms
 from lega.utils.exceptions import UnsupportedHashAlgorithm, CompanionNotFound
 from lega.conf.__main__ import main
+from lega.utils.db import _do_exit
 import hashlib
 import unittest
 from unittest import mock
@@ -49,10 +50,22 @@ class TestBasicFunctions(unittest.TestCase):
         mock.return_value = '20655cb038a3e76e5f27749a028101e7'
         assert is_valid('file/path', '20655cb038a3e76e5f27749a028101e7', 'md5') is True
 
-    def test_companion_not_found(self):
+    @tempdir()
+    def test_companion_not_found(self, filedir):
         """Companion file not found."""
+        path = filedir.write('priv.file', 'content'.encode('utf-8'))
         with self.assertRaises(CompanionNotFound):
-            get_from_companion('tests/resources/priv.pgp')
+            get_from_companion(path)
+        filedir.cleanup()
+
+    @tempdir()
+    def test_companion_file(self, filedir):
+        """Test Companion file contents."""
+        path = filedir.write('priv.file', 'content'.encode('utf-8'))
+        filedir.write('priv.file.md5', 'md5content'.encode('utf-8'))
+        result = get_from_companion(path)
+        self.assertEqual(('md5content', 'md5'), result)
+        filedir.cleanup()
 
     @mock.patch('lega.utils.open')
     def test_get_file_content(self, mocked: mock.MagicMock):
@@ -87,3 +100,9 @@ class TestBasicFunctions(unittest.TestCase):
         with mock.patch('sys.stdout', new=StringIO()) as fake_stdout:
                 main(['--list'])
                 self.assertTrue(fake_stdout.getvalue(), 'Configuration values:')
+
+    def test_do_exit(self):
+        """Testing simple exit."""
+        # Mostly for completion.
+        with self.assertRaises(SystemExit):
+            _do_exit()
