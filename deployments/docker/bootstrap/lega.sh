@@ -243,11 +243,13 @@ services:
       - ./lega/conf.ini:/etc/ega/conf.ini:ro
       - inbox:/ega/inbox
       - ../../../lega:/home/lega/.local/lib/python3.6/site-packages/lega
+      - ../images/inbox/entrypoint.sh:/usr/bin/ega-entrypoint.sh
       #- ~/_auth_ega:/root/_auth_ega
     restart: on-failure:3
     networks:
       - lega
       - cega
+    entrypoint: ["/bin/bash", "/usr/bin/ega-entrypoint.sh"]
 
   # Ingestion Workers
   ingest:
