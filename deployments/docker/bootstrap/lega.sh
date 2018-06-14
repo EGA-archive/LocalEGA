@@ -88,56 +88,6 @@ echomsg "\t* db.sql"
 # Running in container
 cat /tmp/db.sql >> ${PRIVATE}/lega/db.sql
 
-echomsg "\t* logger.yml"
-_LOG_LEVEL=${LOG_LEVEL:-DEBUG}
-
-cat > ${PRIVATE}/lega/logger.yml <<EOF
-version: 1
-root:
-  level: NOTSET
-  handlers: [noHandler]
-
-loggers:
-  lega:
-    level: ${_LOG_LEVEL}
-    handlers: [logstash,console]
-    propagate: True
-  aiopg:
-    level: ${_LOG_LEVEL}
-    handlers: [logstash]
-  aiohttp:
-    level: ${_LOG_LEVEL}
-    handlers: [logstash]
-    propagate: True
-
-
-handlers:
-  noHandler:
-    class: logging.NullHandler
-    level: NOTSET
-  console:
-    class: logging.StreamHandler
-    formatter: simple
-    stream: ext://sys.stdout
-  logstash:
-    class: lega.utils.logging.LEGAHandler
-    formatter: json
-    host: logstash
-    port: 5600
-
-formatters:
-  json:
-    (): lega.utils.logging.JSONFormatter
-    format: '(asctime) (name) (process) (processName) (levelname) (lineno) (funcName) (message)'
-  lega:
-    format: '[{asctime:<20}][{name}][{process:d} {processName:>15}][{levelname}] (L:{lineno}) {funcName}: {message}'
-    style: '{'
-    datefmt: '%Y-%m-%d %H:%M:%S'
-  simple:
-    format: '[{name:^10}][{levelname:^6}] (L{lineno}) {message}'
-    style: '{'
-EOF
-
 
 #########################################################################
 # Populate env-settings for docker compose
@@ -291,7 +241,6 @@ services:
       - /dev/fuse
     volumes:
       - ./lega/conf.ini:/etc/ega/conf.ini:ro
-      - ./lega/logger.yml:/etc/ega/logger.yml:ro
       - inbox:/ega/inbox
       - ../../../lega:/home/lega/.local/lib/python3.6/site-packages/lega
       #- ~/_auth_ega:/root/_auth_ega
@@ -315,7 +264,6 @@ services:
     volumes:
        - inbox:/ega/inbox
        - ./lega/conf.ini:/etc/ega/conf.ini:ro
-       - ./lega/logger.yml:/etc/ega/logger.yml:ro
        - ../../../lega:/home/lega/.local/lib/python3.6/site-packages/lega
        #- ~/_cryptor/legacryptor:/root/.local/lib/python3.6/site-packages/legacryptor
     restart: on-failure:3
@@ -334,7 +282,6 @@ services:
       - LEGA_PASSWORD=${LEGA_PASSWORD}
     volumes:
        - ./lega/conf.ini:/etc/ega/conf.ini:ro
-       - ./lega/logger.yml:/etc/ega/logger.yml:ro
        - ./lega/keys.ini:/etc/ega/keys.ini:ro
        - ./lega/certs/ssl.cert:/etc/ega/ssl.cert:ro
        - ./lega/certs/ssl.key:/etc/ega/ssl.key:ro
@@ -367,7 +314,6 @@ services:
       - AWS_SECRET_ACCESS_KEY=${S3_SECRET_KEY}
     volumes:
        - ./lega/conf.ini:/etc/ega/conf.ini:ro
-       - ./lega/logger.yml:/etc/ega/logger.yml:ro
        - ../../../lega:/home/lega/.local/lib/python3.6/site-packages/lega
        #- ~/_cryptor/legacryptor:/root/.local/lib/python3.6/site-packages/legacryptor
     restart: on-failure:3
@@ -392,52 +338,10 @@ services:
       - "${DOCKER_PORT_s3}:9000"
     command: server /data
 
-  # # Logging & Monitoring (ELK: Elasticsearch, Logstash, Kibana).
-  # elasticsearch:
-  #   image: docker.elastic.co/elasticsearch/elasticsearch-oss:6.0.0
-  #   container_name: elasticsearch
-  #   volumes:
-  #     - ./lega/logs/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
-  #     - elasticsearch:/usr/share/elasticsearch/data
-  #   environment:
-  #     ES_JAVA_OPTS: "-Xmx256m -Xms256m"
-  #   restart: on-failure:3
-  #   networks:
-  #     - lega
-
-  # logstash:
-  #   image: docker.elastic.co/logstash/logstash-oss:6.0.0
-  #   container_name: logstash
-  #   volumes:
-  #     - ./lega/logs/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
-  #     - ./lega/logs/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
-  #   environment:
-  #     LS_JAVA_OPTS: "-Xmx256m -Xms256m"
-  #   depends_on:
-  #     - elasticsearch
-  #   restart: on-failure:3
-  #   networks:
-  #     - lega
-
-  # kibana:
-  #   image: docker.elastic.co/kibana/kibana-oss:6.0.0
-  #   container_name: kibana
-  #   volumes:
-  #     - ./lega/logs/kibana.yml:/usr/share/kibana/config/kibana.yml:ro
-  #   ports:
-  #     - "${DOCKER_PORT_kibana}:5601"
-  #   depends_on:
-  #     - elasticsearch
-  #     - logstash
-  #   restart: on-failure:3
-  #   networks:
-  #     - lega
-
 # Use the default driver for volume creation
 volumes:
   inbox:
   s3:
-#  elasticsearch:
 EOF
 
 #########################################################################
