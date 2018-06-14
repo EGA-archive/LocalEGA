@@ -15,25 +15,11 @@ loggers:
   aiopg:
     level: INFO
     handlers: [console]
-  aiohttp.access:
+  aiohttp:
     level: INFO
     handlers: [console]
-  aiohttp.client:
-    level: INFO
-    handlers: [console]
-  aiohttp.internal:
-    level: INFO
-    handlers: [console]
-  aiohttp.server:
-    level: INFO
-    handlers: [console]
-  aiohttp.web:
-    level: INFO
-    handlers: [console]
-  aiohttp.websocket:
-    level: INFO
-    handlers: [console]
-
+    propagate: true
+    qualname: aiohttp
 
 handlers:
   noHandler:
