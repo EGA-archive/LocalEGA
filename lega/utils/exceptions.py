@@ -45,13 +45,6 @@ class Checksum(FromUser):
         return 'Invalid {} checksum for the {} file: {}'.format(self.algo, 'original' if self.decrypted else 'encrypted', self.file)
 
 
-class InvalidFormatError(FromUser, legacryptor.exceptions.InvalidFormatError):
-    pass
-class VersionError(FromUser, legacryptor.exceptions.VersionError):
-    pass
-class MDCError(FromUser, legacryptor.exceptions.MDCError):
-    pass
-
 class WrongPGPKey(FromUser):
     def __init__(self, msg):
         self.msg = msg
