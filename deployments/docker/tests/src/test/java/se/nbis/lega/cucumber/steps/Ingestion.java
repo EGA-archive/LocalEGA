@@ -5,7 +5,6 @@ import com.github.dockerjava.api.exception.InternalServerErrorException;
 import cucumber.api.java8.En;
 import lombok.extern.slf4j.Slf4j;
 import org.assertj.core.api.Assertions;
-import org.c02e.jpgpj.HashingAlgorithm;
 import org.junit.Assert;
 import se.nbis.lega.cucumber.Context;
 import se.nbis.lega.cucumber.Utils;
@@ -156,8 +155,14 @@ public class Ingestion implements En {
                     context.getEncryptedFile().getName());
             // It may take a while for relatively big files to be ingested.
             // So we wait until ingestion status changes to something different from "In progress".
+            long maxTimeout = Long.parseLong(utils.getProperty("ingest.max-timeout"));
+            long timeout = 0;
             while ("In progress".equals(getIngestionStatus(context, utils))) {
                 Thread.sleep(1000);
+                timeout += 1000;
+                if (timeout > maxTimeout) {
+                    break;
+                }
             }
             // And we sleep one more second for entry to be updated in the database.
             Thread.sleep(1000);
