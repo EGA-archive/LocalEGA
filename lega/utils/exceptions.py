@@ -5,7 +5,10 @@ Exceptions
 
 import legacryptor
 
-# Errors for the users
+#############################################################################
+# User Errors
+#############################################################################
+
 class FromUser(Exception):
     def __str__(self): # Informal description
         return 'Incorrect user input'
@@ -44,38 +47,38 @@ class Checksum(FromUser):
     def __repr__(self):
         return 'Invalid {} checksum for the {} file: {}'.format(self.algo, 'original' if self.decrypted else 'encrypted', self.file)
 
+#############################################################################
+# PGP Key Error. Not all are from the user
+#############################################################################
 
-class WrongPGPKey(FromUser):
+class PGPKeyError(Exception):
     def __init__(self, msg):
         self.msg = msg
     def __str__(self):
-        return f'Using the wrong PGP key'
+        return 'PGP Key error'
     def __repr__(self):
-        return f'Using the wrong PGP key: {self.msg}'
+        return f'PGP Key error: {self.msg}'
 
+class KeyserverError(Exception):
+    def __init__(self, msg):
+        self.msg = msg
+    def __str__(self):
+        return 'Keyserver error'
+    def __repr__(self):
+        return f'Keyserver error: {self.msg}'
+
+#############################################################################
 # Any other exception is caught by us
-class MessageError(Exception):
-    def __str__(self):
-        return f'Error decoding the message from the queue'
-
-class VaultDecryption(Exception):
-    def __init__(self, filename):
-        self.filename = filename
-    def __str__(self):
-        return f'Decrypting archived file failed'
-    def __repr__(self):
-        return f'Decrypting {self.filename} from the vault failed'
+#############################################################################
 
 class AlreadyProcessed(Warning):
-    def __init__(self, filename, enc_checksum_hash, enc_checksum_algorithm, submission_id):
-        #self.file_id = file_id
+    def __init__(self, user, filename, enc_checksum_hash, enc_checksum_algorithm):
+        self.user = user
         self.filename = filename
         self.enc_checksum_hash = enc_checksum_hash
         self.enc_checksum_algorithm = enc_checksum_algorithm
-        self.submission_id = submission_id
     def __repr__(self):
         return (f'Warning: File already processed\n'
-                #f'\t* id: {self.file_id}\n'
+                f'\t* user: {self.user}\n'
                 f'\t* name: {self.filename}\n'
-                f'\t* submission id: {submission_id})\n'
                 f'\t* Encrypted checksum: {enc_checksum_hash} (algorithm: {enc_checksum_algorithm}')

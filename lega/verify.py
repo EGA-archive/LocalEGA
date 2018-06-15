@@ -50,9 +50,13 @@ def get_records(header):
             return header_to_records(privkey, header, os.environ['LEGA_PASSWORD'])
     except HTTPError as e:
         LOG.error(e)
+        msg = str(e)
         if e.code == 404: # If key not found, then probably wrong key.
-            raise exceptions.WrongPGPKey(str(e))
-        # TODO: adjust properly so that we catch User errors from System errors.
+            raise exceptions.PGPKeyError(msg)
+        # Otherwise
+        raise exceptions.KeyserverError(msg)
+    except Exception as e:
+        raise exceptions.KeyserverError(str(e))
 
 @db.catch_error
 @db.crypt4gh_to_user_errors
