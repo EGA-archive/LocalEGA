@@ -3,6 +3,7 @@ from lega.utils.storage import FileStorage, S3FileReader, S3Storage
 from test.support import EnvironmentVarGuard
 from testfixtures import TempDirectory
 import os
+import io
 from unittest import mock
 
 
@@ -50,6 +51,15 @@ class TestS3Storage(unittest.TestCase):
         self.env.unset('S3_ACCESS_KEY')
         self.env.unset('S3_SECRET_KEY')
 
+    @mock.patch('lega.utils.storage.boto3')
+    def test_location(self, boto3):
+        """Test S3 file location."""
+        _store = S3Storage()
+        result = _store.location('/test/path')
+        boto3.client.assert_called()
+        self.assertEqual('/test/path', result)
+        del _store
+
 
 class TestS3FileReader(unittest.TestCase):
     """S3FileReader
@@ -58,4 +68,55 @@ class TestS3FileReader(unittest.TestCase):
 
     def setUp(self):
         """Initialise fixtures."""
-        self._reader = S3FileReader()
+        s3 = mock.MagicMock(name='head_object')
+        s3.head_object.return_value = {'ContentLength': 32}
+        self._reader = S3FileReader(s3, 'lega', '/path', 'rb', 10)
+
+    def test_tell(self):
+        """Test tell, should return the proper loc result."""
+        result = self._reader.tell()
+        self.assertEqual(0, result)
+
+    def test_seek_start(self):
+        """Test seek with whence, should return from proper loc."""
+        whence_0 = self._reader.seek(1, 0)
+        self.assertEqual(1, whence_0)
+
+    def test_seek_loc(self):
+        """Test seek with whence, should return from proper loc."""
+        whence_1 = self._reader.seek(1, 1)
+        self.assertEqual(1, whence_1)
+
+    def test_seek_end(self):
+        """Test seek with whence, should return from proper loc."""
+        whence_2 = self._reader.seek(1, 2)
+        self.assertEqual(33, whence_2)
+
+    def test_whence_invalid(self):
+        """Invalid value of whence should raise ValueError."""
+        with self.assertRaises(ValueError):
+            self._reader.seek(33, 48)
+
+    def test_str(self):
+        """Str representation should return proper message."""
+        result = str(self._reader)
+        self.assertEqual('<S3FileReader /path>', result)
+
+    def test_detach(self):
+        """Detach should raise UnsupportedOperation."""
+        with self.assertRaises(io.UnsupportedOperation):
+            self._reader.detach()
+
+    def test_close(self):
+        """Testing close of the file reader."""
+        self._reader.close()
+        self.assertEqual(True, self._reader.closed)
+
+    def test_exit(self):
+        """Test exit."""
+        self._reader.__exit__()
+        self.assertEqual(True, self._reader.closed)
+
+    def test_enter(self):
+        """Testing returning one self."""
+        self.assertEqual(self._reader, self._reader.__enter__())

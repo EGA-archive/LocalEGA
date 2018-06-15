@@ -152,6 +152,14 @@ class TestLegaFS(unittest.TestCase):
         with self.assertRaises(SystemExit):
             parse_options()
 
+    @mock.patch('argparse.ArgumentParser.add_argument')
+    @mock.patch('argparse.ArgumentParser.parse_args')
+    def test_parse_options(self, mock_parser, mock_add):
+        """Test parse options, call arg parsers."""
+        parse_options()
+        mock_add.assert_called()
+        mock_parser.assert_called()
+
     def test_truncate(self):
         """Test LegaFS truncate, should add path to pending."""
         self._fs.truncate('test.md5', 1)
@@ -179,3 +187,31 @@ class TestLegaFS(unittest.TestCase):
         self._fs.send_message('test.smth')
         self._fs.send_message('test.md5')
         mock_publish.assert_called()
+
+    @mock.patch('lega.inbox.FUSE')
+    @mock.patch('os.chmod')
+    @mock.patch('os.makedirs')
+    @mock.patch('lega.inbox.parse_options')
+    def test_main(self, mock_options, mock_makedirs, mock_chmod, mock_fs):
+        """Testing main inbox withouth uid and gid should call FUSE."""
+        mock_options.return_value = ('mount', True, {'user': '1'})
+        mock_makedirs.return_value = ''
+        mock_chmod.return_value = mock.Mock()
+        mock_fs.return_value = mock.Mock()
+        main()
+        mock_fs.assert_called()
+
+    @mock.patch('lega.inbox.FUSE')
+    @mock.patch('os.chown')
+    @mock.patch('os.chmod')
+    @mock.patch('os.makedirs')
+    @mock.patch('lega.inbox.parse_options')
+    def test_main_with_uid(self, mock_options, mock_makedirs, mock_chmod, mock_chown, mock_fs):
+        """Testing main inbox with uid and gid should call FUSE."""
+        mock_options.return_value = ('mount', True, {'user': '1', 'uid': '1', 'gid': '1'})
+        mock_makedirs.return_value = ''
+        mock_chown.return_value = mock.Mock()
+        mock_chmod.return_value = mock.Mock()
+        mock_fs.return_value = mock.Mock()
+        main()
+        mock_fs.assert_called()
