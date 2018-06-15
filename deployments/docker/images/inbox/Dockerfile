@@ -23,6 +23,6 @@ COPY banner /ega/banner
 COPY pam.ega /etc/pam.d/ega
 COPY sshd_config /etc/ega/sshd_config
 RUN cp /usr/sbin/sshd /usr/sbin/ega
-COPY entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN chmod 755 /usr/local/bin/entrypoint.sh
-ENTRYPOINT ["entrypoint.sh"]
+# COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+# RUN chmod 755 /usr/local/bin/entrypoint.sh
+# ENTRYPOINT ["entrypoint.sh"]

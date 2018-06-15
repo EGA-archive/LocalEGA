@@ -42,27 +42,27 @@ class Cache:
         ttl = self.ttl if not ttl else self._parse_date_time(ttl)
         assert key.is_protected and key.is_unlocked, "The PGPKey must be protected and unlocked"
         key.protect(self.key, pgpy.constants.SymmetricKeyAlgorithm.AES256, pgpy.constants.HashAlgorithm.SHA256)  # re-protect
-        self.store[keyid] = (bytes(key.pubkey), bytes(key), ttl)
+        self.store[keyid] = (bytes(key.pubkey), bytes(key), str(key.pubkey), str(key), ttl)
 
-    def get(self, keyid, key_type):
+    def get(self, keyid, key_type, key_format=None):
         """Retrieve value based on key."""
         data = self.store.get(keyid)
         if not data:
             return None
-        pubkey, privkey, expire = data
+        pubkey, privkey, pubkey_armored, privkey_armored, expire = data
         if expire and time.time() > expire:
             del self.store[keyid]
             return None
         if key_type == 'public':
-            return pubkey
+            return pubkey_armored if key_format == 'armored' else pubkey
         if key_type == 'private':
-            return privkey
+            return privkey_armored if key_format == 'armored' else privkey
         return None
 
     def check_ttl(self):
         """Check ttl for all keys."""
         keys = []
-        for key, (_, _, expire) in self.store.items():
+        for key, (_, _, _, _, expire) in self.store.items():
             if expire and time.time() < expire:
                 keys.append({"keyID": key, "ttl": self._time_delta(expire)})
             if expire is None:
@@ -128,9 +128,10 @@ async def retrieve_active_key(request):
     LOG.debug(f'Requesting active ({key_type}) key')
     if key_type not in ('public', 'private'):
         return web.HTTPForbidden() # web.HTTPBadRequest()
+    key_format = 'armored' if request.content_type == 'text/plain' else None
     if _active is None:
         return web.HTTPNotFound()
-    k = _cache.get(_active, key_type)
+    k = _cache.get(_active, key_type, key_format=key_format)
     if k:
         return web.Response(body=k) # web.Response(text=k.hex())
     else:
@@ -145,8 +146,9 @@ async def retrieve_key(request):
     if key_type not in ('public', 'private'):
         return web.HTTPForbidden() # web.HTTPBadRequest()
     key_id = requested_id[-16:].upper()
+    key_format = 'armored' if request.content_type == 'text/plain' else None
     LOG.debug(f'Requested {key_type.upper()} key with ID {requested_id}')
-    k = _cache.get(key_id, key_type)
+    k = _cache.get(key_id, key_type, key_format=key_format)
     if k:
         return web.Response(body=k) # web.Response(text=value.hex())
     else:

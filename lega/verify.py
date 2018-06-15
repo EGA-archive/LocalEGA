@@ -3,7 +3,7 @@
 
 '''Verifying the vault files
 
-This module reads a message from the ``staged`` queue, decrypts the
+This module reads a message from the ``archived`` queue, decrypts the
 files and recalculates its checksum.
 
 It the checksum matches the corresponding information in the file,
@@ -19,12 +19,13 @@ import os
 import logging
 from functools import partial
 from urllib.request import urlopen
+from urllib.error import HTTPError
 
 from legacryptor.crypt4gh import get_key_id, header_to_records, body_decrypt
 
 from .conf import CONF
 from .utils import db, exceptions, storage
-from .utils.amqp import consume
+from .utils.amqp import consume, publish, get_connection
 
 LOG = logging.getLogger(__name__)
 
@@ -43,18 +44,31 @@ def get_records(header):
         ctx.check_hostname = False
         ctx.verify_mode = ssl.CERT_NONE
 
-    with urlopen(keyurl, context=ctx) as response:
-        privkey = response.read()
-        return header_to_records(privkey, header, os.environ['LEGA_PASSWORD'])
+    try:
+        with urlopen(keyurl, context=ctx) as response:
+            privkey = response.read()
+            return header_to_records(privkey, header, os.environ['LEGA_PASSWORD'])
+    except HTTPError as e:
+        LOG.error(e)
+        msg = str(e)
+        if e.code == 404: # If key not found, then probably wrong key.
+            raise exceptions.PGPKeyError(msg)
+        # Otherwise
+        raise exceptions.KeyserverError(msg)
+    except Exception as e:
+        raise exceptions.KeyserverError(str(e))
 
 @db.catch_error
-def work(chunk_size, mover, data):
+@db.crypt4gh_to_user_errors
+def work(chunk_size, mover, channel, data):
     '''Verifying that the file in the vault does decrypt properly'''
 
     LOG.info('Verification | message: %s', data)
 
-    file_id = data.pop('internal_data') # can raise KeyError
-    _, vault_path, stable_id, header = db.get_info(file_id)
+    file_id = data['file_id']
+    header = data['header'] # in hex
+    vault_path = data['vault_path']
+    stable_id = data['stable_id']
 
     # Get it from the header and the keyserver
     records = get_records(bytes.fromhex(header)) # might raise exception
@@ -68,9 +82,16 @@ def work(chunk_size, mover, data):
 
     LOG.info('Verification completed. Updating database.')
     db.set_status(file_id, db.Status.Completed)
-    data['status'] = { 'state': 'COMPLETED', 'details': stable_id }
-    LOG.debug(f"Reply message: {data}")
-    return data
+
+    # Send to QC
+    data.pop('status', None)
+    LOG.debug(f'Sending message to QC: {data}')
+    publish(data, channel, 'lega', 'qc') # We keep the org msg in there
+
+    org_msg = data['org_msg']
+    org_msg['status'] = { 'state': 'COMPLETED', 'details': stable_id }
+    LOG.debug(f"Reply message: {org_msg}")
+    return org_msg
 
 def main(args=None):
 
@@ -81,9 +102,11 @@ def main(args=None):
 
     store = getattr(storage, CONF.get_value('vault', 'driver', default='FileStorage'))
     chunk_size = CONF.get_value('vault', 'chunk_size', conv=int, default=1<<22) # 4 MB
-    do_work = partial(work, chunk_size, store())
 
-    consume(do_work, 'staged', 'completed')
+    broker = get_connection('broker')
+    do_work = partial(work, chunk_size, store(), broker.channel())
+
+    consume(do_work, broker, 'archived', 'completed')
 
 if __name__ == '__main__':
     main()

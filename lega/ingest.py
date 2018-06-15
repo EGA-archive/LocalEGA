@@ -18,7 +18,7 @@ and optionally an integrity field, called ``unencrypted_integrity``, with:
 * ``algorithm`` - the associated hash algorithm
 
 Upon completion, a message is sent to the local exchange with the
-routing key :``staged``.
+routing key :``archived``.
 '''
 
 import sys
@@ -58,7 +58,8 @@ def run_checksum(data, integrity, filename):
         LOG.debug(f'Valid {algo} checksum for {filename}')
 
 @db.catch_error
-def work(fs, data):
+@db.crypt4gh_to_user_errors
+def work(fs, channel, data):
     '''Ingestion function
 
     The data is of the form:
@@ -80,12 +81,12 @@ def work(fs, data):
     # Insert in database
     file_id = db.insert_file(filepath, user_id, stable_id)
 
-    # early record
-    internal_data = {
+    org_msg = data.copy()
+    data.update({
         'file_id': file_id,
         'user_id': user_id,
-    }
-    data['internal_data'] = internal_data
+        'org_msg': org_msg,
+    })
 
     # Find inbox
     inbox = Path(CONF.get_value('inbox', 'location', raw=True) % user_id)
@@ -102,26 +103,34 @@ def work(fs, data):
     if CONF.get_value('ingestion', 'do_checksum', conv=bool, default=False):
         run_checksum(data, 'encrypted_integrity', inbox_filepath)
 
-    # Sending a progress message to CentralEGA
+    # Record in database
     db.set_status(file_id, db.Status.In_Progress)
-    data['status'] = { 'state': 'PROCESSING', 'details': None }
-    LOG.debug(f'Sending message to CentralEGA: {data}')
-    broker = get_connection('broker')
-    publish(data, broker.channel(), 'cega', 'files.processing')
 
+    # Sending a progress message to CentralEGA
+    data['status'] = db.Status.In_Progress.value
+    org_msg['status'] = { 'state': 'PROCESSING', 'details': None }
+    LOG.debug(f'Sending message to CentralEGA: {data}')
+    publish(org_msg, channel, 'cega', 'files.processing')
+    org_msg.pop('status', None)
+    
     # Strip the header out and copy the rest of the file to the vault
+    LOG.debug(f'Opening {inbox_filepath}')
     with open(inbox_filepath, 'rb') as infile:
+        LOG.debug(f'Reading header | file_id: {file_id}')
         header = get_header(infile)
 
         target = fs.location(file_id)
-        LOG.debug(f'[{fs.__class__.__name__}] Moving the rest of {filepath} to {target}')
+        LOG.info(f'[{fs.__class__.__name__}] Moving the rest of {filepath} to {target}')
         target_size = fs.copy(infile, target) # It will copy the rest only
 
-        LOG.debug(f'Vault copying completed')
-        db.set_info(file_id, target, target_size, header) # header bytes will be .hex()
-        data['internal_data'] = file_id # after db update
+        LOG.info(f'Vault copying completed. Updating database')
+        header_hex = header.hex()
+        db.set_info(file_id, target, target_size, header_hex) # header bytes will be .hex()
+        data['header'] = header_hex
+        data['vault_path'] = target
+        data['vault_type'] = fs.__class__.__name__
+        data['status'] = db.Status.Archived.value
 
-    data['status'] = { 'state': 'ARCHIVED', 'message': 'File moved to the vault' }
     LOG.debug(f"Reply message: {data}")
     return data
 
@@ -132,10 +141,11 @@ def main(args=None):
     CONF.setup(args) # re-conf
 
     fs = getattr(storage, CONF.get_value('vault', 'driver', default='FileStorage'))
-    do_work = partial(work, fs())
+    broker = get_connection('broker')
+    do_work = partial(work, fs(), broker.channel())
 
     # upstream link configured in local broker
-    consume(do_work, 'files', 'staged')
+    consume(do_work, broker, 'files', 'archived')
 
 if __name__ == '__main__':
     main()
