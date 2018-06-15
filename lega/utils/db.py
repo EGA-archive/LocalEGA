@@ -15,10 +15,10 @@ import asyncio
 import aiopg
 from enum import Enum
 
-from legacryptor.exceptions import InvalidFormatError, VersionError, MDCError
+from legacryptor import exceptions as crypt_exc
 
 from ..conf import CONF
-from .exceptions import FromUser
+from .exceptions import FromUser, KeyserverError, PGPKeyError
 from .amqp import publish, get_connection
 
 LOG = logging.getLogger(__name__)
@@ -153,8 +153,8 @@ def set_error(file_id, error, from_user=False):
     hostname = gethostname()
     with connect() as conn:
         with conn.cursor() as cur:
-            cur.execute('SELECT insert_error(%(file_id)s,%(msg)s,%(from_user)s);',
-                        {'msg':f"[{hostname}][{error.__class__.__name__}] {error!s}", 'file_id': file_id, 'from_user': from_user})
+            cur.execute('SELECT insert_error(%(file_id)s,%(h)s,%(etype)s,%(msg)s,%(from_user)s);',
+                        {'h':hostname, 'etype': error.__class__.__name__, 'msg': repr(error), 'file_id': file_id, 'from_user': from_user})
 
 def get_info(file_id):
     with connect() as conn:
@@ -231,7 +231,7 @@ def catch_error(func):
             LOG.error(f'Exception: {exc_type} in {fname} on line: {lineno}')
             from_user = isinstance(e,FromUser)
             cause = e.__cause__ or e
-            LOG.error(f'Capturing error (from user: {from_user}): {cause!r}') # repr = Technical
+            LOG.error(f'{cause!r} (from user: {from_user})') # repr = Technical
 
             try:
                 data = args[-1] # data is the last argument
@@ -247,7 +247,7 @@ def catch_error(func):
                         _channel = get_connection('broker').channel()
                     publish(org_msg, _channel, 'cega', 'files.error')
             except Exception as e2:
-                LOG.error(f'While treating {e}, we caught {e2!r}')
+                LOG.error(f'While treating "{e}", we caught "{e2!r}"')
                 print(repr(e), 'caused', repr(e2), file=sys.stderr)
             return None
     return wrapper
@@ -258,8 +258,11 @@ def crypt4gh_to_user_errors(func):
     def wrapper(*args):
         try:
             return func(*args)
-        except (InvalidFormatError, VersionError, MDCError) as e:
+        except (crypt_exc.InvalidFormatError, crypt_exc.VersionError, crypt_exc.MDCError, PGPKeyError) as e:
             raise FromUser() from e
+        except KeyserverError as e:
+            LOG.critical(repr(e))
+            raise
     return wrapper
 
 # Testing connection with `python -m lega.utils.db`
