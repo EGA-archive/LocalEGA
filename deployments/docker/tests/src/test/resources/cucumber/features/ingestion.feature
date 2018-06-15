@@ -45,7 +45,7 @@ Feature: Ingestion
     And file is removed from the inbox
     And I ingest file from the LocalEGA inbox
     When I retrieve ingestion information
-    Then the ingestion status is "Received"
+    Then the ingestion status is "Error"
 
   Scenario: I.3 User ingests file encrypted with Crypt4GH using a correct key and checksums, but the keyserver doesn't respond
     Given I have an account at Central EGA
