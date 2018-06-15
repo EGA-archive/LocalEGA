@@ -3,7 +3,7 @@ from lega.utils.storage import FileStorage, S3FileReader, S3Storage
 from test.support import EnvironmentVarGuard
 from testfixtures import TempDirectory
 import os
-import io
+from io import UnsupportedOperation
 from unittest import mock
 
 
@@ -51,15 +51,6 @@ class TestS3Storage(unittest.TestCase):
         self.env.unset('S3_ACCESS_KEY')
         self.env.unset('S3_SECRET_KEY')
 
-    @mock.patch('lega.utils.storage.boto3')
-    def test_location(self, boto3):
-        """Test S3 file location."""
-        _store = S3Storage()
-        result = _store.location('/test/path')
-        boto3.client.assert_called()
-        self.assertEqual('/test/path', result)
-        del _store
-
 
 class TestS3FileReader(unittest.TestCase):
     """S3FileReader
@@ -104,7 +95,7 @@ class TestS3FileReader(unittest.TestCase):
 
     def test_detach(self):
         """Detach should raise UnsupportedOperation."""
-        with self.assertRaises(io.UnsupportedOperation):
+        with self.assertRaises(UnsupportedOperation):
             self._reader.detach()
 
     def test_close(self):
