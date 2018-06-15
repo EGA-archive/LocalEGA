@@ -157,6 +157,12 @@ class TestLegaFS(unittest.TestCase):
         self._fs.truncate('test.md5', 1)
         self.assertEqual({'test.md5'}, self._fs.pending)
 
+    def test_destroy(self):
+        """Test LegaFS destroy, should close connection to broker."""
+        self._fs.connection = mock.Mock()
+        self._fs.destroy('/random/path')
+        self._fs.connection.close.assert_called()
+
     @mock.patch('lega.inbox.publish')
     @mock.patch('lega.inbox.get_connection')
     @mock.patch('os.close')
@@ -169,7 +175,7 @@ class TestLegaFS(unittest.TestCase):
     @mock.patch('lega.inbox.publish')
     @mock.patch('lega.inbox.get_connection')
     def test_send_message(self, mock_broker, mock_publish):
-        """"Sending message should try to publish info to broker."""
+        """Sending message should try to publish info to broker."""
         self._fs.send_message('test.smth')
         self._fs.send_message('test.md5')
         mock_publish.assert_called()
