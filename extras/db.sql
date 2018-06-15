@@ -45,17 +45,21 @@ $insert_file$ LANGUAGE plpgsql;
 CREATE TABLE errors (
         id            SERIAL, PRIMARY KEY(id), UNIQUE (id),
 	file_id       INTEGER REFERENCES files (id) ON DELETE CASCADE,
+	hostname      TEXT,
+	error_type    TEXT NOT NULL,
 	msg           TEXT NOT NULL,
 	from_user     BOOLEAN DEFAULT FALSE,
 	occured_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT clock_timestamp()
 );
 
-CREATE FUNCTION insert_error(file_id    errors.file_id%TYPE,
-                             msg        errors.msg%TYPE,
+CREATE FUNCTION insert_error(fid   errors.file_id%TYPE,
+                             h     errors.hostname%TYPE,
+                             etype errors.error_type%TYPE,
+                             msg   errors.msg%TYPE,
                              from_user  errors.from_user%TYPE)
     RETURNS void AS $set_error$
     BEGIN
-       INSERT INTO errors (file_id,msg,from_user) VALUES(file_id,msg,from_user);
+       INSERT INTO errors (file_id,hostname,error_type,msg,from_user) VALUES(fid,h,etype,msg,from_user);
        UPDATE files SET status = 'Error' WHERE id = file_id;
     END;
 $set_error$ LANGUAGE plpgsql;
