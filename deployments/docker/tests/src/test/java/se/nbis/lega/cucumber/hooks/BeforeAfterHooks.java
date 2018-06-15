@@ -12,6 +12,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.Arrays;
+import java.util.UUID;
 
 @Slf4j
 public class BeforeAfterHooks implements En {
@@ -31,18 +32,18 @@ public class BeforeAfterHooks implements En {
         FileUtils.writeStringToFile(rawFile, "hello", Charset.defaultCharset());
         context.setDataFolder(dataFolder);
         context.setRawFile(rawFile);
+        context.setUser(UUID.randomUUID().toString());
     }
 
     @SuppressWarnings({"ConstantConditions", "ResultOfMethodCallIgnored"})
     @After
-    public void tearDown() throws IOException, InterruptedException {
+    public void tearDown() throws IOException {
         Utils utils = context.getUtils();
 
         FileUtils.deleteDirectory(context.getDataFolder());
         File cegaUsersFolder = new File(utils.getPrivateFolderPath() + "/cega/users/" + utils.getProperty("instance.name"));
         String user = context.getUser();
         Arrays.stream(cegaUsersFolder.listFiles((dir, name) -> name.startsWith(user))).forEach(File::delete);
-        utils.removeUserFromCache(user);
 //        utils.removeUserInbox(user);
     }
 

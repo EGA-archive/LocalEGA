@@ -15,8 +15,10 @@ import asyncio
 import aiopg
 from enum import Enum
 
+from legacryptor import exceptions as crypt_exc
+
 from ..conf import CONF
-from .exceptions import FromUser
+from .exceptions import FromUser, KeyserverError, PGPKeyError
 from .amqp import publish, get_connection
 
 LOG = logging.getLogger(__name__)
@@ -100,14 +102,15 @@ def _do_exit():
 ######################################
 ##         "Classic" code           ##
 ######################################
+_conn = None
 def cache_connection(func):
     '''Decorator to cache the database connection'''
-    cache = {} # must be a dict or an array
     @wraps(func)
     def wrapper(*args, **kwargs):
-        if 'conn' not in cache or cache['conn'].closed:
-            cache['conn'] = func(*args, **kwargs)
-        return cache['conn']
+        global _conn
+        if _conn is None or _conn.closed:
+            _conn = func(*args, **kwargs)
+        return _conn
     return wrapper
 
 @cache_connection
@@ -146,12 +149,12 @@ def get_errors(from_user=False):
 def set_error(file_id, error, from_user=False):
     assert file_id, 'Eh? No file_id?'
     assert error, 'Eh? No error?'
-    LOG.debug(f'Setting error for {file_id}: {error!s}')
+    LOG.debug(f'Setting error for {file_id}: {error!s} | Cause: {error.__cause__}')
     hostname = gethostname()
     with connect() as conn:
         with conn.cursor() as cur:
-            cur.execute('SELECT insert_error(%(file_id)s,%(msg)s,%(from_user)s);',
-                        {'msg':f"[{hostname}][{error.__class__.__name__}] {error!s}", 'file_id': file_id, 'from_user': from_user})
+            cur.execute('SELECT insert_error(%(file_id)s,%(h)s,%(etype)s,%(msg)s,%(from_user)s);',
+                        {'h':hostname, 'etype': error.__class__.__name__, 'msg': repr(error), 'file_id': file_id, 'from_user': from_user})
 
 def get_info(file_id):
     with connect() as conn:
@@ -162,7 +165,7 @@ def get_info(file_id):
 
 def set_status(file_id, status):
     assert file_id, 'Eh? No file_id?'
-    LOG.debug(f'Updating status file_id {file_id} with "{status}"')
+    LOG.debug(f'Updating status file_id {file_id} with "{status.value}"')
     with connect() as conn:
         with conn.cursor() as cur:
             cur.execute('UPDATE files SET status = %(status)s WHERE id = %(file_id)s;', {'status': status.value, 'file_id': file_id })
@@ -183,7 +186,7 @@ def set_info(file_id, vault_path, vault_filesize, header):
                          'file_id': file_id,
                          'vault_path': vault_path,
                          'vault_filesize': vault_filesize,
-                         'header': header.hex(),
+                         'header': header,
                         })
 
 ######################################
@@ -203,14 +206,14 @@ async def create_pool(loop):
 ######################################
 ##           Decorator              ##
 ######################################
+_channel = None
 
 def catch_error(func):
     '''Decorator to store the raised exception in the database'''
     @wraps(func)
     def wrapper(*args):
         try:
-            res = func(*args)
-            return res
+            return func(*args)
         except Exception as e:
             if isinstance(e,AssertionError):
                 raise e
@@ -226,22 +229,43 @@ def catch_error(func):
             #fname = os.path.split(frame.f_code.co_filename)[1]
             fname = frame.f_code.co_filename
             LOG.error(f'Exception: {exc_type} in {fname} on line: {lineno}')
-            LOG.error(repr(e)) # repr = Technical
             from_user = isinstance(e,FromUser)
+            cause = e.__cause__ or e
+            LOG.error(f'{cause!r} (from user: {from_user})') # repr = Technical
 
             try:
                 data = args[-1] # data is the last argument
-                internal_data = data.pop('internal_data', None) # delete if exists
-                file_id = internal_data['file_id'] # raise KeyError if missing
-                set_error(file_id, e, from_user)
-                if from_user: # Send to CEGA
-                    data['status'] = { 'state': 'ERROR', 'message': str(e) } # str = Informal
-                    LOG.info(f'Sending user error to local broker: {data}')
-                    publish(data, get_connection('broker').channel(), 'cega', 'files.error')
+                data['status'] = Status.Error.value
+                file_id = data.get('file_id', None) # should be there
+                if file_id:
+                    set_error(file_id, cause, from_user)
+                LOG.debug('Catching error on file id: %s', file_id)
+                if from_user: # Send to CentralEGA
+                    org_msg = data.pop('org_msg', None) # should be there
+                    org_msg['status'] = { 'state': 'ERROR', 'message': str(cause) } # str = Informal
+                    LOG.info(f'Sending user error to local broker: {org_msg}')
+                    global _channel
+                    if _channel is None:
+                        _channel = get_connection('broker').channel()
+                    publish(org_msg, _channel, 'cega', 'files.error')
             except Exception as e2:
-                LOG.error(f'While treating {e}, we caught {e2!r}')
+                LOG.error(f'While treating "{e}", we caught "{e2!r}"')
                 print(repr(e), 'caused', repr(e2), file=sys.stderr)
             return None
+    return wrapper
+
+def crypt4gh_to_user_errors(func):
+    '''Decorator to convert Crypt4GH exceptions to User Errors'''
+    @wraps(func)
+    def wrapper(*args):
+        try:
+            return func(*args)
+        except (crypt_exc.InvalidFormatError, crypt_exc.VersionError, crypt_exc.MDCError, PGPKeyError) as e:
+            LOG.error(f'Converting {e!r} to a FromUser error')
+            raise FromUser() from e
+        except KeyserverError as e:
+            LOG.critical(repr(e))
+            raise
     return wrapper
 
 # Testing connection with `python -m lega.utils.db`
