@@ -6,7 +6,7 @@ from testfixtures import tempdir
 from . import pgp_data
 import io
 from urllib.error import HTTPError
-from lega.utils.exceptions import WrongPGPKey
+from lega.utils.exceptions import PGPKeyError, KeyserverError
 
 
 class PatchContextManager:
@@ -72,13 +72,37 @@ class testVerify(unittest.TestCase):
     @tempdir()
     @mock.patch('lega.verify.header_to_records')
     @mock.patch('lega.verify.get_key_id')
-    def test_get_records_error(self, mock_key, mock_records, filedir):
-        """The PGP key was not found, should raise WrongPGPKey error."""
-        self.env.set('QUALITY_CONTROL_VERIFY_CERTIFICATE', 'False')
+    def test_get_records_key_error(self, mock_key, mock_records, filedir):
+        """The PGP key was not found, should raise PGPKeyError error."""
         infile = filedir.write('infile.in', bytearray.fromhex(pgp_data.ENC_FILE))
         with mock.patch('lega.verify.urlopen') as urlopen_mock:
             urlopen_mock.side_effect = HTTPError('url', 404, 'msg', None, None)
-            with self.assertRaises(WrongPGPKey):
+            with self.assertRaises(PGPKeyError):
+                get_records(open(infile, 'rb'))
+        filedir.cleanup()
+
+    @tempdir()
+    @mock.patch('lega.verify.header_to_records')
+    @mock.patch('lega.verify.get_key_id')
+    def test_get_records_server_error(self, mock_key, mock_records, filedir):
+        """Some keyserver error occured, should raise KeyserverError error."""
+        infile = filedir.write('infile.in', bytearray.fromhex(pgp_data.ENC_FILE))
+        with mock.patch('lega.verify.urlopen') as urlopen_mock:
+            urlopen_mock.side_effect = HTTPError('url', 400, 'msg', None, None)
+            with self.assertRaises(KeyserverError):
+                get_records(open(infile, 'rb'))
+        filedir.cleanup()
+
+    @tempdir()
+    @mock.patch('lega.verify.header_to_records')
+    @mock.patch('lega.verify.get_key_id')
+    def test_get_records_error(self, mock_key, mock_records, filedir):
+        """Some general error occured, should raise KeyserverError error."""
+        self.env.set('QUALITY_CONTROL_VERIFY_CERTIFICATE', 'False')
+        infile = filedir.write('infile.in', bytearray.fromhex(pgp_data.ENC_FILE))
+        with mock.patch('lega.verify.urlopen') as urlopen_mock:
+            urlopen_mock.side_effect = Exception
+            with self.assertRaises(KeyserverError):
                 get_records(open(infile, 'rb'))
         filedir.cleanup()
 
@@ -96,7 +120,7 @@ class testVerify(unittest.TestCase):
     @mock.patch('lega.verify.publish')
     @mock.patch('lega.verify.get_records')
     def test_work(self, mock_records, mock_publish, mock_decrypt, mock_db, filedir):
-        """Test worker."""
+        """Test verify worker, should send a messge."""
         # Mocking a lot of stuff, ast it is previously tested
         mock_publish.return_value = mock.MagicMock()
         mock_db.status.return_value = mock.Mock()
