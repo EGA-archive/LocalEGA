@@ -54,14 +54,11 @@ Feature: Ingestion
     And I have a file encrypted with Crypt4GH using a LocalEGA's pubic key
     And I upload encrypted file to the LocalEGA inbox via SFTP
     And I have CEGA MQ username and password
-    And I ingest file from the LocalEGA inbox
-    And I have a file encrypted with Crypt4GH using a LocalEGA's pubic key
-    And I upload encrypted file to the LocalEGA inbox via SFTP
     And I turn off the keyserver
     And I ingest file from the LocalEGA inbox
     And I turn on the keyserver
     When I retrieve ingestion information
-    Then the ingestion status is "Completed"
+    Then the ingestion status is "Error"
 
   Scenario: I.4 User ingests file encrypted with Crypt4GH using a correct key and checksums, but the vault listener is down
     Given I have an account at Central EGA
