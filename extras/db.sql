@@ -60,6 +60,6 @@ CREATE FUNCTION insert_error(fid   errors.file_id%TYPE,
     RETURNS void AS $set_error$
     BEGIN
        INSERT INTO errors (file_id,hostname,error_type,msg,from_user) VALUES(fid,h,etype,msg,from_user);
-       UPDATE files SET status = 'Error' WHERE id = file_id;
+       UPDATE files SET status = 'Error' WHERE id = fid;
     END;
 $set_error$ LANGUAGE plpgsql;
