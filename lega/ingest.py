@@ -81,12 +81,12 @@ def work(fs, channel, data):
     # Insert in database
     file_id = db.insert_file(filepath, user_id, stable_id)
 
-    msg = {
+    org_msg = data.copy()
+    data.update({
         'file_id': file_id,
         'user_id': user_id,
-        'stable_id': stable_id,
-        'org_msg': data.copy(),
-    }
+        'org_msg': org_msg,
+    })
 
     # Find inbox
     inbox = Path(CONF.get_value('inbox', 'location', raw=True) % user_id)
@@ -105,15 +105,18 @@ def work(fs, channel, data):
 
     # Record in database
     db.set_status(file_id, db.Status.In_Progress)
-    msg['status'] = db.Status.In_Progress.value
 
     # Sending a progress message to CentralEGA
-    data['status'] = { 'state': 'PROCESSING', 'details': None }
+    data['status'] = db.Status.In_Progress.value
+    org_msg['status'] = { 'state': 'PROCESSING', 'details': None }
     LOG.debug(f'Sending message to CentralEGA: {data}')
-    publish(data, channel, 'cega', 'files.processing')
-
+    publish(org_msg, channel, 'cega', 'files.processing')
+    org_msg.pop('status', None)
+    
     # Strip the header out and copy the rest of the file to the vault
+    LOG.debug(f'Opening {inbox_filepath}')
     with open(inbox_filepath, 'rb') as infile:
+        LOG.debug(f'Reading header | file_id: {file_id}')
         header = get_header(infile)
 
         target = fs.location(file_id)
@@ -123,13 +126,13 @@ def work(fs, channel, data):
         LOG.info(f'Vault copying completed. Updating database')
         header_hex = header.hex()
         db.set_info(file_id, target, target_size, header_hex) # header bytes will be .hex()
-        msg['header'] = header_hex
-        msg['vault_path'] = target
-        msg['vault_type'] = fs.__class__.__name__
+        data['header'] = header_hex
+        data['vault_path'] = target
+        data['vault_type'] = fs.__class__.__name__
+        data['status'] = db.Status.Archived.value
 
-    msg['status'] = db.Status.Archived.value
-    LOG.debug(f"Reply message: {msg}")
-    return msg
+    LOG.debug(f"Reply message: {data}")
+    return data
 
 def main(args=None):
     if not args:

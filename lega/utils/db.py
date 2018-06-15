@@ -165,7 +165,7 @@ def get_info(file_id):
 
 def set_status(file_id, status):
     assert file_id, 'Eh? No file_id?'
-    LOG.debug(f'Updating status file_id {file_id} with "{status}"')
+    LOG.debug(f'Updating status file_id {file_id} with "{status.value}"')
     with connect() as conn:
         with conn.cursor() as cur:
             cur.execute('UPDATE files SET status = %(status)s WHERE id = %(file_id)s;', {'status': status.value, 'file_id': file_id })
@@ -235,11 +235,13 @@ def catch_error(func):
 
             try:
                 data = args[-1] # data is the last argument
-                file_id = data.get('file_id', None)
+                data['status'] = Status.Error.value
+                file_id = data.get('file_id', None) # should be there
                 if file_id:
                     set_error(file_id, cause, from_user)
+                LOG.debug('Catching error on file id: %s', file_id)
                 if from_user: # Send to CentralEGA
-                    org_msg = data.get('org_msg', data) # If no org_msg inside, then it is org_msg itself.
+                    org_msg = data.pop('org_msg', None) # should be there
                     org_msg['status'] = { 'state': 'ERROR', 'message': str(cause) } # str = Informal
                     LOG.info(f'Sending user error to local broker: {org_msg}')
                     global _channel
@@ -259,6 +261,7 @@ def crypt4gh_to_user_errors(func):
         try:
             return func(*args)
         except (crypt_exc.InvalidFormatError, crypt_exc.VersionError, crypt_exc.MDCError, PGPKeyError) as e:
+            LOG.error(f'Converting {e!r} to a FromUser error')
             raise FromUser() from e
         except KeyserverError as e:
             LOG.critical(repr(e))
