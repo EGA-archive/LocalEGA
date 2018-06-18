@@ -1,9 +1,7 @@
 Encryption Algorithm
 ====================
 
-The encryption procedure should be flexible and chosen independently
-by each LocalEGA instance, if desired. Each site might indeed have its
-own requirements.
+The encryption procedure uses the Crypt4GH file format.
 
 In the current implementation, after checksuming an uploaded file, the
 re-encryption procedure goes as follows. For an ingested file ``F``,
