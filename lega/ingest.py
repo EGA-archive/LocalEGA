@@ -117,14 +117,14 @@ def work(fs, channel, data):
     LOG.debug(f'Opening {inbox_filepath}')
     with open(inbox_filepath, 'rb') as infile:
         LOG.debug(f'Reading header | file_id: {file_id}')
-        header = get_header(infile)
+        beginning, header = get_header(infile)
 
         target = fs.location(file_id)
         LOG.info(f'[{fs.__class__.__name__}] Moving the rest of {filepath} to {target}')
         target_size = fs.copy(infile, target) # It will copy the rest only
 
         LOG.info(f'Vault copying completed. Updating database')
-        header_hex = header.hex()
+        header_hex = (beginning+header).hex()
         db.set_info(file_id, target, target_size, header_hex) # header bytes will be .hex()
         data['header'] = header_hex
         data['vault_path'] = target
