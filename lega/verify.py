@@ -66,7 +66,7 @@ def work(chunk_size, mover, channel, data):
     LOG.info('Verification | message: %s', data)
 
     file_id = data['file_id']
-    header = bytes.fromhex(data['header']) # in hex -> bytes
+    header = bytes.fromhex(data['header'])[16:] # in hex -> bytes, and take away 16 bytes
     vault_path = data['vault_path']
     stable_id = data['stable_id']
 
