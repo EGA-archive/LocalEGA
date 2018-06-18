@@ -1,5 +1,6 @@
 import unittest
 from lega.ingest import main, run_checksum, work
+from lega.utils.exceptions import NotFoundInInbox
 from unittest import mock
 from testfixtures import tempdir
 from lega.utils.exceptions import Checksum

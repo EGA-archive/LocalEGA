@@ -30,6 +30,13 @@ class TestFileStorage(unittest.TestCase):
         result = self._store.location('12')
         self.assertEqual(os.path.join(self.outputdir, '000/000/000/000/000/000/12'), result)
 
+    def test_copy(self):
+        """Test copy file."""
+        path = self._dir.write('test.file', 'data1'.encode('utf-8'))
+        path1 = self._dir.write('test1.file', ''.encode('utf-8'))
+        result = self._store.copy(open(path, 'rb'), path1)
+        self.assertEqual(os.stat(path1).st_size, result)
+
 
 class TestS3Storage(unittest.TestCase):
     """S3Storage
