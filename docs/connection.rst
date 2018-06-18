@@ -52,16 +52,16 @@ use the stub implementation of CentralEGA and the follwing queues, per
 
 ``LegaMQ`` contains two exchanges named ``lega`` and ``cega``, and the following queues, in the default ``vhost``:
 
-+-----------------+------------------------------------+
-| Name            | Purpose                            |
-+=================+====================================+
-| files           | Trigger for file ingestion         |
-+-----------------+------------------------------------+
-| staged          | After a proper re-encryption       |
-|                 | in the staging area                |
-+-----------------+------------------------------------+
-| archived        | After a file is moved to the Vault |
-+-----------------+------------------------------------+
++-----------------+-------------------------------------+
+| Name            | Purpose                             |
++=================+=====================================+
+| files           | Trigger for file ingestion          |
++-----------------+-------------------------------------+
+| archived        | The file is in the vault            |
++-----------------+-------------------------------------+
+| qc              | The file is "verified" in the vault |
+|                 | and Quality Controllers can execute |
++-----------------+-------------------------------------+
 
 ``LegaMQ`` registers ``CegaMQ`` as an *upstream* and listens to the
 incoming messages in ``files`` using a *federated queue*.  Ingestion
@@ -137,12 +137,7 @@ JSON-formatted and contain the following fields:
   - ``checksum``
   - ``algorithm``
 
-* ``unencrypted_integrity``:
-
-  - ``checksum``
-  - ``algorithm``
-
-where ``user``, ``filepath`` and ``stable_id`` are compulsory.
+All fields but ``encrypted_integrity`` are compulsory.
 
 LocalEGA instances must return messages containing:
 
