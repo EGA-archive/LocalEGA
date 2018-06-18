@@ -75,6 +75,7 @@ Miscellaneous
 
    Python Modules       <code>
    Contributing         <CONTRIBUTING>
+   Testsuite            <tests/overview.rst>
    policies
 
 |Codacy| | |Travis| | Version |version| | Generated |today|
