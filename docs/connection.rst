@@ -132,12 +132,10 @@ JSON-formatted and contain the following fields:
 * ``user``
 * ``filepath``
 * ``stable_id``
-* ``encrypted_integrity``:
+* (optionally) ``encrypted_integrity``:
 
   - ``checksum``
   - ``algorithm``
-
-All fields but ``encrypted_integrity`` are compulsory.
 
 LocalEGA instances must return messages containing:
 
@@ -169,6 +167,7 @@ and LocalEGA could respond with:
 		{
 		   "user":"john",
 		   "filepath":"somedir/encrypted.file.gpg",
+		   "stable_id": "EGAF0123456789012345",
 		   "status":{
 		      "state":"COMPLETED",
 		      "details":"File ingested, refer to it with EGAF0123456789012345"

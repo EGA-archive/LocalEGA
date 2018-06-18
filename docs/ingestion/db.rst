@@ -7,7 +7,7 @@ schema is as follows.
 
 .. literalinclude:: /../extras/db.sql
    :language: sql
-   :lines: 5-7,13-30,49-55
+   :lines: 5,12-25,44-53
 
 We do not use any Object-Relational Model (ORM, such as
 SQLAlchemy). Instead, we simply implemented, in SQL, a few functions
@@ -15,14 +15,18 @@ in order to insert or manipulate the database entry.
 
 .. code-block:: sql
 
-   FUNCTION insert_file(filename    files.filename%TYPE,
-			eid         files.elixir_id%TYPE,
-			status      files.status%TYPE) RETURNS files.id%TYPE
+   FUNCTION insert_file(inpath files.inbox_path%TYPE,
+		        eid    files.elixir_id%TYPE,
+			sid    files.stable_id%TYPE,
+			status files.status%TYPE) RETURNS files.id%TYPE
 
-   FUNCTION insert_error(file_id    errors.file_id%TYPE,
-                         msg        errors.msg%TYPE,
+   FUNCTION insert_error(fid   errors.file_id%TYPE,
+                         h     errors.hostname%TYPE,
+                         etype errors.error_type%TYPE,
+                         msg   errors.msg%TYPE,
                          from_user  errors.from_user%TYPE) RETURNS void
 
 
-Look at :doc:`the SQL definitions </../extras/db.sql>` if you are also
-interested in the database triggers.
+Look at `the SQL definitions
+<https://github.com/NBISweden/LocalEGA/blob/dev/extras/db.sql>`_ if
+you are also interested in the database triggers.

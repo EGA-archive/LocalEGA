@@ -10,32 +10,44 @@
     <tr>
       <td>db</td>
       <td>A Postgres database with appropriate schema</td>
-      <td><i class="fas fa-battery-full ega-stable" title="Stable"></i></td>
+      <td><i class="fa fa-battery-full ega-stable" title="Stable"></i></td>
     </tr>
     <tr>
       <td>mq</td>
-      <td>A RabbitMQ message broker with appropriate accounts, exchanges, queues and bindings</td>
-      <td><i class="fas fa-battery-full ega-stable" title="Stable"></i></td>
+      <td>A RabbitMQ message broker with appropriate accounts,
+      exchanges, queues and bindings. We use a federated queue to get
+      messages from CentralEGA's broker and shovels to send answers
+      back.</td>
+      <td><i class="fa fa-battery-full ega-stable" title="Stable"></i></td>
     </tr>
     <tr>
       <td>inbox</td>
-      <td>SFTP server, acting as a dropbox, where user credentials are in the Central EGA</td>
-      <td><i class="fas fa-battery-full ega-stable" title="Stable"></i></td>
+      <td>SFTP server, acting as a dropbox, where user credentials come from Central EGA</td>
+      <td><i class="fa fa-battery-full ega-stable" title="Stable"></i></td>
     </tr>
     <tr>
       <td>keyserver</td>
       <td>Handles the encryption/decryption keys</td>
-      <td><i class="fas fa-battery-half ega-dev" title="Working, but still under development"></i></td>
+      <td><i class="fa fa-battery-half ega-dev" title="Working, but still under development"></i></td>
     </tr>
     <tr>
-      <td>workers</td>
-      <td>Connect to the keyserver (via SSL) and do the actual re-encryption task</td>
-      <td><i class="fas fa-battery-half ega-dev" title="Working, but still under development"></i></td>
+      <td>Ingesters</td>
+      <td>Split the Crypt4GH header and move the remainder to the
+      storage backend. No cryptographic task, nor connection to the
+      keyserver.</td>
+      <td><i class="fa fa-battery-full ega-stable" title="Stable"></i></td>
+    </tr>
+    <tr>
+      <td>Verifiers</td>
+      <td>Connect to the keyserver (via SSL) and decrypt the stored
+      files and checksum them against their embedded checksum.</td>
+      <td><i class="fa fa-battery-full ega-stable" title="Stable"></i></td>
     </tr>
     <tr>
       <td>vault</td>
-      <td>Moves files from the staging area to the vault storage, including a verification step afterwards.</td>
-      <td><i class="fas fa-battery-full ega-stable" title="Stable"></i></td>
+      <td>Storage backend: as a regular file systems or as a S3 object
+      store.</td>
+      <td><i class="fa fa-battery-full ega-stable" title="Stable"></i></td>
     </tr>
   </tbody>
 </table>

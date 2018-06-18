@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
 
+'''
+File I/O for disk or S3 Object storage
+'''
+
 import os
 import logging
 from contextlib import contextmanager

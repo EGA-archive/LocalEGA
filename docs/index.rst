@@ -52,6 +52,7 @@ Getting started
    :name: setup
 
    Getting started      <setup>
+   Bootstrap & Deploy   <bootstrap>
 
 Information about the Architecture
 ==================================
@@ -74,8 +75,8 @@ Miscellaneous
    :name: extra
 
    Python Modules       <code>
-   Contributing         <CONTRIBUTING>
    Testsuite            <tests/overview.rst>
+   Contributing         <CONTRIBUTING>
    policies
 
 |Codacy| | |Travis| | Version |version| | Generated |today|
