@@ -11,18 +11,14 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
-import org.c02e.jpgpj.HashingAlgorithm;
-import se.nbis.lega.cucumber.publisher.Checksum;
 import se.nbis.lega.cucumber.publisher.Message;
 
 import javax.ws.rs.core.MediaType;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -115,17 +111,6 @@ public class Utils {
                 "psql", "-U", readTraceProperty("DB_USER"), "-d", "lega", "-c", query);
     }
 
-    /**
-     * Removes the user from the local database.
-     *
-     * @param user     Username.
-     * @throws InterruptedException In case the query execution is interrupted.
-     */
-    public void removeUserFromCache(String user) throws InterruptedException {
-        executeWithinContainer(findContainer(getProperty("images.name.inbox"), getProperty("container.name.inbox")),
-                String.format("rm -rf %s/%s", getProperty("inbox.cache.path"), user).split(" "));
-    }
-
 //    /**
 //     * Removes the user's inbox.
 //     *
@@ -142,7 +127,7 @@ public class Utils {
     /**
      * Removes the uploaded file from the inbox.
      *
-     * @param user     Username.
+     * @param user Username.
      * @throws InterruptedException In case the query execution is interrupted.
      */
     public void removeUploadedFileFromInbox(String user, String fileName) throws InterruptedException {

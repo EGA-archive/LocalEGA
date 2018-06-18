@@ -28,8 +28,6 @@ public class Authentication implements En {
     public Authentication(Context context) {
         Utils utils = context.getUtils();
 
-        Given("^My username is \"([^\"]*)\"$", context::setUser);
-
         Given("^I have an account at Central EGA$", () -> {
             String cegaUsersFolderPath = utils.getPrivateFolderPath() + "/cega/users/" + utils.getProperty("instance.name");
             String user = context.getUser();

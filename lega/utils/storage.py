@@ -7,8 +7,10 @@ import shutil
 from pathlib import Path
 
 from ..conf import CONF
+import io
 
 LOG = logging.getLogger(__name__)
+
 
 class FileStorage():
     def __init__(self):
@@ -182,7 +184,6 @@ class S3Storage():
     def __init__(self):
         import boto3
         import socket
-        import io
 
         endpoint = CONF.get_value('vault', 'url')
         region = CONF.get_value('vault', 'region')
