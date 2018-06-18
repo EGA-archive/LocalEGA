@@ -47,7 +47,7 @@ def get_records(header):
     try:
         with urlopen(keyurl, context=ctx) as response:
             privkey = response.read()
-            return header_to_records(privkey, header, os.environ['LEGA_PASSWORD'])
+            return header_to_records(privkey, header, os.environ['LEGA_PASSWORD']), keyid
     except HTTPError as e:
         LOG.error(e)
         msg = str(e)
@@ -66,12 +66,12 @@ def work(chunk_size, mover, channel, data):
     LOG.info('Verification | message: %s', data)
 
     file_id = data['file_id']
-    header = data['header'] # in hex
+    header = bytes.fromhex(data['header']) # in hex -> bytes
     vault_path = data['vault_path']
     stable_id = data['stable_id']
 
     # Get it from the header and the keyserver
-    records = get_records(bytes.fromhex(header)) # might raise exception
+    records, key_id = get_records(header) # might raise exception
     r = records[0] # only first one
 
     LOG.info('Opening vault file: %s', vault_path)
@@ -85,6 +85,7 @@ def work(chunk_size, mover, channel, data):
 
     # Send to QC
     data.pop('status', None)
+    data['key_id'] = key_id
     LOG.debug(f'Sending message to QC: {data}')
     publish(data, channel, 'lega', 'qc') # We keep the org msg in there
 
