@@ -100,7 +100,7 @@ EGA. They can be added later on, if necessary.
 
 
 .. image:: /static/CEGA-LEGA.png
-   :target: _static/CEGA-LEGA.png
+   :target: ./_static/CEGA-LEGA.png
    :alt: RabbitMQ setup
 
 .. _supported checksum algorithm: md5
