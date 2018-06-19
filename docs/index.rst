@@ -34,10 +34,10 @@ properly uploaded.
 
 When a submission is ready, Central EGA triggers an ingestion process
 on the user-chosen Local EGA instance. The uploaded file must be
-encrypted using the `Crypt4GH file format </static/crypt4gh.pdf>`_ and
-that Local EGA instance's public PGP key. Central EGA's interface is
-updated with notifications whether the ingestion went right, whether
-there was an error or if the process is still under progress.
+encrypted using the :download:`Crypt4GH file format <./static/crypt4gh.pdf>`
+and that Local EGA instance's public PGP key. Central EGA's interface
+is updated with notifications whether the ingestion went right,
+whether there was an error or if the process is still under progress.
 
 |moreabout| More details about the :ref:`ingestion process`.
 
