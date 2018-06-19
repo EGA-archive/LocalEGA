@@ -66,7 +66,7 @@ The ``<file>`` argument can either be a file path in ``INI`` or
 mechanism will search for a log file, using that keyword, in the
 `default loggers
 <https://github.com/NBISweden/LocalEGA/tree/dev/lega/conf/loggers>`_. Currently,
-``default``, ``debug``, ``syslog``, ``logstash`` and
+``default``, ``debug``, ``console``, ``logstash`` and
 ``logstash-debug`` are available.
 
 Using the `logstash logger
