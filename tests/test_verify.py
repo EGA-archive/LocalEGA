@@ -124,7 +124,7 @@ class testVerify(unittest.TestCase):
         # Mocking a lot of stuff, ast it is previously tested
         mock_publish.return_value = mock.MagicMock()
         mock_db.status.return_value = mock.Mock()
-        mock_records.return_value = ['data']
+        mock_records.return_value = ['data'], 'key_id'
         mock_decrypt.return_value = mock.Mock()
         store = mock.MagicMock()
         store.open.return_value = mock.MagicMock()
