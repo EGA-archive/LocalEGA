@@ -9,8 +9,8 @@ The sources for LocalEGA can be downloaded and installed from the `NBIS Github r
 
     $ pip install git+https://github.com/NBISweden/LocalEGA.git
 
-The preferred method is however to use one of our deployment strategy:
-either on `Docker`_ or on `OpenStack cloud`_.
+The recommended method is however to use one of our deployment
+strategy: either on `Docker`_ or on `OpenStack cloud`_.
 
 For the LocalEGA inboxes:
 
