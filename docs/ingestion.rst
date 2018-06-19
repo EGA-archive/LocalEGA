@@ -7,7 +7,7 @@ We describe in this section the architecture of the ingestion
 procedure. We assume the files are already uploaded in the user inbox.
 
 .. image:: /static/CEGA-LEGA.png
-   :target: ../_static/CEGA-LEGA.png
+   :target: ./_static/CEGA-LEGA.png
    :alt: General Architecture
 
 For a given LocalEGA, Central EGA selects the associated ``vhost`` and
