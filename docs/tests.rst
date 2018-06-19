@@ -18,7 +18,7 @@ expected values. Unit tests can be run using the ``tox`` commands.
 
 .. code-block:: console
 
-    $ cd [git-repo]/tests
+    $ cd [git-repo]
     $ tox
 
 Integration Tests
@@ -31,10 +31,13 @@ in it. `The implementation
 <https://github.com/NBISweden/LocalEGA/blob/dev/deployments/docker/tests/README.md>`_
 is in Java, and we target a docker-based environment.
 
+We have grouped the integration around 2 targets: *Common tests* and *Robustness tests*.
+
 .. code-block:: console
 
     $ cd [git-repo]/deployments/docker/tests
-    $ mvn test -B
+    $ mvn test -Dtest=CommonTests -B
+    $ mvn test -Dtest=RobustnessTests -B
 
 Scenari
 ~~~~~~~
