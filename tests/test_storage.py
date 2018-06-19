@@ -5,6 +5,7 @@ from testfixtures import TempDirectory
 import os
 from io import UnsupportedOperation
 from unittest import mock
+import boto3
 
 
 class TestFileStorage(unittest.TestCase):
@@ -58,6 +59,20 @@ class TestS3Storage(unittest.TestCase):
         self.env.unset('S3_ACCESS_KEY')
         self.env.unset('S3_SECRET_KEY')
 
+    @mock.patch.object(boto3, 'client')
+    def test_init_s3storage(self, mock_boto):
+        """Initialise S3 storage."""
+        S3Storage()
+        mock_boto.assert_called()
+
+    @mock.patch.object(boto3, 'client')
+    def test_init_location(self, mock_boto):
+        """Initialise S3 storage."""
+        storage = S3Storage()
+        result = storage.location('file_id')
+        self.assertEqual('file_id', result)
+        mock_boto.assert_called()
+
 
 class TestS3FileReader(unittest.TestCase):
     """S3FileReader
@@ -104,6 +119,12 @@ class TestS3FileReader(unittest.TestCase):
         """Detach should raise UnsupportedOperation."""
         with self.assertRaises(UnsupportedOperation):
             self._reader.detach()
+
+    def test_read_error(self):
+        """If file is closed should raise ValueError."""
+        self._reader.closed = True
+        with self.assertRaises(ValueError):
+            self._reader.read()
 
     def test_close(self):
         """Testing close of the file reader."""
