@@ -30,18 +30,19 @@ a database and sends the remainder to a backend store. There is no
 decryption key retrieved during that step. The backend store can be
 either a regular file system on disk, or an S3 object storage.
 
-The files are stream chunk by chunk in order to constrain the memory
-usage within bounds. After completion, the remainder of the file (the
-AES encrypted bulk part) is in the vault and a message is dropped into
-the local message broker to signal that the next step can start.
+The files are read chunk by chunk in order to bound the memory
+usage. After completion, the remainder of the file (the AES encrypted
+bulk part) is in the vault and a message is dropped into the local
+message broker to signal that the next step can start.
 
-The next step is a verification step to ensure that the stored is
-decryptable and that integrated checksum is valid. At that stage, the
-main decryption key is retrieved in a secure manner, from the
-keyserver, and the header is decrypted using it. The output is the
-session key used to encrypt the original file. If decryption completes
-and the checksum is valid, a message of completion is sent to Central
-EGA: Ingestion completed.
+The next step is a verification step to ensure that the stored file is
+decryptable and that the integrated checksum is valid. At that stage,
+the associated decryption key is retrieved in a secure manner, from
+the keyserver, and the header is decrypted using it. The output
+contains the necessary information (such as the session key) to
+recuperate the original file. If decryption completes and the checksum
+is valid, a message of completion is sent to Central EGA: Ingestion
+completed.
 
 If any of the above steps generates an error, we exit the workflow and
 log the error. In case the error is related to a misuse from the user,
