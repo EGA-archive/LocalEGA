@@ -14,7 +14,8 @@ Unit Tests
 
 Unit tests are minimal: Given a set of input values for a chosen
 function, they execute the function and check if the output has the
-expected values. Unit tests can be run using the ``tox`` commands.
+expected values. Moreover, they capture triggered exceptions and
+errors. Unit tests can be run using the ``tox`` commands.
 
 .. code-block:: console
 
