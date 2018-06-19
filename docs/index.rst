@@ -34,10 +34,10 @@ properly uploaded.
 
 When a submission is ready, Central EGA triggers an ingestion process
 on the user-chosen Local EGA instance. The uploaded file must be
-encrypted using the :download:`Crypt4GH file format <./static/crypt4gh.pdf>`
-and that Local EGA instance's public PGP key. Central EGA's interface
-is updated with notifications whether the ingestion went right,
-whether there was an error or if the process is still under progress.
+encrypted in the :download:`Crypt4GH file format
+<./static/crypt4gh.pdf>` using that Local EGA's public PGP
+key. Central EGA's interface is updated with progress notifications
+whether the ingestion was successful, or whether there was an error.
 
 |moreabout| More details about the :ref:`ingestion process`.
 
@@ -61,9 +61,10 @@ Information about the Architecture
    :name: architecture
 
    Inbox                <inbox>
-   Ingestion            <ingestion/overview.rst>
-   Encryption           <ingestion/encryption.rst>
-   Database             <ingestion/db.rst>
+   Ingestion            <ingestion>
+   Encryption           <encryption>
+   Keyserver            <keyserver>
+   Database             <db>
    CEGA from/to LEGA    <connection>
 
 Miscellaneous
@@ -74,7 +75,7 @@ Miscellaneous
    :name: extra
 
    Python Modules       <code>
-   Testsuite            <tests/overview.rst>
+   Testsuite            <tests>
    Contributing         <CONTRIBUTING>
    policies
 
