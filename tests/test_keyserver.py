@@ -2,7 +2,7 @@ import unittest
 from aiohttp.test_utils import AioHTTPTestCase, unittest_run_loop
 from aiohttp import web
 from test.support import EnvironmentVarGuard
-from lega.keyserver import routes, Cache, _unlock_key, main
+from lega.keyserver import routes, Cache, _unlock_key, main, load_keys_conf
 import datetime
 from . import pgp_data
 import pgpy
@@ -69,10 +69,6 @@ class CacheTestCase(unittest.TestCase):
         """Remove setup variables."""
         self.env.unset('LEGA_PASSWORD')
 
-    def tearDown(self):
-        """Remove setup variables."""
-        self.env.unset('LEGA_PASSWORD')
-
     def test_clear(self):
         """Test clearing Cache, should return empty cache."""
         with self._key.unlock(pgp_data.PGP_PASSPHRASE) as privkey:
@@ -125,7 +121,7 @@ class TestBasicFunctionsKeyserver(unittest.TestCase):
 
     @tempdir()
     @mock.patch('lega.keyserver._cache')
-    def test_unlock_key_public(self, mock_cache, filedir):
+    def test_unlock_key_public_error(self, mock_cache, filedir):
         """Trying to unlock public key should return assertion error."""
         pub_keyfile = filedir.write('pub_key.asc', pgp_data.PGP_PUBKEY.encode('utf-8'))
         with self.env:
@@ -133,6 +129,26 @@ class TestBasicFunctionsKeyserver(unittest.TestCase):
         with self.assertRaises(AssertionError):
             _unlock_key(pgp_data.PGP_NAME, path=pub_keyfile)
         filedir.cleanup()
+
+    @tempdir()
+    @mock.patch('lega.keyserver._active')
+    @mock.patch('lega.keyserver._cache')
+    def test_unlock_key_private(self, mock_cache, mock_active, filedir):
+        """Trying to unlock private key."""
+        pub_keyfile = filedir.write('pub_key.asc', pgp_data.PGP_PRIVKEY.encode('utf-8'))
+        with self.env:
+            mock_cache.return_value = Cache()
+        _unlock_key(pgp_data.PGP_NAME, path=pub_keyfile, passphrase=pgp_data.PGP_PASSPHRASE)
+        mock_cache.set.assert_called()
+        filedir.cleanup()
+
+    @mock.patch('lega.keyserver._unlock_key')
+    def test_load_keys_conf(self, mock_unlock):
+        """Testing loading keys configuration."""
+        data = mock.MagicMock(name='sections')
+        data.sections.return_value = ['Section']
+        load_keys_conf(data)
+        mock_unlock.assert_called()
 
     @mock.patch('lega.keyserver.ssl')
     @mock.patch('lega.keyserver.web')
