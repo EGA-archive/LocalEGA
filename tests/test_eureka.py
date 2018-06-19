@@ -90,7 +90,7 @@ class EurekaClientTest(unittest.TestCase):
     def test_register_app(self, mocked):
         """Add new app to eureka."""
         mocked.post(f'{self._eureka_url}/eureka/apps/{self._app}', status=204)
-        resp = self._loop.run_until_complete(self._eurekaclient.register())
+        resp = self._loop.run_until_complete(self._eurekaclient.register(metadata='data'))
         assert resp == 204
 
     @aioresponses()

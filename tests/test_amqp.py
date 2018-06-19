@@ -43,12 +43,12 @@ class BrokerTest(unittest.TestCase):
         publish('message', mock_channel, 'exchange', 'routing')
         mock_channel.basic_publish.assert_called()
 
+    @mock.patch('lega.utils.amqp.pika')
     @mock.patch('lega.utils.amqp.publish')
-    def test_consume(self, mock_publish):
+    def test_consume(self, mock_publish, mock_pika):
         """Testing consume, should look into a queue."""
         work = mock.Mock()
         work.return_value = mock.MagicMock()
-        connection = mock.Mock()
-        connection.channel.return_value = mock.MagicMock()
-        consume(work, connection, 'queue', 'routing')
-        connection.channel.assert_called()
+        consume(work, mock_pika, 'queue', 'routing')
+        print(dir(mock_pika))
+        mock_pika.channel.assert_called()
