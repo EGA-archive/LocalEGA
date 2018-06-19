@@ -82,18 +82,17 @@ forwarded to CentralEGA (using the same routing key). This is how we
 propagate the different status of the workflow to CentralEGA, using
 the following routing keys:
 
-+-----------------------+----------------------------------------------------------------------------+
-| Name                  | Purpose                                                                    |
-+=======================+============================================================================+
-| files.completed       | In case the file is properly ingested                                      |
-+-----------------------+----------------------------------------------------------------------------+
-| files.error           | In case a user-related error is detected                                   |
-+-----------------------+----------------------------------------------------------------------------+
-| files.inbox           | In case a file is (re)uploaded                                             |
-+-----------------------+----------------------------------------------------------------------------+
-| files.inbox.checksums | In case a file path ends in ``.<algo>``, where *algo* is                   |
-|                       | one of the :doc:`supported checksum algorithm </lega/utils/checksum.py>`   |
-+-----------------------+----------------------------------------------------------------------------+
++-----------------------+-------------------------------------------------------+
+| Name                  | Purpose                                               |
++=======================+=======================================================+
+| files.completed       | In case the file is properly ingested                 |
++-----------------------+-------------------------------------------------------+
+| files.error           | In case a user-related error is detected              |
++-----------------------+-------------------------------------------------------+
+| files.inbox           | In case a file is (re)uploaded                        |
++-----------------------+-------------------------------------------------------+
+| files.inbox.checksums | In case a file path ends in ``.md5`` or ``.sha256``   |
++-----------------------+-------------------------------------------------------+
 
 Note that we do not need at the moment a queue to store the completed
 message, nor the errors, as we directly forward them to Central
