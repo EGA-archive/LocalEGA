@@ -299,29 +299,28 @@ services:
     entrypoint: ["gosu","lega","ega-keyserver","--keys","/etc/ega/keys.ini"]
 
   # Quality Control
-  verify:
+  qc:
     depends_on:
       - db
       - mq
       - inbox
       - keys
-    hostname: verify
-    container_name: verify
-    image: nbisweden/ega-base
+    hostname: qc
+    container_name: qc
+    image: nbisweden/ega-qc
     environment:
       - LEGA_PASSWORD=${LEGA_PASSWORD}
       - S3_ACCESS_KEY=${S3_ACCESS_KEY}
       - S3_SECRET_KEY=${S3_SECRET_KEY}
-      - AWS_ACCESS_KEY_ID=${S3_ACCESS_KEY}
-      - AWS_SECRET_ACCESS_KEY=${S3_SECRET_KEY}
+      - DB_INSTANCE=db
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=lega
     volumes:
        - ./lega/conf.ini:/etc/ega/conf.ini:ro
-       - ../../../lega:/home/lega/.local/lib/python3.6/site-packages/lega
-       #- ~/_cryptor/legacryptor:/root/.local/lib/python3.6/site-packages/legacryptor
     restart: on-failure:3
     networks:
       - lega
-    entrypoint: ["gosu", "lega", "ega-verify"]
 
   # S3
   s3:

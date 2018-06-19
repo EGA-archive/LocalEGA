@@ -157,7 +157,8 @@ public class Ingestion implements En {
             // So we wait until ingestion status changes to something different from "In progress".
             long maxTimeout = Long.parseLong(utils.getProperty("ingest.max-timeout"));
             long timeout = 0;
-            while ("In progress".equals(getIngestionStatus(context, utils))) {
+            String ingestionStatus = getIngestionStatus(context, utils);
+            while ("In progress".equals(ingestionStatus) || "Archived".equals(ingestionStatus)) {
                 Thread.sleep(1000);
                 timeout += 1000;
                 if (timeout > maxTimeout) {
