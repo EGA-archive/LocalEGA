@@ -4,6 +4,14 @@
 
 The YAML files do not include configuration/passwords for starting services. Such configuration can generated using the `make bootstrap` script in the `~/LocalEGA/deployment/docker` folder or provided per each case.
 
+File that require configuration:
+* `keyserver/cm.keyserver.yml`
+* `keyserver/secret.keyserver.yml`
+* `lega-config/cm.lega.yml`
+* `lega-config/secret.lega.yml`
+* `mq/cm.lega-mq.yml`
+* `mq/sts.lega-mq.yml`
+
 Following instructions are for Minikube deployment:
 Once [minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/) and [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) are installed:
 
@@ -21,8 +29,8 @@ kubectl create -f ./cega-mq
 ```
 ####  Deploy LocalEGA
 ```
-kubectl create -f ./lega-config ./mq -f ./postgres ./s3
-kubectl create -f ./keyserver ./verify ./ingest ./inbox
+kubectl create -f ./lega-config -f ./mq -f ./postgres -f ./s3
+kubectl create -f ./keyserver -f ./verify -f ./ingest -f ./inbox
 ```
 
 #### Other useful information
