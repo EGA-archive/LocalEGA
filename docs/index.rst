@@ -41,6 +41,10 @@ whether the ingestion was successful, or whether there was an error.
 
 |moreabout| More details about the :ref:`ingestion process`.
 
+.. image:: /static/components.png
+   :target: ./_static/components.png
+   :alt: General Architecture and Connected Components
+
 ----
 
 Getting started
