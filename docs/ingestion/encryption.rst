@@ -2,55 +2,61 @@ Encryption Algorithm - Crypt4GH
 ===============================
 
 The encryption procedure uses the :download:`Crypt4GH file format
-</static/crypt4gh.pdf>`, which works as follows.
+<../static/crypt4gh.pdf>`, which works as follows.
 
 A random session key (of 256 bits) is generated to seed an AES engine,
-in CTR mode. An initialization vector (IV) is also randomly generated for the
-engine. Using the two latters, the original file is encrypted and a
-header is prepended to the encrypted data.
+in CTR mode. An initialization vector (IV) is also randomly generated
+for the engine. Using the two latters, the original file is encrypted
+and a header is prepended to the encrypted data.
 
 Informally, the header contains, in order, the word ``crypt4gh``, the
 format version (currently 1), the length of the remainder of the
 header and the remainder.
 
-The remainder is an `OpenPGP <https://tools.ietf.org/html/rfc4880>` encrypted message that contains *records*.
-A record encapsulates a section of the original file, the randomly-generated session key and IV, and the counter offset.
+The remainder is an `OpenPGP <https://tools.ietf.org/html/rfc4880>`_
+encrypted message that contains *records*.  A record encapsulates a
+section of the original file, the randomly-generated session key and
+IV, and the counter offset.
 
 .. image:: /static/encryption.png
    :target: ../_static/encryption.png
    :alt: Encryption
 
+
 The advantages of the format are, among others:
+
 * Re-encrypting the file for another user requires only to decrypt the header and encrypt it with the user's public key.
 * Ingesting the file does not require a decryption step. (Note: That is done in the `verification step <ingestion>`_).
-* Encrypting parts of the file is encoded in the records, and even potentially using different session keys
+* Possibility to encrypt parts of the file using different session keys
+* The CTR offset allows to encrypt/decrypt only part of the file, and/or run the cryptographic tasks in parallel.
+
 
 Keyserver REST API
 ^^^^^^^^^^^^^^^^^^
 
-Active keys endpoint (as hex strings):
+The keyserver either returns a application-locked key or the currently
+active key. If the ``Content-Type: text/plain`` is requested, the
+ASCII-armored key is returned, otherwise the binary format is
+returned. The components requesting the keys should have the
+application token/password in order to unlock the received keys. In
+case the request is unsuccessful the response code is ``404``.
+
+**Active key endpoint**:
 
 * ``/active/private`` - GET request for the private part of the active key
 * ``/active/public`` - GET request for the public part of the active key
 
-Retrieve keys endpoint (as hex strings):
+**Retrieve keys endpoint**:
 
 * ``/retrieve/<key_id>/private`` - GET request for a private PGP key with a given ``<key_id>`` of fingerprint
 * ``/retrieve/<key_id>/public`` - GET request for a private PGP key with a given ``<key_id>`` of fingerprint
 
-Admin endpoint:
+**Admin endpoint**:
 
 * ``/admin/unlock`` - POST request to unlock a key with a known path
 * ``/admin/ttl`` - GET request to check when keys will expire
 
-Health Endpoint: ``/health`` will answer with ``200``
-
-.. note:: Example Request/Response are available illustrating response
-    body content, note the similar structured content for both
-    ``/active`` and ``/retrieve`` endpoints. In case the request is
-    unsuccessful the response code is ``404``. If the ``Content-Type:
-    text/plain`` is requested, the ASCII-armored key is returned,
-    otherwise the binary format is returned.
+**Health endpoint**: ``/health`` will answer with ``200``
 
 
 For example, sending a request (with ``Content-Type: text/plain``
