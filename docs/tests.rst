@@ -26,7 +26,7 @@ Integration Tests
 
 Integration tests are more involved and simulate how a user will use
 the system. Therefore, we have develop a `bootstrap script
-<bootstrap>`_ to kickstart the system, and we execute a set of scenari
+<bootstrap>`_ to kickstart the system, and we execute a set of scenarii
 in it. `The implementation
 <https://github.com/NBISweden/LocalEGA/blob/dev/deployments/docker/tests/README.md>`_
 is in Java, and we target a docker-based environment.
@@ -39,10 +39,10 @@ We have grouped the integration around 2 targets: *Common tests* and *Robustness
     $ mvn test -Dtest=CommonTests -B
     $ mvn test -Dtest=RobustnessTests -B
 
-Scenari
-~~~~~~~
+Scenarii
+~~~~~~~~
 
-Here follow the different scenari we currently test, using a Gherkin-style description.
+Here follow the different scenarii we currently test, using a Gherkin-style description.
 
 .. literalinclude:: /../deployments/docker/tests/src/test/resources/cucumber/features/authentication.feature
    :language: gherkin
