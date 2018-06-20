@@ -20,6 +20,8 @@ chmod 644 ${PRIVATE}/lega/pgp/ega2.pub
 echomsg "\t* the SSL certificates"
 ${OPENSSL} req -x509 -newkey rsa:2048 -keyout ${PRIVATE}/lega/certs/ssl.key -nodes -out ${PRIVATE}/lega/certs/ssl.cert -sha256 -days 1000 -subj ${SSL_SUBJ}
 
+${OPENSSL} req -x509 -newkey rsa:2048 -keyout ${PRIVATE}/lega/certs/ssl-outgest.key -nodes -out ${PRIVATE}/lega/certs/ssl-outgest.cert -sha256 -days 1000 -subj ${SSL_SUBJ}
+
 #########################################################################
 
 echomsg "\t* keys.ini"
@@ -62,10 +64,14 @@ access_key = ${S3_ACCESS_KEY}
 secret_key = ${S3_SECRET_KEY}
 #region = lega
 
-
 [outgestion]
 # Just for test
 keyserver_endpoint = https://keys:8443/retrieve/%s/private
+verify_keyserver_certificate = False
+ssl_certfile = /etc/ega/ssl.cert
+ssl_keyfile = /etc/ega/ssl.key
+host = 0.0.0.0
+port = 8443
 
 ## Connecting to Local EGA
 [broker]
@@ -288,6 +294,35 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     # ports:
     #   - "${DOCKER_PORT_s3}:9000"
     command: server /data
+
+  # Just for test
+  outgest:
+    depends_on:
+      - db
+      - s3
+      - keys
+    image: nbisweden/ega-base
+    container_name: outgest
+    expose:
+      - "8443"
+    ports:
+      - "${DOCKER_PORT_outgest}:8443"
+    environment:
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY}
+      - S3_SECRET_KEY=${S3_SECRET_KEY}
+      - AWS_ACCESS_KEY_ID=${S3_ACCESS_KEY}
+      - AWS_SECRET_ACCESS_KEY=${S3_SECRET_KEY}
+      - LEGA_PASSWORD=${LEGA_PASSWORD}
+    volumes:
+       - ./lega/certs/ssl-outgest.cert:/etc/ega/ssl.cert:ro
+       - ./lega/certs/ssl-outgest.key:/etc/ega/ssl.key:ro
+       - ./lega/conf.ini:/etc/ega/conf.ini:ro
+       - ~/_ega/lega:/home/lega/.local/lib/python3.6/site-packages/lega
+       - ~/_cryptor/legacryptor:/home/lega/.local/lib/python3.6/site-packages/legacryptor
+    restart: on-failure:3
+    networks:
+      - lega
+    entrypoint: ["gosu", "lega", "ega-outgest"]
 
 # Use the default driver for volume creation
 volumes:

@@ -5,18 +5,28 @@ root:
 
 loggers:
   lega:
-    level: INFO
+    level: DEBUG
     handlers: [console]
     propagate: true
     qualname: lega
-  asyncio:
-    level: ERROR
-    handlers: [console]
-  aiohttp:
-    level: ERROR
+  legacryptor:
+    level: DEBUG
     handlers: [console]
     propagate: true
-    qualname: aiohttp
+    qualname: legacryptor
+  # asyncio:
+  #   level: ERROR
+  #   handlers: [console]
+  # aiohttp:
+  #   level: INFO
+  #   handlers: [console]
+  #   propagate: true
+  #   qualname: aiohttp
+  # pika:
+  #   level: INFO
+  #   handlers: [console]
+  #   propagate: true
+  #   qualname: pika
 
 handlers:
   noHandler:
