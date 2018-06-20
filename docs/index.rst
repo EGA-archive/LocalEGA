@@ -81,7 +81,6 @@ Miscellaneous
    Python Modules       <code>
    Testsuite            <tests>
    Contributing         <CONTRIBUTING>
-   policies
 
 |Codacy| | |Travis| | Version |version| | Generated |today|
 
