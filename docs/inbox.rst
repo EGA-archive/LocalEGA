@@ -83,11 +83,10 @@ eg:
    ##################
    # FUSE mount
    ##################
-   ega_fuse_dir = /lega
-   # /username will be appended.
-   # Example: for user 'john', the mountpoint will be /lega/john
-   ega_fuse_exec = /usr/bin/ega-fs
-   ega_fuse_flags = nodev,noexec,uid=1000,gid=1000,suid
+   ega_fuse_exec = /usr/bin/ega-inbox
+   ega_fuse_flags = nodev,noexec,suid,default_permissions,allow_other,uid=1000,gid=1000
+
+
 
 We use the following default values if the option is not specified in
 the configuration file.
