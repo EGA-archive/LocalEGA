@@ -59,7 +59,7 @@ def get_connection(domain, blocking=True):
 
 def publish(message, channel, exchange, routing, correlation_id=None):
     '''
-    Sending a message to the local broker with `path` was updated
+    Sending a message to the local broker with ``path`` was updated
     '''
     LOG.debug(f'Sending {message} to exchange: {exchange} [routing key: {routing}]')
     channel.basic_publish(exchange    = exchange,
@@ -71,16 +71,16 @@ def publish(message, channel, exchange, routing, correlation_id=None):
 
 
 def consume(work, connection, from_queue, to_routing):
-    '''Blocking function, registering callback `work` to be called.
+    '''Blocking function, registering callback ``work`` to be called.
 
     from_broker must be a pair (from_connection: pika:Connection, from_queue: str)
     to_broker must be a triplet (to_connection: pika:Connection, to_exchange: str, to_routing: str)
 
-    If there are no message in `from_queue`, the function blocks and
+    If there are no message in ``from_queue``, the function blocks and
     waits for new messages.
 
-    If the function `work` returns a non-None message, the latter is
-    published to the exchange `to_exchange` with `to_routing` as the
+    If the function ``work`` returns a non-None message, the latter is
+    published to the exchange ``to_exchange`` with ``to_routing`` as the
     routing key.
     '''
 
