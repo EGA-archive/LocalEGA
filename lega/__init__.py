@@ -4,7 +4,7 @@
 """The lega package contains code to start a *Local EGA*. """
 
 __title__ = 'Local EGA'
-__version__ = VERSION = '0.1'
+__version__ = VERSION = '1.1'
 __author__ = 'Frédéric Haziza'
 #__license__ = 'Apache 2.0'
 __copyright__ = 'Local EGA @ NBIS Sweden'

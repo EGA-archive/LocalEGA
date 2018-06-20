@@ -1,24 +1,27 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-'''Worker reading messages from the ``files`` queue, decrypting and
-re-encrypting inbox files into a staging area.
+'''Worker reading messages from the ``files`` queue, splitting the
+Crypt4GH header from the remainder of the file.  The header is stored
+in the database and the remainder is sent to the backend storage:
+either a regular file system or an S3 object store.
 
 It is possible to start several workers.
 
-When a message is consumed, it must be of the form:
+When a message is consumed, it must at least contain the following fields:
 
 * ``filepath``
 * ``stable_id``
 * ``user_id``
 
-and optionally an integrity field, called ``unencrypted_integrity``, with:
+Optionally an integrity field, called ``unencrypted_integrity``, can be added, with:
 
 * ``checksum`` value
 * ``algorithm`` - the associated hash algorithm
 
 Upon completion, a message is sent to the local exchange with the
 routing key :``archived``.
+
 '''
 
 import sys
@@ -60,16 +63,7 @@ def run_checksum(data, integrity, filename):
 @db.catch_error
 @db.crypt4gh_to_user_errors
 def work(fs, channel, data):
-    '''Ingestion function
-
-    The data is of the form:
-
-    * user id
-    * a filepath
-    * unencrypted hash information (with both the hash value and the hash algorithm)
-
-    .. note:: The supported hash algorithm are, for the moment, MD5 and SHA256.
-    '''
+    '''Reads a message, splits the header and sends the remainder to the backend store.'''
 
     filepath = data['filepath']
     stable_id = data['stable_id']
