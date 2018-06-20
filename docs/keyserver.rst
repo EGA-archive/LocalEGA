@@ -72,3 +72,32 @@ gives the following response.
           cr0SLPSsoG4Sld22f2x0JWpZIBN96h1oUxr6
           =IFAc
           -----END PGP PUBLIC KEY BLOCK-----
+
+Generating PGP Key Pair
+-----------------------
+
+For convenience we have provided a `script <https://github.com/NBISweden/LocalEGA/blob/dev/extras/generate_pgp_key.py>`_ for generating a PGP key pair based on `PGPy <https://pgpy.readthedocs.io>`_ .
+We make use of the script in :ref:`bootstrap`.
+
+.. code-block:: bash
+
+  $ python generate_pgp_key.py -h
+    usage: generate_pgp_key.py [-h] [--passphrase PASSPHRASE] [--pub PUB]
+                               [--priv PRIV] [--armor]
+                               name email comment
+
+    Creating public/private PGP keys
+
+    positional arguments:
+    name                  PGP user name
+    email                 PGP user email
+    comment               PGP user comment
+
+    optional arguments:
+    -h, --help            show this help message and exit
+    --passphrase PASSPHRASE
+                          Password to protect the private key. If none, the key
+                          is left unlocked
+    --pub PUB             Output file for public key [Default: stdout]
+    --priv PRIV           Output file for private key [Default: stdout]
+    --armor, -a           ASCII armor the output
