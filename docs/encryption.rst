@@ -26,8 +26,6 @@ IV, and the counter offset.
 The advantages of the format are, among others:
 
 * Re-encrypting the file for another user requires only to decrypt the header and encrypt it with the user's public key.
-* Ingesting the file does not require a decryption step. (Note: That is done in the verification step).
+* Ingesting the file does not require a decryption step. `(Note: That is done in the verification step)`.
 * Possibility to encrypt parts of the file using different session keys
 * The CTR offset allows to encrypt/decrypt only part of the file, and/or run the cryptographic tasks in parallel.
-
-
