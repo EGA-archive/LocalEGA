@@ -34,6 +34,7 @@ class Status(Enum):
 ##         DB connection            ##
 ######################################
 def fetch_args(d):
+    """Initializing a connection to db."""
     db_args = { 'user'     : d.get_value('postgres', 'user'),
                 'password' : d.get_value('postgres', 'password'),
                 'database' : d.get_value('postgres', 'db'),
@@ -74,9 +75,8 @@ async def _retry(run, on_failure=None, exception=psycopg2.OperationalError):
 
 
 def retry_loop(on_failure=None, exception=psycopg2.OperationalError):
-    '''\
-    Decorator retry something `try` times every `try_interval` seconds.
-    Run the `on_failure` if after `try` attempts (configured in CONF).
+    '''Decorator retry something ``try`` times every ``try_interval`` seconds.
+    Run the ``on_failure`` if after ``try`` attempts (configured in CONF).
     '''
     def decorator(func):
         if asyncio.iscoroutinefunction(func):
@@ -120,13 +120,14 @@ def connect():
 
     Upon success, the connection is cached.
 
-    Before success, we try to connect `try` times every `try_interval` seconds (defined in CONF)
+    Before success, we try to connect ``try`` times every ``try_interval`` seconds (defined in CONF)
     '''
     db_args = fetch_args(CONF)
     return psycopg2.connect(**db_args)
 
 
 def insert_file(filename, user_id, stable_id):
+    """Store file related information such as related ``user_id``, ``stable_id``, ``status`` etc."""
     with connect() as conn:
         with conn.cursor() as cur:
             cur.execute('SELECT insert_file(%(filename)s,%(user_id)s,%(stable_id)s,%(status)s);',
@@ -140,6 +141,7 @@ def insert_file(filename, user_id, stable_id):
 
 
 def get_errors(from_user=False):
+    """Retrieve error from database."""
     query = 'SELECT * from errors WHERE from_user = true;' if from_user else 'SELECT * from errors;'
     with connect() as conn:
         with conn.cursor() as cur:
@@ -147,6 +149,7 @@ def get_errors(from_user=False):
             return cur.fetchall()
 
 def set_error(file_id, error, from_user=False):
+    """Store error related to ``file_id`` in database."""
     assert file_id, 'Eh? No file_id?'
     assert error, 'Eh? No error?'
     LOG.debug(f'Setting error for {file_id}: {error!s} | Cause: {error.__cause__}')
@@ -157,6 +160,7 @@ def set_error(file_id, error, from_user=False):
                         {'h':hostname, 'etype': error.__class__.__name__, 'msg': repr(error), 'file_id': file_id, 'from_user': from_user})
 
 def get_info(file_id):
+    """Retrieve information for ``file_id``."""
     with connect() as conn:
         with conn.cursor() as cur:
             query = 'SELECT inbox_path, vault_path, stable_id, header from files WHERE id = %(file_id)s;'
@@ -164,6 +168,7 @@ def get_info(file_id):
             return cur.fetchone()
 
 def set_status(file_id, status):
+    """Updaring File ``file_id`` status."""
     assert file_id, 'Eh? No file_id?'
     LOG.debug(f'Updating status file_id {file_id} with "{status.value}"')
     with connect() as conn:
@@ -171,6 +176,7 @@ def set_status(file_id, status):
             cur.execute('UPDATE files SET status = %(status)s WHERE id = %(file_id)s;', {'status': status.value, 'file_id': file_id })
 
 def set_info(file_id, vault_path, vault_filesize, header):
+    """Updating information in database for ``file_id``."""
     assert file_id, 'Eh? No file_id?'
     assert vault_path, 'Eh? No vault name?'
     LOG.debug(f'Updating status file_id {file_id}')
