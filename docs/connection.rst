@@ -26,14 +26,14 @@ creates the credentials to connect to that ``vhost`` in the form of a
 ``LegaMQ`` then uses a connection string with the following syntax:
 
 .. code-block:: console
-		
+
    amqp[s]://<user>:<password>@<cega-host>:<port>/<vhost>
 
 
 ``CegaMQ`` contains an exchange named ``localega.v1``. ``v1`` is used for
 versioning and is internal to CentralEGA. The queues connected to that
 exchange are also internal to CentralEGA. For this documentation, we
-use the stub implementation of CentralEGA and the follwing queues, per
+use the stub implementation of CentralEGA and the following queues, per
 ``vhost``:
 
 +-----------------+------------------------------------+
