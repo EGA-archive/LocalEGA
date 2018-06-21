@@ -309,6 +309,7 @@ services:
     container_name: qc
     image: nbisweden/ega-qc
     environment:
+      - STORAGE_DRIVER=S3Driver
       - LEGA_PASSWORD=${LEGA_PASSWORD}
       - S3_ACCESS_KEY=${S3_ACCESS_KEY}
       - S3_SECRET_KEY=${S3_SECRET_KEY}
