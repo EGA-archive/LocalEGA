@@ -1,136 +1,25 @@
 import string
 import secrets
 import logging
-import configparser
 from base64 import b64encode
 from kubernetes import client, config
 from kubernetes.client.rest import ApiException
 from pathlib import Path
-import os
-import errno
+from configure import ConfigGenerator
 
-from pgpy import PGPKey, PGPUID
-from pgpy.constants import PubKeyAlgorithm, KeyFlags, HashAlgorithm, SymmetricKeyAlgorithm, CompressionAlgorithm
 
 # Logging
 FORMAT = '[%(asctime)s][%(name)s][%(process)d %(processName)s][%(levelname)-8s] (L:%(lineno)s) %(funcName)s: %(message)s'
 logging.basicConfig(format=FORMAT, datefmt='%Y-%m-%d %H:%M:%S')
 LOG = logging.getLogger(__name__)
+LOG.setLevel(logging.INFO)
 
 # Setup kubernete configuration
 config.load_kube_config()
 api_core = client.CoreV1Api()
 api_app = client.AppsV1Api()
 api_beta_app = client.AppsV1beta1Api()
-
-
-class ConfigGenerator:
-    """Configuration generator.
-
-    For when one needs to do create configuration files.
-    """
-
-    def __init__(self, config_path, name, email, namespace, services,):
-        """Setting things up."""
-        self.name = name
-        self.email = email
-        self.namespace = namespace
-        self._key_service = services['keys']
-        self._db_service = services['db']
-        self._s3_service = services['s3']
-        self._broker_service = services['broker']
-        self._config_path = config_path
-
-        if not os.path.exists(self._config_path):
-            try:
-                os.makedirs(self._config_path)
-            except OSError as exc:  # Guard against race condition
-                if exc.errno != errno.EEXIST:
-                    raise
-
-    def _generate_pgp_pair(self, comment, passphrase, armor):
-        """Generate PGP key pair to be used by keyserver."""
-        # We need to specify all of our preferences because PGPy doesn't have any built-in key preference defaults at this time.
-        # This example is similar to GnuPG 2.1.x defaults, with no expiration or preferred keyserver
-        key = PGPKey.new(PubKeyAlgorithm.RSAEncryptOrSign, 4096)
-        uid = PGPUID.new(self.name, email=self.email, comment=comment)
-        key.add_uid(uid,
-                    usage={KeyFlags.Sign, KeyFlags.EncryptCommunications, KeyFlags.EncryptStorage},
-                    hashes=[HashAlgorithm.SHA256, HashAlgorithm.SHA384, HashAlgorithm.SHA512, HashAlgorithm.SHA224],
-                    ciphers=[SymmetricKeyAlgorithm.AES256, SymmetricKeyAlgorithm.AES192, SymmetricKeyAlgorithm.AES128],
-                    compression=[CompressionAlgorithm.ZLIB, CompressionAlgorithm.BZ2, CompressionAlgorithm.ZIP, CompressionAlgorithm.Uncompressed])
-
-        # Protecting the key
-        key.protect(passphrase, SymmetricKeyAlgorithm.AES256, HashAlgorithm.SHA256)
-        pub_data = str(key.pubkey) if armor else bytes(key.pubkey)  # armored or not
-        sec_data = str(key) if armor else bytes(key)  # armored or not
-
-        return (pub_data, sec_data)
-
-    def create_conf_shared(self, scheme=None):
-        """Creating default configuration file, namely ```conf.ini`` file."""
-        config = configparser.RawConfigParser()
-        file_flag = 'w'
-        scheme = scheme if scheme else 'svc.cluster.local'
-        # Apparently this is the only way the log is actually loaded. To investigate.
-        config.set('DEFAULT', 'log', '/usr/lib/python3.6/site-packages/lega/conf/loggers/console.yaml')
-        # keyserver
-        config.add_section('keyserver')
-        config.set('keyserver', 'port', '8443')
-        # quality control
-        config.add_section('quality_control')
-        config.set('quality_control', 'keyserver_endpoint', f'https://{self._key_service}.{self.namespace}.{scheme}:8443/retrieve/%s/private')
-        # inbox
-        config.add_section('inbox')
-        config.set('inbox', 'location', '/ega/inbox/%s')
-        config.set('inbox', 'mode', '2750')
-        # vault
-        config.add_section('vault')
-        config.set('vault', 'driver', 'S3Storage')
-        config.set('vault', 'url', f'http://{self._s3_service}.{self.namespace}.{scheme}:9000')
-        # outgestion
-        config.add_section('outgestion')
-        config.set('outgestion', 'keyserver_endpoint',  f'https://{self._key_service}.{self.namespace}.{scheme}:8443/retrieve/%s/private')
-        # broker
-        config.add_section('broker')
-        config.set('broker', 'host', f'{self._broker_service}.{self.namespace}.{scheme}')
-        config.set('broker', 'connection_attempts', '30')
-        config.set('broker', 'retry_delay', '10')
-        # Postgres
-        config.add_section('postgres')
-        config.set('postgres', 'host', f'{self._db_service}.{self.namespace}.{scheme}')
-        config.set('postgres', 'user', 'lega')
-        config.set('postgres', 'try', '30')
-
-        with open(self._config_path / 'conf.ini', file_flag) as configfile:
-            config.write(configfile)
-
-    def add_conf_key(self, expire, file_name, comment, passphrase, armor=True, active=False):
-        """Create default configuration for keyserver.
-
-        .. note: Information for the key is provided as dictionary for ``key_data``, and should be in the format ``{'comment': '','passphrase': None, 'armor': True}. If a passphrase is not provided it will generated.``
-        """
-        _generate_secret = ''.join(secrets.choice(string.ascii_letters + string.digits) for i in range(32))
-        _passphrase = passphrase if passphrase else _generate_secret
-        comment = comment if comment else "Generated for use in LocalEGA."
-        config = configparser.RawConfigParser()
-        file_flag = 'w'
-        if os.path.exists(self._config_path / 'keys.ini'):
-            config.read(self._config_path / 'keys.ini')
-        if active:
-            config.set('DEFAULT', 'active', file_name)
-        if not config.has_section(file_name):
-            pub, sec = self._generate_pgp_pair(comment, _passphrase, armor)
-            config.add_section(file_name)
-            config.set(file_name, 'path', '/etc/ega/pgp/%s' % file_name)
-            config.set(file_name, 'passphrase', _passphrase)
-            config.set(file_name, 'expire', expire)
-            with open(self._config_path / f'{file_name}.pub', 'w' if armor else 'bw') as f:
-                f.write(pub)
-            with open(self._config_path / f'{file_name}.sec', 'w' if armor else 'bw') as f:
-                f.write(sec)
-        with open(self._config_path / 'keys.ini', file_flag) as configfile:
-            config.write(configfile)
+api_extension = client.ExtensionsV1beta1Api()
 
 
 class LocalEGADeploy:
@@ -140,7 +29,7 @@ class LocalEGADeploy:
     """
 
     def __init__(self, keys):
-        """Setting things up."""
+        """Set things up."""
         self.keys = keys
         self._namespace = keys["namespace"]
         self._role = keys["role"]
@@ -153,13 +42,13 @@ class LocalEGADeploy:
         if len(namespaces) == 0:
             namespace = client.V1Namespace()
             namespace.metadata = client.V1ObjectMeta(name=self._namespace, labels={'role': self._role})
-            api_core.create_namespace(self._namespace)
+            api_core.create_namespace(namespace)
             LOG.info(f'Namespace: {self._namespace} created.')
         else:
             LOG.info(f'Namespace: {self._namespace} exists.')
 
     def _generate_secret(self, value):
-        """"Generate secret of specifig value.
+        """Generate secret of specifig value.
 
         .. note: If the value is of type integer it will generate a random of that value,
         else it will take that value.
@@ -191,8 +80,7 @@ class LocalEGADeploy:
         """Create and upload configMap, patch option also available."""
         conf_map = client.V1ConfigMap()
         conf_map.metadata = client.V1ObjectMeta(name=name)
-        conf_map.data = {}
-        conf_map.data["test"] = data
+        conf_map.data = data
 
         try:
             api_core.create_namespaced_config_map(namespace=self._namespace, body=conf_map)
@@ -204,22 +92,35 @@ class LocalEGADeploy:
             else:
                 LOG.error(f'Exception message: {e}')
 
-    def upload_deploy(self, name, data, patch=False):
+    def upload_deploy(self, name, image, command, env, vmounts, volumes, ports=None, replicas=1, patch=False):
         """Create and upload deployment, patch option also available."""
-        deploy = client.AppsV1beta1Deployment()
+        deploy = client.V1Deployment(kind="Deployment", api_version="apps/v1")
+        deploy.metadata = client.V1ObjectMeta(name=name)
+        container = client.V1Container(name=name, image=image, image_pull_policy="IfNotPresent",
+                                       volume_mounts=vmounts, command=command, env=env)
+        if ports:
+            container.ports = list(map(lambda x: client.V1ContainerPort(container_port=x), ports))
+        template = client.V1PodTemplateSpec(metadata=client.V1ObjectMeta(labels={"app": name}),
+                                            spec=client.V1PodSpec(containers=[container], volumes=volumes, restart_policy="OnFailure"))
+        spec = client.V1DeploymentSpec(replicas=replicas, template=template, selector=client.V1LabelSelector(match_labels={"app": name}))
+        deploy.spec = spec
         try:
-            api_beta_app.create_namespaced_deployment(namespace=self._namespace, body=deploy)
+            api_app.create_namespaced_deployment(namespace=self._namespace, body=deploy)
             LOG.info(f'Deployment: {name} created.')
         except ApiException as e:
             if e.status == 409 and patch:
-                api_app.patch_namespaced_deployement(name=name, namespace=self._namespace, body=deploy)
+                api_app.patch_namespaced_deployment(name=name, namespace=self._namespace, body=deploy)
                 LOG.info(f'Deployment: {name} patched.')
             else:
                 LOG.error(f'Exception message: {e}')
 
-    def upload_service(self, name, data, patch=False):
+    def upload_service(self, name, ports, patch=False):
         """Create and upload service, patch option also available."""
-        svc_conf = client.V1Service()
+        svc_conf = client.V1Service(kind="Service", api_version="v1")
+        svc_conf.metadata = client.V1ObjectMeta(name=name)
+        spec = client.V1ServiceSpec(selector={"app": name}, ports=ports)
+        svc_conf.spec = spec
+
         try:
             api_core.create_namespaced_service(namespace=self._namespace, body=svc_conf)
             LOG.info(f'Service: {name} created.')
@@ -230,9 +131,18 @@ class LocalEGADeploy:
             else:
                 LOG.error(f'Exception message: {e}')
 
-    def upload_stateful_set(self, name, data, patch=False):
+    def upload_stateful_set(self, name, image, command, ports, env, vmounts, volumes, replicas=1, patch=False):
         """Create and upload StatefulSet, patch option also available."""
-        sts_conf = client.V1beta1StatefulSet()
+        sts_conf = client.V1StatefulSet(kind="StatefulSet", api_version="v1")
+        sts_conf.metadata = client.V1ObjectMeta(name=name)
+        container = client.V1Container(name=name, image=image, image_pull_policy="IfNotPresent",
+                                       volume_mounts=vmounts, command=command, env=env)
+        if ports:
+            container.ports = list(map(lambda x: client.V1ContainerPort(container_port=x), ports))
+        template = client.V1PodTemplateSpec(metadata=client.V1ObjectMeta(labels={"app": name}),
+                                            spec=client.V1PodSpec(containers=[container], volumes=volumes, restart_policy="OnFailure"))
+        spec = client.V1StatefulSetSpec(replicas=replicas, template=template, selector=client.V1LabelSelector(match_labels={"app": name}))
+        sts_conf.spec = spec
         try:
             api_beta_app.create_namespaced_service(namespace=self._namespace, body=sts_conf)
             LOG.info(f'Service: {name} created.')
@@ -244,7 +154,7 @@ class LocalEGADeploy:
                 LOG.error(f'Exception message: {e}')
 
     def destroy(self):
-        """"No need for the namespace delete everything."""
+        """No need for the namespace, delete everything."""
         namespace_list = api_core.list_namespace(label_selector='role')
         namespaces = [x for x in namespace_list.items if x.metadata.labels['role'] == self._role]
 
@@ -260,8 +170,8 @@ class LocalEGADeploy:
 def main():
     """Where the magic happens."""
     _localega = {
-        'namespace': 'test',
-        'role': 'lega',
+        'namespace': 'testing',
+        'role': 'testing',
         'services': {'keys': 'lega-keyserver',
                      'inbox': 'lega-inbox',
                      'ingest': 'lega-ingest',
@@ -274,21 +184,96 @@ def main():
     _here = Path(__file__).parent
     config_dir = _here / 'config'
 
-    configure = ConfigGenerator(config_dir, 'Test PGP', 'test@csc.fi',  _localega['namespace'], _localega['services'])
+    # Generate Configuration
+    config = ConfigGenerator(config_dir, 'Test PGP', 'test@csc.fi',  _localega['namespace'], _localega['services'])
 
-    configure.create_conf_shared()
-    # configure.add_conf_key('1', 'key.1', comment=None, passphrase=None, armor=True, active=False)
-    configure.add_conf_key('1', 'key.2', comment=None, passphrase=None, armor=True, active=True)
+    config.create_conf_shared()
+    config.add_conf_key('30/DEC/19 08:00:00', 'key.1', comment=None, passphrase=None, armor=True, active=False)
+    config.add_conf_key('30/DEC/19 08:00:00', 'key.2', comment=None, passphrase=None, armor=True, active=True)
+    config.generate_ssl_certs(country="Finland", country_code="FI", location="Espoo", org="CSC", email="test@csc.fi")
 
-    # deploy = LocalEGADeploy(_localega)
-    #
-    # deploy.create_namespace()
-    # deploy.upload_secret('lega-db-secret', {'postgres_password': 32})
-    # deploy.upload_secret('s3-keys', {'access': 16, 'secret': 32})
-    # deploy.upload_secret('lega-password', {'password': 32})
-    # with open(_here / 'config/ega.ini') as conf_file:
-    #     data = conf_file.read()
-    #     deploy.upload_config('test', data, patch=True)
+    deploy_lega = LocalEGADeploy(_localega)
+
+    deploy_lega.create_namespace()
+    # Create Secrets
+    deploy_lega.upload_secret('lega-db-secret', {'postgres_password': 32})
+    deploy_lega.upload_secret('s3-keys', {'access': 16, 'secret': 32})
+    deploy_lega.upload_secret('lega-password', {'password': 32})
+    # Read conf from files
+    with open(_here / 'scripts/db.sql') as sql_init:
+        init_sql = sql_init.read()
+
+    with open(_here / 'config/conf.ini') as conf_file:
+        data_conf = conf_file.read()
+
+    with open(_here / 'config/keys.ini') as keys_file:
+        data_keys = keys_file.read()
+
+    with open(_here / 'config/key.1.sec') as key_file:
+        key1_data = key_file.read()
+
+    with open(_here / 'config/key.2.sec') as key_file:
+        key2_data = key_file.read()
+
+    with open(_here / 'config/ssl.key') as cert_key_file:
+        ssl_key_data = cert_key_file.read()
+
+    with open(_here / 'config/ssl.cert') as cert_file:
+        cert_data = cert_file.read()
+
+    # Upload Configuration Maps
+    deploy_lega.upload_config('initsql', {'db.sql': init_sql})
+    deploy_lega.upload_config('lega-config', {'conf.ini': data_conf}, patch=True)
+    deploy_lega.upload_config('lega-keyserver-config', {'keys.ini': data_keys}, patch=True)
+    deploy_lega.upload_secret('keyserver-secret', {'key1.sec': key1_data, 'key2.sec': key2_data,
+                                                   'ssl.cert': cert_data, 'ssl.key': ssl_key_data}, patch=True)
+    deploy_lega.upload_config('lega-db-config', {'user': 'lega', 'dbname': 'lega'})
+
+    # Setting ENV variables and Volumes
+    env_acc_s3 = client.V1EnvVar(name="S3_ACCESS_KEY",
+                                 value_from=client.V1EnvVarSource(secret_key_ref=client.V1SecretKeySelector(name='s3-keys',
+                                                                                                            key="access")))
+    env_sec_s3 = client.V1EnvVar(name="S3_SECRET_KEY",
+                                 value_from=client.V1EnvVarSource(secret_key_ref=client.V1SecretKeySelector(name='s3-keys',
+                                                                                                            key="secret")))
+    env_db_pass = client.V1EnvVar(name="POSTGRES_PASSWORD",
+                                  value_from=client.V1EnvVarSource(secret_key_ref=client.V1SecretKeySelector(name='lega-db-secret',
+                                                                                                             key="postgres_password")))
+    env_db_user = client.V1EnvVar(name="POSTGRES_USER",
+                                  value_from=client.V1EnvVarSource(config_map_key_ref=client.V1ConfigMapKeySelector(name='lega-db-config',
+                                                                                                                    key="user")))
+    env_db_name = client.V1EnvVar(name="POSTGRES_DB",
+                                  value_from=client.V1EnvVarSource(config_map_key_ref=client.V1ConfigMapKeySelector(name='lega-db-config',
+                                                                                                                    key="dbname")))
+    env_lega_pass = client.V1EnvVar(name="LEGA_PASSWORD",
+                                    value_from=client.V1EnvVarSource(secret_key_ref=client.V1SecretKeySelector(name='lega-password',
+                                                                                                               key="password")))
+    mount_keys = client.V1VolumeMount(name="keyserver-conf", mount_path='/etc/ega')
+    mount_db_data = client.V1VolumeMount(name="data", mount_path='/var/lib/postgresql/data', read_only=False)
+    mound_db_init = client.V1VolumeMount(name="initsql", mount_path='/docker-entrypoint-initdb.d')
+
+    pmap_ini_conf = client.V1VolumeProjection(config_map=client.V1ConfigMapProjection(name="lega-config",
+                                                                                      items=[client.V1KeyToPath(key="conf.ini", path="conf.ini", mode=0o744)]))
+    pmap_ini_keys = client.V1VolumeProjection(config_map=client.V1ConfigMapProjection(name="lega-keyserver-config",
+                                                                                      items=[client.V1KeyToPath(key="keys.ini", path="keys.ini", mode=0o744)]))
+    sec_keys = client.V1VolumeProjection(secret=client.V1SecretProjection(name="keyserver-secret",
+                                                                          items=[client.V1KeyToPath(key="key1.sec", path="pgp/key.1"),
+                                                                                 client.V1KeyToPath(key="key2.sec", path="pgp/key.2"), client.V1KeyToPath(key="ssl.cert", path="ssl.cert"), client.V1KeyToPath(key="ssl.key", path="ssl.key")]))
+    volume_db = client.V1Volume(name="data", persistent_volume_claim=client.V1PersistentVolumeClaim(),)
+    volume_db_init = client.V1Volume(name="init", config_map=client.V1ConfigMapVolumeSource(name="initdb", ))
+    volume_keys = client.V1Volume(name="keyserver-conf",
+                                  projected=client.V1ProjectedVolumeSource(sources=[pmap_ini_conf, pmap_ini_keys, sec_keys]))
+
+    ports_db = client.V1ServicePort(protocol="TCP", port=5432, target_port=5432)
+
+    # Deploy LocalEGA
+    deploy_lega.upload_deploy('keyserver', 'nbisweden/ega-base:latest',
+                              ["gosu", "lega", "ega-keyserver", "--keys", "/etc/ega/keys.ini"],
+                              [env_db_pass, env_lega_pass], [mount_keys], [volume_keys], ports=[8443], patch=True)
+    deploy_lega.upload_deploy('db', 'postgres:9.6', None, [env_db_pass, env_db_user, env_db_name],
+                              [mount_db_data, mound_db_init], [volume_db, volume_db_init], ports=[5432])
+
+    deploy_lega.upload_service('db', [ports_db], patch=True)
 
 
 if __name__ == '__main__':
