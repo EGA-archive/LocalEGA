@@ -1,0 +1,58 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cega-mq-config
+data:
+  rabbitmq.config: |-
+    %% -*- mode: erlang -*-
+    %%
+    [{rabbit,[{loopback_users, [ ] },
+    	  {disk_free_limit, "1GB"}]},
+     {rabbitmq_management, [ {load_definitions, "/etc/rabbitmq/defs.json"} ]}
+    ].
+  defs.json: |-
+    {"rabbit_version":"3.6.11",
+     "users":[{"name":"lega","password_hash":"bBclB1yTaQgScFULP47XSj8XiBq45/j3DJ6jx52zLikx20gG","hashing_algorithm":"rabbit_password_hashing_sha256","tags":"administrator"}],
+     "vhosts":[{"name":"lega"}],
+     "permissions":[{"user":"lega", "vhost":"lega", "configure":".*", "write":".*", "read":".*"}],
+     "parameters":[],
+     "global_parameters":[{"name":"cluster_name", "value":"rabbit@localhost"}],
+     "policies":[],
+     "queues":[{"name":"inbox",           "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{}},
+               {"name":"inbox.checksums", "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{}},
+    	   {"name":"files",           "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{}},
+    	   {"name":"completed",       "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{}},
+    	   {"name":"errors",          "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{}}],
+     "exchanges":[{"name":"localega.v1", "vhost":"lega", "type":"topic", "durable":true, "auto_delete":false, "internal":false, "arguments":{}}],
+     "bindings":[{"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{},"destination":"inbox","routing_key":"files.inbox"},
+    	     {"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{},"destination":"inbox.checksums","routing_key":"files.inbox.checksums"},
+    	     {"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{},"destination":"files","routing_key":"files"},
+    	     {"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{},"destination":"completed","routing_key":"files.completed"},
+    	     {"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{},"destination":"errors","routing_key":"files.error"}]
+    }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cega-script
+  namespace: testing
+data:
+  cega-mq.sh: |-
+    #!/bin/bash
+
+    set -e
+
+    # Initialization
+    rabbitmq-plugins enable --offline rabbitmq_federation
+    rabbitmq-plugins enable --offline rabbitmq_federation_management
+    rabbitmq-plugins enable --offline rabbitmq_shovel
+    rabbitmq-plugins enable --offline rabbitmq_shovel_management
+
+    cp --remove-destination /temp/rabbitmq.config /etc/rabbitmq/rabbitmq.config
+    cp --remove-destination /temp/defs.json /etc/rabbitmq/defs.json
+    chown rabbitmq:rabbitmq /etc/rabbitmq/rabbitmq.config
+    chmod 640 /etc/rabbitmq/rabbitmq.config
+    chown rabbitmq:rabbitmq /etc/rabbitmq/defs.json
+    chmod 640 /etc/rabbitmq/defs.json
+
+    exec rabbitmq-server
