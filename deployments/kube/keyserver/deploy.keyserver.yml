@@ -19,7 +19,7 @@ spec:
       containers:
       - name: keyserver
         image: nbisweden/ega-base:latest
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         command: ["gosu","lega","ega-keyserver","--keys","/etc/ega/keys.ini"]
         env:
         - name: POSTGRES_PASSWORD
