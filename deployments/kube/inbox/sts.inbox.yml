@@ -20,7 +20,7 @@ spec:
       containers:
       - name: inbox
         image: nbisweden/ega-inbox:latest
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         command: ["/bin/bash", "/scripts/ega-entrypoint.sh"]
         securityContext:
           capabilities:
