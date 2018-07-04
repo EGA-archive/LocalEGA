@@ -20,7 +20,7 @@ spec:
       containers:
       - name: verify
         image: nbisweden/ega-base:latest
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         command: ["gosu", "lega", "ega-verify"]
         env:
           - name: LEGA_PASSWORD
