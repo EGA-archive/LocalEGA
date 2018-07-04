@@ -5,4 +5,4 @@ metadata:
   namespace: localega
 data:
   keys.ini: |-
-    <Place your keys.ini file content>
+     <Place your keys.ini file content>
