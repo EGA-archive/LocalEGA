@@ -5,12 +5,12 @@ metadata:
   namespace: localega
 data:
   ssl.cert: |-
-    <Place your ssl.cert file content>
+     <Place your ssl.cert file content>
   ssl.key: |-
     <Place your ssl.key file content>
   ega.conf: |-
     [DEFAULT]
-    log = /usr/lib/python3.6/site-packages/lega/conf/loggers/console.yaml
+    log = console
 
     [keyserver]
     port = 8443
@@ -25,8 +25,8 @@ data:
     [vault]
     driver = S3Storage
     url = http://minio.localega.svc.cluster.local:9000
-    access_key = <change me>
-    secret_key = <change me>
+    access_key = fwgUUn5sSdf4mK5t
+    secret_key = k5ayEvcpv9yN8kH1FZeJXqgshLiU2Byx
     #region = lega
 
 
