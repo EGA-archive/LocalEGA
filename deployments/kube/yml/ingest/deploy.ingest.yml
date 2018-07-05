@@ -2,7 +2,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: lega-ingest
-  namespace: localega
   labels:
     role: ingest
 spec:
