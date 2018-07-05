@@ -59,8 +59,8 @@ kubectl create -f ./cega-mq --namespace=localega
 ```
 ####  Deploy LocalEGA
 ```
-kubectl create -f ./lega-config -f ./mq -f ./postgres -f ./s3
-kubectl create -f ./keys -f ./verify -f ./ingest -f ./inbox
+kubectl create -f ./lega-config -f ./mq -f ./postgres -f ./s3 --namespace=localega
+kubectl create -f ./keys -f ./verify -f ./ingest -f ./inbox --namespace=localega
 ```
 
 #### Other useful information
