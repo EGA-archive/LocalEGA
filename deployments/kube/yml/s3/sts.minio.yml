@@ -26,16 +26,20 @@ spec:
         image: minio/minio:latest
         args:
         - server
-        - /data
+        - "--config-dir=/data/config"
+        - /data/storage
         # - http://minio.localega.svc.cluster.local/data
         ports:
         - containerPort: 9000
-          hostPort: 9000
         # These volume mounts are persistent. Each pod in the PetSet
         # gets a volume mounted based on this field.
         volumeMounts:
         - name: data
           mountPath: /data
+        volume:
+        - name: data
+          persistentVolumeClaim:
+            claimName: data
   # These are converted to volume claims by the controller
   # and mounted at the paths mentioned above.
   volumeClaimTemplates:
@@ -46,4 +50,4 @@ spec:
         - ReadWriteMany
       resources:
         requests:
-          storage: 0.5Gi
+          storage: 10Gi
