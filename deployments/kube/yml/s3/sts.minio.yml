@@ -2,7 +2,6 @@ apiVersion: apps/v1beta1
 kind: StatefulSet
 metadata:
   name: minio
-  namespace: localega
 spec:
   serviceName: minio
   replicas: 1
@@ -42,8 +41,6 @@ spec:
   volumeClaimTemplates:
   - metadata:
       name: data
-      annotations:
-        volume.beta.Kubernetes.io/storage-class: miniosc
     spec:
       accessModes:
         - ReadWriteMany

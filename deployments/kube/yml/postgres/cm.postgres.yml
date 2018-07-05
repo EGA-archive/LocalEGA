@@ -2,7 +2,6 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: lega-db-config
-  namespace: localega
 data:
   user: lega
   dbname: lega
@@ -11,7 +10,6 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: initsql
-  namespace: localega
 data:
   db.sql: |-
     \connect lega
