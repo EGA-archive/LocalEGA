@@ -38,6 +38,9 @@ spec:
         - name: temp
           mountPath: /temp
       volumes:
+      - name: rabbitmq
+        persistentVolumeClaim:
+          claimName: rabbitmq
       - name: lega-mq-entrypoint
         configMap:
           name: lega-mq-entrypoint
