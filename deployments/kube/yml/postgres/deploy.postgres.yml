@@ -2,7 +2,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: lega-db
-  namespace: localega
   labels:
     role: database
 spec:
