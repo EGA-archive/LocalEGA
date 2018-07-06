@@ -19,8 +19,10 @@ metadata:
   labels:
     app: minio
 spec:
-  type: NodePort
+  type: LoadBalancer
   ports:
     - port: 9000
+      targetPort: 9000
+      name: web
   selector:
     app: minio

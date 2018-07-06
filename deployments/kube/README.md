@@ -1,13 +1,25 @@
 ## Kubernetes Deployment
 
+#### Table of Contents
+
+- [Deployment the "Easy" Way](#deployment-the-easy-way)
+- [Deployment The Hard Way](#deployment-the-hard-way)
+	- [Deploy Fake CEGA](#deploy-fake-cega)
+	- [Deploy LocalEGA](#deploy-localega)
+	- [Other useful information](#other-useful-information)
+- [Deployment the OpenShift Way](#deployment-the-openshift-way)
+
+
 ### Deployment the "Easy" Way
 
-We provide an python script based on https://github.com/kubernetes-client/python the sets up all the necessary configuration (e.g. generating keys, certificates, configuration files etc.) and pods along with necessary services and volumes.
-The script is intended to work both with a minikube or any kubernetes cluster, provided the user has an API key.
+We provide an python script based on https://github.com/kubernetes-client/python that sets up all the necessary configuration (e.g. generating keys, certificates, configuration files etc.) and pods along with necessary services and volumes.
+The script is intended to work both with a minikube or any Kubernetes cluster, provided the user has an API key.
 
-**NOTE: Requires Python >3.6.**
+**NOTES:**
+  - **Requires Python >3.6.**
+  - **Work in Progress**
 
-The script is in `auto` and can be run as:
+The script is in `auto` folder and can be run as:
 ```
 cd ~/LocalEGA/deployment/kube/auto
 pyton deploy.py
@@ -68,3 +80,11 @@ kubectl create -f ./keys -f ./verify -f ./ingest -f ./inbox --namespace=localega
 * See minikube services: `minikube service list`
 * Delete services: `kubectl delete -f ./keys`
 * Working with [volumes in Minio](https://vmware.github.io/vsphere-storage-for-kubernetes/documentation/minio.html)
+
+### Deployment the OpenShift Way
+
+The files provided in the `yml` directory can be reused for deployment to OpenShift with some changes:
+- Minio requires `10Gi` volume to start properly in Openshift, although in minikube it it seems to do by with just 0.5Gi.
+- By default, OpenShift Origin runs containers using an arbitrarily assigned user ID as per [OpenShift Guidelines](https://docs.openshift.org/latest/creating_images/guidelines.html#openshift-specific-guidelines), thus using `gosu` command for changing user is not allowed. The command for keyserver would look like `["ega-keyserver","--keys","/etc/ega/keys.ini"]` instead of `["gosu","lega","ega-keyserver","--keys","/etc/ega/keys.ini"]`.
+
+Postgres DB requires a different container therefore we provided a different YML configuration file for it in the `os/postgres` directory.
