@@ -135,6 +135,7 @@ def main():
     mount_mq_script = client.V1VolumeMount(name="mq-entrypoint", mount_path='/script')
     mount_inbox_script = client.V1VolumeMount(name="inbox-entrypoint", mount_path='/script')
     mount_inbox_temp = client.V1VolumeMount(name="inbox-temp", mount_path='/temp')
+    mount_inbox_fuse = client.V1VolumeMount(name="fuse", mount_path='/dev/fuse')
     mount_db_data = client.V1VolumeMount(name="data", mount_path='/var/lib/postgresql/data', read_only=False)
     mound_db_init = client.V1VolumeMount(name="initsql", mount_path='/docker-entrypoint-initdb.d')
     mount_minio = client.V1VolumeMount(name="data", mount_path='/data')
@@ -166,6 +167,7 @@ def main():
     volume_verify = client.V1Volume(name="verify-conf", config_map=client.V1ConfigMapVolumeSource(name="lega-config"))
     volume_ingest = client.V1Volume(name="ingest-conf", config_map=client.V1ConfigMapVolumeSource(name="lega-config"))
     volume_inbox = client.V1Volume(name="inbox", persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(claim_name="inbox"))
+    volume_fuse = client.V1Volume(name="fuse", host_path=client.V1HostPathVolumeSource(path="/dev/fuse"))  # the magic fuse layer
     volume_keys = client.V1Volume(name="keyserver-conf",
                                   projected=client.V1ProjectedVolumeSource(sources=[pmap_ini_conf, pmap_ini_keys, sec_keys]))
     # Ports
@@ -209,9 +211,11 @@ def main():
                              [env_cega_mq], [mount_mq_temp, mount_mq_script, mount_mq_rabbitmq],
                              [volume_mq_temp, volume_mq_script, volume_rabbitmq],
                              ports=[15672, 5672, 4369, 25672])
+    # FUSE layer will NOT work in a shared environment
     deploy_lega.stateful_set('inbox', 'nbisweden/ega-inbox:latest', ["/bin/bash", "/script/inbox.sh"],
-                             [env_inbox_db, env_inbox_mq, env_cega_api, env_cega_pass, env_cega_pubkey, env_db_name, env_db_user, env_db_user, env_cega_creds], [mount_inbox_temp, mount_inbox, mount_inbox_script],
-                             [volume_inbox_temp, volume_inbox_script, volume_inbox], sec=inbox_security, ports=[9000])
+                             [env_inbox_db, env_inbox_mq, env_cega_api, env_cega_pass, env_cega_pubkey, env_db_name, env_db_user, env_db_user, env_cega_creds],
+                             [mount_inbox_temp, mount_inbox, mount_inbox_script, mount_inbox_fuse],
+                             [volume_inbox_temp, volume_inbox_script, volume_inbox, volume_fuse], sec=inbox_security, ports=[9000])
 
 
 if __name__ == '__main__':
