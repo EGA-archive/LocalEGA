@@ -22,6 +22,7 @@ The script is intended to work both with a minikube or any Kubernetes cluster, p
 The script is in `auto` folder and can be run as:
 ```
 cd ~/LocalEGA/deployment/kube/auto
+pip install -r requirements.txt
 pyton deploy.py
 kubectl create -f ../yml/cega-mq --namespace=testing
 ```
