@@ -43,11 +43,11 @@ ega_fuse_exec = /usr/bin/ega-inbox
 ega_fuse_flags = nodev,noexec,suid,default_permissions,allow_other,uid=${EGA_UID},gid=${EGA_GID}
 EOF
 
-# for the ramfs cache
+# Here the users public keys obtained by PAM will be stored
 mkdir -p /ega/cache
-sed -i -e '/ega/ d' /etc/fstab
-echo "ramfs /ega/cache ramfs   size=200m 0 0" >> /etc/fstab
-mount /ega/cache
+# sed -i -e '/ega/ d' /etc/fstab
+# echo "ramfs /ega/cache ramfs   size=200m 0 0" >> /etc/fstab
+# mount /ega/cache
 
 # Changing permissions
 echo "Changing permissions for /ega/inbox"
