@@ -1,0 +1,4 @@
+kubernetes==6.0.0
+cryptography==2.1.4
+PGPy==0.4.3
+click==6.7
