@@ -113,13 +113,14 @@ the configuration file.
 Implementation
 --------------
 
-The cache directory is mounted as a ``ramfs`` partition of size
+The cache directory can be mounted as a ``ramfs`` partition of size
 200M. We use a directory per user, containing files for the user's
 password hash, ssh key and last access record. Files and directories
 in the cache are stored in memory, not on disk, giving us an extra
 performance boost. A ``ramfs`` partition does not survive a reboot, grow
 dynamically and does not use the swap partition (as a ``tmpfs`` partition
-would).
+would). By default such option is disabled but can be enabled in the `inbox`
+entrypoint script.
 
 We use OpenSSH (version 7.5p1) and its ``sftp`` component. The NSS+PAM
 source code has its own `repository
