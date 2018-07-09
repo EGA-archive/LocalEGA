@@ -36,10 +36,6 @@ spec:
         volumeMounts:
         - name: data
           mountPath: /data
-        volume:
-        - name: data
-          persistentVolumeClaim:
-            claimName: data
   # These are converted to volume claims by the controller
   # and mounted at the paths mentioned above.
   volumeClaimTemplates:
