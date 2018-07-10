@@ -1,17 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-'''Verifying the vault files
+'''This module reads a message from the ``archived`` queue, and
+attempts to decrypt the file. The decryption includes a checksum step.
+It the checksum is valid, we consider that the vault has a properly
+stored file. In such case, a message is sent to the local exchange
+with the routing key: ``completed``.
 
-This module reads a message from the ``archived`` queue, decrypts the
-files and recalculates its checksum.
-
-It the checksum matches the corresponding information in the file,
-we consider that the vault has a properly stored file.
-
-Upon completion, a message is sent to the local exchange with the
-routing key: ``completed``.
-
+Note: The header is not retrieved from the database, it is already in the message.
 '''
 
 import sys
@@ -61,7 +57,7 @@ def get_records(header):
 @db.catch_error
 @db.crypt4gh_to_user_errors
 def work(chunk_size, mover, channel, data):
-    '''Verifying that the file in the vault does decrypt properly'''
+    '''Verifying that the file in the vault can be properly decrypted.'''
 
     LOG.info('Verification | message: %s', data)
 
