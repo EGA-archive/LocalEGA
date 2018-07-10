@@ -32,4 +32,4 @@ spec:
   - port: 25672
     name: rabbitmq-dist
   selector:
-    app: lega-mq
+    app: cega-mq

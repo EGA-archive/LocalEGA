@@ -2,6 +2,8 @@ apiVersion: apps/v1beta1
 kind: StatefulSet
 metadata:
   name: minio
+  labels:
+    app: LocalEGA
 spec:
   serviceName: minio
   replicas: 1
@@ -31,6 +33,12 @@ spec:
         # - http://minio.localega.svc.cluster.local/data
         ports:
         - containerPort: 9000
+        livenessProbe:
+          httpGet:
+            path: /minio/health/live
+            port: 9000
+          initialDelaySeconds: 120
+          periodSeconds: 20
         # These volume mounts are persistent. Each pod in the PetSet
         # gets a volume mounted based on this field.
         volumeMounts:

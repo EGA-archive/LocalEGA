@@ -1,19 +1,20 @@
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: lega-verify
+  name: verify
   labels:
     role: verify
+    app: LocalEGA
 spec:
   replicas: 1
-  serviceName: "lega-verify"
+  serviceName: verify
   selector:
     matchLabels:
-      app: lega-verify
+      app: verify
   template:
     metadata:
       labels:
-        app: lega-verify
+        app: verify
         role: verify
     spec:
       containers:
@@ -37,16 +38,6 @@ spec:
               secretKeyRef:
                 name: s3-keys
                 key: secret_key
-          - name: AWS_ACCESS_KEY_ID
-            valueFrom:
-              secretKeyRef:
-                name: s3-keys
-                key: access_key
-          - name: AWS_SECRET_ACCESS_KEY
-            valueFrom:
-              secretKeyRef:
-                name: s3-keys
-                key: secret_key
         volumeMounts:
         - name: verify-conf
           mountPath: /etc/ega
@@ -56,6 +47,6 @@ spec:
         configMap:
           name: lega-config
           items:
-            - key: ega.conf
+            - key: conf.ini
               path: conf.ini
           defaultMode: 0744

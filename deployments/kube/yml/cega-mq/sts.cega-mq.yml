@@ -4,6 +4,7 @@ metadata:
   name: cega-mq
   labels:
     role: broker
+    app: cega-mq
 spec:
   replicas: 1
   serviceName: "cega-mq"
