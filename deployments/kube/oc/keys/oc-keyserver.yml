@@ -1,0 +1,85 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: LocalEGA
+    role: keyserver
+  name: keys
+  namespace: lega
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: keys
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: keys
+    spec:
+      containers:
+        - command:
+            - ega-keyserver
+            - '--keys'
+            - /etc/ega/keys.ini
+          env:
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: postgres_password
+                  name: lega-db-secret
+            - name: LEGA_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: password
+                  name: lega-password
+          image: 'nbisweden/ega-base:latest'
+          imagePullPolicy: IfNotPresent
+          name: keys
+          ports:
+            - containerPort: 8443
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8443
+              scheme: HTTPS
+            initialDelaySeconds: 120
+            periodSeconds: 20
+          volumeMounts:
+            - mountPath: /etc/ega
+              name: keyserver-conf
+
+      volumes:
+        - name: keyserver-conf
+          projected:
+            defaultMode: 420
+            sources:
+              - configMap:
+                  items:
+                    - key: conf.ini
+                      mode: 484
+                      path: conf.ini
+                  name: lega-config
+              - configMap:
+                  items:
+                    - key: keys.ini
+                      mode: 484
+                      path: keys.ini
+                  name: lega-keyserver-config
+              - secret:
+                  items:
+                    - key: key1.sec
+                      path: pgp/key.1
+                    - key: key2.sec
+                      path: pgp/key.2
+                    - key: ssl.cert
+                      path: ssl.cert
+                    - key: ssl.key
+                      path: ssl.key
+                  name: keyserver-secret

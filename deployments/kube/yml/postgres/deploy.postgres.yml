@@ -1,18 +1,19 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: lega-db
+  name: db
   labels:
     role: database
+    app: LocalEGA
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: lega-db
+      app: db
   template:
     metadata:
       labels:
-        app: lega-db
+        app: db
         role: database
     spec:
       containers:
@@ -65,7 +66,7 @@ spec:
       volumes:
       - name: data
         persistentVolumeClaim:
-          claimName: localega-db-storage
+          claimName: db-storage
       - name: initdb
         configMap:
           name: initsql

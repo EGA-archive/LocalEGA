@@ -4,6 +4,7 @@ metadata:
   name: postgresql
   labels:
     role: database
+    app: LocalEGA
 spec:
   replicas: 1
   selector:
@@ -18,7 +19,7 @@ spec:
       containers:
       - name: postgresql
         image: centos/postgresql-96-centos7
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         lifecycle:
           postStart:
             exec:
@@ -26,8 +27,9 @@ spec:
                 - /bin/sh
                 - '-i'
                 - '-c'
-                - pg_isready -h 127.0.0.1 -p 5432 ;
-                - psql -c "\i /postgresql-init/db.sql"
+                - >-
+                  pg_isready -h 127.0.0.1 -p 5432 &&
+                  psql -c "\i /postgresql-init/db.sql"
         env:
         - name: POSTGRESQL_USER
           valueFrom:
@@ -81,7 +83,7 @@ spec:
       volumes:
       - name: data
         persistentVolumeClaim:
-          claimName: localega-db-storage
+          claimName: db-storage
       - name: initdb
         configMap:
           name: initsql

@@ -3,11 +3,11 @@ kind: Service
 metadata:
   name: lega-keyserver
   labels:
-    app: lega-keyserver
+    app: keys
 spec:
   ports:
   - port: 8443
     targetPort: 8443
     protocol: TCP
   selector:
-    app: lega-keyserver
+    app: keys

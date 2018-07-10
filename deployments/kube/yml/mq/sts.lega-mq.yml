@@ -1,26 +1,27 @@
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: lega-mq
+  name: mq
   labels:
     role: broker
+    app: LocalEGA
 spec:
   replicas: 1
-  serviceName: "lega-mq"
+  serviceName: mq
   selector:
     matchLabels:
-      app: lega-mq
+      app: mq
   template:
     metadata:
       labels:
-        app: lega-mq
+        app: mq
         role: broker
     spec:
       containers:
       - name: lega-mq
         image: rabbitmq:3.6.14-management
         imagePullPolicy: IfNotPresent
-        command: ["/scripts/ega-entrypoint.sh"]
+        command: ["/script/mq.sh"]
         env:
           - name: CEGA_CONNECTION
             value: amqp://<user>:<password>@<cega-ip>:5672/<queue>
@@ -31,23 +32,23 @@ spec:
         - containerPort: 5672
           name: amqp
         volumeMounts:
-        - name: lega-mq-entrypoint
-          mountPath: /scripts
+        - name: mq-entrypoint
+          mountPath: /script
         - name: rabbitmq
           mountPath: /etc/rabbitmq
-        - name: temp
+        - name: mq-temp
           mountPath: /temp
       volumes:
       - name: rabbitmq
         persistentVolumeClaim:
           claimName: rabbitmq
-      - name: lega-mq-entrypoint
+      - name: mq-entrypoint
         configMap:
-          name: lega-mq-entrypoint
+          name: mq-entrypoint
           defaultMode: 0744
-      - name: temp
+      - name: mq-temp
         configMap:
-            name: lega-mq-config
+            name: mq-config
             items:
               - key: defs.json
                 path: defs.json

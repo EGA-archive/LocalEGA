@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: lega-mq-config
+  name: mq-config
 data:
   rabbitmq.config: |-
     %% -*- mode: erlang -*-
@@ -25,9 +25,9 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: lega-mq-entrypoint
+  name: mq-entrypoint
 data:
-  ega-entrypoint.sh: |-
+  mq.sh: |-
     #!/bin/bash
 
     set -e

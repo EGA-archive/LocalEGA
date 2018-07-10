@@ -72,7 +72,8 @@ kubectl create -f ./cega-mq --namespace=localega
 ```
 ####  Deploy LocalEGA
 ```
-kubectl create -f ./lega-config -f ./mq -f ./postgres -f ./s3 --namespace=localega
+kubectl create -f ./lega-config --namespace=localega
+kubectl create -f ./mq -f ./postgres -f ./s3 --namespace=localega
 kubectl create -f ./keys -f ./verify -f ./ingest -f ./inbox --namespace=localega
 ```
 
@@ -88,4 +89,6 @@ The files provided in the `yml` directory can be reused for deployment to OpenSh
 - Minio requires `10Gi` volume to start properly in Openshift, although in minikube it it seems to do by with just 0.5Gi.
 - By default, OpenShift Origin runs containers using an arbitrarily assigned user ID as per [OpenShift Guidelines](https://docs.openshift.org/latest/creating_images/guidelines.html#openshift-specific-guidelines), thus using `gosu` command for changing user is not allowed. The command for keyserver would look like `["ega-keyserver","--keys","/etc/ega/keys.ini"]` instead of `["gosu","lega","ega-keyserver","--keys","/etc/ega/keys.ini"]`.
 
-Postgres DB requires a different container therefore we provided a different YML configuration file for it in the `os/postgres` directory.
+* Postgres DB requires a different container therefore we provided a different YML configuration file for it in the `os/postgres` directory, also the volume attached to Postgres DB needs `ReadWriteMany` permissions.
+* Keyserver requires different configuration therefore we provided a different YML configuration file for it in the `os/keys` directory.
+* 
