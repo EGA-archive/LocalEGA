@@ -91,4 +91,3 @@ The files provided in the `yml` directory can be reused for deployment to OpenSh
 
 * Postgres DB requires a different container therefore we provided a different YML configuration file for it in the `os/postgres` directory, also the volume attached to Postgres DB needs `ReadWriteMany` permissions.
 * Keyserver requires different configuration therefore we provided a different YML configuration file for it in the `os/keys` directory.
-* 
