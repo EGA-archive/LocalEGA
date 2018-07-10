@@ -15,6 +15,37 @@ Python Modules
     lega.verify
     lega.keyserver
 
+*******************
+Inbox notifications
+*******************
+
+.. automodule:: lega.inbox
+
+
+****************
+Ingestion Worker
+****************
+
+.. automodule:: lega.ingest
+   :members:
+.. automodule:: lega.verify
+   :members:
+
+
+..
+   ***************
+   Quality Control
+   ***************
+
+   .. automodule:: lega.verify
+      :members:
+
+*********
+Keyserver
+*********
+
+.. automodule:: lega.keyserver
+
 *****************
 Utility Functions
 *****************
@@ -33,31 +64,5 @@ Utility Functions
     lega.utils.logging
 
 
-**********
-FUSE layer
-**********
-
-.. automodule:: lega.inbox
-
-
-********************
-Re-Encryption Worker
-********************
-
-.. automodule:: lega.ingest
-   :members:
-
-***************
-Quality Control
-***************
-
-.. automodule:: lega.verify
-   :members:
-
-*********
-Keyserver
-*********
-
-.. automodule:: lega.keyserver
 
 :ref:`genindex` | :ref:`modindex`
