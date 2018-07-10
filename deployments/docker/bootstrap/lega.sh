@@ -228,7 +228,7 @@ services:
       - CEGA_ENDPOINT=http://cega-users/user/
       - CEGA_ENDPOINT_CREDS=lega:${CEGA_REST_PASSWORD}
     ports:
-      - "${DOCKER_PORT_inbox}:9000"
+      - "${DOCKER_PORT_inbox}:2222"
     container_name: inbox
     image: nbisweden/ega-mina-inbox
     volumes:
