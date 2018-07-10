@@ -12,7 +12,7 @@ Feature: Robustness
     And I ingest file from the LocalEGA inbox
     When I retrieve ingestion information
     Then the ingestion status is "Completed"
-#
+
 #  Scenario: R.2 User ingests a big file encrypted with Crypt4GH using a correct key and providing checksums as companion files
 #    Given I have an account at Central EGA
 #    And I have correct private key

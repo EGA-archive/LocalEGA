@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
 
+'''
+File I/O for disk or S3 Object storage
+'''
+
 import os
 import logging
 from contextlib import contextmanager
@@ -13,6 +17,8 @@ LOG = logging.getLogger(__name__)
 
 
 class FileStorage():
+    """Vault storage on disk and related I/O."""
+
     def __init__(self):
         self.vault_area = Path(CONF.get_value('vault', 'location'))
 
@@ -181,6 +187,8 @@ class S3FileReader(object):
 
 
 class S3Storage():
+    """Vault S3 object storage and related I/O."""
+
     def __init__(self):
         import boto3
         import socket

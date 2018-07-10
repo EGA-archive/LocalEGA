@@ -16,6 +16,7 @@ _DIGEST = {
 }
 
 def supported_algorithms():
+    """Supported hashing algorithms, currently ``md5`` and ``sha256``."""
     return tuple(_DIGEST.keys())
 
 def instantiate(algo):
@@ -26,7 +27,7 @@ def instantiate(algo):
 
 def calculate(filepath, algo, bsize=8192):
     '''
-    Computes the checksum of the file-object `f` using the message digest `m`.
+    Computes the checksum of the file-object ``f`` using the message digest ``m``.
     '''
     try:
         m = instantiate(algo)
@@ -43,7 +44,7 @@ def calculate(filepath, algo, bsize=8192):
 
 
 def is_valid(filepath, digest, hashAlgo = 'md5'):
-    '''Verify the integrity of a file against a hash value'''
+    '''Verify the integrity of a file against a hash value.'''
 
     assert( isinstance(digest,str) )
 

@@ -9,8 +9,8 @@ The sources for LocalEGA can be downloaded and installed from the `NBIS Github r
 
     $ pip install git+https://github.com/NBISweden/LocalEGA.git
 
-The preferred method is however to use one of our deployment strategy:
-either on `Docker`_ or on `OpenStack cloud`_.
+The recommended method is however to use one of our deployment
+strategy: either on `Docker`_ or on `OpenStack cloud`_.
 
 For the LocalEGA inboxes:
 
@@ -38,15 +38,17 @@ using the ``--conf <file>`` switch to specify the configuration file.
 
 The settings are loaded, in order:
 
-* from environment variables (the naming convetion is according to
-  ``default.ini`` where ``section`` and ``option``, both uppercased e.g. ``KEYSERVER_ENDPOINT_PGP`` or ``POSTGRES_DB``);
-* from the package's ``defaults.ini``
-* from the file ``/etc/ega/conf.ini`` (if it exists)
+* from environment variables (where the naming convention is uppercase ``section_option`` (as in ``default.ini``), e.g. ``VAULT_DRIVER`` or ``POSTGRES_DB``,
+* from the package's ``defaults.ini``,
+* from the file ``/etc/ega/conf.ini`` (if it exists),
 * and finally from the file specified as the ``--conf`` argument.
 
 Therefore, there is no need to update the ``defaults.ini``. Instead,
 reset/update any key/value pairs by creating a custom configuration file and pass it
 to ``--conf`` as a command-line argument.
+
+See a `full description of the environment variable settings
+<https://github.com/NBISweden/LocalEGA/wiki/Configuration-Settings-%7C-Environment-Variables>`_.
 
 
 Logging
@@ -64,7 +66,7 @@ The ``<file>`` argument can either be a file path in ``INI`` or
 mechanism will search for a log file, using that keyword, in the
 `default loggers
 <https://github.com/NBISweden/LocalEGA/tree/dev/lega/conf/loggers>`_. Currently,
-``default``, ``debug``, ``syslog``, ``logstash`` and
+``default``, ``debug``, ``console``, ``logstash`` and
 ``logstash-debug`` are available.
 
 Using the `logstash logger
@@ -78,20 +80,6 @@ interface.
 .. image:: /static/Kibana.png
    :target: _static/Kibana.png
    :alt: Kibana
-
-Bootstrap
-=========
-
-In order to simplify the setup of LocalEGA's components, we have
-developed a few bootstrap scripts (one for the `Docker`_ deployment
-and one for the `OpenStack cloud`_ deployment).
-
-Those script create random passwords, configuration files, GnuPG keys,
-RSA keys and connect the different components togehter.
-
-All interesting settings are found the respective ``private``
-directory of the LocalEGA instance. Look especially at the ``.trace``
-file there.
 
 
 .. _NBIS Github repo: https://github.com/NBISweden/LocalEGA

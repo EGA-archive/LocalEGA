@@ -26,14 +26,14 @@ creates the credentials to connect to that ``vhost`` in the form of a
 ``LegaMQ`` then uses a connection string with the following syntax:
 
 .. code-block:: console
-		
+
    amqp[s]://<user>:<password>@<cega-host>:<port>/<vhost>
 
 
 ``CegaMQ`` contains an exchange named ``localega.v1``. ``v1`` is used for
 versioning and is internal to CentralEGA. The queues connected to that
 exchange are also internal to CentralEGA. For this documentation, we
-use the stub implementation of CentralEGA and the follwing queues, per
+use the stub implementation of CentralEGA and the following queues, per
 ``vhost``:
 
 +-----------------+------------------------------------+
@@ -52,16 +52,16 @@ use the stub implementation of CentralEGA and the follwing queues, per
 
 ``LegaMQ`` contains two exchanges named ``lega`` and ``cega``, and the following queues, in the default ``vhost``:
 
-+-----------------+------------------------------------+
-| Name            | Purpose                            |
-+=================+====================================+
-| files           | Trigger for file ingestion         |
-+-----------------+------------------------------------+
-| staged          | After a proper re-encryption       |
-|                 | in the staging area                |
-+-----------------+------------------------------------+
-| archived        | After a file is moved to the Vault |
-+-----------------+------------------------------------+
++-----------------+-------------------------------------+
+| Name            | Purpose                             |
++=================+=====================================+
+| files           | Trigger for file ingestion          |
++-----------------+-------------------------------------+
+| archived        | The file is in the vault            |
++-----------------+-------------------------------------+
+| qc              | The file is "verified" in the vault |
+|                 | and Quality Controllers can execute |
++-----------------+-------------------------------------+
 
 ``LegaMQ`` registers ``CegaMQ`` as an *upstream* and listens to the
 incoming messages in ``files`` using a *federated queue*.  Ingestion
@@ -82,18 +82,17 @@ forwarded to CentralEGA (using the same routing key). This is how we
 propagate the different status of the workflow to CentralEGA, using
 the following routing keys:
 
-+-----------------------+----------------------------------------------------------------------------+
-| Name                  | Purpose                                                                    |
-+=======================+============================================================================+
-| files.completed       | In case the file is properly ingested                                      |
-+-----------------------+----------------------------------------------------------------------------+
-| files.error           | In case a user-related error is detected                                   |
-+-----------------------+----------------------------------------------------------------------------+
-| files.inbox           | In case a file is (re)uploaded                                             |
-+-----------------------+----------------------------------------------------------------------------+
-| files.inbox.checksums | In case a file path ends in ``.<algo>``, where *algo* is                   |
-|                       | one of the :doc:`supported checksum algorithm </lega/utils/checksum.py>`   |
-+-----------------------+----------------------------------------------------------------------------+
++-----------------------+-------------------------------------------------------+
+| Name                  | Purpose                                               |
++=======================+=======================================================+
+| files.completed       | In case the file is properly ingested                 |
++-----------------------+-------------------------------------------------------+
+| files.error           | In case a user-related error is detected              |
++-----------------------+-------------------------------------------------------+
+| files.inbox           | In case a file is (re)uploaded                        |
++-----------------------+-------------------------------------------------------+
+| files.inbox.checksums | In case a file path ends in ``.md5`` or ``.sha256``   |
++-----------------------+-------------------------------------------------------+
 
 Note that we do not need at the moment a queue to store the completed
 message, nor the errors, as we directly forward them to Central
@@ -101,7 +100,7 @@ EGA. They can be added later on, if necessary.
 
 
 .. image:: /static/CEGA-LEGA.png
-   :target: _static/CEGA-LEGA.png
+   :target: ./_static/CEGA-LEGA.png
    :alt: RabbitMQ setup
 
 .. _supported checksum algorithm: md5
@@ -132,17 +131,10 @@ JSON-formatted and contain the following fields:
 * ``user``
 * ``filepath``
 * ``stable_id``
-* ``encrypted_integrity``:
+* (optionally) ``encrypted_integrity``:
 
   - ``checksum``
   - ``algorithm``
-
-* ``unencrypted_integrity``:
-
-  - ``checksum``
-  - ``algorithm``
-
-where ``user``, ``filepath`` and ``stable_id`` are compulsory.
 
 LocalEGA instances must return messages containing:
 
@@ -174,6 +166,7 @@ and LocalEGA could respond with:
 		{
 		   "user":"john",
 		   "filepath":"somedir/encrypted.file.gpg",
+		   "stable_id": "EGAF0123456789012345",
 		   "status":{
 		      "state":"COMPLETED",
 		      "details":"File ingested, refer to it with EGAF0123456789012345"
