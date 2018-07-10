@@ -1,18 +1,19 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: lega-keyserver
+  name: keys
   labels:
     role: keyserver
+    app: LocalEGA
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: lega-keyserver
+      app: keys
   template:
     metadata:
       labels:
-        app: lega-keyserver
+        app: keys
         role: keyserver
     spec:
       containers:
@@ -45,7 +46,7 @@ spec:
             - configMap:
                 name: lega-config
                 items:
-                  - key: ega.conf
+                  - key: conf.ini
                     path: conf.ini
                   - key: ssl.cert
                     path: ssl.cert

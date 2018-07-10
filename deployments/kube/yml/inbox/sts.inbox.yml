@@ -4,6 +4,7 @@ metadata:
   name: lega-inbox
   labels:
     role: inbox
+    app: LocalEGA
 spec:
   replicas: 1
   serviceName: "lega-inbox"
@@ -80,9 +81,9 @@ spec:
         configMap:
           name: lega-config
           items:
-            - key: ega.conf
+            - key: conf.ini
               path: conf.ini
           defaultMode: 0744
       - name: lega-inbox
         persistentVolumeClaim:
-          claimName: localega-inbox-storage
+          claimName: inbox-storage

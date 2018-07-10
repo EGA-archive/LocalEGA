@@ -4,10 +4,10 @@ metadata:
   name: lega-config
 data:
   ssl.cert: |-
-     <Place your ssl.cert file content>
+    <Place your ssl.cert file content>
   ssl.key: |-
     <Place your ssl.key file content>
-  ega.conf: |-
+  conf.ini: |-
     [DEFAULT]
     log = console
 
