@@ -221,10 +221,6 @@ services:
     external_links:
       - cega-users:cega-users
     environment:
-      - DB_INSTANCE=db
-      - POSTGRES_USER=${DB_USER}
-      - POSTGRES_PASSWORD=${DB_PASSWORD}
-      - POSTGRES_DB=lega
       - CEGA_ENDPOINT=http://cega-users/user/
       - CEGA_ENDPOINT_CREDS=lega:${CEGA_REST_PASSWORD}
     ports:
