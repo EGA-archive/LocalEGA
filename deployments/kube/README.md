@@ -2,8 +2,8 @@
 
 #### Table of Contents
 
-- [Deployment the "Easy" Way](#deployment-the-easy-way)
-- [Deployment The Hard Way](#deployment-the-hard-way)
+- [Deployment the Somewhat Easy Way](#deployment-the-somewhat-easy-way)
+- [Deployment The Difficult Way](#deployment-the-difficult-way)
 	- [Deploy Fake CEGA](#deploy-fake-cega)
 	- [Deploy LocalEGA](#deploy-localega)
 	- [Other useful information](#other-useful-information)
@@ -43,7 +43,7 @@ _localega = {
   }
 ```
 
-### Deployment The Hard Way
+### Deployment The Difficult Way
 
 The YAML files (from the `yml` directory) represent vanilla deployment setup configuration for LocalEGA, configuration that does not include configuration/passwords for starting services. Such configuration can generated using the `make bootstrap` script in the `~/LocalEGA/deployment/docker` folder or provided per each case. The YML file only provide base `hostPath` volumes, for other volume types check [Kubernetes Volumes](https://kubernetes.io/docs/concepts/storage/volumes/).
 
