@@ -16,12 +16,12 @@ endif
 
 TARGET=nbisweden/ega
 
-.PHONY: all erase delete clean cleanall base inbox
+.PHONY: all erase delete clean cleanall base
 
-all: base inbox
+all: base
 
 base: PIP_EGA_PACKAGES=pika==0.11.0 psycopg2-binary==2.7.4 cryptography==2.2.1 aiohttp==3.0.7 aiohttp-jinja2==0.13.0 pgpy fusepy aiopg==0.13.0 boto3
-base inbox:
+base:
 	docker build --build-arg checkout=$(CHECKOUT) \
                      --build-arg PIP_EGA_PACKAGES="$(PIP_EGA_PACKAGES)" \
                      --build-arg DEV_PACKAGES="$(DEV_PACKAGES)" \
