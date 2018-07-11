@@ -15,7 +15,7 @@ data:
     port = 8443
 
     [quality_control]
-    keyserver_endpoint = https://lega-keyserver.localega.svc.cluster.local:8443/retrieve/%s/private
+    keyserver_endpoint = https://keys.localega.svc.cluster.local:8443/retrieve/%s/private
 
     [inbox]
     location = /ega/inbox/%s
@@ -31,17 +31,17 @@ data:
 
     [outgestion]
     # Just for test
-    keyserver_endpoint = https://lega-keyserver.localega.svc.cluster.local:8443/retrieve/%s/private
+    keyserver_endpoint = https://keys.localega.svc.cluster.local:8443/retrieve/%s/private
 
     ## Connecting to Local EGA
     [broker]
-    host = lega-mq.localega.svc.cluster.local
+    host = mq.localega.svc.cluster.local
     connection_attempts = 30
     # delay in seconds
     retry_delay = 10
 
     [postgres]
-    host = lega-db.localega.svc.cluster.local
+    host = db.localega.svc.cluster.local
     user = lega
     try = 30
 
