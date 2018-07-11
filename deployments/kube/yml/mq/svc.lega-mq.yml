@@ -3,7 +3,7 @@ kind: Service
 metadata:
   name: lega-mq-management
   labels:
-    app: lega-mq
+    app: mq
 spec:
   type: NodePort
   ports:
@@ -12,15 +12,15 @@ spec:
     protocol: TCP
     name: http
   selector:
-    app: lega-mq
+    app: mq
 ---
 apiVersion: v1
 kind: Service
 metadata:
   # The required headless service for StatefulSets
-  name: lega-mq
+  name: mq
   labels:
-    app: lega-mq
+    app: mq
 spec:
   ports:
   - port: 5672
@@ -31,4 +31,4 @@ spec:
   - port: 25672
     name: rabbitmq-dist
   selector:
-    app: lega-mq
+    app: mq
