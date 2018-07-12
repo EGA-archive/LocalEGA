@@ -53,9 +53,6 @@ def main():
     with open(_here / 'scripts/mq.sh') as mq_init:
         init_mq = mq_init.read()
 
-    with open(_here / 'scripts/inbox.sh') as inbox_init:
-        init_inbox = inbox_init.read()
-
     with open(_here / 'scripts/defs.json') as mq_defs:
         defs_mq = mq_defs.read()
 
@@ -82,7 +79,6 @@ def main():
 
     # Upload Configuration Maps
     deploy_lega.config_map('initsql', {'db.sql': init_sql})
-    deploy_lega.config_map('inbox-entrypoint', {'inbox.sh': init_inbox})
     deploy_lega.config_map('mq-config', {'defs.json': defs_mq, 'rabbitmq.config': config_mq})
     deploy_lega.config_map('mq-entrypoint', {'mq.sh': init_mq})
     deploy_lega.config_map('lega-config', {'conf.ini': data_conf}, patch=True)
@@ -95,10 +91,8 @@ def main():
     env_cega_mq = client.V1EnvVar(name="CEGA_CONNECTION",
                                   value=f"amqp://{_localega['cega']['user']}:{_localega['cega']['pwd']}@{_localega['cega']['ip']}:5672/{_localega['cega']['user']}")
     env_cega_api = client.V1EnvVar(name="CEGA_ENDPOINT", value=f"{_localega['cega']['endpoint']}")
-    env_cega_pass = client.V1EnvVar(name="CEGA_ENDPOINT_JSON_PASSWD", value=".password_hash")
-    env_cega_pubkey = client.V1EnvVar(name="CEGA_ENDPOINT_JSON_PUBKEY", value=".pubkey")
-    env_inbox_db = client.V1EnvVar(name="DB_INSTANCE", value=f"{_localega['services']['db']}.{_localega['namespace']}.svc.cluster.local")
     env_inbox_mq = client.V1EnvVar(name="BROKER_HOST", value=f"{_localega['services']['broker']}.{_localega['namespace']}.svc.cluster.local")
+    env_inbox_port = client.V1EnvVar(name="INBOX_PORT", value="2222")
     env_cega_creds = client.V1EnvVar(name="CEGA_ENDPOINT_CREDS",
                                      value_from=client.V1EnvVarSource(secret_key_ref=client.V1SecretKeySelector(name='cega-creds',
                                                                                                                 key="credentials")))
@@ -133,9 +127,6 @@ def main():
     mount_mq_temp = client.V1VolumeMount(name="mq-temp", mount_path='/temp')
     mount_mq_rabbitmq = client.V1VolumeMount(name="rabbitmq", mount_path='/etc/rabbitmq')
     mount_mq_script = client.V1VolumeMount(name="mq-entrypoint", mount_path='/script')
-    mount_inbox_script = client.V1VolumeMount(name="inbox-entrypoint", mount_path='/script')
-    mount_inbox_temp = client.V1VolumeMount(name="inbox-temp", mount_path='/temp')
-    mount_inbox_fuse = client.V1VolumeMount(name="fuse", mount_path='/dev/fuse')
     mount_db_data = client.V1VolumeMount(name="data", mount_path='/var/lib/postgresql/data', read_only=False)
     mound_db_init = client.V1VolumeMount(name="initsql", mount_path='/docker-entrypoint-initdb.d')
     mount_minio = client.V1VolumeMount(name="data", mount_path='/data')
@@ -159,20 +150,16 @@ def main():
                                       persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(claim_name="mq-storage"))
     volume_db_init = client.V1Volume(name="initsql", config_map=client.V1ConfigMapVolumeSource(name="initsql"))
     volume_mq_temp = client.V1Volume(name="mq-temp", config_map=client.V1ConfigMapVolumeSource(name="mq-config"))
-    volume_inbox_temp = client.V1Volume(name="inbox-temp", config_map=client.V1ConfigMapVolumeSource(name="lega-config"))
     volume_mq_script = client.V1Volume(name="mq-entrypoint", config_map=client.V1ConfigMapVolumeSource(name="mq-entrypoint",
                                                                                                        default_mode=0o744))
-    volume_inbox_script = client.V1Volume(name="inbox-entrypoint", config_map=client.V1ConfigMapVolumeSource(name="inbox-entrypoint",
-                                                                                                             default_mode=0o744))
     volume_verify = client.V1Volume(name="verify-conf", config_map=client.V1ConfigMapVolumeSource(name="lega-config"))
     volume_ingest = client.V1Volume(name="ingest-conf", config_map=client.V1ConfigMapVolumeSource(name="lega-config"))
     volume_inbox = client.V1Volume(name="inbox", persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(claim_name="inbox"))
-    volume_fuse = client.V1Volume(name="fuse", host_path=client.V1HostPathVolumeSource(path="/dev/fuse"))  # the magic fuse layer
     volume_keys = client.V1Volume(name="keyserver-conf",
                                   projected=client.V1ProjectedVolumeSource(sources=[pmap_ini_conf, pmap_ini_keys, sec_keys]))
     # Ports
     ports_db = [client.V1ServicePort(protocol="TCP", port=5432, target_port=5432)]
-    ports_inbox = [client.V1ServicePort(protocol="TCP", port=2222, target_port=9000)]
+    ports_inbox = [client.V1ServicePort(protocol="TCP", port=2222, target_port=2222)]
     ports_s3 = [client.V1ServicePort(name="web", protocol="TCP", port=9000)]
     ports_keys = [client.V1ServicePort(protocol="TCP", port=8443, target_port=8443)]
     ports_mq_management = [client.V1ServicePort(name="http", protocol="TCP", port=15672, target_port=15672)]
@@ -191,7 +178,6 @@ def main():
     pvc_minio = client.V1PersistentVolumeClaim(metadata=client.V1ObjectMeta(name="data"),
                                                spec=client.V1PersistentVolumeClaimSpec(access_modes=["ReadWriteOnce"],
                                                                                        resources=client.V1ResourceRequirements(requests={"storage": "0.5Gi"})))
-    inbox_security = client.V1SecurityContext(privileged=True, capabilities=client.V1Capabilities(add=["SYS_ADMIN"]))
     # Deploy LocalEGA Pods
     deploy_lega.deployment('keys', 'nbisweden/ega-base:latest',
                            ["gosu", "lega", "ega-keyserver", "--keys", "/etc/ega/keys.ini"],
@@ -211,11 +197,9 @@ def main():
                              [env_cega_mq], [mount_mq_temp, mount_mq_script, mount_mq_rabbitmq],
                              [volume_mq_temp, volume_mq_script, volume_rabbitmq],
                              ports=[15672, 5672, 4369, 25672])
-    # FUSE layer will NOT work in a shared environment
-    deploy_lega.stateful_set('inbox', 'nbisweden/ega-inbox:latest', ["/bin/bash", "/script/inbox.sh"],
-                             [env_inbox_db, env_inbox_mq, env_cega_api, env_cega_pass, env_cega_pubkey, env_db_name, env_db_user, env_db_user, env_cega_creds],
-                             [mount_inbox_temp, mount_inbox, mount_inbox_script, mount_inbox_fuse],
-                             [volume_inbox_temp, volume_inbox_script, volume_inbox, volume_fuse], sec=inbox_security, ports=[9000])
+    deploy_lega.stateful_set('inbox', 'nbisweden/ega-mina-inbox:latest', None,
+                             [env_inbox_mq, env_cega_api, env_cega_creds, env_inbox_port],
+                             [mount_inbox], [volume_inbox], ports=[2222])
 
 
 if __name__ == '__main__':

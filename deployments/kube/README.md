@@ -23,11 +23,11 @@ The script is in `auto` folder and can be run as:
 ```
 cd ~/LocalEGA/deployment/kube/auto
 pip install -r requirements.txt
-pyton deploy.py
 kubectl create -f ../yml/cega-mq --namespace=testing
+pyton deploy.py
 ```
 
-In the `deploy.py` service/pods names and other parameters can be configured:
+In the `deploy.py` service/pods names and other parameters should be configured:
 ```json
 _localega = {
       "namespace": "testing",
