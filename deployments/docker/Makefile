@@ -12,6 +12,7 @@ private/cega.yml private/lega.yml private bootstrap:
 		    -v ${PWD}:/ega \
 		    -v ${PWD}/../../extras/db.sql:/tmp/db.sql \
 		    -v ${PWD}/../../extras/generate_pgp_key.py:/tmp/generate_pgp_key.py \
+				-v ${PWD}/../../extras/rabbitmq_hash.py:/tmp/rabbitmq_hash.py \
 		    --entrypoint /ega/bootstrap/boot.sh \
 		    nbisweden/ega-base ${ARGS}
 

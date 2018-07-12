@@ -13,17 +13,15 @@ Later on, if the `nbisweden/ega-base` does not need to be recreated, one can typ
 A typical build goes as follows:
 
 	`make base`
-	`make inbox`
 
 ## Results
 
-`rabbitmq:management`, `postgres:latest`, `centos:7.4.1708` are pulled from the main Docker hub.
+`rabbitmq:management`, `postgres:latest`, `centos:7.4.1708`, `nbisweden/ega-mina-inbox` are pulled from the main Docker hub.
 
 The following images are created locally:
 
 | Repository | Tag      | Role |
 |------------|:--------:|------|
-| nbisweden/ega-inbox    | <HEAD commit> or latest | SFTP server on top of `nbisweden/ega-base:latest` |
 | nbisweden/ega-base   | <HEAD commit> or latest | Base Image for all services including python 3.6.1 |
 
 
