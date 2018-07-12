@@ -5,11 +5,10 @@ ARG DEV_PACKAGES=
 RUN yum -y install https://centos7.iuscommunity.org/ius-release.rpm && \
     yum -y install epel-release && \
     yum -y update && \
-    yum -y install git make bzip2 curl vim-common \
+    yum -y install git make bzip2 curl \
                    zlib-devel bzip2-devel unzip \
                    openssh-server openssl \
 		   wget dpkg \
-		   cronie \
 		   python36u python36u-pip ${DEV_PACKAGES}
 
 RUN [[ -e /lib64/libpython3.6m.so ]] || ln -s /lib64/libpython3.6m.so.1.0 /lib64/libpython3.6m.so
