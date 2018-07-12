@@ -16,14 +16,15 @@ You can provision and deploy the different components:
 LocalEGA is divided into several components, whether as docker
 containers or as virtual machines.
 
-| Components | Role |
-|------------|------|
-| db         | A Postgres database with appropriate schema |
-| mq         | A RabbitMQ message broker with appropriate accounts, exchanges, queues and bindings |
-| inbox      | SFTP server, acting as a dropbox, where user credentials come from CentralEGA |
-| keyserver  | Handles the encryption/decryption keys |
-| ingesters  | Split the Crypt4GH header and move the remainder to the storage backend. No cryptographic task, nor connection to the keyserver. |
-| verifiers  | Connect to the keyserver (via SSL) and decrypt the stored files and checksum them against their embedded checksum. |
-| vault      | Storage backend: as a regular file system or as a S3 object store. |
+| Components  | Role |
+|-------------|------|
+| db          | A Postgres database with appropriate schema |
+| mq          | A RabbitMQ message broker with appropriate accounts, exchanges, queues and bindings |
+| inbox       | SFTP server, acting as a dropbox, where user credentials come from CentralEGA |
+| keyserver   | Handles the encryption/decryption keys |
+| ingesters   | Split the Crypt4GH header and move the remainder to the storage backend. No cryptographic task, nor connection to the keyserver. |
+| verifiers   | Connect to the keyserver (via SSL) and decrypt the stored files and checksum them against their embedded checksum. |
+| vault       | Storage backend: as a regular file system or as a S3 object store. |
+| controllers |Plugin-based Quality Controllers, running in the background. store. |
 
 Find the [LocalEGA documentation](http://localega.readthedocs.io) hosted on [ReadTheDocs.org](https://readthedocs.org/).
