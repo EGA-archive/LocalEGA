@@ -1,6 +1,8 @@
 .PHONY: upload submit user
 
-MAIN_REPO=~/_ega
+# folder for the localegarepo
+MAIN_REPO=~/LocalEGA
+# the keys need to be in ~/.ssh path
 SSH_KEY_PUB=~/.ssh/lega.pub
 SSH_KEY_PRIV=~/.ssh/lega
 
@@ -39,7 +41,7 @@ $(FILE).md5: $(FILE)
 
 submit: $(FILE).c4ga $(FILE).c4ga.md5 $(FILE).md5
 	@echo publish.py --connection amqp://[redacted]@$(lastword $(subst @, ,$(CEGA_MQ_CONNECTION))) $(USER) dir/$(FILE).c4ga --enc ...
-	@python ~/_ega/extras/publish.py --connection $(subst cega-mq,localhost,$(CEGA_MQ_CONNECTION)) $(USER) $(FILE).c4ga --enc $(shell cat $(FILE).c4ga.md5) EGAF$(shell cat $(FILE).md5)
+	@python $(MAIN_REPO)/extras/publish.py --connection $(subst cega-mq,localhost,$(CEGA_MQ_CONNECTION)) $(USER) $(FILE).c4ga --enc $(shell cat $(FILE).c4ga.md5) EGAF$(shell cat $(FILE).md5)
 
 user: $(CEGA_USERS)/lega/$(USER).yml
 

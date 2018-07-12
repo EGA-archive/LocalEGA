@@ -63,6 +63,7 @@ chmod 644 ${PRIVATE}/cega/users/pgp/jane.pub
 ${GEN_KEY} "Taylor Swift" "taylor@ega.eu" "Taylor" --passphrase "hi-taylor" --pub ${PRIVATE}/cega/users/pgp/taylor.pub --priv ${PRIVATE}/cega/users/pgp/taylor.sec --armor
 chmod 644 ${PRIVATE}/cega/users/pgp/taylor.pub
 
+PASS_HASH="python3.6 /tmp/rabbitmq_hash.py"
 
 cat >> ${PRIVATE}/cega/.trace <<EOF
 #####################################################################
@@ -79,6 +80,8 @@ EGA_USER_PASSWORD_TAYLOR  = ${EGA_USER_PASSWORD_TAYLOR}
 EGA_USER_PGP_JOHN         = ./private/cega/users/pgp/john.pub
 EGA_USER_PGP_JANE         = ./private/cega/users/pgp/jane.pub
 EGA_USER_PGP_TAYLOR       = ./private/cega/users/pgp/taylor.pub
+PASS_HASH = $(${PASS_HASH} ${CEGA_MQ_PASSWORD})
+CEGA_MQ_PASSWORD = ${CEGA_MQ_PASSWORD}
 # =============================
 EOF
 
@@ -156,23 +159,23 @@ EOF
 
 echomsg "Generating passwords for the Message Broker"
 
-function rabbitmq_hash {
-    # 1) Generate a random 32 bit salt
-    # 2) Concatenate that with the UTF-8 representation of the password
-    # 3) Take the SHA-256 hash
-    # 4) Concatenate the salt again
-    # 5) Convert to base64 encoding
-    local SALT=${2:-$(${OPENSSL:-openssl} rand -hex 4)}
-    {
-	printf ${SALT} | xxd -p -r
-	( printf ${SALT} | xxd -p -r; printf $1 ) | ${OPENSSL:-openssl} dgst -binary -sha256
-    } | base64
-}
+# function rabbitmq_hash {
+#     # 1) Generate a random 32 bit salt
+#     # 2) Concatenate that with the UTF-8 representation of the password
+#     # 3) Take the SHA-256 hash
+#     # 4) Concatenate the salt again
+#     # 5) Convert to base64 encoding
+#     local SALT=${2:-$(${OPENSSL:-openssl} rand -hex 4)}
+#     {
+# 	printf ${SALT} | xxd -p -r
+# 	( printf ${SALT} | xxd -p -r; printf $1 ) | ${OPENSSL:-openssl} dgst -binary -sha256
+#     } | base64
+# }
 
 mkdir -p ${PRIVATE}/cega/mq
 cat > ${PRIVATE}/cega/mq/defs.json <<EOF
 {"rabbit_version":"3.6.11",
- "users":[{"name":"lega","password_hash":"$(rabbitmq_hash $CEGA_MQ_PASSWORD)","hashing_algorithm":"rabbit_password_hashing_sha256","tags":"administrator"}],
+ "users":[{"name":"lega","password_hash":"$(${PASS_HASH} ${CEGA_MQ_PASSWORD})","hashing_algorithm":"rabbit_password_hashing_sha256","tags":"administrator"}],
  "vhosts":[{"name":"lega"}],
  "permissions":[{"user":"lega", "vhost":"lega", "configure":".*", "write":".*", "read":".*"}],
  "parameters":[],
@@ -200,4 +203,3 @@ cat > ${PRIVATE}/cega/mq/rabbitmq.config <<EOF
  {rabbitmq_management, [ {load_definitions, "/etc/rabbitmq/defs.json"} ]}
 ].
 EOF
-
