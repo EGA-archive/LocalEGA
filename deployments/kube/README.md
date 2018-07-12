@@ -10,7 +10,7 @@
 - [Deployment the OpenShift Way](#deployment-the-openshift-way)
 
 
-### Deployment the "Easy" Way
+### Deployment the somewhat easy Way
 
 We provide an python script based on https://github.com/kubernetes-client/python that sets up all the necessary configuration (e.g. generating keys, certificates, configuration files etc.) and pods along with necessary services and volumes.
 The script is intended to work both with a minikube or any Kubernetes cluster, provided the user has an API key.
