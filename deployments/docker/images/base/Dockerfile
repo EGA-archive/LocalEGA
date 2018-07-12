@@ -5,7 +5,7 @@ ARG DEV_PACKAGES=
 RUN yum -y install https://centos7.iuscommunity.org/ius-release.rpm && \
     yum -y install epel-release && \
     yum -y update && \
-    yum -y install git make bzip2 curl \
+    yum -y install git make bzip2 curl vim-common \
                    zlib-devel bzip2-devel unzip \
                    openssh-server openssl \
 		   wget dpkg \
@@ -27,9 +27,9 @@ RUN set -ex && \
 
 # verify the signature
 RUN export GNUPGHOME="$(mktemp -d)" && \
-    gpg --keyserver ha.pool.sks-keyservers.net --recv-keys "$GPG_KEYS" \
+    (gpg --keyserver ha.pool.sks-keyservers.net --recv-keys "$GPG_KEYS" \
     || gpg --keyserver pgp.mit.edu --recv-keys "$GPG_KEYS" \
-    || gpg --keyserver keyserver.pgp.com --recv-keys "$GPG_KEYS" && \
+    || gpg --keyserver keyserver.pgp.com --recv-keys "$GPG_KEYS") && \
     gpg --keyserver hkps://hkps.pool.sks-keyservers.net --recv-keys  && \
     gpg --batch --verify /tmp/gosu.asc /usr/bin/gosu && \
     rm -r "$GNUPGHOME" /tmp/gosu.asc && \
