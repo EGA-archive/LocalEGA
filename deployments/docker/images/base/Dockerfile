@@ -5,7 +5,7 @@ ARG DEV_PACKAGES=
 RUN yum -y install https://centos7.iuscommunity.org/ius-release.rpm && \
     yum -y install epel-release && \
     yum -y update && \
-    yum -y install git make bzip2 curl vim-common \
+    yum -y install git make bzip2 curl \
                    zlib-devel bzip2-devel unzip \
                    openssh-server openssl \
 		   wget dpkg \
