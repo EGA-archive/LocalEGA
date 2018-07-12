@@ -1,7 +1,7 @@
 
 # Add those packages to the containers, in case DEV is defined
 ifdef DEV
-DEV_PACKAGES="nss-tools nc nmap tcpdump lsof strace bash-completion bash-completion-extras"
+DEV_PACKAGES="nmap tcpdump lsof strace bash-completion bash-completion-extras"
 endif
 
 CHECKOUT=$(shell git rev-parse --abbrev-ref HEAD)
