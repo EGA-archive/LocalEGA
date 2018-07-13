@@ -165,7 +165,7 @@ public class Ingestion implements En {
                 Thread.sleep(1000);
                 timeout += 1000;
                 if (timeout > maxTimeout) {
-                    throw new TimeoutException(String.format("Ingestion didn't complete in time: ingest.max-timeout = %s", timeout));
+                    throw new TimeoutException(String.format("Ingestion didn't complete in time: ingest.max-timeout = %s", maxTimeout));
                 }
             }
             // And we sleep one more second for entry to be updated in the database.
