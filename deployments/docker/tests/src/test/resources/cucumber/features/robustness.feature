@@ -13,7 +13,7 @@ Feature: Robustness
     When I retrieve ingestion information
     Then the ingestion status is "Completed"
 
-  Scenario: R.1 User ingests file encrypted with Crypt4GH using a correct key
+  Scenario: R.1 User ingests big file encrypted with Crypt4GH using a correct key
     Given I have an account at Central EGA
     And I have correct private key
     And I connect to the LocalEGA inbox via SFTP using private key
