@@ -5,7 +5,7 @@ Feature: Ingestion
     Given I have an account at Central EGA
     And I have correct private key
     And I connect to the LocalEGA inbox via SFTP using private key
-    And I have a file encrypted with Crypt4GH using a LocalEGA's pubic key
+    And I have a 1 MB file encrypted with Crypt4GH using a LocalEGA's pubic key
     And I upload encrypted file to the LocalEGA inbox via SFTP
     And I have CEGA MQ username and password
     And I ingest file from the LocalEGA inbox
@@ -39,7 +39,7 @@ Feature: Ingestion
     Given I have an account at Central EGA
     And I have correct private key
     And I connect to the LocalEGA inbox via SFTP using private key
-    And I have a file encrypted with Crypt4GH using a LocalEGA's pubic key
+    And I have a 1 MB file encrypted with Crypt4GH using a LocalEGA's pubic key
     And I upload encrypted file to the LocalEGA inbox via SFTP
     And I have CEGA MQ username and password
     And file is removed from the inbox
@@ -51,7 +51,7 @@ Feature: Ingestion
     Given I have an account at Central EGA
     And I have correct private key
     And I connect to the LocalEGA inbox via SFTP using private key
-    And I have a file encrypted with Crypt4GH using a LocalEGA's pubic key
+    And I have a 1 MB file encrypted with Crypt4GH using a LocalEGA's pubic key
     And I upload encrypted file to the LocalEGA inbox via SFTP
     And I have CEGA MQ username and password
     And I turn off the keyserver
@@ -64,7 +64,7 @@ Feature: Ingestion
     Given I have an account at Central EGA
     And I have correct private key
     And I connect to the LocalEGA inbox via SFTP using private key
-    And I have a file encrypted with Crypt4GH using a LocalEGA's pubic key
+    And I have a 1 MB file encrypted with Crypt4GH using a LocalEGA's pubic key
     And I upload encrypted file to the LocalEGA inbox via SFTP
     And I have CEGA MQ username and password
     And I turn off the vault listener
@@ -77,7 +77,7 @@ Feature: Ingestion
     Given I have an account at Central EGA
     And I have correct private key
     And I connect to the LocalEGA inbox via SFTP using private key
-    And I have a file encrypted with Crypt4GH using a LocalEGA's pubic key
+    And I have a 1 MB file encrypted with Crypt4GH using a LocalEGA's pubic key
     And I upload encrypted file to the LocalEGA inbox via SFTP
     And I have CEGA MQ username and password
     And I turn off the database
