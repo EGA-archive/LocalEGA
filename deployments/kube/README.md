@@ -27,6 +27,9 @@ kubectl create -f ../yml/cega-mq --namespace=testing
 pyton deploy.py
 ```
 
+In order to start the cega-users please see: `deployments/kube/test/README.md`
+`kubectl create -f ../yml/cega-users --namespace=testing`
+
 In the `deploy.py` service/pods names and other parameters should be configured:
 ```json
 _localega = {
