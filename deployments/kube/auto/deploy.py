@@ -24,7 +24,8 @@ def main():
                      'broker': 'mq',
                      'db': 'db',
                      'verify': 'verify'},
-        'cega': {'ip': "ip", 'user': 'lega', 'pwd': 'pass', 'endpoint': 'rest_api'}
+        'cega': {'ip': "ip", 'user': 'lega', 'pwd': 'pass',
+                 'endpoint': 'http://cega-users.testing.svc.cluster.local/user/'}
     }
 
     _here = Path(__file__).parent
