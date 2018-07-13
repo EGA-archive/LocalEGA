@@ -25,7 +25,6 @@ public class Uploading implements En {
     public Uploading(Context context) {
         Utils utils = context.getUtils();
 
-        // TODO: Don't load large file in memory - stream it
         Given("^I have a ([^\"]*) MB file encrypted with Crypt4GH using a LocalEGA's pubic key$", (String fileSize) -> {
             try {
                 int size = Integer.parseInt(fileSize);
