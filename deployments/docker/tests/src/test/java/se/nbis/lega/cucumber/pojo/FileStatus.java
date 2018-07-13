@@ -1,12 +1,16 @@
 package se.nbis.lega.cucumber.pojo;
 
+import java.util.Arrays;
+
 public enum FileStatus {
 
     RECEIVED("Received"),
     IN_PROGRESS("In progress"),
     COMPLETED("Completed"),
     ARCHIVED("Archived"),
-    ERROR("Error");
+    ERROR("Error"),
+    UNDEFINED("(0 rows)");
+
 
     private final String status;
 
@@ -16,6 +20,10 @@ public enum FileStatus {
 
     public String getStatus() {
         return status;
+    }
+
+    public static FileStatus getValue(String status) {
+        return Arrays.stream(FileStatus.values()).filter(fs -> fs.status.equals(status)).findAny().orElse(FileStatus.UNDEFINED);
     }
 
 }
