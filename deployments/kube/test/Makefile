@@ -44,10 +44,10 @@ upload: $(FILE).c4ga
 	cd $(<D) && sftp -P $(INBOX_PORT) -i $(SSH_KEY_PRIV) $(USER)@$(DEPLOY_IP) <<< $$"put $(<F)"
 
 $(FILE).c4ga.md5: $(FILE).c4ga
-	printf '%s' $(shell md5 $< | cut -d' ' -f4) > $@
+	printf '%s' $(shell md5 $< | cut -d' ' -f4 || md5sum $< | cut -d' ' -f4) > $@
 
 $(FILE).md5: $(FILE)
-	printf '%s' $(shell md5 $< | cut -d' ' -f4) > $@
+	printf '%s' $(shell md5 $< | cut -d' ' -f4 || md5sum $< | cut -d' ' -f4) > $@
 
 submit: $(FILE).c4ga $(FILE).c4ga.md5 $(FILE).md5
 	@echo publish.py --connection amqp://[redacted]@$(lastword $(subst @, ,$(CEGA_MQ_CONNECTION))) $(USER) dir/$(FILE).c4ga --enc ...

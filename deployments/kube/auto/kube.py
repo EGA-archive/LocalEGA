@@ -25,10 +25,10 @@ class LocalEGADeploy:
     Deployment configuration for LocalEGA to kubernetes.
     """
 
-    def __init__(self, keys):
+    def __init__(self, keys, namespace):
         """Set things up."""
         self.keys = keys
-        self._namespace = keys["namespace"]
+        self._namespace = namespace
         self._role = keys["role"]
 
     def create_namespace(self):
@@ -90,12 +90,12 @@ class LocalEGADeploy:
             else:
                 LOG.error(f'Exception message: {e}')
 
-    def deployment(self, name, image, command, env, vmounts, volumes, args=None, ports=None, replicas=1, patch=False):
+    def deployment(self, name, image, command, env, vmounts, volumes, lifecycle=None, args=None, ports=None, replicas=1, patch=False):
         """Create and upload deployment, patch option also available."""
         deploy = client.V1Deployment(kind="Deployment", api_version="apps/v1")
         deploy.metadata = client.V1ObjectMeta(name=name)
         container = client.V1Container(name=name, image=image, image_pull_policy="IfNotPresent",
-                                       volume_mounts=vmounts, command=command, env=env, args=args)
+                                       volume_mounts=vmounts, command=command, env=env, args=args, lifecycle=lifecycle)
         if ports:
             container.ports = list(map(lambda x: client.V1ContainerPort(container_port=x), ports))
         template = client.V1PodTemplateSpec(metadata=client.V1ObjectMeta(labels={"app": name}),
