@@ -22,6 +22,11 @@ spec:
         imagePullPolicy: Always
         command: ["gosu", "lega", "ega-ingest"]
         env:
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: lega-db-secret
+              key: postgres_password
         - name: LEGA_PASSWORD
           valueFrom:
             secretKeyRef:
