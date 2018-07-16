@@ -10,7 +10,7 @@ Generate RSA YML file
 make user
 ```
 the output will be in `deployments/kube/yml/cega-users/ega-box-999.yml`.
-Copy the file contents to like 152 of the cm.cega.yml file.
+Copy the file contents to like 152 of the `yml/cega-users/cm.cega.yml` file.
 After this the we can start the `kubectl create -f ../yml/cega-users --namespace=testing`
 
 The actual test:
