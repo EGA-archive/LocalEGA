@@ -24,7 +24,7 @@ The script is in `auto` folder and can be run as:
 cd ~/LocalEGA/deployment/kube/auto
 pip install -r requirements.txt
 kubectl create -f ../yml/cega-mq --namespace=testing
-pyton deploy.py
+pyton deploy.py --config --deploy all
 ```
 
 In order to start the cega-users please see: `deployments/kube/test/README.md`
@@ -33,17 +33,41 @@ In order to start the cega-users please see: `deployments/kube/test/README.md`
 In the `deploy.py` service/pods names and other parameters should be configured:
 ```json
 _localega = {
-      "namespace": "testing",
-      "role": "testing",
-      "services": {"keys": "keys",
-                   "inbox": "inbox",
-                   "ingest": "ingest",
-                   "s3": "minio",
-                   "broker": "mq",
-                   "db": "db",
-                   "verify": "verify"},
-      "cega": {"ip": "ip", "user": "lega", "pwd": "pass", "endpoint": "rest_api"}
-  }
+			"role": "LocalEGA",
+			"email": "test@csc.fi",
+			"services": {"keys": "keys",
+									 "inbox": "inbox",
+									 "ingest": "ingest",
+									 "s3": "minio",
+									 "broker": "mq",
+									 "db": "db",
+									 "verify": "verify"},
+			"key": {"name": "Test PGP",
+							"comment": "SOme comment",
+							"expire": "30/DEC/19 08:00:00",
+							"id": "key.1"},
+			"ssl": {"country": "Finland", "country_code": "FI", "location": "Espoo", "org": "CSC"},
+			"cega": {"user": "lega", "endpoint": "http://cega-users.testing/user/"}
+		}
+```
+
+Using the deploy script:
+```
+╰─$ python deploy.py --help
+Usage: deploy.py [OPTIONS]
+
+  LocalEGA deployment script.
+
+Options:
+  --config          Flag for generating configuration if does not exist, or
+                    generating a new one.
+  --deploy TEXT     Deploying the configuration secrets and pods. Options
+                    available: "all" (default), "secrets" or "sc", "services"
+                    or "svc", "configmap" or "cm" and "pods" or "pd".
+  --ns TEXT         Deployment namspace, defaults to "testing".
+  --cega-ip TEXT    CEGA MQ IP.
+  --cega-pass TEXT  CEGA MQ password.
+  --help            Show this message and exit.
 ```
 
 ### Deployment The Difficult Way

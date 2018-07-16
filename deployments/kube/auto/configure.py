@@ -96,14 +96,14 @@ class ConfigGenerator:
         """Create default configuration file, namely ```conf.ini`` file."""
         config = configparser.RawConfigParser()
         file_flag = 'w'
-        scheme = scheme if scheme else 'svc.cluster.local'
+        scheme = scheme if scheme else ''
         config.set('DEFAULT', 'log', 'console')
         # keyserver
         config.add_section('keyserver')
         config.set('keyserver', 'port', '8443')
         # quality control
         config.add_section('quality_control')
-        config.set('quality_control', 'keyserver_endpoint', f'https://{self._key_service}.{self.namespace}.{scheme}:8443/retrieve/%s/private')
+        config.set('quality_control', 'keyserver_endpoint', f'https://{self._key_service}.{self.namespace}{scheme}:8443/retrieve/%s/private')
         # inbox
         config.add_section('inbox')
         config.set('inbox', 'location', '/ega/inbox/%s')
@@ -111,18 +111,18 @@ class ConfigGenerator:
         # vault
         config.add_section('vault')
         config.set('vault', 'driver', 'S3Storage')
-        config.set('vault', 'url', f'http://{self._s3_service}.{self.namespace}.{scheme}:9000')
+        config.set('vault', 'url', f'http://{self._s3_service}.{self.namespace}{scheme}:9000')
         # outgestion
         config.add_section('outgestion')
-        config.set('outgestion', 'keyserver_endpoint',  f'https://{self._key_service}.{self.namespace}.{scheme}:8443/retrieve/%s/private')
+        config.set('outgestion', 'keyserver_endpoint',  f'https://{self._key_service}.{self.namespace}{scheme}:8443/retrieve/%s/private')
         # broker
         config.add_section('broker')
-        config.set('broker', 'host', f'{self._broker_service}.{self.namespace}.{scheme}')
+        config.set('broker', 'host', f'{self._broker_service}.{self.namespace}{scheme}')
         config.set('broker', 'connection_attempts', '30')
         config.set('broker', 'retry_delay', '10')
         # Postgres
         config.add_section('postgres')
-        config.set('postgres', 'host', f'{self._db_service}.{self.namespace}.{scheme}')
+        config.set('postgres', 'host', f'{self._db_service}.{self.namespace}{scheme}')
         config.set('postgres', 'user', 'lega')
         config.set('postgres', 'try', '30')
 
