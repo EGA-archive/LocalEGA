@@ -183,6 +183,22 @@ class LocalEGADeploy:
             else:
                 LOG.error(f'Exception message: {e}')
 
+    def horizontal_scale(self, name, pod_name, pod_kind, max, metric):
+        """Create horizontal pod scaller, based on metric."""
+        api = client.AutoscalingV1Api()
+        pd_scale = client.V1HorizontalPodAutoscaler()
+        pd_scale.metadata = client.V1ObjectMeta(name=name)
+        target = client.V1CrossVersionObjectReference(name=pod_name, kind=pod_kind)
+        spec = client.V1HorizontalPodAutoscalerSpec(min_replicas=1, max_replicas=max, scale_target_ref=target)
+        status = client.V1HorizontalPodAutoscalerStatus(current_replicas=1, desired_replicas=2)
+        pd_scale.spec = spec
+        pd_scale.status = status
+        try:
+            api.create_namespaced_horizontal_pod_autoscaler(namespace=self._namespace, body=pd_scale)
+            LOG.info(f'Persistent Volume: {name} created.')
+        except ApiException as e:
+            LOG.error(f'Exception message: {e}')
+
     def destroy(self):
         """No need for the namespace, delete everything."""
         namespace_list = api_core.list_namespace(label_selector='role')

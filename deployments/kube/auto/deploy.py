@@ -18,7 +18,7 @@ LOG.setLevel(logging.INFO)
               help='Flag for generating configuration if does not exist, or generating a new one.')
 @click.option('--deploy', multiple=True,
               help='Deploying the configuration secrets and pods. Options available: "all" (default), "secrets" or "sc", "services" or "svc", "configmap" or "cm" and "pods" or "pd".')
-@click.option('--ns', default="testing", help='Deployment namspace, defaults to "testing".')
+@click.option('--ns', default="testing", help='Deployment namespace, defaults to "testing".')
 @click.option('--cega-ip', default="172.17.0.4", help='CEGA MQ IP.')
 @click.option('--cega-pass', default="password", help='CEGA MQ password.')
 def main(config, deploy, ns, cega_ip, cega_pass):
@@ -42,11 +42,13 @@ def main(config, deploy, ns, cega_ip, cega_pass):
         'cega': {'user': 'lega',
                  'endpoint': 'http://cega-users.testing/user/'}
     }
+
     val = set(["secrets", "sc", "configmap", "cm", "pods", "pd", "services", "svc", "all"])
     set_sc = set(["secrets", "sc", "all"])
     set_cm = set(["configmap", "cm", "all"])
     set_pd = set(["pods", "pd", "all"])
     set_sv = set(["services", "svc", "all"])
+
     _here = Path(__file__).parent
     config_dir = _here / 'config'
 
@@ -209,6 +211,7 @@ def main(config, deploy, ns, cega_ip, cega_pass):
         deploy_lega.stateful_set('inbox', 'nbisweden/ega-mina-inbox:latest', None,
                                  [env_inbox_mq, env_cega_api, env_cega_creds, env_inbox_port],
                                  [mount_inbox], [volume_inbox], ports=[2222])
+
     if set.intersection(set(deploy), set_sv):
         # Ports
         ports_db = [client.V1ServicePort(protocol="TCP", port=5432, target_port=5432)]
@@ -227,6 +230,11 @@ def main(config, deploy, ns, cega_ip, cega_pass):
         deploy_lega.service('keys', ports_keys)
         deploy_lega.service('inbox', ports_inbox, type="NodePort")
         deploy_lega.service('minio', ports_s3, type="NodePort")
+
+    if set.intersection(set(deploy), set(["scale"])):
+        metric_cpu = client.V2beta1MetricSpec(type="Resource",
+                                              resource=client.V2beta1ResourceMetricSource(name="cpu", target_average_utilization=50))
+        deploy_lega.horizontal_scale("ingest", "ingest", "Deployment", 5, [metric_cpu])
 
 
 if __name__ == '__main__':

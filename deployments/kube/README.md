@@ -64,7 +64,7 @@ Options:
   --deploy TEXT     Deploying the configuration secrets and pods. Options
                     available: "all" (default), "secrets" or "sc", "services"
                     or "svc", "configmap" or "cm" and "pods" or "pd".
-  --ns TEXT         Deployment namspace, defaults to "testing".
+  --ns TEXT         Deployment namespace, defaults to "testing".
   --cega-ip TEXT    CEGA MQ IP.
   --cega-pass TEXT  CEGA MQ password.
   --help            Show this message and exit.
