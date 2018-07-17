@@ -132,7 +132,9 @@ class ConfigGenerator:
     def add_conf_key(self, expire, file_name, comment, passphrase, armor=True, active=False):
         """Create default configuration for keyserver.
 
-        .. note: Information for the key is provided as dictionary for ``key_data``, and should be in the format ``{'comment': '','passphrase': None, 'armor': True}. If a passphrase is not provided it will generated.``
+        .. note: Information for the key is provided as dictionary for ``key_data``,
+        and should be in the format ``{'comment': '','passphrase': None, 'armor': True}.
+        If a passphrase is not provided it will generated.``
         """
         _generate_secret = ''.join(secrets.choice(string.ascii_letters + string.digits) for i in range(32))
         _passphrase = passphrase if passphrase else _generate_secret

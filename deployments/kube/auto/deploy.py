@@ -138,16 +138,16 @@ def main(config, deploy, ns, cega_ip, cega_pass):
                                                        'ssl.cert': cert_data, 'ssl.key': ssl_key_data}, patch=True)
     if set.intersection(set(deploy), set_cm):
         # Read conf from files
-        with open(_here / 'scripts/db.sql') as sql_init:
+        with open('../../../extras/db.sql') as sql_init:
             init_sql = sql_init.read()
 
         with open(_here / 'scripts/mq.sh') as mq_init:
             init_mq = mq_init.read()
 
-        with open(_here / 'scripts/defs.json') as mq_defs:
+        with open('../../docker/images/mq/defs.json') as mq_defs:
             defs_mq = mq_defs.read()
 
-        with open(_here / 'scripts/rabbitmq.config') as mq_config:
+        with open('../../docker/images/mq/rabbitmq.config') as mq_config:
             config_mq = mq_config.read()
 
         with open(_here / 'config/conf.ini') as conf_file:
