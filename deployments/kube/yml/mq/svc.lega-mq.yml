@@ -1,0 +1,34 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: lega-mq-management
+  labels:
+    app: mq
+spec:
+  type: NodePort
+  ports:
+  - port: 15672
+    targetPort: 15672
+    protocol: TCP
+    name: http
+  selector:
+    app: mq
+---
+apiVersion: v1
+kind: Service
+metadata:
+  # The required headless service for StatefulSets
+  name: mq
+  labels:
+    app: mq
+spec:
+  ports:
+  - port: 5672
+    targetPort: 5672
+    name: amqp
+  - port: 4369
+    name: epmd
+  - port: 25672
+    name: rabbitmq-dist
+  selector:
+    app: mq
