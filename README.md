@@ -10,6 +10,7 @@ You can provision and deploy the different components:
 
 * locally, using [docker-compose](deployments/docker).
 * on an OpenStack cluster, using [terraform](deployments/terraform).
+* on a Kubernetes/OpenShift cluster, using [kubernetes](deployments/kube)
 
 # Architecture
 
