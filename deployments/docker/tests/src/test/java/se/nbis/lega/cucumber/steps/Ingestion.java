@@ -8,16 +8,20 @@ import org.assertj.core.api.Assertions;
 import org.junit.Assert;
 import se.nbis.lega.cucumber.Context;
 import se.nbis.lega.cucumber.Utils;
+import se.nbis.lega.cucumber.pojo.FileStatus;
 
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 @Slf4j
 public class Ingestion implements En {
+
+    private static final List<FileStatus> TERMINAL_STATUSES = Arrays.asList(FileStatus.COMPLETED, FileStatus.ERROR, FileStatus.UNDEFINED);
 
     public Ingestion(Context context) {
         Utils utils = context.getUtils();
@@ -46,10 +50,10 @@ public class Ingestion implements En {
         When("^I turn on the database", () -> utils.startContainer(utils.findContainer(utils.getProperty("images.name.db"),
                 utils.getProperty("container.name.db"))));
 
-        When("^I turn off the vault listener", () -> utils.stopContainer(utils.findContainer(utils.getProperty("images.name.mq"),
+        When("^I turn off the message broker", () -> utils.stopContainer(utils.findContainer(utils.getProperty("images.name.mq"),
                 utils.getProperty("container.name.mq"))));
 
-        When("^I turn on the vault listener", () -> utils.startContainer(utils.findContainer(utils.getProperty("images.name.mq"),
+        When("^I turn on the message broker", () -> utils.startContainer(utils.findContainer(utils.getProperty("images.name.mq"),
                 utils.getProperty("container.name.mq"))));
 
         When("^I ingest file from the LocalEGA inbox$", () -> {
@@ -157,11 +161,11 @@ public class Ingestion implements En {
             // So we wait until ingestion status changes to something different from "In progress".
             long maxTimeout = Long.parseLong(utils.getProperty("ingest.max-timeout"));
             long timeout = 0;
-            while ("In progress".equals(getIngestionStatus(context, utils))) {
+            while (!TERMINAL_STATUSES.contains(getIngestionStatus(context, utils))) {
                 Thread.sleep(1000);
                 timeout += 1000;
                 if (timeout > maxTimeout) {
-                    break;
+                    throw new TimeoutException(String.format("Ingestion didn't complete in time: ingest.max-timeout = %s", maxTimeout));
                 }
             }
             // And we sleep one more second for entry to be updated in the database.
@@ -172,12 +176,12 @@ public class Ingestion implements En {
         }
     }
 
-    private String getIngestionStatus(Context context, Utils utils) throws IOException, InterruptedException {
+    private FileStatus getIngestionStatus(Context context, Utils utils) throws IOException, InterruptedException {
         try {
             String output = utils.executeDBQuery(String.format("select status from files where inbox_path = '%s'", context.getEncryptedFile().getName()));
-            return output.split(System.getProperty("line.separator"))[2].trim();
+            return FileStatus.getValue(output.split(System.getProperty("line.separator"))[2].trim());
         } catch (InternalServerErrorException | ConflictException e) {
-            return "Error";
+            return FileStatus.ERROR;
         }
     }
 
