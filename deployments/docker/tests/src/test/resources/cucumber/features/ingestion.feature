@@ -48,16 +48,16 @@ Feature: Ingestion
     When I retrieve ingestion information
     Then the ingestion status is "Error"
 
-  Scenario: I.4 User ingests file encrypted with Crypt4GH using a correct key and checksums, but the RabbitMQ broker is down
+  Scenario: I.4 User ingests file encrypted with Crypt4GH using a correct key and checksums, but the message broker is down
     Given I have an account at Central EGA
     And I have correct private key
     And I connect to the LocalEGA inbox via SFTP using private key
     And I have a 1 MB file encrypted with Crypt4GH using a LocalEGA's pubic key
     And I upload encrypted file to the LocalEGA inbox via SFTP
     And I have CEGA MQ username and password
-    And I turn off RabbitMQ broker
+    And I turn off the message broker
     And I ingest file from the LocalEGA inbox
-    And I turn on RabbitMQ broker
+    And I turn on the message broker
     When I retrieve ingestion information
     Then the ingestion status is "NoEntry"
 
