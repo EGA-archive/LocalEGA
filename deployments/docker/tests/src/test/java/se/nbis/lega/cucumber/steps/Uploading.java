@@ -14,6 +14,7 @@ import javax.crypto.*;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.nio.charset.Charset;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -24,10 +25,14 @@ public class Uploading implements En {
     public Uploading(Context context) {
         Utils utils = context.getUtils();
 
-        Given("^I have a file encrypted with Crypt4GH using a LocalEGA's pubic key$", () -> {
-            File rawFile = context.getRawFile();
-            File encryptedFile = new File(rawFile.getAbsolutePath() + ".enc");
+        Given("^I have a ([^\"]*) MB file encrypted with Crypt4GH using a LocalEGA's pubic key$", (String fileSize) -> {
             try {
+                int size = Integer.parseInt(fileSize);
+                File rawFile = context.getRawFile();
+                try (RandomAccessFile randomAccessFile = new RandomAccessFile(rawFile, "rw")) {
+                    randomAccessFile.setLength(1024 * 1024 * size);
+                }
+                File encryptedFile = new File(rawFile.getAbsolutePath() + ".enc");
                 byte[] digest = DigestUtils.sha256(FileUtils.openInputStream(rawFile));
                 String key = FileUtils.readFileToString(new File(String.format("%s/%s/pgp/ega.pub", utils.getPrivateFolderPath(), utils.getProperty("instance.name"))), Charset.defaultCharset());
                 FileOutputStream fileOutputStream = new FileOutputStream(encryptedFile);
