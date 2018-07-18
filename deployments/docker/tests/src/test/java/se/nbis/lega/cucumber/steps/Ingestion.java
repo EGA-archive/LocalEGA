@@ -50,10 +50,10 @@ public class Ingestion implements En {
         When("^I turn on the database", () -> utils.startContainer(utils.findContainer(utils.getProperty("images.name.db"),
                 utils.getProperty("container.name.db"))));
 
-        When("^I turn off RabbitMQ broker", () -> utils.stopContainer(utils.findContainer(utils.getProperty("images.name.mq"),
+        When("^I turn off the message broker", () -> utils.stopContainer(utils.findContainer(utils.getProperty("images.name.mq"),
                 utils.getProperty("container.name.mq"))));
 
-        When("^I turn on RabbitMQ broker", () -> utils.startContainer(utils.findContainer(utils.getProperty("images.name.mq"),
+        When("^I turn on the message broker", () -> utils.startContainer(utils.findContainer(utils.getProperty("images.name.mq"),
                 utils.getProperty("container.name.mq"))));
 
         When("^I ingest file from the LocalEGA inbox$", () -> {
