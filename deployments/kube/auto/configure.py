@@ -11,6 +11,8 @@ import logging
 import configparser
 import secrets
 import string
+import hashlib
+from base64 import b64encode
 
 from pgpy import PGPKey, PGPUID
 from pgpy.constants import PubKeyAlgorithm, KeyFlags, HashAlgorithm, SymmetricKeyAlgorithm, CompressionAlgorithm
@@ -68,10 +70,9 @@ class ConfigGenerator:
         """Generate SSL self signed certificate."""
         # Following https://cryptography.io/en/latest/x509/tutorial/?highlight=certificate
         key = rsa.generate_private_key(public_exponent=65537, key_size=2048, backend=default_backend())
-        with open(self._config_path / 'ssl.key', "wb") as f:
-            f.write(key.private_bytes(encoding=serialization.Encoding.PEM,
-                                      format=serialization.PrivateFormat.TraditionalOpenSSL,
-                                      encryption_algorithm=serialization.NoEncryption(),))
+        priv_key = key.private_bytes(encoding=serialization.Encoding.PEM,
+                                     format=serialization.PrivateFormat.TraditionalOpenSSL,
+                                     encryption_algorithm=serialization.NoEncryption(),)
 
         subject = issuer = x509.Name([x509.NameAttribute(NameOID.COUNTRY_NAME, country_code),
                                       x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, country),
@@ -89,8 +90,66 @@ class ConfigGenerator:
                     datetime.datetime.utcnow() + datetime.timedelta(days=1000)).add_extension(
                     x509.SubjectAlternativeName([x509.DNSName(u"localhost")]), critical=False,).sign(
                     key, hashes.SHA256(), default_backend())
-        with open(self._config_path / "ssl.cert", "wb") as f:
-            f.write(cert.public_bytes(serialization.Encoding.PEM))
+        return (cert.public_bytes(serialization.Encoding.PEM).decode('utf-8'), priv_key.decode('utf-8'))
+
+    def _hash_pass(self, password):
+        """Hashing password according to RabbitMQ specs."""
+        # 1.Generate a random 32 bit salt:
+        # This will generate 32 bits of random data:
+        salt = os.urandom(4)
+
+        # 2.Concatenate that with the UTF-8 representation of the password (in this case "simon")
+        tmp0 = salt + password.encode('utf-8')
+
+        # 3. Take the SHA256 hash and get the bytes back
+        tmp1 = hashlib.sha256(tmp0).digest()
+
+        # 4. Concatenate the salt again:
+        salted_hash = salt + tmp1
+
+        # 5. convert to base64 encoding:
+        pass_hash = b64encode(salted_hash).decode("utf-8")
+
+        return pass_hash
+
+    def generate_user_auth(self, password):
+        """Generate user auth for CEGA Users."""
+        key = rsa.generate_private_key(backend=default_backend(), public_exponent=65537, key_size=4096)
+
+        # get public key in OpenSSH format
+        public_key = key.public_key().public_bytes(serialization.Encoding.OpenSSH, serialization.PublicFormat.OpenSSH)
+
+        # get private key in PEM container format
+        pem = key.private_bytes(encoding=serialization.Encoding.PEM, format=serialization.PrivateFormat.TraditionalOpenSSL,
+                                encryption_algorithm=serialization.BestAvailableEncryption(password.encode('utf-8')))  # yeah not really that secret
+
+        # decode to printable strings
+        with open(self._config_path / 'user.key', "wb") as f:
+            f.write(pem)
+        return public_key.decode('utf-8')
+
+    def generate_mq_auth(self):
+        """Generate CEGA MQ auth."""
+        generated_secret = ''.join(secrets.choice(string.ascii_letters + string.digits) for i in range(32))
+        cega_defs_mq = """{{"rabbit_version":"3.6.11",\r\n     "users":[{{"name":"lega",
+            "password_hash":"{0}","hashing_algorithm":"rabbit_password_hashing_sha256","tags":"administrator"}}],\r\n     "vhosts":[{{"name":"lega"}}],\r\n
+            "permissions":[{{"user":"lega", "vhost":"lega", "configure":".*", "write":".*", "read":".*"}}],\r\n     "parameters":[],\r\n     "global_parameters":[{{"name":"cluster_name", "value":"rabbit@localhost"}}],\r\n     "policies":[],\r\n
+            "queues":[{{"name":"inbox", "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{{}}}},\r\n
+            {{"name":"inbox.checksums", "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{{}}}},\r\n
+            {{"name":"files",           "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{{}}}},\r\n {{"name":"completed",       "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{{}}}},\r\n
+            {{"name":"errors",          "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{{}}}}],\r\n
+            "exchanges":[{{"name":"localega.v1", "vhost":"lega", "type":"topic", "durable":true, "auto_delete":false, "internal":false, "arguments":{{}}}}],\r\n
+            "bindings":[{{"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{{}},"destination":"inbox","routing_key":"files.inbox"}},\r\n    \t     {{"source":"localega.v1","vhost":"lega","destination_type":"queue",
+            "arguments":{{}},"destination":"inbox.checksums","routing_key":"files.inbox.checksums"}},\r\n {{"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{{}},"destination":"files","routing_key":"files"}},\r\n
+            {{"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{{}},"destination":"completed","routing_key":"files.completed"}},\r\n
+            {{"source":"localega.v1","vhost":"Flega","destination_type":"queue","arguments":{{}},"destination":"errors","routing_key":"files.error"}}]\r\n}}""".format(self._hash_pass(generated_secret))
+        cega_config_mq = """%% -*- mode: erlang -*-
+                         %%
+                         [{rabbit,[{loopback_users, [ ] },
+                          {disk_free_limit, "1GB"}]},
+                             {rabbitmq_management, [ {load_definitions, "/etc/rabbitmq/defs.json"} ]}
+                         ]."""
+        return (generated_secret, cega_config_mq, cega_defs_mq)
 
     def create_conf_shared(self, scheme=None):
         """Create default configuration file, namely ```conf.ini`` file."""

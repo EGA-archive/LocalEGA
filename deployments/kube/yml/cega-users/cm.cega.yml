@@ -149,3 +149,5 @@ data:
         </body>
     </html>
   ega-box-999.yml: |-
+    ---
+    pubkey:
