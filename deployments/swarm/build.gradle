@@ -26,8 +26,7 @@ import java.security.SecureRandom
 def generateRSAKeyPair() {
     KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA")
     keyPairGenerator.initialize(2048, new SecureRandom())
-    KeyPair keyPair = keyPairGenerator.genKeyPair()
-    keyPair
+    keyPairGenerator.genKeyPair()
 }
 
 def writePublicKey(KeyPair keyPair, String path) {
@@ -63,5 +62,5 @@ def writeTrace(String key, String value) {
 
 def readTrace(String key) {
     File traceFile = new File(".tmp/trace/${key}")
-    return FileUtils.readFileToString(traceFile, Charset.defaultCharset())
+    FileUtils.readFileToString(traceFile, Charset.defaultCharset())
 }
