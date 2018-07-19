@@ -23,6 +23,7 @@ import java.security.KeyPairGenerator
 import java.security.SecureRandom
 
 import org.apache.commons.codec.digest.Crypt
+import org.apache.commons.codec.digest.DigestUtils
 
 def generateUser(String username) {
     KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA")
@@ -90,7 +91,7 @@ task createCEGAConfiguration {
             workingDir ".tmp/users"
             ignoreExitValue = true
             executable "docker"
-            args "secret", "create", "john.yml", "john.yml"
+            args "config", "create", "john.yml", "john.yml"
         }
         if (result.exitValue == 0) {
             File johnTrace = new File(".tmp/trace/john.passwd")
@@ -101,11 +102,64 @@ task createCEGAConfiguration {
             workingDir ".tmp/users"
             ignoreExitValue = true
             executable "docker"
-            args "secret", "create", "jane.yml", "jane.yml"
+            args "config", "create", "jane.yml", "jane.yml"
         }
         if (result.exitValue == 0) {
             File janeTrace = new File(".tmp/trace/jane.passwd")
             FileUtils.write(janeTrace, janePassword, Charset.defaultCharset())
+        }
+
+        String salt = UUID.randomUUID().toString().replace("-", "")
+        String password = UUID.randomUUID().toString().replace("-", "")
+        String hash = DigestUtils.sha256Hex(salt + password)
+        String saltedHash = Base64.getEncoder().encodeToString((salt + hash).getBytes())
+
+        mkdir ".tmp/mq"
+        File defsJSON = new File(".tmp/mq/defs.json")
+        FileUtils.write(defsJSON, "{\"rabbit_version\":\"3.6.11\",\n" +
+                " \"users\":[{\"name\":\"lega\",\"password_hash\":\"${saltedHash}\",\"hashing_algorithm\":\"rabbit_password_hashing_sha256\",\"tags\":\"administrator\"}],\n" +
+                " \"vhosts\":[{\"name\":\"lega\"}],\n" +
+                " \"permissions\":[{\"user\":\"lega\", \"vhost\":\"lega\", \"configure\":\".*\", \"write\":\".*\", \"read\":\".*\"}],\n" +
+                " \"parameters\":[],\n" +
+                " \"global_parameters\":[{\"name\":\"cluster_name\", \"value\":\"rabbit@localhost\"}],\n" +
+                " \"policies\":[],\n" +
+                " \"queues\":[{\"name\":\"inbox\",           \"vhost\":\"lega\", \"durable\":true, \"auto_delete\":false, \"arguments\":{}},\n" +
+                "           {\"name\":\"inbox.checksums\", \"vhost\":\"lega\", \"durable\":true, \"auto_delete\":false, \"arguments\":{}},\n" +
+                "\t   {\"name\":\"files\",           \"vhost\":\"lega\", \"durable\":true, \"auto_delete\":false, \"arguments\":{}},\n" +
+                "\t   {\"name\":\"completed\",       \"vhost\":\"lega\", \"durable\":true, \"auto_delete\":false, \"arguments\":{}},\n" +
+                "\t   {\"name\":\"errors\",          \"vhost\":\"lega\", \"durable\":true, \"auto_delete\":false, \"arguments\":{}}],\n" +
+                " \"exchanges\":[{\"name\":\"localega.v1\", \"vhost\":\"lega\", \"type\":\"topic\", \"durable\":true, \"auto_delete\":false, \"internal\":false, \"arguments\":{}}],\n" +
+                " \"bindings\":[{\"source\":\"localega.v1\",\"vhost\":\"lega\",\"destination_type\":\"queue\",\"arguments\":{},\"destination\":\"inbox\",\"routing_key\":\"files.inbox\"},\n" +
+                "\t     {\"source\":\"localega.v1\",\"vhost\":\"lega\",\"destination_type\":\"queue\",\"arguments\":{},\"destination\":\"inbox.checksums\",\"routing_key\":\"files.inbox.checksums\"},\n" +
+                "\t     {\"source\":\"localega.v1\",\"vhost\":\"lega\",\"destination_type\":\"queue\",\"arguments\":{},\"destination\":\"files\",\"routing_key\":\"files\"},\n" +
+                "\t     {\"source\":\"localega.v1\",\"vhost\":\"lega\",\"destination_type\":\"queue\",\"arguments\":{},\"destination\":\"completed\",\"routing_key\":\"files.completed\"},\n" +
+                "\t     {\"source\":\"localega.v1\",\"vhost\":\"lega\",\"destination_type\":\"queue\",\"arguments\":{},\"destination\":\"errors\",\"routing_key\":\"files.error\"}]\n" +
+                "}", Charset.defaultCharset())
+
+        result = exec {
+            workingDir ".tmp/mq"
+            ignoreExitValue = true
+            executable "docker"
+            args "config", "create", "cega.defs.json", "defs.json"
+        }
+        if (result.exitValue == 0) {
+            File mqTrace = new File(".tmp/trace/mq.passwd")
+            FileUtils.write(mqTrace, password, Charset.defaultCharset())
+        }
+
+        File rabbitmqConfig = new File(".tmp/mq/rabbitmq.config")
+        FileUtils.write(rabbitmqConfig, "%% -*- mode: erlang -*-\n" +
+                "%%\n" +
+                "[{rabbit,[{loopback_users, [ ] },\n" +
+                "\t  {disk_free_limit, \"1GB\"}]},\n" +
+                " {rabbitmq_management, [ {load_definitions, \"/etc/rabbitmq/defs.json\"} ]}\n" +
+                "].", Charset.defaultCharset())
+
+        exec {
+            workingDir ".tmp/mq"
+            ignoreExitValue = true
+            executable "docker"
+            args "config", "create", "cega.rabbitmq.config", "rabbitmq.config"
         }
     }
 }
@@ -115,12 +169,7 @@ task clearCEGAConfiguration {
         exec {
             ignoreExitValue = true
             executable "docker"
-            args "config", "rm", "defs.json", "entrypoint.sh", "rabbitmq.config", "eureka.py", "server.py", "users.html"
-        }
-        exec {
-            ignoreExitValue = true
-            executable "docker"
-            args "secret", "rm", "john.yml", "jane.yml"
+            args "config", "rm", "cega.defs.json", "cega.rabbitmq.config", "eureka.py", "server.py", "users.html", "john.yml", "jane.yml"
         }
         delete ".tmp"
     }
