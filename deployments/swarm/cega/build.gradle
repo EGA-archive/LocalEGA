@@ -1,0 +1,149 @@
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+
+    dependencies {
+        classpath 'org.bouncycastle:bcpg-jdk15on:1.59'
+        classpath 'commons-io:commons-io:2.5'
+        classpath 'commons-codec:commons-codec:1.11'
+    }
+}
+
+
+import org.apache.commons.io.FileUtils
+import org.bouncycastle.asn1.pkcs.PrivateKeyInfo
+import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo
+import org.bouncycastle.util.io.pem.PemObject
+import org.bouncycastle.util.io.pem.PemWriter
+
+import java.nio.charset.Charset
+import java.security.KeyPair
+import java.security.KeyPairGenerator
+import java.security.SecureRandom
+
+import org.apache.commons.codec.digest.Crypt
+
+def generateUser(String username) {
+    KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA")
+    keyPairGenerator.initialize(2048, new SecureRandom())
+    KeyPair keyPair = keyPairGenerator.genKeyPair()
+
+    PrivateKeyInfo pkInfo = PrivateKeyInfo.getInstance(keyPair.private.encoded)
+    byte[] privateKeyPKCS1 = pkInfo.parsePrivateKey().toASN1Primitive().encoded
+    PemObject pemObject = new PemObject("RSA PRIVATE KEY", privateKeyPKCS1)
+    StringWriter stringWriter = new StringWriter()
+    PemWriter pemWriter = new PemWriter(stringWriter)
+    pemWriter.writeObject(pemObject)
+    pemWriter.close()
+    String privateKeyString = stringWriter.toString()
+
+    SubjectPublicKeyInfo spkInfo = SubjectPublicKeyInfo.getInstance(keyPair.public.encoded)
+    byte[] publicKeyPKCS1 = spkInfo.parsePublicKey().encoded
+    pemObject = new PemObject("RSA PUBLIC KEY", publicKeyPKCS1)
+    stringWriter = new StringWriter()
+    pemWriter = new PemWriter(stringWriter)
+    pemWriter.writeObject(pemObject)
+    pemWriter.close()
+    String publicKeyString = stringWriter.toString()
+
+    String sshKeyString = "ssh-rsa " + Base64.getEncoder().encodeToString(keyPair.public.encoded)
+
+    String password = UUID.randomUUID().toString().replace("-", "")
+    String salt = UUID.randomUUID().toString().replace("-", "")
+    String hash = Crypt.crypt(password, "\$1\$${salt}\$")
+
+    mkdir ".tmp/users"
+    File userYML = new File(".tmp/users/${username}.yml")
+    FileUtils.writeLines(userYML, Arrays.asList("---", "password_hash: " + hash, "pubkey: " + sshKeyString))
+    mkdir ".tmp/users/pgp"
+    File userPub = new File(".tmp/users/pgp/${username}.pub")
+    FileUtils.write(userPub, publicKeyString, Charset.defaultCharset())
+    File userSec = new File(".tmp/users/pgp/${username}.sec")
+    FileUtils.write(userSec, privateKeyString, Charset.defaultCharset())
+
+    return password
+}
+
+task createCEGAConfiguration {
+    doLast {
+        exec {
+            workingDir "${project.projectDir.toString()}/../../docker/images/cega"
+            ignoreExitValue = true
+            executable "docker"
+            args "config", "create", "eureka.py", "eureka.py"
+        }
+        exec {
+            workingDir "${project.projectDir.toString()}/../../docker/images/cega"
+            ignoreExitValue = true
+            executable "docker"
+            args "config", "create", "server.py", "server.py"
+        }
+        exec {
+            workingDir "${project.projectDir.toString()}/../../docker/images/cega"
+            ignoreExitValue = true
+            executable "docker"
+            args "config", "create", "users.html", "users.html"
+        }
+        String johnPassword = generateUser("john")
+        def result = exec {
+            workingDir ".tmp/users"
+            ignoreExitValue = true
+            executable "docker"
+            args "secret", "create", "john.yml", "john.yml"
+        }
+        if (result.exitValue == 0) {
+            File johnTrace = new File(".tmp/trace/john.passwd")
+            FileUtils.write(johnTrace, johnPassword, Charset.defaultCharset())
+        }
+        String janePassword = generateUser("jane")
+        result = exec {
+            workingDir ".tmp/users"
+            ignoreExitValue = true
+            executable "docker"
+            args "secret", "create", "jane.yml", "jane.yml"
+        }
+        if (result.exitValue == 0) {
+            File janeTrace = new File(".tmp/trace/jane.passwd")
+            FileUtils.write(janeTrace, janePassword, Charset.defaultCharset())
+        }
+    }
+}
+
+task clearCEGAConfiguration {
+    doLast {
+        exec {
+            ignoreExitValue = true
+            executable "docker"
+            args "config", "rm", "defs.json", "entrypoint.sh", "rabbitmq.config", "eureka.py", "server.py", "users.html"
+        }
+        exec {
+            ignoreExitValue = true
+            executable "docker"
+            args "secret", "rm", "john.yml", "jane.yml"
+        }
+        delete ".tmp"
+    }
+}
+
+task deployCEGAStack {
+    dependsOn createCEGAConfiguration
+    doLast {
+        def result = exec {
+            workingDir "${project.projectDir.toString()}/cega"
+            executable "docker"
+            args "stack", "deploy", "--compose-file", "docker-stack.yml", "cega"
+        }
+        println result
+    }
+}
+
+task removeCEGAStack {
+    doLast {
+        def result = exec {
+            executable "docker"
+            args "stack", "rm", "cega"
+        }
+        println result
+    }
+}
