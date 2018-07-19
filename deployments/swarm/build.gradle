@@ -1,0 +1,24 @@
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+
+    dependencies {
+        classpath 'org.bouncycastle:bcpg-jdk15on:1.59'
+        classpath 'commons-io:commons-io:2.5'
+        classpath 'commons-codec:commons-codec:1.11'
+    }
+}
+
+import java.nio.charset.Charset
+import org.apache.commons.io.FileUtils
+
+def writeTrace(String key, String value) {
+    File traceFile = new File(".tmp/trace/${key}")
+    FileUtils.write(traceFile, value, Charset.defaultCharset())
+}
+
+def readTrace(String key) {
+    File traceFile = new File(".tmp/trace/${key}")
+    return FileUtils.readFileToString(traceFile, Charset.defaultCharset())
+}

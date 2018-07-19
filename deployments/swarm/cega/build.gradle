@@ -1,16 +1,3 @@
-buildscript {
-    repositories {
-        mavenCentral()
-    }
-
-    dependencies {
-        classpath 'org.bouncycastle:bcpg-jdk15on:1.59'
-        classpath 'commons-io:commons-io:2.5'
-        classpath 'commons-codec:commons-codec:1.11'
-    }
-}
-
-
 import org.apache.commons.codec.digest.Crypt
 import org.apache.commons.codec.digest.DigestUtils
 import org.apache.commons.io.FileUtils
@@ -114,8 +101,7 @@ task createCEGAUsersConfiguration {
             args "config", "create", "john.yml", "john.yml"
         }
         if (result.exitValue == 0) {
-            File johnTrace = new File(".tmp/trace/john.passwd")
-            FileUtils.write(johnTrace, johnPassword, Charset.defaultCharset())
+            writeTrace("john.passwd", johnPassword)
         }
         String janePassword = generateUser("jane")
         result = exec {
@@ -125,8 +111,7 @@ task createCEGAUsersConfiguration {
             args "config", "create", "jane.yml", "jane.yml"
         }
         if (result.exitValue == 0) {
-            File janeTrace = new File(".tmp/trace/jane.passwd")
-            FileUtils.write(janeTrace, janePassword, Charset.defaultCharset())
+            writeTrace("jane.passwd", janePassword)
         }
     }
 }
@@ -171,8 +156,7 @@ task createCEGAMQConfiguration {
             args "config", "create", "cega.defs.json", "defs.json"
         }
         if (result.exitValue == 0) {
-            File mqTrace = new File(".tmp/trace/mq.passwd")
-            FileUtils.write(mqTrace, password, Charset.defaultCharset())
+            writeTrace("mq.passwd", password)
         }
 
         File rabbitmqConfig = new File(".tmp/mq/rabbitmq.config")
@@ -190,8 +174,7 @@ task createCEGAMQConfiguration {
             args "config", "create", "cega.rabbitmq.config", "rabbitmq.config"
         }
 
-        File restTrace = new File(".tmp/trace/rest.passwd")
-        FileUtils.write(restTrace, UUID.randomUUID().toString().replace("-", ""), Charset.defaultCharset())
+        writeTrace("rest.passwd", UUID.randomUUID().toString().replace("-", ""))
     }
 }
 
@@ -201,8 +184,7 @@ task createCEGAConfiguration {
 
 task deployCEGAStack {
     doLast {
-        File restTrace = new File(".tmp/trace/rest.passwd")
-        String restPassword = FileUtils.readFileToString(restTrace, Charset.defaultCharset())
+        String restPassword = readTrace("rest.passwd")
         exec {
             executable "docker"
             args "stack", "deploy", "--compose-file", "docker-stack.yml", "cega"
