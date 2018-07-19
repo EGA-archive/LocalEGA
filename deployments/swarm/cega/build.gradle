@@ -79,9 +79,7 @@ task clearCEGAConfiguration {
     }
 }
 
-task createCEGAConfiguration {
-    dependsOn clearCEGAConfiguration
-
+task createCEGAEurekaConfiguration {
     doLast {
         exec {
             workingDir "${project.projectDir.toString()}/../../docker/images/cega"
@@ -89,18 +87,25 @@ task createCEGAConfiguration {
             executable "docker"
             args "config", "create", "eureka.py", "eureka.py"
         }
+    }
+}
+
+task createCEGAUsersConfiguration {
+    doLast {
         exec {
             workingDir "${project.projectDir.toString()}/../../docker/images/cega"
             ignoreExitValue = true
             executable "docker"
             args "config", "create", "server.py", "server.py"
         }
+
         exec {
             workingDir "${project.projectDir.toString()}/../../docker/images/cega"
             ignoreExitValue = true
             executable "docker"
             args "config", "create", "users.html", "users.html"
         }
+
         String johnPassword = generateUser("john")
         def result = exec {
             workingDir ".tmp/users"
@@ -123,7 +128,11 @@ task createCEGAConfiguration {
             File janeTrace = new File(".tmp/trace/jane.passwd")
             FileUtils.write(janeTrace, janePassword, Charset.defaultCharset())
         }
+    }
+}
 
+task createCEGAMQConfiguration {
+    doLast {
         byte[] saltBytes = new byte[4]
         new SecureRandom().nextBytes(saltBytes)
         String password = UUID.randomUUID().toString().replace("-", "")
@@ -155,7 +164,7 @@ task createCEGAConfiguration {
                 "\t     {\"source\":\"localega.v1\",\"vhost\":\"lega\",\"destination_type\":\"queue\",\"arguments\":{},\"destination\":\"errors\",\"routing_key\":\"files.error\"}]\n" +
                 "}", Charset.defaultCharset())
 
-        result = exec {
+        def result = exec {
             workingDir ".tmp/mq"
             ignoreExitValue = true
             executable "docker"
@@ -186,6 +195,10 @@ task createCEGAConfiguration {
     }
 }
 
+task createCEGAConfiguration {
+    dependsOn clearCEGAConfiguration, createCEGAEurekaConfiguration, createCEGAUsersConfiguration, createCEGAMQConfiguration
+}
+
 task deployCEGAStack {
     doLast {
         File restTrace = new File(".tmp/trace/rest.passwd")
@@ -193,7 +206,7 @@ task deployCEGAStack {
         exec {
             executable "docker"
             args "stack", "deploy", "--compose-file", "docker-stack.yml", "cega"
-            environment "LEGA_INSTANCES" : "lega", "CEGA_REST_lega_PASSWORD" : restPassword
+            environment "LEGA_INSTANCES": "lega", "CEGA_REST_lega_PASSWORD": restPassword
         }
     }
 }
