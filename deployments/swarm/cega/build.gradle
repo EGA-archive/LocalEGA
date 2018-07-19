@@ -1,10 +1,6 @@
 import org.apache.commons.codec.digest.Crypt
 import org.apache.commons.codec.digest.DigestUtils
 import org.apache.commons.io.FileUtils
-import org.bouncycastle.asn1.pkcs.PrivateKeyInfo
-import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo
-import org.bouncycastle.util.io.pem.PemObject
-import org.bouncycastle.util.io.pem.PemWriter
 
 import java.nio.ByteBuffer
 import java.nio.charset.Charset
@@ -17,24 +13,6 @@ def generateUser(String username) {
     keyPairGenerator.initialize(2048, new SecureRandom())
     KeyPair keyPair = keyPairGenerator.genKeyPair()
 
-    PrivateKeyInfo pkInfo = PrivateKeyInfo.getInstance(keyPair.private.encoded)
-    byte[] privateKeyPKCS1 = pkInfo.parsePrivateKey().toASN1Primitive().encoded
-    PemObject pemObject = new PemObject("RSA PRIVATE KEY", privateKeyPKCS1)
-    StringWriter stringWriter = new StringWriter()
-    PemWriter pemWriter = new PemWriter(stringWriter)
-    pemWriter.writeObject(pemObject)
-    pemWriter.close()
-    String privateKeyString = stringWriter.toString()
-
-    SubjectPublicKeyInfo spkInfo = SubjectPublicKeyInfo.getInstance(keyPair.public.encoded)
-    byte[] publicKeyPKCS1 = spkInfo.parsePublicKey().encoded
-    pemObject = new PemObject("RSA PUBLIC KEY", publicKeyPKCS1)
-    stringWriter = new StringWriter()
-    pemWriter = new PemWriter(stringWriter)
-    pemWriter.writeObject(pemObject)
-    pemWriter.close()
-    String publicKeyString = stringWriter.toString()
-
     String sshKeyString = "ssh-rsa " + Base64.getEncoder().encodeToString(keyPair.public.encoded)
 
     String password = UUID.randomUUID().toString().replace("-", "")
@@ -45,10 +23,8 @@ def generateUser(String username) {
     File userYML = new File(".tmp/users/${username}.yml")
     FileUtils.writeLines(userYML, Arrays.asList("---", "password_hash: " + hash, "pubkey: " + sshKeyString))
     mkdir ".tmp/users/pgp"
-    File userPub = new File(".tmp/users/pgp/${username}.pub")
-    FileUtils.write(userPub, publicKeyString, Charset.defaultCharset())
-    File userSec = new File(".tmp/users/pgp/${username}.sec")
-    FileUtils.write(userSec, privateKeyString, Charset.defaultCharset())
+    writePublicKey(keyPair, ".tmp/users/pgp/${username}.pub")
+    writePrivateKey(keyPair, ".tmp/users/pgp/${username}.sec")
 
     return password
 }
