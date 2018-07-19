@@ -8,19 +8,19 @@ networks:
 services:
 
   cega-mq:
+    image: rabbitmq:3.6.14-management
     hostname: cega-mq
+    networks:
+      - cega
     ports:
       - "15670:15672"
       - "5672:5672"
-    image: rabbitmq:3.6.14-management
     deploy:
       restart_policy:
               condition: on-failure
               delay: 5s
               max_attempts: 3
               window: 120s
-    networks:
-      - cega
     configs:
       - source: cega.defs.json
         target: /etc/rabbitmq/defs.json
@@ -30,14 +30,14 @@ services:
   cega-users:
     image: nbisweden/ega-base
     hostname: cega-users
+    networks:
+          - cega
     deploy:
       restart_policy:
               condition: on-failure
               delay: 5s
               max_attempts: 3
               window: 120s
-    networks:
-      - cega
     environment:
       - LEGA_INSTANCES
       - CEGA_REST_lega_PASSWORD
@@ -53,16 +53,16 @@ services:
     command: ["python3.6", "/cega/server.py"]
 
   cega-eureka:
-    hostname: cega-eureka
     image: nbisweden/ega-base
+    hostname: cega-eureka
+    networks:
+          - cega
     deploy:
       restart_policy:
               condition: on-failure
               delay: 5s
               max_attempts: 3
               window: 120s
-    networks:
-      - cega
     configs:
       - source: eureka.py
         target: /cega/eureka.py
