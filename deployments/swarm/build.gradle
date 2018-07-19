@@ -5,13 +5,56 @@ buildscript {
 
     dependencies {
         classpath 'org.bouncycastle:bcpg-jdk15on:1.59'
+        classpath 'org.bouncycastle:bcpkix-jdk15on:1.59'
         classpath 'commons-io:commons-io:2.5'
         classpath 'commons-codec:commons-codec:1.11'
     }
 }
 
-import java.nio.charset.Charset
+
 import org.apache.commons.io.FileUtils
+import org.bouncycastle.asn1.pkcs.PrivateKeyInfo
+import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo
+import org.bouncycastle.util.io.pem.PemObject
+import org.bouncycastle.util.io.pem.PemWriter
+
+import java.nio.charset.Charset
+import java.security.KeyPair
+import java.security.KeyPairGenerator
+import java.security.SecureRandom
+
+def generateRSAKeyPair() {
+    KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA")
+    keyPairGenerator.initialize(2048, new SecureRandom())
+    KeyPair keyPair = keyPairGenerator.genKeyPair()
+    keyPair
+}
+
+def writePublicKey(KeyPair keyPair, String path) {
+    SubjectPublicKeyInfo spkInfo = SubjectPublicKeyInfo.getInstance(keyPair.public.encoded)
+    byte[] publicKeyPKCS1 = spkInfo.parsePublicKey().encoded
+    PemObject pemObject = new PemObject("RSA PUBLIC KEY", publicKeyPKCS1)
+    StringWriter stringWriter = new StringWriter()
+    PemWriter pemWriter = new PemWriter(stringWriter)
+    pemWriter.writeObject(pemObject)
+    pemWriter.close()
+    String publicKeyString = stringWriter.toString()
+    File file = new File(path)
+    FileUtils.write(file, publicKeyString, Charset.defaultCharset())
+}
+
+def writePrivateKey(KeyPair keyPair, String path) {
+    PrivateKeyInfo pkInfo = PrivateKeyInfo.getInstance(keyPair.private.encoded)
+    byte[] privateKeyPKCS1 = pkInfo.parsePrivateKey().toASN1Primitive().encoded
+    PemObject pemObject = new PemObject("RSA PRIVATE KEY", privateKeyPKCS1)
+    StringWriter stringWriter = new StringWriter()
+    PemWriter pemWriter = new PemWriter(stringWriter)
+    pemWriter.writeObject(pemObject)
+    pemWriter.close()
+    String privateKeyString = stringWriter.toString()
+    File file = new File(path)
+    FileUtils.write(file, privateKeyString, Charset.defaultCharset())
+}
 
 def writeTrace(String key, String value) {
     File traceFile = new File(".tmp/trace/${key}")
