@@ -1,0 +1,61 @@
+version: '3.2'
+
+networks:
+
+  cega:
+    driver: overlay
+
+services:
+
+  cega-mq:
+    hostname: cega-mq
+    ports:
+      - "15670:15672"
+      - "5672:5672"
+    image: rabbitmq:3.6.14-management
+    volumes:
+       - ./cega/mq/defs.json:/etc/rabbitmq/defs.json:ro
+       - ./cega/mq/rabbitmq.config:/etc/rabbitmq/rabbitmq.config:ro
+    deploy:
+      restart_policy:
+              condition: on-failure
+              delay: 5s
+              max_attempts: 3
+              window: 120s
+    networks:
+      - cega
+
+  cega-users:
+    image: nbisweden/ega-base
+    hostname: cega-users
+    volumes:
+      - ./cega/users:/cega/users:rw
+      - ../images/cega/users.html:/cega/users.html
+      - ../images/cega/server.py:/cega/server.py
+    deploy:
+      restart_policy:
+              condition: on-failure
+              delay: 5s
+              max_attempts: 3
+              window: 120s
+    networks:
+      - cega
+    environment:
+      - LEGA_INSTANCES=lega
+      - CEGA_REST_lega_PASSWORD=LL89cSZdkHbywl70
+    command: ["python3.6", "/cega/server.py"]
+
+  cega-eureka:
+    hostname: cega-eureka
+    image: nbisweden/ega-base
+    volumes:
+      - ../images/cega/eureka.py:/cega/eureka.py
+    deploy:
+      restart_policy:
+              condition: on-failure
+              delay: 5s
+              max_attempts: 3
+              window: 120s
+    networks:
+      - cega
+    command: ["python3.6", "/cega/eureka.py"]
