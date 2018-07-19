@@ -11,19 +11,19 @@ buildscript {
 }
 
 
+import org.apache.commons.codec.digest.Crypt
+import org.apache.commons.codec.digest.DigestUtils
 import org.apache.commons.io.FileUtils
 import org.bouncycastle.asn1.pkcs.PrivateKeyInfo
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo
 import org.bouncycastle.util.io.pem.PemObject
 import org.bouncycastle.util.io.pem.PemWriter
 
+import java.nio.ByteBuffer
 import java.nio.charset.Charset
 import java.security.KeyPair
 import java.security.KeyPairGenerator
 import java.security.SecureRandom
-
-import org.apache.commons.codec.digest.Crypt
-import org.apache.commons.codec.digest.DigestUtils
 
 def generateUser(String username) {
     KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA")
@@ -66,7 +66,20 @@ def generateUser(String username) {
     return password
 }
 
+task clearCEGAConfiguration {
+    doLast {
+        exec {
+            ignoreExitValue = true
+            executable "docker"
+            args "config", "rm", "cega.defs.json", "cega.rabbitmq.config", "eureka.py", "server.py", "users.html", "john.yml", "jane.yml"
+        }
+        delete ".tmp"
+    }
+}
+
 task createCEGAConfiguration {
+    dependsOn clearCEGAConfiguration
+
     doLast {
         exec {
             workingDir "${project.projectDir.toString()}/../../docker/images/cega"
@@ -109,10 +122,14 @@ task createCEGAConfiguration {
             FileUtils.write(janeTrace, janePassword, Charset.defaultCharset())
         }
 
-        String salt = UUID.randomUUID().toString().replace("-", "")
+        byte[] saltBytes = new byte[4]
+        new SecureRandom().nextBytes(saltBytes)
         String password = UUID.randomUUID().toString().replace("-", "")
-        String hash = DigestUtils.sha256Hex(salt + password)
-        String saltedHash = Base64.getEncoder().encodeToString((salt + hash).getBytes())
+        byte[] passwordBytes = password.getBytes()
+        byte[] concat = ByteBuffer.allocate(saltBytes.length + passwordBytes.length).put(saltBytes).put(passwordBytes).array()
+        byte[] hash = DigestUtils.sha256(concat)
+        concat = ByteBuffer.allocate(saltBytes.length + hash.length).put(saltBytes).put(hash).array()
+        String saltedHash = Base64.getEncoder().encodeToString(concat)
 
         mkdir ".tmp/mq"
         File defsJSON = new File(".tmp/mq/defs.json")
@@ -161,38 +178,29 @@ task createCEGAConfiguration {
             executable "docker"
             args "config", "create", "cega.rabbitmq.config", "rabbitmq.config"
         }
-    }
-}
 
-task clearCEGAConfiguration {
-    doLast {
-        exec {
-            ignoreExitValue = true
-            executable "docker"
-            args "config", "rm", "cega.defs.json", "cega.rabbitmq.config", "eureka.py", "server.py", "users.html", "john.yml", "jane.yml"
-        }
-        delete ".tmp"
+        File restTrace = new File(".tmp/trace/rest.passwd")
+        FileUtils.write(restTrace, UUID.randomUUID().toString().replace("-", ""), Charset.defaultCharset())
     }
 }
 
 task deployCEGAStack {
-    dependsOn createCEGAConfiguration
     doLast {
-        def result = exec {
-            workingDir "${project.projectDir.toString()}/cega"
+        File restTrace = new File(".tmp/trace/rest.passwd")
+        String restPassword = FileUtils.readFileToString(restTrace, Charset.defaultCharset())
+        exec {
             executable "docker"
             args "stack", "deploy", "--compose-file", "docker-stack.yml", "cega"
+            environment "LEGA_INSTANCES" : "lega", "CEGA_REST_lega_PASSWORD" : restPassword
         }
-        println result
     }
 }
 
 task removeCEGAStack {
     doLast {
-        def result = exec {
+        exec {
             executable "docker"
             args "stack", "rm", "cega"
         }
-        println result
     }
 }
