@@ -1,4 +1,4 @@
-version: '3.2'
+version: '3.3'
 
 networks:
 
@@ -13,9 +13,6 @@ services:
       - "15670:15672"
       - "5672:5672"
     image: rabbitmq:3.6.14-management
-    volumes:
-       - ./cega/mq/defs.json:/etc/rabbitmq/defs.json:ro
-       - ./cega/mq/rabbitmq.config:/etc/rabbitmq/rabbitmq.config:ro
     deploy:
       restart_policy:
               condition: on-failure
@@ -24,14 +21,15 @@ services:
               window: 120s
     networks:
       - cega
+    configs:
+      - source: cega.defs.json
+        target: /etc/rabbitmq/defs.json
+      - source: cega.rabbitmq.config
+        target: /etc/rabbitmq/rabbitmq.config
 
   cega-users:
     image: nbisweden/ega-base
     hostname: cega-users
-    volumes:
-      - ./cega/users:/cega/users:rw
-      - ../images/cega/users.html:/cega/users.html
-      - ../images/cega/server.py:/cega/server.py
     deploy:
       restart_policy:
               condition: on-failure
@@ -41,15 +39,22 @@ services:
     networks:
       - cega
     environment:
-      - LEGA_INSTANCES=lega
-      - CEGA_REST_lega_PASSWORD=LL89cSZdkHbywl70
+      - LEGA_INSTANCES
+      - CEGA_REST_lega_PASSWORD
+    configs:
+      - source: users.html
+        target: /cega/users.html
+      - source: server.py
+        target: /cega/server.py
+      - source: john.yml
+        target: /cega/users/lega/john.yml
+      - source: jane.yml
+        target: /cega/users/lega/jane.yml
     command: ["python3.6", "/cega/server.py"]
 
   cega-eureka:
     hostname: cega-eureka
     image: nbisweden/ega-base
-    volumes:
-      - ../images/cega/eureka.py:/cega/eureka.py
     deploy:
       restart_policy:
               condition: on-failure
@@ -58,4 +63,23 @@ services:
               window: 120s
     networks:
       - cega
+    configs:
+      - source: eureka.py
+        target: /cega/eureka.py
     command: ["python3.6", "/cega/eureka.py"]
+
+configs:
+  cega.defs.json:
+    external: true
+  cega.rabbitmq.config:
+    external: true
+  eureka.py:
+    external: true
+  server.py:
+    external: true
+  users.html:
+    external: true
+  john.yml:
+    external: true
+  jane.yml:
+    external: true
