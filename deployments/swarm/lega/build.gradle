@@ -7,7 +7,17 @@ task clearLEGAConfiguration {
         def result = exec {
             ignoreExitValue = true
             executable "docker"
-            args "config", "rm", "lega.defs.json", "lega.rabbitmq.config", "lega.entrypoint.sh", "db.sql"
+            args "config", "rm",
+                    "lega.defs.json",
+                    "lega.rabbitmq.config",
+                    "lega.entrypoint.sh", 
+                    "db.sql",
+                    "ssl.cert",
+                    "ssl.key",
+                    "ega.sec",
+                    "ega2.sec",
+                    "conf.ini",
+                    "keys.ini"
         }
         if (result.exitValue == 0) {
             delete ".tmp"
@@ -77,9 +87,33 @@ task createLEGAIngestConfiguration {
 task createLEGAKeysConfiguration {
     doLast {
         generateSSLCertificate()
+        exec {
+            workingDir ".tmp/ssl"
+            ignoreExitValue = true
+            executable "docker"
+            args "config", "create", "ssl.cert", "ssl.cert"
+        }
+        exec {
+            workingDir ".tmp/ssl"
+            ignoreExitValue = true
+            executable "docker"
+            args "config", "create", "ssl.key", "ssl.key"
+        }
         String pgpPassphrase = UUID.randomUUID().toString().replace("-", "")
         generatePGPKeyPair("ega", pgpPassphrase)
+        exec {
+            workingDir ".tmp/pgp"
+            ignoreExitValue = true
+            executable "docker"
+            args "config", "create", "ega.sec", "ega.sec"
+        }
         generatePGPKeyPair("ega2", pgpPassphrase)
+        exec {
+            workingDir ".tmp/pgp"
+            ignoreExitValue = true
+            executable "docker"
+            args "config", "create", "ega2.sec", "ega2.sec"
+        }
         writeTrace("PGP_PASSPHRASE", pgpPassphrase)
         String masterPassphrase = UUID.randomUUID().toString().replace("-", "")
         writeTrace("LEGA_PASSWORD", masterPassphrase)
@@ -136,6 +170,13 @@ task createConfIni {
                 "\n" +
                 "[eureka]\n" +
                 "endpoint = http://cega-eureka:8761", Charset.defaultCharset())
+
+        exec {
+            workingDir ".tmp"
+            ignoreExitValue = true
+            executable "docker"
+            args "config", "create", "conf.ini", "conf.ini"
+        }
     }
 }
 
@@ -161,6 +202,13 @@ task createKeysIni {
                 "path : /etc/ega/pgp/ega2.sec\n" +
                 "passphrase : ${readTrace("PGP_PASSPHRASE")}\n" +
                 "expire: 30/MAR/18 08:00:00", Charset.defaultCharset())
+
+        exec {
+            workingDir ".tmp"
+            ignoreExitValue = true
+            executable "docker"
+            args "config", "create", "keys.ini", "keys.ini"
+        }
     }
 }
 
