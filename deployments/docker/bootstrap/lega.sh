@@ -38,6 +38,8 @@ passphrase : ${PGP_PASSPHRASE}
 expire: 30/MAR/18 08:00:00
 EOF
 
+${OPENSSL} enc -aes-256-cbc -salt -in ${PRIVATE}/lega/keys.ini -out ${PRIVATE}/lega/keys.ini.enc -k ${LEGA_PASSWORD}
+
 echomsg "\t* conf.ini"
 cat > ${PRIVATE}/lega/conf.ini <<EOF
 [DEFAULT]
@@ -312,7 +314,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - LEGA_PASSWORD=${LEGA_PASSWORD}
     volumes:
        - ./lega/conf.ini:/etc/ega/conf.ini:ro
-       - ./lega/keys.ini:/etc/ega/keys.ini:ro
+       - ./lega/keys.ini.enc:/etc/ega/keys.ini.enc:ro
        - ./lega/certs/ssl.cert:/etc/ega/ssl.cert:ro
        - ./lega/certs/ssl.key:/etc/ega/ssl.key:ro
        - ./lega/pgp/ega.sec:/etc/ega/pgp/ega.sec:ro
@@ -324,7 +326,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     networks:
       - lega
       - cega
-    entrypoint: ["gosu","lega","ega-keyserver","--keys","/etc/ega/keys.ini"]
+    entrypoint: ["gosu","lega","ega-keyserver","--keys","/etc/ega/keys.ini.enc"]
 
   # Quality Control
   verify:
