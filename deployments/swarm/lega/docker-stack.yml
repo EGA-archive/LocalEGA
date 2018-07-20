@@ -1,0 +1,178 @@
+version: '3.3'
+
+networks:
+  lega:
+    driver: overlay
+  cega_cega:
+    external: true
+
+services:
+
+  ############################################
+  # Local EGA instance
+  ############################################
+
+  # Local Message broker
+  mq:
+    image: rabbitmq:3.6.14-management
+    hostname: mq
+    networks:
+      - lega
+      - cega_cega
+    ports:
+      - "15672:15672"
+    deploy:
+          restart_policy:
+                  condition: on-failure
+                  delay: 5s
+                  max_attempts: 3
+                  window: 120s
+    volumes:
+      - ../images/mq/defs.json:/etc/rabbitmq/defs.json
+      - ../images/mq/rabbitmq.config:/etc/rabbitmq/rabbitmq.config
+      - ../images/mq/entrypoint.sh:/usr/bin/ega-entrypoint.sh
+    environment:
+      - CEGA_CONNECTION
+    entrypoint: ["/bin/bash", "/usr/bin/ega-entrypoint.sh"]
+    command: ["rabbitmq-server"]
+
+  # Postgres Database
+  db:
+    image: postgres:latest
+    hostname: db
+    networks:
+      - lega
+    deploy:
+          restart_policy:
+                  condition: on-failure
+                  delay: 5s
+                  max_attempts: 3
+                  window: 120s
+    environment:
+      - DB_INSTANCE
+      - POSTGRES_USER
+      - POSTGRES_PASSWORD
+      - POSTGRES_DB
+    volumes:
+      - ./lega/db.sql:/docker-entrypoint-initdb.d/ega.sql:ro
+
+  # SFTP inbox
+  inbox:
+    image: nbisweden/ega-mina-inbox
+    hostname: ega-inbox
+    networks:
+      - lega
+      - cega_cega
+    ports:
+      - "2222:2222"
+      - "5005:5005"
+    deploy:
+          restart_policy:
+                  condition: on-failure
+                  delay: 5s
+                  max_attempts: 3
+                  window: 120s
+    depends_on:
+      - mq
+    environment:
+      - CEGA_ENDPOINT
+      - CEGA_ENDPOINT_CREDS
+    volumes:
+      - inbox:/ega/inbox
+
+  # Ingestion Workers
+  ingest:
+    image: nbisweden/ega-base
+    networks:
+      - lega
+    deploy:
+          restart_policy:
+                  condition: on-failure
+                  delay: 5s
+                  max_attempts: 3
+                  window: 120s
+    depends_on:
+      - db
+      - mq
+    environment:
+      - S3_ACCESS_KEY
+      - S3_SECRET_KEY
+    volumes:
+       - inbox:/ega/inbox
+       - ./lega/conf.ini:/etc/ega/conf.ini:ro
+    entrypoint: ["gosu", "lega", "ega-ingest"]
+
+  # Key server
+  keys:
+    image: nbisweden/ega-base
+    hostname: keys
+    networks:
+      - lega
+      - cega_cega
+    deploy:
+          restart_policy:
+                  condition: on-failure
+                  delay: 5s
+                  max_attempts: 3
+                  window: 120s
+    environment:
+      - LEGA_PASSWORD
+    volumes:
+       - ./lega/conf.ini:/etc/ega/conf.ini:ro
+       - ./lega/keys.ini:/etc/ega/keys.ini:ro
+       - ./lega/certs/ssl.cert:/etc/ega/ssl.cert:ro
+       - ./lega/certs/ssl.key:/etc/ega/ssl.key:ro
+       - ./lega/pgp/ega.sec:/etc/ega/pgp/ega.sec:ro
+       - ./lega/pgp/ega2.sec:/etc/ega/pgp/ega2.sec:ro
+    entrypoint: ["gosu","lega","ega-keyserver","--keys","/etc/ega/keys.ini"]
+
+  # Quality Control
+  verify:
+    image: nbisweden/ega-base
+    hostname: verify
+    networks:
+      - lega
+    deploy:
+          restart_policy:
+                  condition: on-failure
+                  delay: 5s
+                  max_attempts: 3
+                  window: 120s
+    depends_on:
+      - db
+      - mq
+      - inbox
+      - keys
+    environment:
+      - LEGA_PASSWORD
+      - S3_ACCESS_KEY
+      - S3_SECRET_KEY
+    volumes:
+       - ./lega/conf.ini:/etc/ega/conf.ini:ro
+    entrypoint: ["gosu", "lega", "ega-verify"]
+
+  # S3
+  s3:
+    image: minio/minio
+    hostname: s3
+    networks:
+      - lega
+    ports:
+      - "9000:9000"
+    deploy:
+          restart_policy:
+                  condition: on-failure
+                  delay: 5s
+                  max_attempts: 3
+                  window: 120s
+    environment:
+      - MINIO_ACCESS_KEY
+      - MINIO_SECRET_KEY
+    volumes:
+      - s3:/data
+    command: server /data
+
+# Use the default driver for volume creation
+volumes:
+  inbox:
+  s3:
