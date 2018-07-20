@@ -120,13 +120,21 @@ task createLEGAKeysConfiguration {
     }
 }
 
+task createLEGAMinioConfiguration {
+    doLast {
+        writeTrace("MINIO_ACCESS_KEY", readTrace("S3_ACCESS_KEY"))
+        writeTrace("MINIO_SECRET_KEY", readTrace("S3_SECRET_KEY"))
+    }
+}
+
 task createConfIni {
     dependsOn clearLEGAConfiguration,
             createLEGAMQConfiguration,
             createLEGADBConfiguration,
             createLEGAInboxConfiguration,
             createLEGAIngestConfiguration,
-            createLEGAKeysConfiguration
+            createLEGAKeysConfiguration,
+            createLEGAMinioConfiguration
 
     doLast {
         File confIni = new File(".tmp/conf.ini")
@@ -163,9 +171,9 @@ task createConfIni {
                 "retry_delay = 10\n" +
                 "\n" +
                 "[postgres]\n" +
-                "host = db\n" +
-                "user = ${readTrace("DB_USER")}\n" +
-                "password = ${readTrace("DB_PASSWORD")}\n" +
+                "host = ${readTrace("DB_INSTANCE")}\n" +
+                "user = ${readTrace("POSTGRES_USER")}\n" +
+                "password = ${readTrace("POSTGRES_PASSWORD")}\n" +
                 "try = 30\n" +
                 "\n" +
                 "[eureka]\n" +
@@ -186,7 +194,8 @@ task createKeysIni {
             createLEGADBConfiguration,
             createLEGAInboxConfiguration,
             createLEGAIngestConfiguration,
-            createLEGAKeysConfiguration
+            createLEGAKeysConfiguration,
+            createLEGAMinioConfiguration
 
     doLast {
         File keysIni = new File(".tmp/keys.ini")
@@ -221,6 +230,7 @@ task deployLEGAStack {
         exec {
             executable "docker"
             args "stack", "deploy", "--compose-file", "docker-stack.yml", "lega"
+            environment getTraceAsMAp()
         }
     }
 }
@@ -230,6 +240,11 @@ task removeLEGAStack {
         exec {
             executable "docker"
             args "stack", "rm", "lega"
+        }
+        exec {
+            ignoreExitValue = true
+            executable "docker"
+            args "volume", "rm", "lega_inbox", "lega_s3"
         }
     }
 }
