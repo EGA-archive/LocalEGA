@@ -159,5 +159,17 @@ class KeysConfiguration(configparser.ConfigParser):
         """Load a configuration file from `args`."""
         super().__init__()
         # Finding the --keys file. Raise Error otherwise
-        conf_file = Path(args[args.index('--keys') + 1]).expanduser()
-        self.read(conf_file, encoding=encoding)
+        filepath = Path(args[args.index('--keys') + 1]).expanduser()
+
+        if filepath.suffix != '.enc':
+            conf = filepath.open(encoding=encoding).read()
+        else:
+            # Quick solution, just for testing, to decrypt the encrypted keys configuration file (keys.ini)
+            # The 'LEGA_PASSWORD' must be defined
+            assert 'LEGA_PASSWORD' in os.environ, "LEGA_PASSWORD must be defined as an environment variable"
+            s = "openssl enc -aes-256-cbc -d -in {} -k {}".format(str(filepath), os.environ.get('LEGA_PASSWORD',None))
+            from subprocess import Popen, PIPE
+            with Popen(s.split(), stdout=PIPE) as proc:                
+                conf = proc.stdout.read().decode()
+
+        self.read_string(conf, source=str(filepath))
