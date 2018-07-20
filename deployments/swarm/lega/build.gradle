@@ -241,6 +241,7 @@ task removeLEGAStack {
             executable "docker"
             args "stack", "rm", "lega"
         }
+        sleep 10000
         exec {
             ignoreExitValue = true
             executable "docker"
