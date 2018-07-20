@@ -45,9 +45,9 @@ EOF
 
 # Here the users public keys obtained by PAM will be stored
 mkdir -p /ega/cache
-# sed -i -e '/ega/ d' /etc/fstab
-# echo "ramfs /ega/cache ramfs   size=200m 0 0" >> /etc/fstab
-# mount /ega/cache
+sed -i -e '/ega/ d' /etc/fstab
+echo "ramfs /ega/cache ramfs   size=200m 0 0" >> /etc/fstab
+mount /ega/cache
 
 # Changing permissions
 echo "Changing permissions for /ega/inbox"

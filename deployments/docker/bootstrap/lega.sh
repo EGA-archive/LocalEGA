@@ -157,7 +157,7 @@ EOF
 #########################################################################
 # Creating the docker-compose file
 #########################################################################
-cat >> ${PRIVATE}/lega.yml <<EOF
+cat >> ${PRIVATE}/lega.yml <<'EOF'
 version: '3.2'
 
 networks:
@@ -211,7 +211,9 @@ services:
     restart: on-failure:3
     networks:
       - lega
-
+EOF
+if [[ $DEFAULT_INBOX == 'fuse' ]]; then
+cat >> ${PRIVATE}/lega.yml <<'EOF'
   # SFTP inbox
   inbox:
     hostname: ega-inbox
@@ -221,19 +223,62 @@ services:
     external_links:
       - cega-users:cega-users
     environment:
+      - DB_INSTANCE=db
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=lega
       - CEGA_ENDPOINT=http://cega-users/user/
       - CEGA_ENDPOINT_CREDS=lega:${CEGA_REST_PASSWORD}
+      - CEGA_ENDPOINT_JSON_PASSWD=.password_hash
+      - CEGA_ENDPOINT_JSON_PUBKEY=.pubkey
     ports:
-      - "${DOCKER_PORT_inbox}:2222"
+      - "${DOCKER_PORT_inbox}:9000"
     container_name: inbox
-    image: nbisweden/ega-mina-inbox
+    image: nbisweden/ega-inbox
+    # privileged, cap_add and devices cannot be used by docker Swarm
+    privileged: true
+    cap_add:
+      - ALL
+    devices:
+      - /dev/fuse
     volumes:
+      - ./lega/conf.ini:/etc/ega/conf.ini:ro
       - inbox:/ega/inbox
+      - ../../../lega:/home/lega/.local/lib/python3.6/site-packages/lega
+      - ../images/inbox/entrypoint.sh:/usr/bin/ega-entrypoint.sh
+      #- ~/_auth_ega:/root/_auth_ega
     restart: on-failure:3
     networks:
       - lega
       - cega
-
+    entrypoint: ["/bin/bash", "/usr/bin/ega-entrypoint.sh"]
+EOF
+elif [[ $DEFAULT_INBOX == 'mina' ]]; then
+cat >> ${PRIVATE}/lega.yml <<'EOF'
+	  # SFTP inbox
+		inbox:
+			hostname: ega-inbox
+			depends_on:
+				- mq
+			# Required external link
+			external_links:
+				- cega-users:cega-users
+			environment:
+				- CEGA_ENDPOINT=http://cega-users/user/
+				- CEGA_ENDPOINT_CREDS=lega:${CEGA_REST_PASSWORD}
+			ports:
+				- "${DOCKER_PORT_inbox}:2222"
+			container_name: inbox
+			image: nbisweden/ega-mina-inbox
+			volumes:
+				- inbox:/ega/inbox
+			restart: on-failure:3
+			networks:
+				- lega
+				- cega
+EOF
+fi
+cat >> ${PRIVATE}/lega.yml <<EOF
   # Ingestion Workers
   ingest:
     depends_on:
@@ -329,6 +374,7 @@ volumes:
   s3:
 EOF
 
+sed $'s/\t/  /' ${PRIVATE}/lega.yml >>/dev/null
 #########################################################################
 # Keeping a trace of if
 #########################################################################
