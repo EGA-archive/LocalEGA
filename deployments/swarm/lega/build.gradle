@@ -37,6 +37,9 @@ task createLEGAMQConfiguration {
             executable "docker"
             args "config", "create", "lega.entrypoint.sh", "entrypoint.sh"
         }
+
+        String cegaMQPassword = readTrace(new File("${project.projectDir.toString()}/../cega/.tmp/.trace"), "CEGA_MQ_PASSWORD")
+        writeTrace("CEGA_CONNECTION", "amqp://lega:${cegaMQPassword}@cega-mq:5672/lega")
     }
 }
 
@@ -59,8 +62,8 @@ task createLEGADBConfiguration {
 task createLEGAInboxConfiguration {
     doLast {
         writeTrace("CEGA_ENDPOINT", "http://cega-users/user/")
-        String cegaRestPassword = readTrace(new File("${project.projectDir.toString()}/../cega/.tmp/.trace"), "CEGA_REST_PASSWORD")
-        writeTrace("CEGA_ENDPOINT_CREDS", "lega:${cegaRestPassword}")
+        String cegaRESTPassword = readTrace(new File("${project.projectDir.toString()}/../cega/.tmp/.trace"), "CEGA_REST_PASSWORD")
+        writeTrace("CEGA_ENDPOINT_CREDS", "lega:${cegaRESTPassword}")
     }
 }
 
