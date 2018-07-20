@@ -90,6 +90,7 @@ services:
     depends_on:
       - db
       - mq
+      - s3
     environment:
       - S3_ACCESS_KEY
       - S3_SECRET_KEY
@@ -145,6 +146,7 @@ services:
       - mq
       - inbox
       - keys
+      - s3
     environment:
       - LEGA_PASSWORD
       - S3_ACCESS_KEY

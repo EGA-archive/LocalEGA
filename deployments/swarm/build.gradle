@@ -47,12 +47,6 @@ import java.security.cert.X509Certificate
 import java.time.LocalDate
 import java.time.ZoneOffset
 
-def generateDSAKeyPair() {
-    KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("DSA", "BC")
-    keyPairGenerator.initialize(512, new SecureRandom()) // 2048 takes too long
-    keyPairGenerator.genKeyPair()
-}
-
 def generateElGamalKeyPair() {
     KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("ELGAMAL", "BC")
     keyPairGenerator.initialize(512, new SecureRandom()) // 2048 takes too long
@@ -66,7 +60,7 @@ def generateRSAKeyPair() {
 }
 
 def createPGPKeyRingGenerator(String identity, char[] passphrase) {
-    PGPKeyPair dsaPgpKeyPair = new JcaPGPKeyPair(PGPPublicKey.DSA, generateDSAKeyPair(), new Date())
+    PGPKeyPair dsaPgpKeyPair = new JcaPGPKeyPair(PGPPublicKey.RSA_GENERAL, generateRSAKeyPair(), new Date())
     PGPKeyPair elGamalPgpKeyPair = new JcaPGPKeyPair(PGPPublicKey.ELGAMAL_ENCRYPT, generateElGamalKeyPair(), new Date())
     PGPDigestCalculator sha1Calc = new JcaPGPDigestCalculatorProviderBuilder().build().get(HashAlgorithmTags.SHA1)
 
@@ -219,6 +213,16 @@ def readTrace(File traceFile, String key) {
 def readTrace(String key) {
     File traceFile = new File(".tmp/.trace")
     readTrace(traceFile, key)
+}
+
+def getTraceAsMAp() {
+    File traceFile = new File(".tmp/.trace")
+    List<String> lines = FileUtils.readLines(traceFile, Charset.defaultCharset())
+    Map<String, String> result = new HashMap<>()
+    for (String line : lines) {
+        result.put(line.split("=")[0].trim(), line.split("=")[1].trim())
+    }
+    result
 }
 
 task initBouncyCastle() {
