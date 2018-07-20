@@ -28,7 +28,17 @@ task deploy() {
 }
 
 task rm() {
-    dependsOn ":cega:removeCEGAStack", ":lega:removeLEGAStack"
+    doLast {
+        exec {
+            executable "docker"
+            args "stack", "rm", "lega"
+        }
+        sleep 10000
+        exec {
+            executable "docker"
+            args "stack", "rm", "cega"
+        }
+    }
 }
 
 task list() {
