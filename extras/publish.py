@@ -12,8 +12,6 @@ import pika
 import string
 import secrets
 
-randomID = ''.join(secrets.choice(string.digits) for i in range(16))
-
 parser = argparse.ArgumentParser(description='''Publish message to the broker on this machine.''')
 
 parser.add_argument('--connection',
@@ -22,7 +20,8 @@ parser.add_argument('--connection',
 
 parser.add_argument('user', help='Elixir ID')
 parser.add_argument('filepath', help='Filepath in the user inbox')
-parser.add_argument('--stableID', help='Stable ID to use in CentralEGA', default=randomID)
+parser.add_argument('--stableID', help='Stable ID to use in CentralEGA',
+                    default=''.join(secrets.choice(string.digits) for i in range(16)))
 
 unenc_group = parser.add_argument_group('unencrypted checksum')
 unenc_group.add_argument('--unenc')
