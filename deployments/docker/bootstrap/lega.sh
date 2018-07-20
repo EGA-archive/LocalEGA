@@ -157,7 +157,7 @@ EOF
 #########################################################################
 # Creating the docker-compose file
 #########################################################################
-cat >> ${PRIVATE}/lega.yml <<'EOF'
+cat >> ${PRIVATE}/lega.yml <<EOF
 version: '3.2'
 
 networks:
@@ -213,7 +213,7 @@ services:
       - lega
 EOF
 if [[ $DEFAULT_INBOX == 'fuse' ]]; then
-cat >> ${PRIVATE}/lega.yml <<'EOF'
+cat >> ${PRIVATE}/lega.yml <<EOF
   # SFTP inbox
   inbox:
     hostname: ega-inbox
@@ -254,28 +254,28 @@ cat >> ${PRIVATE}/lega.yml <<'EOF'
     entrypoint: ["/bin/bash", "/usr/bin/ega-entrypoint.sh"]
 EOF
 elif [[ $DEFAULT_INBOX == 'mina' ]]; then
-cat >> ${PRIVATE}/lega.yml <<'EOF'
-	  # SFTP inbox
-		inbox:
-			hostname: ega-inbox
-			depends_on:
-				- mq
-			# Required external link
-			external_links:
-				- cega-users:cega-users
-			environment:
-				- CEGA_ENDPOINT=http://cega-users/user/
-				- CEGA_ENDPOINT_CREDS=lega:${CEGA_REST_PASSWORD}
-			ports:
-				- "${DOCKER_PORT_inbox}:2222"
-			container_name: inbox
-			image: nbisweden/ega-mina-inbox
-			volumes:
-				- inbox:/ega/inbox
-			restart: on-failure:3
-			networks:
-				- lega
-				- cega
+cat >> ${PRIVATE}/lega.yml <<EOF
+  # SFTP inbox
+  inbox:
+    hostname: ega-inbox
+    depends_on:
+      - mq
+    # Required external link
+    external_links:
+      - cega-users:cega-users
+    environment:
+      - CEGA_ENDPOINT=http://cega-users/user/
+      - CEGA_ENDPOINT_CREDS=lega:${CEGA_REST_PASSWORD}
+    ports:
+      - "${DOCKER_PORT_inbox}:2222"
+    container_name: inbox
+    image: nbisweden/ega-mina-inbox
+    volumes:
+      - inbox:/ega/inbox
+    restart: on-failure:3
+    networks:
+      - lega
+      - cega
 EOF
 fi
 cat >> ${PRIVATE}/lega.yml <<EOF
