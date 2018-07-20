@@ -159,19 +159,6 @@ EOF
 
 echomsg "Generating passwords for the Message Broker"
 
-# function rabbitmq_hash {
-#     # 1) Generate a random 32 bit salt
-#     # 2) Concatenate that with the UTF-8 representation of the password
-#     # 3) Take the SHA-256 hash
-#     # 4) Concatenate the salt again
-#     # 5) Convert to base64 encoding
-#     local SALT=${2:-$(${OPENSSL:-openssl} rand -hex 4)}
-#     {
-# 	printf ${SALT} | xxd -p -r
-# 	( printf ${SALT} | xxd -p -r; printf $1 ) | ${OPENSSL:-openssl} dgst -binary -sha256
-#     } | base64
-# }
-
 mkdir -p ${PRIVATE}/cega/mq
 cat > ${PRIVATE}/cega/mq/defs.json <<EOF
 {"rabbit_version":"3.6.11",
