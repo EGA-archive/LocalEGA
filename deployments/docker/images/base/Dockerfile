@@ -5,18 +5,14 @@ ARG DEV_PACKAGES=
 RUN yum -y install https://centos7.iuscommunity.org/ius-release.rpm && \
     yum -y install epel-release && \
     yum -y update && \
-    yum -y install git make bzip2 curl \
+    yum -y install git gcc make bzip2 curl \
                    zlib-devel bzip2-devel unzip \
                    openssh-server openssl \
 		   wget dpkg \
+		   pam-devel libcurl-devel jq-devel fuse fuse-libs cronie \
 		   python36u python36u-pip ${DEV_PACKAGES}
 
 RUN [[ -e /lib64/libpython3.6m.so ]] || ln -s /lib64/libpython3.6m.so.1.0 /lib64/libpython3.6m.so
-
-# Add Tini
-ENV TINI_VERSION v0.18.0
-ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /tini
-RUN chmod +x /tini
 
 ENV GOSU_VERSION 1.10
 ENV GPG_KEYS B42F6819007F00F88E364FD4036A9C25BF357DD4
@@ -27,9 +23,9 @@ RUN set -ex && \
 
 # verify the signature
 RUN export GNUPGHOME="$(mktemp -d)" && \
-    (gpg --keyserver ha.pool.sks-keyservers.net --recv-keys "$GPG_KEYS" \
+    gpg --keyserver ha.pool.sks-keyservers.net --recv-keys "$GPG_KEYS" \
     || gpg --keyserver pgp.mit.edu --recv-keys "$GPG_KEYS" \
-    || gpg --keyserver keyserver.pgp.com --recv-keys "$GPG_KEYS") && \
+    || gpg --keyserver keyserver.pgp.com --recv-keys "$GPG_KEYS" && \
     gpg --keyserver hkps://hkps.pool.sks-keyservers.net --recv-keys  && \
     gpg --batch --verify /tmp/gosu.asc /usr/bin/gosu && \
     rm -r "$GNUPGHOME" /tmp/gosu.asc && \
