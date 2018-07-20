@@ -12,9 +12,29 @@ buildscript {
 }
 
 
+import org.apache.commons.codec.digest.Crypt
 import org.apache.commons.io.FileUtils
 import org.bouncycastle.asn1.pkcs.PrivateKeyInfo
+import org.bouncycastle.asn1.x500.X500Name
+import org.bouncycastle.asn1.x500.X500NameBuilder
+import org.bouncycastle.asn1.x500.style.BCStyle
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo
+import org.bouncycastle.bcpg.ArmoredOutputStream
+import org.bouncycastle.bcpg.HashAlgorithmTags
+import org.bouncycastle.cert.X509CertificateHolder
+import org.bouncycastle.cert.X509v3CertificateBuilder
+import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter
+import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder
+import org.bouncycastle.jce.provider.BouncyCastleProvider
+import org.bouncycastle.openpgp.*
+import org.bouncycastle.openpgp.operator.PGPDigestCalculator
+import org.bouncycastle.openpgp.operator.jcajce.JcaPGPContentSignerBuilder
+import org.bouncycastle.openpgp.operator.jcajce.JcaPGPDigestCalculatorProviderBuilder
+import org.bouncycastle.openpgp.operator.jcajce.JcaPGPKeyPair
+import org.bouncycastle.openpgp.operator.jcajce.JcePBESecretKeyEncryptorBuilder
+import org.bouncycastle.openssl.jcajce.JcaPEMWriter
+import org.bouncycastle.operator.ContentSigner
+import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder
 import org.bouncycastle.util.io.pem.PemObject
 import org.bouncycastle.util.io.pem.PemWriter
 
@@ -22,11 +42,130 @@ import java.nio.charset.Charset
 import java.security.KeyPair
 import java.security.KeyPairGenerator
 import java.security.SecureRandom
+import java.security.Security
+import java.security.cert.X509Certificate
+import java.time.LocalDate
+import java.time.ZoneOffset
+
+def generateDSAKeyPair() {
+    KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("DSA", "BC")
+    keyPairGenerator.initialize(1024, new SecureRandom()) // 2048 takes too long
+    keyPairGenerator.genKeyPair()
+}
+
+def generateElGamalKeyPair() {
+    KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("ELGAMAL", "BC")
+    keyPairGenerator.initialize(1024, new SecureRandom()) // 2048 takes too long
+    keyPairGenerator.genKeyPair()
+}
 
 def generateRSAKeyPair() {
-    KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA")
+    KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA", "BC")
     keyPairGenerator.initialize(2048, new SecureRandom())
     keyPairGenerator.genKeyPair()
+}
+
+def createPGPKeyRingGenerator(String identity, char[] passphrase) {
+    PGPKeyPair dsaPgpKeyPair = new JcaPGPKeyPair(PGPPublicKey.DSA, generateDSAKeyPair(), new Date())
+    PGPKeyPair elGamalPgpKeyPair = new JcaPGPKeyPair(PGPPublicKey.ELGAMAL_ENCRYPT, generateElGamalKeyPair(), new Date())
+    PGPDigestCalculator sha1Calc = new JcaPGPDigestCalculatorProviderBuilder().build().get(HashAlgorithmTags.SHA1)
+
+    PGPKeyRingGenerator keyRingGen = new PGPKeyRingGenerator(
+            PGPSignature.POSITIVE_CERTIFICATION,
+            dsaPgpKeyPair,
+            identity,
+            sha1Calc,
+            null,
+            null,
+            new JcaPGPContentSignerBuilder(dsaPgpKeyPair.getPublicKey().getAlgorithm(), HashAlgorithmTags.SHA1),
+            new JcePBESecretKeyEncryptorBuilder(PGPEncryptedData.AES_256, sha1Calc).setProvider("BC").build(passphrase)
+    )
+
+    keyRingGen.addSubKey(elGamalPgpKeyPair)
+    keyRingGen
+}
+
+def armorByteArray(byte[] data) {
+    ByteArrayOutputStream encOut = new ByteArrayOutputStream()
+    ArmoredOutputStream armorOut = new ArmoredOutputStream(encOut)
+    armorOut.write(data)
+    armorOut.flush()
+    armorOut.close()
+    encOut.toByteArray()
+}
+
+def generateSSLCertificate() {
+    KeyPair keyPair = generateRSAKeyPair()
+    X500Name subject = new X500NameBuilder(BCStyle.INSTANCE).addRDN(BCStyle.CN, "keys").build()
+    SecureRandom random = new SecureRandom()
+    byte[] id = new byte[20]
+    random.nextBytes(id)
+    BigInteger serial = new BigInteger(160, random)
+    X509v3CertificateBuilder certificate = new JcaX509v3CertificateBuilder(
+            subject,
+            serial,
+            Date.from(LocalDate.of(2018, 1, 1).atStartOfDay(ZoneOffset.UTC).toInstant()),
+            Date.from(LocalDate.of(2020, 1, 1).atStartOfDay(ZoneOffset.UTC).toInstant()),
+            subject,
+            keyPair.getPublic())
+
+    ContentSigner signer = new JcaContentSignerBuilder("SHA256withRSA").build(keyPair.getPrivate())
+    X509CertificateHolder holder = certificate.build(signer)
+
+    JcaX509CertificateConverter converter = new JcaX509CertificateConverter()
+    converter.setProvider(new BouncyCastleProvider())
+    X509Certificate x509 = converter.getCertificate(holder)
+
+    new File(".tmp/ssl").mkdirs()
+    FileWriter fileWriter = new FileWriter(".tmp/ssl/ssl.cert")
+    JcaPEMWriter pemWriter = new JcaPEMWriter(fileWriter)
+    pemWriter.writeObject(x509)
+    pemWriter.close()
+
+    writePrivateKey(keyPair, ".tmp/ssl/ssl.key")
+}
+
+def generatePGPKeyPair(String userId, String passphrase) {
+    PGPKeyRingGenerator generator = createPGPKeyRingGenerator(userId, passphrase.toCharArray())
+
+    PGPPublicKeyRing pkr = generator.generatePublicKeyRing()
+    ByteArrayOutputStream pubOut = new ByteArrayOutputStream()
+    pkr.encode(pubOut)
+    pubOut.close()
+
+    PGPSecretKeyRing skr = generator.generateSecretKeyRing()
+    ByteArrayOutputStream secOut = new ByteArrayOutputStream()
+    skr.encode(secOut)
+    secOut.close()
+
+    byte[] armoredPublicBytes = armorByteArray(pubOut.toByteArray())
+    byte[] armoredSecretBytes = armorByteArray(secOut.toByteArray())
+
+    new File(".tmp/pgp").mkdirs()
+    File pubFile = new File(".tmp/pgp/${userId}.pub")
+    FileUtils.write(pubFile, new String(armoredPublicBytes), Charset.defaultCharset())
+
+    File secFile = new File(".tmp/pgp/${userId}.sec")
+    FileUtils.write(secFile, new String(armoredSecretBytes), Charset.defaultCharset())
+}
+
+def generateUser(String username) {
+    KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA")
+    keyPairGenerator.initialize(2048, new SecureRandom())
+    KeyPair keyPair = keyPairGenerator.genKeyPair()
+
+    String sshKeyString = "ssh-rsa " + Base64.getEncoder().encodeToString(keyPair.public.encoded)
+
+    String password = UUID.randomUUID().toString().replace("-", "")
+    String salt = UUID.randomUUID().toString().replace("-", "")
+    String hash = Crypt.crypt(password, "\$1\$${salt}\$")
+
+    File userYML = new File(".tmp/users/${username}.yml")
+    FileUtils.writeLines(userYML, Arrays.asList("---", "password_hash: " + hash, "pubkey: " + sshKeyString))
+    writePublicKey(keyPair, ".tmp/users/pgp/${username}.pub")
+    writePrivateKey(keyPair, ".tmp/users/pgp/${username}.sec")
+
+    return password
 }
 
 def writePublicKey(KeyPair keyPair, String path) {
@@ -56,11 +195,28 @@ def writePrivateKey(KeyPair keyPair, String path) {
 }
 
 def writeTrace(String key, String value) {
-    File traceFile = new File(".tmp/trace/${key}")
-    FileUtils.write(traceFile, value, Charset.defaultCharset())
+    File traceFile = new File(".tmp/.trace")
+    String existingValue = readTrace(traceFile, key)
+    if (existingValue == null) {
+        FileUtils.writeLines(traceFile, Collections.singleton(String.format("%s=%s", key, value)), true)
+    }
+}
+
+def readTrace(File traceFile, String key) {
+    List<String> lines = FileUtils.readLines(traceFile, Charset.defaultCharset())
+    for (String line : lines) {
+        if (line.startsWith(key)) {
+            return line.split("=")[1].trim()
+        }
+    }
+    return null
 }
 
 def readTrace(String key) {
-    File traceFile = new File(".tmp/trace/${key}")
-    FileUtils.readFileToString(traceFile, Charset.defaultCharset())
+    File traceFile = new File(".tmp/.trace")
+    readTrace(traceFile, key)
+}
+
+task initBouncyCastle() {
+    Security.addProvider(new BouncyCastleProvider())
 }

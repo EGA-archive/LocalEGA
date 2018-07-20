@@ -1,33 +1,9 @@
-import org.apache.commons.codec.digest.Crypt
 import org.apache.commons.codec.digest.DigestUtils
 import org.apache.commons.io.FileUtils
 
 import java.nio.ByteBuffer
 import java.nio.charset.Charset
-import java.security.KeyPair
-import java.security.KeyPairGenerator
 import java.security.SecureRandom
-
-def generateUser(String username) {
-    KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA")
-    keyPairGenerator.initialize(2048, new SecureRandom())
-    KeyPair keyPair = keyPairGenerator.genKeyPair()
-
-    String sshKeyString = "ssh-rsa " + Base64.getEncoder().encodeToString(keyPair.public.encoded)
-
-    String password = UUID.randomUUID().toString().replace("-", "")
-    String salt = UUID.randomUUID().toString().replace("-", "")
-    String hash = Crypt.crypt(password, "\$1\$${salt}\$")
-
-    mkdir ".tmp/users"
-    File userYML = new File(".tmp/users/${username}.yml")
-    FileUtils.writeLines(userYML, Arrays.asList("---", "password_hash: " + hash, "pubkey: " + sshKeyString))
-    mkdir ".tmp/users/pgp"
-    writePublicKey(keyPair, ".tmp/users/pgp/${username}.pub")
-    writePrivateKey(keyPair, ".tmp/users/pgp/${username}.sec")
-
-    return password
-}
 
 task clearCEGAConfiguration {
     doLast {
@@ -77,7 +53,7 @@ task createCEGAUsersConfiguration {
             args "config", "create", "john.yml", "john.yml"
         }
         if (result.exitValue == 0) {
-            writeTrace("john.passwd", johnPassword)
+            writeTrace("EGA_USER_PASSWORD_JOHN", johnPassword)
         }
         String janePassword = generateUser("jane")
         result = exec {
@@ -87,7 +63,7 @@ task createCEGAUsersConfiguration {
             args "config", "create", "jane.yml", "jane.yml"
         }
         if (result.exitValue == 0) {
-            writeTrace("jane.passwd", janePassword)
+            writeTrace("EGA_USER_PASSWORD_JANE", janePassword)
         }
     }
 }
@@ -132,7 +108,7 @@ task createCEGAMQConfiguration {
             args "config", "create", "cega.defs.json", "defs.json"
         }
         if (result.exitValue == 0) {
-            writeTrace("mq.passwd", password)
+            writeTrace("CEGA_MQ_PASSWORD", password)
         }
 
         File rabbitmqConfig = new File(".tmp/mq/rabbitmq.config")
@@ -150,7 +126,7 @@ task createCEGAMQConfiguration {
             args "config", "create", "cega.rabbitmq.config", "rabbitmq.config"
         }
 
-        writeTrace("rest.passwd", UUID.randomUUID().toString().replace("-", ""))
+        writeTrace("CEGA_REST_PASSWORD", UUID.randomUUID().toString().replace("-", ""))
     }
 }
 
@@ -160,7 +136,7 @@ task createCEGAConfiguration {
 
 task deployCEGAStack {
     doLast {
-        String restPassword = readTrace("rest.passwd")
+        String restPassword = readTrace("CEGA_REST_PASSWORD")
         exec {
             executable "docker"
             args "stack", "deploy", "--compose-file", "docker-stack.yml", "cega"
