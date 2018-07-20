@@ -7,13 +7,15 @@ import java.nio.charset.Charset
 import java.security.KeyPair
 import java.security.KeyPairGenerator
 import java.security.SecureRandom
+import net.schmizz.sshj.common.Buffer
 
 def generateUser(String username) {
     KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA")
     keyPairGenerator.initialize(2048, new SecureRandom())
     KeyPair keyPair = keyPairGenerator.genKeyPair()
 
-    String sshKeyString = "ssh-rsa " + Base64.getEncoder().encodeToString(keyPair.public.encoded)
+    byte[] keyBytes = new Buffer.PlainBuffer().putPublicKey(keyPair.public).compactData
+    String sshKeyString = "ssh-rsa " + Base64.getEncoder().encodeToString(keyBytes)
 
     String password = UUID.randomUUID().toString().replace("-", "")
     String salt = UUID.randomUUID().toString().replace("-", "")
@@ -21,8 +23,8 @@ def generateUser(String username) {
 
     File userYML = new File("${project.projectDir.toString()}/.tmp/users/${username}.yml")
     FileUtils.writeLines(userYML, Arrays.asList("---", "password_hash: " + hash, "pubkey: " + sshKeyString))
-    writePublicKey(keyPair, "${project.projectDir.toString()}/.tmp/users/pgp/${username}.pub")
-    writePrivateKey(keyPair, "${project.projectDir.toString()}/.tmp/users/pgp/${username}.sec")
+    writePublicKey(keyPair, "${project.projectDir.toString()}/.tmp/users/${username}.pub")
+    writePrivateKey(keyPair, "${project.projectDir.toString()}/.tmp/users/${username}.sec")
 
     return password
 }
