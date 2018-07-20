@@ -1,14 +1,6 @@
-buildscript {
-    repositories {
-        mavenCentral()
-    }
+import org.apache.commons.io.FileUtils
 
-    dependencies {
-        classpath 'org.bouncycastle:bcpg-jdk15on:1.59'
-        classpath 'commons-io:commons-io:2.5'
-        classpath 'commons-codec:commons-codec:1.11'
-    }
-}
+import java.nio.charset.Charset
 
 task clearLEGAConfiguration {
     doLast {
@@ -91,13 +83,86 @@ task createLEGAKeysConfiguration {
     }
 }
 
-task createLEGAConfiguration {
+task createConfIni {
     dependsOn clearLEGAConfiguration,
             createLEGAMQConfiguration,
             createLEGADBConfiguration,
             createLEGAInboxConfiguration,
             createLEGAIngestConfiguration,
             createLEGAKeysConfiguration
+
+    doLast {
+        File confIni = new File(".tmp/conf.ini")
+        FileUtils.write(confIni, "[DEFAULT]\n" +
+                "log = console\n" +
+                "\n" +
+                "[keyserver]\n" +
+                "port = 8443\n" +
+                "\n" +
+                "[quality_control]\n" +
+                "keyserver_endpoint = https://keys:8443/retrieve/%s/private\n" +
+                "\n" +
+                "[inbox]\n" +
+                "location = /ega/inbox/%s\n" +
+                "mode = 2750\n" +
+                "\n" +
+                "[vault]\n" +
+                "driver = S3Storage\n" +
+                "url = http://s3:9000\n" +
+                "access_key = ${readTrace("S3_ACCESS_KEY")}\n" +
+                "secret_key = ${readTrace("S3_SECRET_KEY")}\n" +
+                "#region = lega\n" +
+                "\n" +
+                "\n" +
+                "[outgestion]\n" +
+                "# Just for test\n" +
+                "keyserver_endpoint = https://keys:8443/retrieve/%s/private\n" +
+                "\n" +
+                "## Connecting to Local EGA\n" +
+                "[broker]\n" +
+                "host = mq\n" +
+                "connection_attempts = 30\n" +
+                "# delay in seconds\n" +
+                "retry_delay = 10\n" +
+                "\n" +
+                "[postgres]\n" +
+                "host = db\n" +
+                "user = ${readTrace("DB_USER")}\n" +
+                "password = ${readTrace("DB_PASSWORD")}\n" +
+                "try = 30\n" +
+                "\n" +
+                "[eureka]\n" +
+                "endpoint = http://cega-eureka:8761", Charset.defaultCharset())
+    }
+}
+
+task createKeysIni {
+    dependsOn clearLEGAConfiguration,
+            createLEGAMQConfiguration,
+            createLEGADBConfiguration,
+            createLEGAInboxConfiguration,
+            createLEGAIngestConfiguration,
+            createLEGAKeysConfiguration
+
+    doLast {
+        File keysIni = new File(".tmp/keys.ini")
+        FileUtils.write(keysIni, "[DEFAULT]\n" +
+                "active : key.1\n" +
+                "\n" +
+                "[key.1]\n" +
+                "path : /etc/ega/pgp/ega.sec\n" +
+                "passphrase : ${readTrace("PGP_PASSPHRASE")}\n" +
+                "expire: 30/MAR/19 08:00:00\n" +
+                "\n" +
+                "[key.2]\n" +
+                "path : /etc/ega/pgp/ega2.sec\n" +
+                "passphrase : ${readTrace("PGP_PASSPHRASE")}\n" +
+                "expire: 30/MAR/18 08:00:00", Charset.defaultCharset())
+    }
+}
+
+task createLEGAConfiguration {
+    dependsOn clearLEGAConfiguration, createConfIni, createKeysIni
 }
 
 task deployLEGAStack {

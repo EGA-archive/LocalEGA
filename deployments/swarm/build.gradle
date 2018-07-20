@@ -49,13 +49,13 @@ import java.time.ZoneOffset
 
 def generateDSAKeyPair() {
     KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("DSA", "BC")
-    keyPairGenerator.initialize(1024, new SecureRandom()) // 2048 takes too long
+    keyPairGenerator.initialize(512, new SecureRandom()) // 2048 takes too long
     keyPairGenerator.genKeyPair()
 }
 
 def generateElGamalKeyPair() {
     KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("ELGAMAL", "BC")
-    keyPairGenerator.initialize(1024, new SecureRandom()) // 2048 takes too long
+    keyPairGenerator.initialize(512, new SecureRandom()) // 2048 takes too long
     keyPairGenerator.genKeyPair()
 }
 
@@ -203,13 +203,17 @@ def writeTrace(String key, String value) {
 }
 
 def readTrace(File traceFile, String key) {
-    List<String> lines = FileUtils.readLines(traceFile, Charset.defaultCharset())
-    for (String line : lines) {
-        if (line.startsWith(key)) {
-            return line.split("=")[1].trim()
+    try {
+        List<String> lines = FileUtils.readLines(traceFile, Charset.defaultCharset())
+        for (String line : lines) {
+            if (line.startsWith(key)) {
+                return line.split("=")[1].trim()
+            }
         }
+        return null
+    } catch (FileNotFoundException e) {
+        return null
     }
-    return null
 }
 
 def readTrace(String key) {
