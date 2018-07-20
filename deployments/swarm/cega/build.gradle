@@ -57,16 +57,6 @@ def readTrace(String key) {
     readTrace(traceFile, key)
 }
 
-def getTraceAsMAp() {
-    File traceFile = new File("${project.projectDir.toString()}/.tmp/.trace")
-    List<String> lines = FileUtils.readLines(traceFile, Charset.defaultCharset())
-    Map<String, String> result = new HashMap<>()
-    for (String line : lines) {
-        result.put(line.split("=")[0].trim(), line.split("=")[1].trim())
-    }
-    result
-}
-
 task clearCEGAConfiguration {
     doLast {
         def result = exec {
