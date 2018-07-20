@@ -15,10 +15,10 @@ rabbitmq-plugins enable --offline rabbitmq_federation_management
 rabbitmq-plugins enable --offline rabbitmq_shovel
 rabbitmq-plugins enable --offline rabbitmq_shovel_management
 
-chown rabbitmq:rabbitmq /etc/rabbitmq/rabbitmq.config
-chmod 640 /etc/rabbitmq/rabbitmq.config
-chown rabbitmq:rabbitmq /etc/rabbitmq/defs.json
-chmod 640 /etc/rabbitmq/defs.json
+# chown rabbitmq:rabbitmq /etc/rabbitmq/rabbitmq.config
+# chmod 640 /etc/rabbitmq/rabbitmq.config
+# chown rabbitmq:rabbitmq /etc/rabbitmq/defs.json
+# chmod 640 /etc/rabbitmq/defs.json
 
 # Problem of loading the plugins and definitions out-of-orders.
 # Explanation: https://github.com/rabbitmq/rabbitmq-shovel/issues/13
@@ -67,11 +67,11 @@ cat > /etc/rabbitmq/defs-cega.json <<EOF
  "policies":[{"vhost":"/","name":"CEGA","pattern":"files","apply-to":"queues","definition":{"federation-upstream":"from-CEGA"},"priority":0}]
 }
 EOF
-chown rabbitmq:rabbitmq /etc/rabbitmq/defs-cega.json
-chmod 640 /etc/rabbitmq/defs-cega.json
+# chown rabbitmq:rabbitmq /etc/rabbitmq/defs-cega.json
+# chmod 640 /etc/rabbitmq/defs-cega.json
 
 # And...cue music
-chown -R rabbitmq /var/lib/rabbitmq
+# chown -R rabbitmq /var/lib/rabbitmq
 
 { # Spawn off
     sleep 5 # Small delay first
