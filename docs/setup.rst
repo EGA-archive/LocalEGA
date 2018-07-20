@@ -12,7 +12,7 @@ The sources for LocalEGA can be downloaded and installed from the `NBIS Github r
 The recommended method is however to use one of our deployment
 strategy: either on `Docker`_ or on `OpenStack cloud`_.
 
-For the LocalEGA inboxes:
+For the LocalEGA FUSE based inboxes:
 
 .. code-block:: console
 
