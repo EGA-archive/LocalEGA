@@ -12,6 +12,7 @@ buildscript {
         classpath "commons-io:commons-io:2.5"
         classpath "commons-codec:commons-codec:1.11"
         classpath "com.hierynomus:sshj:0.22.0"
+        classpath "com.rabbitmq:amqp-client:5.1.1"
         classpath "no.uio.ifi:crypt4gh:1.0.0"
     }
 }
@@ -93,9 +94,36 @@ task upload() {
         ssh.authPublickey("john", "cega/.tmp/users/john.sec")
         SFTPClient client = ssh.newSFTPClient()
         client.put(".tmp/data.raw.enc", "data.raw.enc")
+        ssh.close()
     }
 }
 
+task ingest() {
+    dependsOn upload
+
+    doLast {
+        ConnectionFactory factory = new ConnectionFactory()
+        String mqPassword = readTrace(new File("cega/.tmp/.trace"), "CEGA_MQ_PASSWORD")
+        factory.setUri("amqp://lega:${mqPassword}@localhost:5672/lega")
+        Connection connectionFactory = factory.newConnection()
+        Channel channel = connectionFactory.createChannel()
+        AMQP.BasicProperties properties = new AMQP.BasicProperties().builder().
+                deliveryMode(2).
+                contentType("application/json").
+                contentEncoding(StandardCharsets.UTF_8.displayName()).
+                build()
+
+
+        String stableId = "EGAF" + UUID.randomUUID().toString().replace("-", "")
+        channel.basicPublish("localega.v1",
+                "files",
+                properties,
+                "{\"user\":\"john\",\"filepath\":\"data.raw.enc\",\"stable_id\":\"${stableId}\"}".bytes)
+
+        channel.close()
+        connectionFactory.close()
+    }
+}
 
 import net.schmizz.sshj.SSHClient
 import net.schmizz.sshj.sftp.SFTPClient
@@ -120,12 +148,18 @@ import org.bouncycastle.openpgp.operator.bc.BcPGPKeyPair
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter
 
 import java.nio.charset.Charset
+import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.attribute.PosixFilePermission
 import java.security.KeyPair
 import java.security.KeyPairGenerator
 import java.security.SecureRandom
 import java.security.Security
+
+import com.rabbitmq.client.AMQP
+import com.rabbitmq.client.Channel
+import com.rabbitmq.client.Connection
+import com.rabbitmq.client.ConnectionFactory
 
 def generateRSAKeyPair() {
     KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA", "BC")
@@ -216,4 +250,23 @@ def writePrivateKey(KeyPair keyPair, String path) {
     Set<PosixFilePermission> perms = new HashSet<>()
     perms.add(PosixFilePermission.OWNER_READ)
     Files.setPosixFilePermissions(file.toPath(), perms)
+}
+
+def readTrace(File traceFile, String key) {
+    try {
+        List<String> lines = FileUtils.readLines(traceFile, Charset.defaultCharset())
+        for (String line : lines) {
+            if (line.startsWith(key)) {
+                return line.split("=")[1].trim()
+            }
+        }
+        return null
+    } catch (FileNotFoundException e) {
+        return null
+    }
+}
+
+def readTrace(String key) {
+    File traceFile = new File("${project.projectDir.toString()}/.tmp/.trace")
+    readTrace(traceFile, key)
 }
