@@ -8,11 +8,6 @@ networks:
 
 services:
 
-  ############################################
-  # Local EGA instance
-  ############################################
-
-  # Local Message broker
   mq:
     image: rabbitmq:3.6.14-management
     hostname: mq
@@ -27,16 +22,18 @@ services:
                   delay: 5s
                   max_attempts: 3
                   window: 120s
-    volumes:
-      - ../images/mq/defs.json:/etc/rabbitmq/defs.json
-      - ../images/mq/rabbitmq.config:/etc/rabbitmq/rabbitmq.config
-      - ../images/mq/entrypoint.sh:/usr/bin/ega-entrypoint.sh
     environment:
       - CEGA_CONNECTION
+    configs:
+          - source: lega.defs.json
+            target: /etc/rabbitmq/defs.json
+          - source: lega.rabbitmq.config
+            target: /etc/rabbitmq/rabbitmq.config
+          - source: lega.entrypoint.sh
+            target: /usr/bin/ega-entrypoint.sh
     entrypoint: ["/bin/bash", "/usr/bin/ega-entrypoint.sh"]
     command: ["rabbitmq-server"]
 
-  # Postgres Database
   db:
     image: postgres:latest
     hostname: db
@@ -53,10 +50,10 @@ services:
       - POSTGRES_USER
       - POSTGRES_PASSWORD
       - POSTGRES_DB
-    volumes:
-      - ./lega/db.sql:/docker-entrypoint-initdb.d/ega.sql:ro
+    configs:
+          - source: db.sql
+            target: /docker-entrypoint-initdb.d/ega.sql
 
-  # SFTP inbox
   inbox:
     image: nbisweden/ega-mina-inbox
     hostname: ega-inbox
@@ -80,7 +77,6 @@ services:
     volumes:
       - inbox:/ega/inbox
 
-  # Ingestion Workers
   ingest:
     image: nbisweden/ega-base
     networks:
@@ -99,10 +95,11 @@ services:
       - S3_SECRET_KEY
     volumes:
        - inbox:/ega/inbox
-       - ./lega/conf.ini:/etc/ega/conf.ini:ro
+    configs:
+          - source: conf.ini
+            target: /etc/ega/conf.ini
     entrypoint: ["gosu", "lega", "ega-ingest"]
 
-  # Key server
   keys:
     image: nbisweden/ega-base
     hostname: keys
@@ -117,16 +114,21 @@ services:
                   window: 120s
     environment:
       - LEGA_PASSWORD
-    volumes:
-       - ./lega/conf.ini:/etc/ega/conf.ini:ro
-       - ./lega/keys.ini:/etc/ega/keys.ini:ro
-       - ./lega/certs/ssl.cert:/etc/ega/ssl.cert:ro
-       - ./lega/certs/ssl.key:/etc/ega/ssl.key:ro
-       - ./lega/pgp/ega.sec:/etc/ega/pgp/ega.sec:ro
-       - ./lega/pgp/ega2.sec:/etc/ega/pgp/ega2.sec:ro
+    configs:
+          - source: conf.ini
+            target: /etc/ega/conf.ini
+          - source: keys.ini
+            target: /etc/ega/keys.ini
+          - source: ssl.cert
+            target: /etc/ega/ssl.cert
+          - source: ssl.key
+            target: /etc/ega/ssl.key
+          - source: ega.sec
+            target: /etc/ega/pgp/ega.sec
+          - source: ega2.sec
+            target: /etc/ega/pgp/ega2.sec
     entrypoint: ["gosu","lega","ega-keyserver","--keys","/etc/ega/keys.ini"]
 
-  # Quality Control
   verify:
     image: nbisweden/ega-base
     hostname: verify
@@ -147,11 +149,11 @@ services:
       - LEGA_PASSWORD
       - S3_ACCESS_KEY
       - S3_SECRET_KEY
-    volumes:
-       - ./lega/conf.ini:/etc/ega/conf.ini:ro
+    configs:
+          - source: conf.ini
+            target: /etc/ega/conf.ini
     entrypoint: ["gosu", "lega", "ega-verify"]
 
-  # S3
   s3:
     image: minio/minio
     hostname: s3
@@ -172,7 +174,28 @@ services:
       - s3:/data
     command: server /data
 
-# Use the default driver for volume creation
 volumes:
   inbox:
   s3:
+
+configs:
+  lega.defs.json:
+    external: true
+  lega.rabbitmq.config:
+    external: true
+  lega.entrypoint.sh:
+    external: true
+  db.sql:
+    external: true
+  conf.ini:
+    external: true
+  keys.ini:
+    external: true
+  ssl.cert:
+    external: true
+  ssl.key:
+      external: true
+  ega.sec:
+    external: true
+  ega2.sec:
+      external: true
