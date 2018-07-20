@@ -1,13 +1,18 @@
 buildscript {
     repositories {
         mavenCentral()
+        maven {
+            url "https://github.com/uio-bmi/crypt4gh/raw/maven"
+        }
     }
 
     dependencies {
-        classpath 'org.bouncycastle:bcpg-jdk15on:1.59'
-        classpath 'org.bouncycastle:bcpkix-jdk15on:1.59'
-        classpath 'commons-io:commons-io:2.5'
-        classpath 'commons-codec:commons-codec:1.11'
+        classpath "org.bouncycastle:bcpg-jdk15on:1.59"
+        classpath "org.bouncycastle:bcpkix-jdk15on:1.59"
+        classpath "commons-io:commons-io:2.5"
+        classpath "commons-codec:commons-codec:1.11"
+        classpath "com.hierynomus:sshj:0.22.0"
+        classpath "no.uio.ifi:crypt4gh:1.0.0"
     }
 }
 
@@ -17,6 +22,9 @@ task initBouncyCastle() {
 
 task clean() {
     dependsOn ":cega:clearCEGAConfiguration", ":lega:clearLEGAConfiguration"
+    doLast {
+        new File(".tmp").deleteDir()
+    }
 }
 
 task bootstrap() {
@@ -41,19 +49,60 @@ task rm() {
     }
 }
 
-task list() {
+task ls() {
     doLast {
         exec {
-            ignoreExitValue = true
             executable "docker"
             args "service", "list"
         }
     }
 }
 
+task file {
+    doLast {
+        mkdir ".tmp"
+        File rawFile = new File(".tmp/data.raw")
+        RandomAccessFile randomAccessFile = new RandomAccessFile(rawFile, "rw")
+        randomAccessFile.setLength(1024 * 1024 * 10)
+        randomAccessFile.close()
+    }
+}
+
+task encrypt() {
+    dependsOn file
+
+    doLast {
+        File rawFile = new File(".tmp/data.raw")
+        File encryptedFile = new File(".tmp/data.raw.enc")
+        byte[] digest = DigestUtils.sha256(FileUtils.openInputStream(rawFile))
+        String key = FileUtils.readFileToString(new File("lega/.tmp/pgp/ega.pub"), Charset.defaultCharset())
+        FileOutputStream fileOutputStream = new FileOutputStream(encryptedFile)
+        Crypt4GHOutputStream crypt4GHOutputStream = new Crypt4GHOutputStream(fileOutputStream, key, digest)
+        FileUtils.copyFile(rawFile, crypt4GHOutputStream)
+        crypt4GHOutputStream.close()
+    }
+}
+
+task upload() {
+    dependsOn encrypt
+
+    doLast {
+        SSHClient ssh = new SSHClient()
+        ssh.addHostKeyVerifier(new PromiscuousVerifier())
+        ssh.connect("localhost", 2222)
+        ssh.authPublickey("john", "cega/.tmp/users/john.sec")
+        SFTPClient client = ssh.newSFTPClient()
+        client.put(".tmp/data.raw.enc", "data.raw.enc")
+    }
+}
+
+
+import net.schmizz.sshj.SSHClient
+import net.schmizz.sshj.sftp.SFTPClient
+import net.schmizz.sshj.transport.verification.PromiscuousVerifier
+import no.ifi.uio.crypt4gh.stream.Crypt4GHOutputStream
+import org.apache.commons.codec.digest.DigestUtils
 import org.apache.commons.io.FileUtils
-import org.bouncycastle.asn1.pkcs.PrivateKeyInfo
-import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo
 import org.bouncycastle.bcpg.ArmoredOutputStream
 import org.bouncycastle.bcpg.HashAlgorithmTags
 import org.bouncycastle.bcpg.sig.Features
@@ -68,10 +117,11 @@ import org.bouncycastle.openpgp.operator.bc.BcPBESecretKeyEncryptorBuilder
 import org.bouncycastle.openpgp.operator.bc.BcPGPContentSignerBuilder
 import org.bouncycastle.openpgp.operator.bc.BcPGPDigestCalculatorProvider
 import org.bouncycastle.openpgp.operator.bc.BcPGPKeyPair
-import org.bouncycastle.util.io.pem.PemObject
-import org.bouncycastle.util.io.pem.PemWriter
+import org.bouncycastle.openssl.jcajce.JcaPEMWriter
 
 import java.nio.charset.Charset
+import java.nio.file.Files
+import java.nio.file.attribute.PosixFilePermission
 import java.security.KeyPair
 import java.security.KeyPairGenerator
 import java.security.SecureRandom
@@ -147,27 +197,23 @@ def armorByteArray(byte[] data) {
 }
 
 def writePublicKey(KeyPair keyPair, String path) {
-    SubjectPublicKeyInfo spkInfo = SubjectPublicKeyInfo.getInstance(keyPair.public.encoded)
-    byte[] publicKeyPKCS1 = spkInfo.parsePublicKey().encoded
-    PemObject pemObject = new PemObject("RSA PUBLIC KEY", publicKeyPKCS1)
-    StringWriter stringWriter = new StringWriter()
-    PemWriter pemWriter = new PemWriter(stringWriter)
-    pemWriter.writeObject(pemObject)
-    pemWriter.close()
-    String publicKeyString = stringWriter.toString()
     File file = new File(path)
-    FileUtils.write(file, publicKeyString, Charset.defaultCharset())
+    FileWriter fileWriter = new FileWriter(file)
+    JcaPEMWriter pemWriter = new JcaPEMWriter(fileWriter)
+    pemWriter.writeObject(keyPair.public)
+    pemWriter.close()
+    Set<PosixFilePermission> perms = new HashSet<>()
+    perms.add(PosixFilePermission.OWNER_READ)
+    Files.setPosixFilePermissions(file.toPath(), perms)
 }
 
 def writePrivateKey(KeyPair keyPair, String path) {
-    PrivateKeyInfo pkInfo = PrivateKeyInfo.getInstance(keyPair.private.encoded)
-    byte[] privateKeyPKCS1 = pkInfo.parsePrivateKey().toASN1Primitive().encoded
-    PemObject pemObject = new PemObject("RSA PRIVATE KEY", privateKeyPKCS1)
-    StringWriter stringWriter = new StringWriter()
-    PemWriter pemWriter = new PemWriter(stringWriter)
-    pemWriter.writeObject(pemObject)
-    pemWriter.close()
-    String privateKeyString = stringWriter.toString()
     File file = new File(path)
-    FileUtils.write(file, privateKeyString, Charset.defaultCharset())
+    FileWriter fileWriter = new FileWriter(file)
+    JcaPEMWriter pemWriter = new JcaPEMWriter(fileWriter)
+    pemWriter.writeObject(keyPair.private)
+    pemWriter.close()
+    Set<PosixFilePermission> perms = new HashSet<>()
+    perms.add(PosixFilePermission.OWNER_READ)
+    Files.setPosixFilePermissions(file.toPath(), perms)
 }
