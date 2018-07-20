@@ -23,7 +23,7 @@ ${OPENSSL} req -x509 -newkey rsa:2048 -keyout ${PRIVATE}/lega/certs/ssl.key -nod
 #########################################################################
 
 echomsg "\t* keys.ini"
-cat > ${PRIVATE}/lega/keys.ini <<EOF
+${OPENSSL} enc -aes-256-cbc -salt -out ${PRIVATE}/lega/keys.ini.enc -k ${LEGA_PASSWORD} <<EOF
 [DEFAULT]
 active : key.1
 
@@ -38,7 +38,6 @@ passphrase : ${PGP_PASSPHRASE}
 expire: 30/MAR/18 08:00:00
 EOF
 
-${OPENSSL} enc -aes-256-cbc -salt -in ${PRIVATE}/lega/keys.ini -out ${PRIVATE}/lega/keys.ini.enc -k ${LEGA_PASSWORD}
 
 echomsg "\t* conf.ini"
 cat > ${PRIVATE}/lega/conf.ini <<EOF
