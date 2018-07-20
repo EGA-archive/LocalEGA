@@ -1,0 +1,119 @@
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+
+    dependencies {
+        classpath 'org.bouncycastle:bcpg-jdk15on:1.59'
+        classpath 'commons-io:commons-io:2.5'
+        classpath 'commons-codec:commons-codec:1.11'
+    }
+}
+
+task clearLEGAConfiguration {
+    doLast {
+        def result = exec {
+            ignoreExitValue = true
+            executable "docker"
+            args "config", "rm", "lega.defs.json", "lega.rabbitmq.config", "lega.entrypoint.sh", "db.sql"
+        }
+        if (result.exitValue == 0) {
+            delete ".tmp"
+        }
+    }
+}
+
+task createLEGAMQConfiguration {
+    doLast {
+        exec {
+            workingDir "${project.projectDir.toString()}/../../docker/images/mq"
+            ignoreExitValue = true
+            executable "docker"
+            args "config", "create", "lega.defs.json", "defs.json"
+        }
+
+        exec {
+            workingDir "${project.projectDir.toString()}/../../docker/images/mq"
+            ignoreExitValue = true
+            executable "docker"
+            args "config", "create", "lega.rabbitmq.config", "rabbitmq.config"
+        }
+
+        exec {
+            workingDir "${project.projectDir.toString()}/../../docker/images/mq"
+            ignoreExitValue = true
+            executable "docker"
+            args "config", "create", "lega.entrypoint.sh", "entrypoint.sh"
+        }
+    }
+}
+
+task createLEGADBConfiguration {
+    doLast {
+        exec {
+            workingDir "${project.projectDir.toString()}/../../../extras"
+            ignoreExitValue = true
+            executable "docker"
+            args "config", "create", "db.sql", "db.sql"
+        }
+
+        writeTrace("DB_INSTANCE", "db")
+        writeTrace("POSTGRES_USER", "lega")
+        writeTrace("POSTGRES_PASSWORD", UUID.randomUUID().toString().replace("-", ""))
+        writeTrace("POSTGRES_DB", "lega")
+    }
+}
+
+task createLEGAInboxConfiguration {
+    doLast {
+        writeTrace("CEGA_ENDPOINT", "http://cega-users/user/")
+        String cegaRestPassword = readTrace(new File("${project.projectDir.toString()}/../cega/.tmp/.trace"), "CEGA_REST_PASSWORD")
+        writeTrace("CEGA_ENDPOINT_CREDS", "lega:${cegaRestPassword}")
+    }
+}
+
+task createLEGAIngestConfiguration {
+    doLast {
+        writeTrace("S3_ACCESS_KEY", UUID.randomUUID().toString().replace("-", ""))
+        writeTrace("S3_SECRET_KEY", UUID.randomUUID().toString().replace("-", ""))
+    }
+}
+
+task createLEGAKeysConfiguration {
+    doLast {
+        generateSSLCertificate()
+        String pgpPassphrase = UUID.randomUUID().toString().replace("-", "")
+        generatePGPKeyPair("ega", pgpPassphrase)
+        generatePGPKeyPair("ega2", pgpPassphrase)
+        writeTrace("PGP_PASSPHRASE", pgpPassphrase)
+        String masterPassphrase = UUID.randomUUID().toString().replace("-", "")
+        writeTrace("LEGA_PASSWORD", masterPassphrase)
+    }
+}
+
+task createLEGAConfiguration {
+    dependsOn clearLEGAConfiguration,
+            createLEGAMQConfiguration,
+            createLEGADBConfiguration,
+            createLEGAInboxConfiguration,
+            createLEGAIngestConfiguration,
+            createLEGAKeysConfiguration
+}
+
+task deployLEGAStack {
+    doLast {
+        exec {
+            executable "docker"
+            args "stack", "deploy", "--compose-file", "docker-stack.yml", "lega"
+        }
+    }
+}
+
+task removeLEGAStack {
+    doLast {
+        exec {
+            executable "docker"
+            args "stack", "rm", "lega"
+        }
+    }
+}
