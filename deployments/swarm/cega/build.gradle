@@ -1,9 +1,69 @@
+import org.apache.commons.codec.digest.Crypt
 import org.apache.commons.codec.digest.DigestUtils
 import org.apache.commons.io.FileUtils
 
 import java.nio.ByteBuffer
 import java.nio.charset.Charset
+import java.security.KeyPair
+import java.security.KeyPairGenerator
 import java.security.SecureRandom
+
+def generateUser(String username) {
+    KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA")
+    keyPairGenerator.initialize(2048, new SecureRandom())
+    KeyPair keyPair = keyPairGenerator.genKeyPair()
+
+    String sshKeyString = "ssh-rsa " + Base64.getEncoder().encodeToString(keyPair.public.encoded)
+
+    String password = UUID.randomUUID().toString().replace("-", "")
+    String salt = UUID.randomUUID().toString().replace("-", "")
+    String hash = Crypt.crypt(password, "\$1\$${salt}\$")
+
+    File userYML = new File("${project.projectDir.toString()}/.tmp/users/${username}.yml")
+    FileUtils.writeLines(userYML, Arrays.asList("---", "password_hash: " + hash, "pubkey: " + sshKeyString))
+    writePublicKey(keyPair, "${project.projectDir.toString()}/.tmp/users/pgp/${username}.pub")
+    writePrivateKey(keyPair, "${project.projectDir.toString()}/.tmp/users/pgp/${username}.sec")
+
+    return password
+}
+
+
+def writeTrace(String key, String value) {
+    File traceFile = new File("${project.projectDir.toString()}/.tmp/.trace")
+    String existingValue = readTrace(traceFile, key)
+    if (existingValue == null) {
+        FileUtils.writeLines(traceFile, Collections.singleton(String.format("%s=%s", key, value)), true)
+    }
+}
+
+def readTrace(File traceFile, String key) {
+    try {
+        List<String> lines = FileUtils.readLines(traceFile, Charset.defaultCharset())
+        for (String line : lines) {
+            if (line.startsWith(key)) {
+                return line.split("=")[1].trim()
+            }
+        }
+        return null
+    } catch (FileNotFoundException e) {
+        return null
+    }
+}
+
+def readTrace(String key) {
+    File traceFile = new File("${project.projectDir.toString()}/.tmp/.trace")
+    readTrace(traceFile, key)
+}
+
+def getTraceAsMAp() {
+    File traceFile = new File("${project.projectDir.toString()}/.tmp/.trace")
+    List<String> lines = FileUtils.readLines(traceFile, Charset.defaultCharset())
+    Map<String, String> result = new HashMap<>()
+    for (String line : lines) {
+        result.put(line.split("=")[0].trim(), line.split("=")[1].trim())
+    }
+    result
+}
 
 task clearCEGAConfiguration {
     doLast {
@@ -13,7 +73,7 @@ task clearCEGAConfiguration {
             args "config", "rm", "cega.defs.json", "cega.rabbitmq.config", "eureka.py", "server.py", "users.html", "john.yml", "jane.yml"
         }
         if (result.exitValue == 0) {
-            delete ".tmp"
+            delete "${project.projectDir.toString()}/.tmp"
         }
     }
 }
@@ -47,7 +107,7 @@ task createCEGAUsersConfiguration {
 
         String johnPassword = generateUser("john")
         def result = exec {
-            workingDir ".tmp/users"
+            workingDir "${project.projectDir.toString()}/.tmp/users"
             ignoreExitValue = true
             executable "docker"
             args "config", "create", "john.yml", "john.yml"
@@ -57,7 +117,7 @@ task createCEGAUsersConfiguration {
         }
         String janePassword = generateUser("jane")
         result = exec {
-            workingDir ".tmp/users"
+            workingDir "${project.projectDir.toString()}/.tmp/users"
             ignoreExitValue = true
             executable "docker"
             args "config", "create", "jane.yml", "jane.yml"
@@ -79,8 +139,8 @@ task createCEGAMQConfiguration {
         concat = ByteBuffer.allocate(saltBytes.length + hash.length).put(saltBytes).put(hash).array()
         String saltedHash = Base64.getEncoder().encodeToString(concat)
 
-        mkdir ".tmp/mq"
-        File defsJSON = new File(".tmp/mq/defs.json")
+        mkdir "${project.projectDir.toString()}/.tmp/mq"
+        File defsJSON = new File("${project.projectDir.toString()}/.tmp/mq/defs.json")
         FileUtils.write(defsJSON, "{\"rabbit_version\":\"3.6.11\",\n" +
                 " \"users\":[{\"name\":\"lega\",\"password_hash\":\"${saltedHash}\",\"hashing_algorithm\":\"rabbit_password_hashing_sha256\",\"tags\":\"administrator\"}],\n" +
                 " \"vhosts\":[{\"name\":\"lega\"}],\n" +
@@ -102,7 +162,7 @@ task createCEGAMQConfiguration {
                 "}", Charset.defaultCharset())
 
         def result = exec {
-            workingDir ".tmp/mq"
+            workingDir "${project.projectDir.toString()}/.tmp/mq"
             ignoreExitValue = true
             executable "docker"
             args "config", "create", "cega.defs.json", "defs.json"
@@ -111,7 +171,7 @@ task createCEGAMQConfiguration {
             writeTrace("CEGA_MQ_PASSWORD", password)
         }
 
-        File rabbitmqConfig = new File(".tmp/mq/rabbitmq.config")
+        File rabbitmqConfig = new File("${project.projectDir.toString()}/.tmp/mq/rabbitmq.config")
         FileUtils.write(rabbitmqConfig, "%% -*- mode: erlang -*-\n" +
                 "%%\n" +
                 "[{rabbit,[{loopback_users, [ ] },\n" +
@@ -120,7 +180,7 @@ task createCEGAMQConfiguration {
                 "].", Charset.defaultCharset())
 
         exec {
-            workingDir ".tmp/mq"
+            workingDir "${project.projectDir.toString()}/.tmp/mq"
             ignoreExitValue = true
             executable "docker"
             args "config", "create", "cega.rabbitmq.config", "rabbitmq.config"
