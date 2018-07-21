@@ -1,61 +1,4 @@
-import org.apache.commons.codec.digest.Crypt
-import org.apache.commons.codec.digest.DigestUtils
-import org.apache.commons.io.FileUtils
-
-import java.nio.ByteBuffer
-import java.nio.charset.Charset
-import java.security.KeyPair
-import java.security.KeyPairGenerator
-import java.security.SecureRandom
-import net.schmizz.sshj.common.Buffer
-
-def generateUser(String username) {
-    KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA")
-    keyPairGenerator.initialize(2048, new SecureRandom())
-    KeyPair keyPair = keyPairGenerator.genKeyPair()
-
-    byte[] keyBytes = new Buffer.PlainBuffer().putPublicKey(keyPair.public).compactData
-    String sshKeyString = "ssh-rsa " + Base64.getEncoder().encodeToString(keyBytes)
-
-    String password = UUID.randomUUID().toString().replace("-", "")
-    String salt = UUID.randomUUID().toString().replace("-", "")
-    String hash = Crypt.crypt(password, "\$1\$${salt}\$")
-
-    File userYML = new File("${project.projectDir.toString()}/.tmp/users/${username}.yml")
-    FileUtils.writeLines(userYML, Arrays.asList("---", "password_hash: " + hash, "pubkey: " + sshKeyString))
-    writePublicKey(keyPair, "${project.projectDir.toString()}/.tmp/users/${username}.pub")
-    writePrivateKey(keyPair, "${project.projectDir.toString()}/.tmp/users/${username}.sec")
-
-    return password
-}
-
-
-def writeTrace(String key, String value) {
-    File traceFile = new File("${project.projectDir.toString()}/.tmp/.trace")
-    String existingValue = readTrace(traceFile, key)
-    if (existingValue == null) {
-        FileUtils.writeLines(traceFile, Collections.singleton(String.format("%s=%s", key, value)), true)
-    }
-}
-
-def readTrace(File traceFile, String key) {
-    try {
-        List<String> lines = FileUtils.readLines(traceFile, Charset.defaultCharset())
-        for (String line : lines) {
-            if (line.startsWith(key)) {
-                return line.split("=")[1].trim()
-            }
-        }
-        return null
-    } catch (FileNotFoundException e) {
-        return null
-    }
-}
-
-def readTrace(String key) {
-    File traceFile = new File("${project.projectDir.toString()}/.tmp/.trace")
-    readTrace(traceFile, key)
-}
+apply from: "$rootDir/utils.gradle"
 
 task clearCEGAConfiguration {
     doLast {
@@ -122,36 +65,7 @@ task createCEGAUsersConfiguration {
 
 task createCEGAMQConfiguration {
     doLast {
-        byte[] saltBytes = new byte[4]
-        new SecureRandom().nextBytes(saltBytes)
-        String password = UUID.randomUUID().toString().replace("-", "")
-        byte[] passwordBytes = password.getBytes()
-        byte[] concat = ByteBuffer.allocate(saltBytes.length + passwordBytes.length).put(saltBytes).put(passwordBytes).array()
-        byte[] hash = DigestUtils.sha256(concat)
-        concat = ByteBuffer.allocate(saltBytes.length + hash.length).put(saltBytes).put(hash).array()
-        String saltedHash = Base64.getEncoder().encodeToString(concat)
-
-        mkdir "${project.projectDir.toString()}/.tmp/mq"
-        File defsJSON = new File("${project.projectDir.toString()}/.tmp/mq/defs.json")
-        FileUtils.write(defsJSON, "{\"rabbit_version\":\"3.6.11\",\n" +
-                " \"users\":[{\"name\":\"lega\",\"password_hash\":\"${saltedHash}\",\"hashing_algorithm\":\"rabbit_password_hashing_sha256\",\"tags\":\"administrator\"}],\n" +
-                " \"vhosts\":[{\"name\":\"lega\"}],\n" +
-                " \"permissions\":[{\"user\":\"lega\", \"vhost\":\"lega\", \"configure\":\".*\", \"write\":\".*\", \"read\":\".*\"}],\n" +
-                " \"parameters\":[],\n" +
-                " \"global_parameters\":[{\"name\":\"cluster_name\", \"value\":\"rabbit@localhost\"}],\n" +
-                " \"policies\":[],\n" +
-                " \"queues\":[{\"name\":\"inbox\",           \"vhost\":\"lega\", \"durable\":true, \"auto_delete\":false, \"arguments\":{}},\n" +
-                "           {\"name\":\"inbox.checksums\", \"vhost\":\"lega\", \"durable\":true, \"auto_delete\":false, \"arguments\":{}},\n" +
-                "\t   {\"name\":\"files\",           \"vhost\":\"lega\", \"durable\":true, \"auto_delete\":false, \"arguments\":{}},\n" +
-                "\t   {\"name\":\"completed\",       \"vhost\":\"lega\", \"durable\":true, \"auto_delete\":false, \"arguments\":{}},\n" +
-                "\t   {\"name\":\"errors\",          \"vhost\":\"lega\", \"durable\":true, \"auto_delete\":false, \"arguments\":{}}],\n" +
-                " \"exchanges\":[{\"name\":\"localega.v1\", \"vhost\":\"lega\", \"type\":\"topic\", \"durable\":true, \"auto_delete\":false, \"internal\":false, \"arguments\":{}}],\n" +
-                " \"bindings\":[{\"source\":\"localega.v1\",\"vhost\":\"lega\",\"destination_type\":\"queue\",\"arguments\":{},\"destination\":\"inbox\",\"routing_key\":\"files.inbox\"},\n" +
-                "\t     {\"source\":\"localega.v1\",\"vhost\":\"lega\",\"destination_type\":\"queue\",\"arguments\":{},\"destination\":\"inbox.checksums\",\"routing_key\":\"files.inbox.checksums\"},\n" +
-                "\t     {\"source\":\"localega.v1\",\"vhost\":\"lega\",\"destination_type\":\"queue\",\"arguments\":{},\"destination\":\"files\",\"routing_key\":\"files\"},\n" +
-                "\t     {\"source\":\"localega.v1\",\"vhost\":\"lega\",\"destination_type\":\"queue\",\"arguments\":{},\"destination\":\"completed\",\"routing_key\":\"files.completed\"},\n" +
-                "\t     {\"source\":\"localega.v1\",\"vhost\":\"lega\",\"destination_type\":\"queue\",\"arguments\":{},\"destination\":\"errors\",\"routing_key\":\"files.error\"}]\n" +
-                "}", Charset.defaultCharset())
+        String password = generateCEGAMQConfiguration()
 
         def result = exec {
             workingDir "${project.projectDir.toString()}/.tmp/mq"
@@ -162,14 +76,6 @@ task createCEGAMQConfiguration {
         if (result.exitValue == 0) {
             writeTrace("CEGA_MQ_PASSWORD", password)
         }
-
-        File rabbitmqConfig = new File("${project.projectDir.toString()}/.tmp/mq/rabbitmq.config")
-        FileUtils.write(rabbitmqConfig, "%% -*- mode: erlang -*-\n" +
-                "%%\n" +
-                "[{rabbit,[{loopback_users, [ ] },\n" +
-                "\t  {disk_free_limit, \"1GB\"}]},\n" +
-                " {rabbitmq_management, [ {load_definitions, \"/etc/rabbitmq/defs.json\"} ]}\n" +
-                "].", Charset.defaultCharset())
 
         exec {
             workingDir "${project.projectDir.toString()}/.tmp/mq"
