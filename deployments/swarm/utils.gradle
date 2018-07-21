@@ -69,6 +69,43 @@ import java.time.ZoneOffset
 
 Security.addProvider(new BouncyCastleProvider())
 
+def writeTrace(String key, String value) {
+    File traceFile = new File("${project.projectDir.toString()}/.tmp/.trace")
+    String existingValue = readTrace(traceFile, key)
+    if (existingValue == null) {
+        FileUtils.writeLines(traceFile, Collections.singleton(String.format("%s=%s", key, value)), true)
+    }
+}
+
+def readTrace(File traceFile, String key) {
+    try {
+        List<String> lines = FileUtils.readLines(traceFile, Charset.defaultCharset())
+        for (String line : lines) {
+            if (line.startsWith(key)) {
+                return line.split("=")[1].trim()
+            }
+        }
+        return null
+    } catch (FileNotFoundException e) {
+        return null
+    }
+}
+
+def readTrace(String key) {
+    File traceFile = new File("${project.projectDir.toString()}/.tmp/.trace")
+    readTrace(traceFile, key)
+}
+
+def getTraceAsMAp() {
+    File traceFile = new File("${project.projectDir.toString()}/.tmp/.trace")
+    List<String> lines = FileUtils.readLines(traceFile, Charset.defaultCharset())
+    Map<String, String> result = new HashMap<>()
+    for (String line : lines) {
+        result.put(line.split("=")[0].trim(), line.split("=")[1].trim())
+    }
+    result
+}
+
 def generateCEGAMQConfiguration() {
     File rabbitmqConfig = new File("${project.projectDir.toString()}/.tmp/mq/rabbitmq.config")
     FileUtils.write(rabbitmqConfig, "%% -*- mode: erlang -*-\n" +
@@ -129,33 +166,6 @@ def generateUser(String username) {
     writePrivateKey(keyPair, "${project.projectDir.toString()}/.tmp/users/${username}.sec")
 
     return password
-}
-
-def writeTrace(String key, String value) {
-    File traceFile = new File("${project.projectDir.toString()}/.tmp/.trace")
-    String existingValue = readTrace(traceFile, key)
-    if (existingValue == null) {
-        FileUtils.writeLines(traceFile, Collections.singleton(String.format("%s=%s", key, value)), true)
-    }
-}
-
-def readTrace(File traceFile, String key) {
-    try {
-        List<String> lines = FileUtils.readLines(traceFile, Charset.defaultCharset())
-        for (String line : lines) {
-            if (line.startsWith(key)) {
-                return line.split("=")[1].trim()
-            }
-        }
-        return null
-    } catch (FileNotFoundException e) {
-        return null
-    }
-}
-
-def readTrace(String key) {
-    File traceFile = new File("${project.projectDir.toString()}/.tmp/.trace")
-    readTrace(traceFile, key)
 }
 
 def generateRSAKeyPair() {
@@ -364,17 +374,7 @@ def generateKeysIni() {
             "expire: 30/MAR/18 08:00:00", Charset.defaultCharset())
 }
 
-def getTraceAsMAp() {
-    File traceFile = new File("${project.projectDir.toString()}/.tmp/.trace")
-    List<String> lines = FileUtils.readLines(traceFile, Charset.defaultCharset())
-    Map<String, String> result = new HashMap<>()
-    for (String line : lines) {
-        result.put(line.split("=")[0].trim(), line.split("=")[1].trim())
-    }
-    result
-}
-
-private void generateFile() {
+def generateFile() {
     mkdir ".tmp"
     File rawFile = new File(".tmp/data.raw")
     RandomAccessFile randomAccessFile = new RandomAccessFile(rawFile, "rw")
@@ -382,7 +382,7 @@ private void generateFile() {
     randomAccessFile.close()
 }
 
-private void encryptFile() {
+def encryptFile() {
     File rawFile = new File(".tmp/data.raw")
     File encryptedFile = new File(".tmp/data.raw.enc")
     byte[] digest = DigestUtils.sha256(FileUtils.openInputStream(rawFile))
@@ -393,7 +393,7 @@ private void encryptFile() {
     crypt4GHOutputStream.close()
 }
 
-private void uploadFile() {
+def uploadFile() {
     SSHClient ssh = new SSHClient()
     ssh.addHostKeyVerifier(new PromiscuousVerifier())
     ssh.connect("localhost", 2222)
@@ -403,7 +403,7 @@ private void uploadFile() {
     ssh.close()
 }
 
-private void ingestFile() {
+def ingestFile() {
     ConnectionFactory factory = new ConnectionFactory()
     String mqPassword = readTrace(new File("cega/.tmp/.trace"), "CEGA_MQ_PASSWORD")
     factory.setUri("amqp://lega:${mqPassword}@localhost:5672/lega")
@@ -427,15 +427,15 @@ private void ingestFile() {
 }
 
 ext {
+    writeTrace = this.&writeTrace
+    readTrace = this.&readTrace
+    getTraceAsMAp = this.&getTraceAsMAp
+    generateCEGAMQConfiguration = this.&generateCEGAMQConfiguration
+    generateUser = this.&generateUser
     generateSSLCertificate = this.&generateSSLCertificate
     generatePGPKeyPair = this.&generatePGPKeyPair
     generateConfIni = this.&generateConfIni
     generateKeysIni = this.&generateKeysIni
-    generateCEGAMQConfiguration = this.&generateCEGAMQConfiguration
-    generateUser = this.&generateUser
-    writeTrace = this.&writeTrace
-    readTrace = this.&readTrace
-    getTraceAsMAp = this.&getTraceAsMAp
     generateFile = this.&generateFile
     encryptFile = this.&encryptFile
     uploadFile = this.&uploadFile
