@@ -2,14 +2,12 @@ apply from: "$rootDir/utils.gradle"
 
 task clearCEGAConfiguration {
     doLast {
-        def result = exec {
+        exec {
             ignoreExitValue = true
             executable "docker"
             args "config", "rm", "cega.defs.json", "cega.rabbitmq.config", "eureka.py", "server.py", "users.html", "john.yml", "jane.yml"
         }
-        if (result.exitValue == 0) {
-            delete "${project.projectDir.toString()}/.tmp"
-        }
+        delete "${project.projectDir.toString()}/.tmp"
     }
 }
 

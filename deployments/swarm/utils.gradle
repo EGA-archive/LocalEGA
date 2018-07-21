@@ -17,16 +17,46 @@ buildscript {
     }
 }
 
+
 import net.schmizz.sshj.common.Buffer
 import org.apache.commons.codec.digest.Crypt
 import org.apache.commons.codec.digest.DigestUtils
 import org.apache.commons.io.FileUtils
+import org.bouncycastle.asn1.x500.X500Name
+import org.bouncycastle.asn1.x500.X500NameBuilder
+import org.bouncycastle.asn1.x500.style.BCStyle
+import org.bouncycastle.bcpg.ArmoredOutputStream
+import org.bouncycastle.bcpg.HashAlgorithmTags
+import org.bouncycastle.bcpg.sig.Features
+import org.bouncycastle.bcpg.sig.KeyFlags
+import org.bouncycastle.cert.X509CertificateHolder
+import org.bouncycastle.cert.X509v3CertificateBuilder
+import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter
+import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder
+import org.bouncycastle.crypto.generators.RSAKeyPairGenerator
+import org.bouncycastle.crypto.params.RSAKeyGenerationParameters
+import org.bouncycastle.jce.provider.BouncyCastleProvider
+import org.bouncycastle.openpgp.*
+import org.bouncycastle.openpgp.operator.PBESecretKeyEncryptor
+import org.bouncycastle.openpgp.operator.PGPDigestCalculator
+import org.bouncycastle.openpgp.operator.bc.BcPBESecretKeyEncryptorBuilder
+import org.bouncycastle.openpgp.operator.bc.BcPGPContentSignerBuilder
+import org.bouncycastle.openpgp.operator.bc.BcPGPDigestCalculatorProvider
+import org.bouncycastle.openpgp.operator.bc.BcPGPKeyPair
+import org.bouncycastle.openssl.jcajce.JcaPEMWriter
+import org.bouncycastle.operator.ContentSigner
+import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder
 
 import java.nio.ByteBuffer
 import java.nio.charset.Charset
+import java.nio.file.Files
+import java.nio.file.attribute.PosixFilePermission
 import java.security.KeyPair
 import java.security.KeyPairGenerator
 import java.security.SecureRandom
+import java.security.cert.X509Certificate
+import java.time.LocalDate
+import java.time.ZoneOffset
 
 def generateCEGAMQConfiguration() {
     File rabbitmqConfig = new File("${project.projectDir.toString()}/.tmp/mq/rabbitmq.config")
@@ -36,7 +66,7 @@ def generateCEGAMQConfiguration() {
             "\t  {disk_free_limit, \"1GB\"}]},\n" +
             " {rabbitmq_management, [ {load_definitions, \"/etc/rabbitmq/defs.json\"} ]}\n" +
             "].", Charset.defaultCharset())
-    
+
     byte[] saltBytes = new byte[4]
     new SecureRandom().nextBytes(saltBytes)
     String password = UUID.randomUUID().toString().replace("-", "")
@@ -117,9 +147,230 @@ def readTrace(String key) {
     readTrace(traceFile, key)
 }
 
+def generateRSAKeyPair() {
+    KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA", "BC")
+    keyPairGenerator.initialize(2048, new SecureRandom())
+    keyPairGenerator.genKeyPair()
+}
+
+def createPGPKeyRingGenerator(String userId, char[] passphrase) throws Exception {
+    RSAKeyPairGenerator keyPairGenerator = new RSAKeyPairGenerator()
+
+    keyPairGenerator.init(
+            new RSAKeyGenerationParameters(
+                    BigInteger.valueOf(0x10001),
+                    new SecureRandom(),
+                    1024,
+                    12
+            )
+    )
+
+    PGPKeyPair rsaKeyPairSign = new BcPGPKeyPair(
+            PGPPublicKey.RSA_SIGN,
+            keyPairGenerator.generateKeyPair(),
+            new Date()
+    )
+
+    PGPKeyPair rsaKeyPairEncrypt = new BcPGPKeyPair(
+            PGPPublicKey.RSA_ENCRYPT,
+            keyPairGenerator.generateKeyPair(),
+            new Date()
+    )
+
+    PGPSignatureSubpacketGenerator signHashGenerator = new PGPSignatureSubpacketGenerator()
+    signHashGenerator.setKeyFlags(false, KeyFlags.SIGN_DATA | KeyFlags.CERTIFY_OTHER)
+    signHashGenerator.setFeature(false, Features.FEATURE_MODIFICATION_DETECTION)
+
+    PGPSignatureSubpacketGenerator encryptHashGenerator = new PGPSignatureSubpacketGenerator()
+    encryptHashGenerator.setKeyFlags(false, KeyFlags.ENCRYPT_COMMS | KeyFlags.ENCRYPT_STORAGE)
+
+    PGPDigestCalculator sha1DigestCalculator = new BcPGPDigestCalculatorProvider().get(HashAlgorithmTags.SHA1)
+    PGPDigestCalculator sha512DigestCalculator = new BcPGPDigestCalculatorProvider().get(HashAlgorithmTags.SHA512)
+
+    PBESecretKeyEncryptor secretKeyEncryptor = (
+            new BcPBESecretKeyEncryptorBuilder(PGPEncryptedData.AES_256, sha512DigestCalculator)
+    ).build(passphrase)
+
+    PGPKeyRingGenerator keyRingGen = new PGPKeyRingGenerator(
+            PGPSignature.NO_CERTIFICATION,
+            rsaKeyPairSign,
+            userId,
+            sha1DigestCalculator,
+            signHashGenerator.generate(),
+            null,
+            new BcPGPContentSignerBuilder(rsaKeyPairSign.getPublicKey().getAlgorithm(), HashAlgorithmTags.SHA512),
+            secretKeyEncryptor
+    )
+
+    keyRingGen.addSubKey(rsaKeyPairEncrypt, encryptHashGenerator.generate(), null)
+
+    return keyRingGen
+}
+
+def armorByteArray(byte[] data) {
+    ByteArrayOutputStream encOut = new ByteArrayOutputStream()
+    ArmoredOutputStream armorOut = new ArmoredOutputStream(encOut)
+    armorOut.write(data)
+    armorOut.flush()
+    armorOut.close()
+    encOut.toByteArray()
+}
+
+def writePublicKey(KeyPair keyPair, String path) {
+    File file = new File(path)
+    FileWriter fileWriter = new FileWriter(file)
+    JcaPEMWriter pemWriter = new JcaPEMWriter(fileWriter)
+    pemWriter.writeObject(keyPair.public)
+    pemWriter.close()
+}
+
+def writePrivateKey(KeyPair keyPair, String path) {
+    File file = new File(path)
+    FileWriter fileWriter = new FileWriter(file)
+    JcaPEMWriter pemWriter = new JcaPEMWriter(fileWriter)
+    pemWriter.writeObject(keyPair.private)
+    pemWriter.close()
+    Set<PosixFilePermission> perms = new HashSet<>()
+    perms.add(PosixFilePermission.OWNER_READ)
+    Files.setPosixFilePermissions(file.toPath(), perms)
+}
+
+def generateSSLCertificate() {
+    KeyPair keyPair = generateRSAKeyPair()
+    X500Name subject = new X500NameBuilder(BCStyle.INSTANCE).addRDN(BCStyle.CN, "keys").build()
+    SecureRandom random = new SecureRandom()
+    byte[] id = new byte[20]
+    random.nextBytes(id)
+    BigInteger serial = new BigInteger(160, random)
+    X509v3CertificateBuilder certificate = new JcaX509v3CertificateBuilder(
+            subject,
+            serial,
+            Date.from(LocalDate.of(2018, 1, 1).atStartOfDay(ZoneOffset.UTC).toInstant()),
+            Date.from(LocalDate.of(2020, 1, 1).atStartOfDay(ZoneOffset.UTC).toInstant()),
+            subject,
+            keyPair.getPublic())
+
+    ContentSigner signer = new JcaContentSignerBuilder("SHA256withRSA").build(keyPair.getPrivate())
+    X509CertificateHolder holder = certificate.build(signer)
+
+    JcaX509CertificateConverter converter = new JcaX509CertificateConverter()
+    converter.setProvider(new BouncyCastleProvider())
+    X509Certificate x509 = converter.getCertificate(holder)
+
+    new File("${project.projectDir.toString()}/.tmp/ssl").mkdirs()
+    FileWriter fileWriter = new FileWriter("${project.projectDir.toString()}/.tmp/ssl/ssl.cert")
+    JcaPEMWriter pemWriter = new JcaPEMWriter(fileWriter)
+    pemWriter.writeObject(x509)
+    pemWriter.close()
+
+    writePrivateKey(keyPair, "${project.projectDir.toString()}/.tmp/ssl/ssl.key")
+}
+
+def generatePGPKeyPair(String userId, String passphrase) {
+    PGPKeyRingGenerator generator = createPGPKeyRingGenerator(userId, passphrase.toCharArray())
+
+    PGPPublicKeyRing pkr = generator.generatePublicKeyRing()
+    ByteArrayOutputStream pubOut = new ByteArrayOutputStream()
+    pkr.encode(pubOut)
+    pubOut.close()
+
+    PGPSecretKeyRing skr = generator.generateSecretKeyRing()
+    ByteArrayOutputStream secOut = new ByteArrayOutputStream()
+    skr.encode(secOut)
+    secOut.close()
+
+    byte[] armoredPublicBytes = armorByteArray(pubOut.toByteArray())
+    byte[] armoredSecretBytes = armorByteArray(secOut.toByteArray())
+
+    new File("${project.projectDir.toString()}/.tmp/pgp").mkdirs()
+    File pubFile = new File("${project.projectDir.toString()}/.tmp/pgp/${userId}.pub")
+    FileUtils.write(pubFile, new String(armoredPublicBytes), Charset.defaultCharset())
+
+    File secFile = new File("${project.projectDir.toString()}/.tmp/pgp/${userId}.sec")
+    FileUtils.write(secFile, new String(armoredSecretBytes), Charset.defaultCharset())
+    Set<PosixFilePermission> perms = new HashSet<>()
+    perms.add(PosixFilePermission.OWNER_READ)
+    Files.setPosixFilePermissions(secFile.toPath(), perms)
+}
+
+def generateConfIni() {
+    File confIni = new File("${project.projectDir.toString()}/.tmp/conf.ini")
+    FileUtils.write(confIni, "[DEFAULT]\n" +
+            "log = console\n" +
+            "\n" +
+            "[keyserver]\n" +
+            "port = 8443\n" +
+            "\n" +
+            "[quality_control]\n" +
+            "keyserver_endpoint = https://keys:8443/retrieve/%s/private\n" +
+            "\n" +
+            "[inbox]\n" +
+            "location = /ega/inbox/%s\n" +
+            "mode = 2750\n" +
+            "\n" +
+            "[vault]\n" +
+            "driver = S3Storage\n" +
+            "url = http://s3:9000\n" +
+            "access_key = ${readTrace("S3_ACCESS_KEY")}\n" +
+            "secret_key = ${readTrace("S3_SECRET_KEY")}\n" +
+            "#region = lega\n" +
+            "\n" +
+            "\n" +
+            "[outgestion]\n" +
+            "# Just for test\n" +
+            "keyserver_endpoint = https://keys:8443/retrieve/%s/private\n" +
+            "\n" +
+            "## Connecting to Local EGA\n" +
+            "[broker]\n" +
+            "host = mq\n" +
+            "connection_attempts = 30\n" +
+            "# delay in seconds\n" +
+            "retry_delay = 10\n" +
+            "\n" +
+            "[postgres]\n" +
+            "host = ${readTrace("DB_INSTANCE")}\n" +
+            "user = ${readTrace("POSTGRES_USER")}\n" +
+            "password = ${readTrace("POSTGRES_PASSWORD")}\n" +
+            "try = 30\n" +
+            "\n" +
+            "[eureka]\n" +
+            "endpoint = http://cega-eureka:8761", Charset.defaultCharset())
+}
+
+def generateKeysIni() {
+    File keysIni = new File("${project.projectDir.toString()}/.tmp/keys.ini")
+    FileUtils.write(keysIni, "[DEFAULT]\n" +
+            "active : key.1\n" +
+            "\n" +
+            "[key.1]\n" +
+            "path : /etc/ega/pgp/ega.sec\n" +
+            "passphrase : ${readTrace("PGP_PASSPHRASE")}\n" +
+            "expire: 30/MAR/19 08:00:00\n" +
+            "\n" +
+            "[key.2]\n" +
+            "path : /etc/ega/pgp/ega2.sec\n" +
+            "passphrase : ${readTrace("PGP_PASSPHRASE")}\n" +
+            "expire: 30/MAR/18 08:00:00", Charset.defaultCharset())
+}
+
+def getTraceAsMAp() {
+    File traceFile = new File("${project.projectDir.toString()}/.tmp/.trace")
+    List<String> lines = FileUtils.readLines(traceFile, Charset.defaultCharset())
+    Map<String, String> result = new HashMap<>()
+    for (String line : lines) {
+        result.put(line.split("=")[0].trim(), line.split("=")[1].trim())
+    }
+    result
+}
+
 ext {
+    generateSSLCertificate = this.&generateSSLCertificate
+    generatePGPKeyPair = this.&generatePGPKeyPair
+    generateConfIni = this.&generateConfIni
+    generateKeysIni = this.&generateKeysIni
     generateCEGAMQConfiguration = this.&generateCEGAMQConfiguration
     generateUser = this.&generateUser
     writeTrace = this.&writeTrace
     readTrace = this.&readTrace
+    getTraceAsMAp = this.&getTraceAsMAp
 }

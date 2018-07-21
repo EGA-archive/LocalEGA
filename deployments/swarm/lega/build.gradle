@@ -1,122 +1,8 @@
-import org.apache.commons.io.FileUtils
-import org.bouncycastle.asn1.x500.X500Name
-import org.bouncycastle.asn1.x500.X500NameBuilder
-import org.bouncycastle.asn1.x500.style.BCStyle
-import org.bouncycastle.cert.X509CertificateHolder
-import org.bouncycastle.cert.X509v3CertificateBuilder
-import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter
-import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder
-import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.bouncycastle.openpgp.PGPKeyRingGenerator
-import org.bouncycastle.openpgp.PGPPublicKeyRing
-import org.bouncycastle.openpgp.PGPSecretKeyRing
-import org.bouncycastle.openssl.jcajce.JcaPEMWriter
-import org.bouncycastle.operator.ContentSigner
-import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder
-
-import java.nio.charset.Charset
-import java.security.KeyPair
-import java.security.SecureRandom
-import java.security.cert.X509Certificate
-import java.time.LocalDate
-import java.time.ZoneOffset
-
-def generateSSLCertificate() {
-    KeyPair keyPair = generateRSAKeyPair()
-    X500Name subject = new X500NameBuilder(BCStyle.INSTANCE).addRDN(BCStyle.CN, "keys").build()
-    SecureRandom random = new SecureRandom()
-    byte[] id = new byte[20]
-    random.nextBytes(id)
-    BigInteger serial = new BigInteger(160, random)
-    X509v3CertificateBuilder certificate = new JcaX509v3CertificateBuilder(
-            subject,
-            serial,
-            Date.from(LocalDate.of(2018, 1, 1).atStartOfDay(ZoneOffset.UTC).toInstant()),
-            Date.from(LocalDate.of(2020, 1, 1).atStartOfDay(ZoneOffset.UTC).toInstant()),
-            subject,
-            keyPair.getPublic())
-
-    ContentSigner signer = new JcaContentSignerBuilder("SHA256withRSA").build(keyPair.getPrivate())
-    X509CertificateHolder holder = certificate.build(signer)
-
-    JcaX509CertificateConverter converter = new JcaX509CertificateConverter()
-    converter.setProvider(new BouncyCastleProvider())
-    X509Certificate x509 = converter.getCertificate(holder)
-
-    new File("${project.projectDir.toString()}/.tmp/ssl").mkdirs()
-    FileWriter fileWriter = new FileWriter("${project.projectDir.toString()}/.tmp/ssl/ssl.cert")
-    JcaPEMWriter pemWriter = new JcaPEMWriter(fileWriter)
-    pemWriter.writeObject(x509)
-    pemWriter.close()
-
-    writePrivateKey(keyPair, "${project.projectDir.toString()}/.tmp/ssl/ssl.key")
-}
-
-def generatePGPKeyPair(String userId, String passphrase) {
-    PGPKeyRingGenerator generator = createPGPKeyRingGenerator(userId, passphrase.toCharArray())
-
-    PGPPublicKeyRing pkr = generator.generatePublicKeyRing()
-    ByteArrayOutputStream pubOut = new ByteArrayOutputStream()
-    pkr.encode(pubOut)
-    pubOut.close()
-
-    PGPSecretKeyRing skr = generator.generateSecretKeyRing()
-    ByteArrayOutputStream secOut = new ByteArrayOutputStream()
-    skr.encode(secOut)
-    secOut.close()
-
-    byte[] armoredPublicBytes = armorByteArray(pubOut.toByteArray())
-    byte[] armoredSecretBytes = armorByteArray(secOut.toByteArray())
-
-    new File("${project.projectDir.toString()}/.tmp/pgp").mkdirs()
-    File pubFile = new File("${project.projectDir.toString()}/.tmp/pgp/${userId}.pub")
-    FileUtils.write(pubFile, new String(armoredPublicBytes), Charset.defaultCharset())
-
-    File secFile = new File("${project.projectDir.toString()}/.tmp/pgp/${userId}.sec")
-    FileUtils.write(secFile, new String(armoredSecretBytes), Charset.defaultCharset())
-}
-
-
-def writeTrace(String key, String value) {
-    File traceFile = new File("${project.projectDir.toString()}/.tmp/.trace")
-    String existingValue = readTrace(traceFile, key)
-    if (existingValue == null) {
-        FileUtils.writeLines(traceFile, Collections.singleton(String.format("%s=%s", key, value)), true)
-    }
-}
-
-def readTrace(File traceFile, String key) {
-    try {
-        List<String> lines = FileUtils.readLines(traceFile, Charset.defaultCharset())
-        for (String line : lines) {
-            if (line.startsWith(key)) {
-                return line.split("=")[1].trim()
-            }
-        }
-        return null
-    } catch (FileNotFoundException e) {
-        return null
-    }
-}
-
-def readTrace(String key) {
-    File traceFile = new File("${project.projectDir.toString()}/.tmp/.trace")
-    readTrace(traceFile, key)
-}
-
-def getTraceAsMAp() {
-    File traceFile = new File("${project.projectDir.toString()}/.tmp/.trace")
-    List<String> lines = FileUtils.readLines(traceFile, Charset.defaultCharset())
-    Map<String, String> result = new HashMap<>()
-    for (String line : lines) {
-        result.put(line.split("=")[0].trim(), line.split("=")[1].trim())
-    }
-    result
-}
+apply from: "$rootDir/utils.gradle"
 
 task clearLEGAConfiguration {
     doLast {
-        def result = exec {
+        exec {
             ignoreExitValue = true
             executable "docker"
             args "config", "rm",
@@ -131,9 +17,7 @@ task clearLEGAConfiguration {
                     "conf.ini",
                     "keys.ini"
         }
-        if (result.exitValue == 0) {
-            delete "${project.projectDir.toString()}/.tmp"
-        }
+        delete "${project.projectDir.toString()}/.tmp"
     }
 }
 
@@ -249,47 +133,7 @@ task createConfIni {
             createLEGAMinioConfiguration
 
     doLast {
-        File confIni = new File("${project.projectDir.toString()}/.tmp/conf.ini")
-        FileUtils.write(confIni, "[DEFAULT]\n" +
-                "log = console\n" +
-                "\n" +
-                "[keyserver]\n" +
-                "port = 8443\n" +
-                "\n" +
-                "[quality_control]\n" +
-                "keyserver_endpoint = https://keys:8443/retrieve/%s/private\n" +
-                "\n" +
-                "[inbox]\n" +
-                "location = /ega/inbox/%s\n" +
-                "mode = 2750\n" +
-                "\n" +
-                "[vault]\n" +
-                "driver = S3Storage\n" +
-                "url = http://s3:9000\n" +
-                "access_key = ${readTrace("S3_ACCESS_KEY")}\n" +
-                "secret_key = ${readTrace("S3_SECRET_KEY")}\n" +
-                "#region = lega\n" +
-                "\n" +
-                "\n" +
-                "[outgestion]\n" +
-                "# Just for test\n" +
-                "keyserver_endpoint = https://keys:8443/retrieve/%s/private\n" +
-                "\n" +
-                "## Connecting to Local EGA\n" +
-                "[broker]\n" +
-                "host = mq\n" +
-                "connection_attempts = 30\n" +
-                "# delay in seconds\n" +
-                "retry_delay = 10\n" +
-                "\n" +
-                "[postgres]\n" +
-                "host = ${readTrace("DB_INSTANCE")}\n" +
-                "user = ${readTrace("POSTGRES_USER")}\n" +
-                "password = ${readTrace("POSTGRES_PASSWORD")}\n" +
-                "try = 30\n" +
-                "\n" +
-                "[eureka]\n" +
-                "endpoint = http://cega-eureka:8761", Charset.defaultCharset())
+        generateConfIni()
 
         exec {
             workingDir "${project.projectDir.toString()}/.tmp"
@@ -310,19 +154,7 @@ task createKeysIni {
             createLEGAMinioConfiguration
 
     doLast {
-        File keysIni = new File("${project.projectDir.toString()}/.tmp/keys.ini")
-        FileUtils.write(keysIni, "[DEFAULT]\n" +
-                "active : key.1\n" +
-                "\n" +
-                "[key.1]\n" +
-                "path : /etc/ega/pgp/ega.sec\n" +
-                "passphrase : ${readTrace("PGP_PASSPHRASE")}\n" +
-                "expire: 30/MAR/19 08:00:00\n" +
-                "\n" +
-                "[key.2]\n" +
-                "path : /etc/ega/pgp/ega2.sec\n" +
-                "passphrase : ${readTrace("PGP_PASSPHRASE")}\n" +
-                "expire: 30/MAR/18 08:00:00", Charset.defaultCharset())
+        generateKeysIni()
 
         exec {
             workingDir "${project.projectDir.toString()}/.tmp"
