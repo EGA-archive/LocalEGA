@@ -20,6 +20,8 @@ buildscript {
 }
 
 task clean() {
+    group "swarm"
+
     dependsOn ":cega:clearCEGAConfiguration", ":lega:clearLEGAConfiguration"
     doLast {
         new File(".tmp").deleteDir()
@@ -27,14 +29,20 @@ task clean() {
 }
 
 task bootstrap() {
+    group "swarm"
+
     dependsOn ":cega:createCEGAConfiguration", ":lega:createLEGAConfiguration"
 }
 
 task deploy() {
+    group "swarm"
+
     dependsOn ":cega:deployCEGAStack", ":lega:deployLEGAStack"
 }
 
 task rm() {
+    group "swarm"
+
     doLast {
         exec {
             executable "docker"
@@ -49,6 +57,8 @@ task rm() {
 }
 
 task ls() {
+    group "swarm"
+
     doLast {
         exec {
             executable "docker"
@@ -58,12 +68,16 @@ task ls() {
 }
 
 task file {
+    group "test"
+
     doLast {
         generateFile()
     }
 }
 
 task encrypt() {
+    group "test"
+
     dependsOn file
 
     doLast {
@@ -72,6 +86,8 @@ task encrypt() {
 }
 
 task upload() {
+    group "test"
+
     dependsOn encrypt
 
     doLast {
@@ -80,6 +96,8 @@ task upload() {
 }
 
 task ingest() {
+    group "test"
+
     dependsOn upload
 
     doLast {
