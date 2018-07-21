@@ -18,7 +18,15 @@ buildscript {
 }
 
 
+import com.rabbitmq.client.AMQP
+import com.rabbitmq.client.Channel
+import com.rabbitmq.client.Connection
+import com.rabbitmq.client.ConnectionFactory
+import net.schmizz.sshj.SSHClient
 import net.schmizz.sshj.common.Buffer
+import net.schmizz.sshj.sftp.SFTPClient
+import net.schmizz.sshj.transport.verification.PromiscuousVerifier
+import no.ifi.uio.crypt4gh.stream.Crypt4GHOutputStream
 import org.apache.commons.codec.digest.Crypt
 import org.apache.commons.codec.digest.DigestUtils
 import org.apache.commons.io.FileUtils
@@ -49,14 +57,18 @@ import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder
 
 import java.nio.ByteBuffer
 import java.nio.charset.Charset
+import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.attribute.PosixFilePermission
 import java.security.KeyPair
 import java.security.KeyPairGenerator
 import java.security.SecureRandom
+import java.security.Security
 import java.security.cert.X509Certificate
 import java.time.LocalDate
 import java.time.ZoneOffset
+
+Security.addProvider(new BouncyCastleProvider())
 
 def generateCEGAMQConfiguration() {
     File rabbitmqConfig = new File("${project.projectDir.toString()}/.tmp/mq/rabbitmq.config")
@@ -363,6 +375,58 @@ def getTraceAsMAp() {
     result
 }
 
+private void generateFile() {
+    mkdir ".tmp"
+    File rawFile = new File(".tmp/data.raw")
+    RandomAccessFile randomAccessFile = new RandomAccessFile(rawFile, "rw")
+    randomAccessFile.setLength(1024 * 1024 * 10)
+    randomAccessFile.close()
+}
+
+private void encryptFile() {
+    File rawFile = new File(".tmp/data.raw")
+    File encryptedFile = new File(".tmp/data.raw.enc")
+    byte[] digest = DigestUtils.sha256(FileUtils.openInputStream(rawFile))
+    String key = FileUtils.readFileToString(new File("lega/.tmp/pgp/ega.pub"), Charset.defaultCharset())
+    FileOutputStream fileOutputStream = new FileOutputStream(encryptedFile)
+    Crypt4GHOutputStream crypt4GHOutputStream = new Crypt4GHOutputStream(fileOutputStream, key, digest)
+    FileUtils.copyFile(rawFile, crypt4GHOutputStream)
+    crypt4GHOutputStream.close()
+}
+
+private void uploadFile() {
+    SSHClient ssh = new SSHClient()
+    ssh.addHostKeyVerifier(new PromiscuousVerifier())
+    ssh.connect("localhost", 2222)
+    ssh.authPublickey("john", "cega/.tmp/users/john.sec")
+    SFTPClient client = ssh.newSFTPClient()
+    client.put(".tmp/data.raw.enc", "data.raw.enc")
+    ssh.close()
+}
+
+private void ingestFile() {
+    ConnectionFactory factory = new ConnectionFactory()
+    String mqPassword = readTrace(new File("cega/.tmp/.trace"), "CEGA_MQ_PASSWORD")
+    factory.setUri("amqp://lega:${mqPassword}@localhost:5672/lega")
+    Connection connectionFactory = factory.newConnection()
+    Channel channel = connectionFactory.createChannel()
+    AMQP.BasicProperties properties = new AMQP.BasicProperties().builder().
+            deliveryMode(2).
+            contentType("application/json").
+            contentEncoding(StandardCharsets.UTF_8.displayName()).
+            build()
+
+
+    String stableId = "EGAF" + UUID.randomUUID().toString().replace("-", "")
+    channel.basicPublish("localega.v1",
+            "files",
+            properties,
+            "{\"user\":\"john\",\"filepath\":\"data.raw.enc\",\"stable_id\":\"${stableId}\"}".bytes)
+
+    channel.close()
+    connectionFactory.close()
+}
+
 ext {
     generateSSLCertificate = this.&generateSSLCertificate
     generatePGPKeyPair = this.&generatePGPKeyPair
@@ -373,4 +437,8 @@ ext {
     writeTrace = this.&writeTrace
     readTrace = this.&readTrace
     getTraceAsMAp = this.&getTraceAsMAp
+    generateFile = this.&generateFile
+    encryptFile = this.&encryptFile
+    uploadFile = this.&uploadFile
+    ingestFile = this.&ingestFile
 }
