@@ -1,6 +1,8 @@
 apply from: "$rootDir/utils.gradle"
 
 task clearLEGAConfiguration {
+    group "lega"
+
     doLast {
         exec {
             ignoreExitValue = true
@@ -22,6 +24,8 @@ task clearLEGAConfiguration {
 }
 
 task createLEGAMQConfiguration {
+    group "lega"
+
     doLast {
         exec {
             workingDir "${project.projectDir.toString()}/../../docker/images/mq"
@@ -50,6 +54,8 @@ task createLEGAMQConfiguration {
 }
 
 task createLEGADBConfiguration {
+    group "lega"
+
     doLast {
         exec {
             workingDir "${project.projectDir.toString()}/../../../extras"
@@ -66,6 +72,8 @@ task createLEGADBConfiguration {
 }
 
 task createLEGAInboxConfiguration {
+    group "lega"
+
     doLast {
         writeTrace("CEGA_ENDPOINT", "http://cega-users/user/")
         String cegaRESTPassword = readTrace(new File("${project.projectDir.toString()}/../cega/.tmp/.trace"), "CEGA_REST_PASSWORD")
@@ -74,6 +82,8 @@ task createLEGAInboxConfiguration {
 }
 
 task createLEGAIngestConfiguration {
+    group "lega"
+
     doLast {
         writeTrace("S3_ACCESS_KEY", UUID.randomUUID().toString().replace("-", ""))
         writeTrace("S3_SECRET_KEY", UUID.randomUUID().toString().replace("-", ""))
@@ -81,6 +91,8 @@ task createLEGAIngestConfiguration {
 }
 
 task createLEGAKeysConfiguration {
+    group "lega"
+
     doLast {
         generateSSLCertificate()
         exec {
@@ -117,6 +129,8 @@ task createLEGAKeysConfiguration {
 }
 
 task createLEGAMinioConfiguration {
+    group "lega"
+
     doLast {
         writeTrace("MINIO_ACCESS_KEY", readTrace("S3_ACCESS_KEY"))
         writeTrace("MINIO_SECRET_KEY", readTrace("S3_SECRET_KEY"))
@@ -124,6 +138,8 @@ task createLEGAMinioConfiguration {
 }
 
 task createConfIni {
+    group "lega"
+
     dependsOn clearLEGAConfiguration,
             createLEGAMQConfiguration,
             createLEGADBConfiguration,
@@ -145,6 +161,8 @@ task createConfIni {
 }
 
 task createKeysIni {
+    group "lega"
+
     dependsOn clearLEGAConfiguration,
             createLEGAMQConfiguration,
             createLEGADBConfiguration,
@@ -166,10 +184,14 @@ task createKeysIni {
 }
 
 task createLEGAConfiguration {
+    group "lega"
+
     dependsOn clearLEGAConfiguration, createConfIni, createKeysIni
 }
 
 task deployLEGAStack {
+    group "lega"
+
     doLast {
         exec {
             executable "docker"
@@ -180,6 +202,8 @@ task deployLEGAStack {
 }
 
 task removeLEGAStack {
+    group "lega"
+
     doLast {
         exec {
             executable "docker"

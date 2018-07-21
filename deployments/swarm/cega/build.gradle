@@ -1,6 +1,8 @@
 apply from: "$rootDir/utils.gradle"
 
 task clearCEGAConfiguration {
+    group "cega"
+
     doLast {
         exec {
             ignoreExitValue = true
@@ -12,6 +14,8 @@ task clearCEGAConfiguration {
 }
 
 task createCEGAEurekaConfiguration {
+    group "cega"
+
     doLast {
         exec {
             workingDir "${project.projectDir.toString()}/../../docker/images/cega"
@@ -23,6 +27,8 @@ task createCEGAEurekaConfiguration {
 }
 
 task createCEGAUsersConfiguration {
+    group "cega"
+
     doLast {
         exec {
             workingDir "${project.projectDir.toString()}/../../docker/images/cega"
@@ -62,6 +68,8 @@ task createCEGAUsersConfiguration {
 }
 
 task createCEGAMQConfiguration {
+    group "cega"
+
     doLast {
         String password = generateCEGAMQConfiguration()
 
@@ -87,10 +95,14 @@ task createCEGAMQConfiguration {
 }
 
 task createCEGAConfiguration {
+    group "cega"
+
     dependsOn clearCEGAConfiguration, createCEGAEurekaConfiguration, createCEGAUsersConfiguration, createCEGAMQConfiguration
 }
 
 task deployCEGAStack {
+    group "cega"
+
     doLast {
         String restPassword = readTrace("CEGA_REST_PASSWORD")
         exec {
@@ -102,6 +114,8 @@ task deployCEGAStack {
 }
 
 task removeCEGAStack {
+    group "cega"
+
     doLast {
         exec {
             executable "docker"
