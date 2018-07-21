@@ -1,5 +1,24 @@
 apply from: "$rootDir/utils.gradle"
 
+buildscript {
+    repositories {
+        mavenCentral()
+        maven {
+            url "https://github.com/uio-bmi/crypt4gh/raw/maven"
+        }
+    }
+
+    dependencies {
+        classpath "org.bouncycastle:bcpg-jdk15on:1.59"
+        classpath "org.bouncycastle:bcpkix-jdk15on:1.59"
+        classpath "commons-io:commons-io:2.5"
+        classpath "commons-codec:commons-codec:1.11"
+        classpath "com.hierynomus:sshj:0.22.0"
+        classpath "com.rabbitmq:amqp-client:5.1.1"
+        classpath "no.uio.ifi:crypt4gh:1.0.0"
+    }
+}
+
 task clean() {
     dependsOn ":cega:clearCEGAConfiguration", ":lega:clearLEGAConfiguration"
     doLast {
