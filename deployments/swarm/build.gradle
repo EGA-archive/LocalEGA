@@ -1,41 +1,4 @@
-buildscript {
-    repositories {
-        mavenCentral()
-        maven {
-            url "https://github.com/uio-bmi/crypt4gh/raw/maven"
-        }
-    }
-
-    dependencies {
-        classpath "org.bouncycastle:bcpg-jdk15on:1.59"
-        classpath "org.bouncycastle:bcpkix-jdk15on:1.59"
-        classpath "commons-io:commons-io:2.5"
-        classpath "commons-codec:commons-codec:1.11"
-        classpath "com.hierynomus:sshj:0.22.0"
-        classpath "com.rabbitmq:amqp-client:5.1.1"
-        classpath "no.uio.ifi:crypt4gh:1.0.0"
-    }
-}
-
-import com.rabbitmq.client.AMQP
-import com.rabbitmq.client.Channel
-import com.rabbitmq.client.Connection
-import com.rabbitmq.client.ConnectionFactory
-import net.schmizz.sshj.SSHClient
-import net.schmizz.sshj.sftp.SFTPClient
-import net.schmizz.sshj.transport.verification.PromiscuousVerifier
-import no.ifi.uio.crypt4gh.stream.Crypt4GHOutputStream
-import org.apache.commons.codec.digest.DigestUtils
-import org.apache.commons.io.FileUtils
-import org.bouncycastle.jce.provider.BouncyCastleProvider
-
-import java.nio.charset.Charset
-import java.nio.charset.StandardCharsets
-import java.security.Security
-
-task initBouncyCastle() {
-    Security.addProvider(new BouncyCastleProvider())
-}
+apply from: "$rootDir/utils.gradle"
 
 task clean() {
     dependsOn ":cega:clearCEGAConfiguration", ":lega:clearLEGAConfiguration"
@@ -77,11 +40,7 @@ task ls() {
 
 task file {
     doLast {
-        mkdir ".tmp"
-        File rawFile = new File(".tmp/data.raw")
-        RandomAccessFile randomAccessFile = new RandomAccessFile(rawFile, "rw")
-        randomAccessFile.setLength(1024 * 1024 * 10)
-        randomAccessFile.close()
+        generateFile()
     }
 }
 
@@ -89,14 +48,7 @@ task encrypt() {
     dependsOn file
 
     doLast {
-        File rawFile = new File(".tmp/data.raw")
-        File encryptedFile = new File(".tmp/data.raw.enc")
-        byte[] digest = DigestUtils.sha256(FileUtils.openInputStream(rawFile))
-        String key = FileUtils.readFileToString(new File("lega/.tmp/pgp/ega.pub"), Charset.defaultCharset())
-        FileOutputStream fileOutputStream = new FileOutputStream(encryptedFile)
-        Crypt4GHOutputStream crypt4GHOutputStream = new Crypt4GHOutputStream(fileOutputStream, key, digest)
-        FileUtils.copyFile(rawFile, crypt4GHOutputStream)
-        crypt4GHOutputStream.close()
+        encryptFile()
     }
 }
 
@@ -104,13 +56,7 @@ task upload() {
     dependsOn encrypt
 
     doLast {
-        SSHClient ssh = new SSHClient()
-        ssh.addHostKeyVerifier(new PromiscuousVerifier())
-        ssh.connect("localhost", 2222)
-        ssh.authPublickey("john", "cega/.tmp/users/john.sec")
-        SFTPClient client = ssh.newSFTPClient()
-        client.put(".tmp/data.raw.enc", "data.raw.enc")
-        ssh.close()
+        uploadFile()
     }
 }
 
@@ -118,25 +64,6 @@ task ingest() {
     dependsOn upload
 
     doLast {
-        ConnectionFactory factory = new ConnectionFactory()
-        String mqPassword = readTrace(new File("cega/.tmp/.trace"), "CEGA_MQ_PASSWORD")
-        factory.setUri("amqp://lega:${mqPassword}@localhost:5672/lega")
-        Connection connectionFactory = factory.newConnection()
-        Channel channel = connectionFactory.createChannel()
-        AMQP.BasicProperties properties = new AMQP.BasicProperties().builder().
-                deliveryMode(2).
-                contentType("application/json").
-                contentEncoding(StandardCharsets.UTF_8.displayName()).
-                build()
-
-
-        String stableId = "EGAF" + UUID.randomUUID().toString().replace("-", "")
-        channel.basicPublish("localega.v1",
-                "files",
-                properties,
-                "{\"user\":\"john\",\"filepath\":\"data.raw.enc\",\"stable_id\":\"${stableId}\"}".bytes)
-
-        channel.close()
-        connectionFactory.close()
+        ingestFile()
     }
 }
