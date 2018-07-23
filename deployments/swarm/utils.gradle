@@ -13,6 +13,7 @@ buildscript {
         classpath "commons-codec:commons-codec:1.11"
         classpath "com.hierynomus:sshj:0.22.0"
         classpath "com.rabbitmq:amqp-client:5.1.1"
+        classpath "io.minio:minio:4.0.2"
         classpath "no.uio.ifi:crypt4gh:1.0.0"
     }
 }
@@ -53,6 +54,8 @@ import org.bouncycastle.openpgp.operator.bc.BcPGPKeyPair
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter
 import org.bouncycastle.operator.ContentSigner
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder
+
+import io.minio.MinioClient
 
 import java.nio.ByteBuffer
 import java.nio.charset.Charset
@@ -368,15 +371,15 @@ def generateKeysIni() {
 
 def generateFile() {
     mkdir ".tmp"
-    File rawFile = new File(".tmp/data.raw")
+    File rawFile = new File(".tmp/data2.raw")
     RandomAccessFile randomAccessFile = new RandomAccessFile(rawFile, "rw")
     randomAccessFile.setLength(1024 * 1024 * 10)
     randomAccessFile.close()
 }
 
 def encryptFile() {
-    File rawFile = new File(".tmp/data.raw")
-    File encryptedFile = new File(".tmp/data.raw.enc")
+    File rawFile = new File(".tmp/data2.raw")
+    File encryptedFile = new File(".tmp/data2.raw.enc")
     byte[] digest = DigestUtils.sha256(FileUtils.openInputStream(rawFile))
     String key = FileUtils.readFileToString(new File("lega/.tmp/pgp/ega.pub"), Charset.defaultCharset())
     FileOutputStream fileOutputStream = new FileOutputStream(encryptedFile)
@@ -391,7 +394,7 @@ def uploadFile() {
     ssh.connect("localhost", 2222)
     ssh.authPublickey("john", "cega/.tmp/users/john.sec")
     SFTPClient client = ssh.newSFTPClient()
-    client.put(".tmp/data.raw.enc", "data.raw.enc")
+    client.put(".tmp/data2.raw.enc", "data2.raw.enc")
     ssh.close()
 }
 
@@ -412,10 +415,20 @@ def ingestFile() {
     channel.basicPublish("localega.v1",
             "files",
             properties,
-            "{\"user\":\"john\",\"filepath\":\"data.raw.enc\",\"stable_id\":\"${stableId}\"}".bytes)
+            "{\"user\":\"john\",\"filepath\":\"data2.raw.enc\",\"stable_id\":\"${stableId}\"}".bytes)
 
     channel.close()
     connectionFactory.close()
+}
+
+def getFilesAmount() {
+    String accessKey = readTrace(new File("lega/.tmp/.trace"), "S3_ACCESS_KEY")
+    String secretKey = readTrace(new File("lega/.tmp/.trace"), "S3_SECRET_KEY")
+    MinioClient minioClient = new MinioClient("http://localhost:9000", accessKey, secretKey)
+    if(!minioClient.bucketExists("lega")) {
+        return 0
+    }
+    return minioClient.listObjects("lega").size()
 }
 
 ext {
@@ -432,4 +445,5 @@ ext {
     encryptFile = this.&encryptFile
     uploadFile = this.&uploadFile
     ingestFile = this.&ingestFile
+    getFilesAmount = this.&getFilesAmount
 }

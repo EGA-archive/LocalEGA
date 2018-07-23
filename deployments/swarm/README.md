@@ -15,7 +15,7 @@ such a cluster is currently out of the scope of this instructions.
 
 Gradle project has the following structure:
 
-![](https://habrastorage.org/webt/sl/_k/bg/sl_kbgpulzc10igtrwftnr7swfq.png)
+![](https://habrastorage.org/webt/ha/6h/2v/ha6h2vgaa-rftanbqmm-gzqe3su.png)
 
 - `cega` - "fake" CentralEGA
 - `lega` - main LocalEGA microservices

@@ -15,6 +15,7 @@ buildscript {
         classpath "commons-codec:commons-codec:1.11"
         classpath "com.hierynomus:sshj:0.22.0"
         classpath "com.rabbitmq:amqp-client:5.1.1"
+        classpath "io.minio:minio:4.0.2"
         classpath "no.uio.ifi:crypt4gh:1.0.0"
     }
 }
@@ -101,6 +102,12 @@ task ingest() {
     dependsOn upload
 
     doLast {
+        int before = getFilesAmount()
         ingestFile()
+        sleep 5000
+        int after = getFilesAmount()
+        if (after != before + 1) {
+            throw new GradleException("File was not ingested!")
+        }
     }
 }
