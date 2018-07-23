@@ -15,7 +15,7 @@ such a cluster is currently out of the scope of this instructions.
 
 Gradle project has the following structure:
 
-![](https://habrastorage.org/webt/ha/6h/2v/ha6h2vgaa-rftanbqmm-gzqe3su.png)
+![](https://habrastorage.org/webt/bp/6r/sh/bp6rshamdpwd53lhzbobpcqct6a.png)
 
 - `cega` - "fake" CentralEGA
 - `lega` - main LocalEGA microservices
@@ -53,3 +53,10 @@ To make sure that the system is deploy you can execute `gradle ls`.
 There's a built-in simple test to check that the basic scenario works fine. Try to execute `gradle ingest` after 
 successful deploying to check if ingestion works. It will automatically generate 10MBs file, encrypt it with `Crypt4GH`, 
 upload to the inbox of test-user `john`, ingest this file and check if it has successfully landed to the vault. 
+
+## Portainer
+
+For convenience, as an analogue for Kubernetes Dashboard, the [Portainer](https://portainer.io/) was added to this 
+deployment. It's accessible at http://localhost:30000/#/dashboard 
+
+![](https://habrastorage.org/webt/js/kv/6y/jskv6yxfauuw11qpiji4q3hjbw8.png)
