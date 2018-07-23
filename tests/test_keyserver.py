@@ -150,13 +150,57 @@ class TestBasicFunctionsKeyserver(unittest.TestCase):
         load_keys_conf(data)
         mock_unlock.assert_called()
 
+    @tempdir()
     @mock.patch('lega.keyserver.ssl')
     @mock.patch('lega.keyserver.web')
     @mock.patch('lega.keyserver.asyncio')
-    def test_load_args(self, mock_async, mock_webapp, mock_ssl):
-        """Should start the webapp, with a configuration and fake key list."""
-        main(['--keys', '/keys/list.enc'])
+    def test_load_args_unec_file(self, mock_async, mock_webapp, mock_ssl, filedir):
+        """Should start the webapp, with a configuration and fake key list from unecrypted file."""
+        fake_config = """[DEFAULT]
+        active : key.1
+
+        [key.1]
+        path : /etc/ega/pgp/ega.sec
+        passphrase : smth
+        expire: 30/MAR/19 08:00:00"""
+        conf_file = filedir.write('list.smth', fake_config.encode('utf-8'))
+        main(['--keys', conf_file])
         mock_webapp.run_app.assert_called()
+
+    @mock.patch('lega.keyserver.ssl')
+    @mock.patch('lega.keyserver.web')
+    @mock.patch('lega.keyserver.asyncio')
+    def test_file_not_found(self, mock_async, mock_webapp, mock_ssl):
+        """Should raise file not found, unecrypted file."""
+        with self.assertRaises(FileNotFoundError):
+            main(['--keys', '/keys/somefile.smth'])
+
+    @tempdir()
+    @mock.patch('lega.keyserver.ssl')
+    @mock.patch('lega.keyserver.web')
+    @mock.patch('lega.keyserver.asyncio')
+    def test_load_args_enc_file(self, mock_async, mock_webapp, mock_ssl, filedir):
+        """Should start the webapp, with a configuration and fake key list encrypted config file."""
+        # We are not encrypting this but it is faked
+        # to make things accuratw we should encrypt it
+        fake_config = """[DEFAULT]
+        active : key.1
+
+        [key.1]
+        path : /etc/ega/pgp/ega.sec
+        passphrase : smth
+        expire: 30/MAR/19 08:00:00"""
+        conf_file = filedir.write('list.enc', fake_config.encode('utf-8'))
+        main(['--keys', conf_file])
+        mock_webapp.run_app.assert_called()
+
+    @mock.patch('lega.keyserver.ssl')
+    @mock.patch('lega.keyserver.web')
+    @mock.patch('lega.keyserver.asyncio')
+    def test_file_not_found_enc(self, mock_async, mock_webapp, mock_ssl):
+        """Should raise file not found, even if suffix is different than *.enc."""
+        with self.assertRaises(FileNotFoundError):
+            main(['--keys', '/keys/somefile.enc'])
 
 
 if __name__ == '__main__':
