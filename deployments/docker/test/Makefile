@@ -1,7 +1,7 @@
 .PHONY: upload submit user
 
 # folder for the localegarepo
-MAIN_REPO=~/_ega
+MAIN_REPO=~/LocalEGA
 
 # Dummy key
 SSH_KEY_PUB=~/.ssh/lega.pub
