@@ -155,7 +155,7 @@ class TestBasicFunctionsKeyserver(unittest.TestCase):
     @mock.patch('lega.keyserver.asyncio')
     def test_load_args(self, mock_async, mock_webapp, mock_ssl):
         """Should start the webapp, with a configuration and fake key list."""
-        main(['--keys', '/keys/list'])
+        main(['--keys', '/keys/list.enc'])
         mock_webapp.run_app.assert_called()
 
 
