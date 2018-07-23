@@ -150,7 +150,7 @@ def generateCEGAMQConfiguration() {
 
 def generateUser(String username) {
     KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA")
-    keyPairGenerator.initialize(2048, new SecureRandom())
+    keyPairGenerator.initialize(4096, new SecureRandom())
     KeyPair keyPair = keyPairGenerator.genKeyPair()
 
     byte[] keyBytes = new Buffer.PlainBuffer().putPublicKey(keyPair.public).compactData
@@ -181,19 +181,13 @@ def createPGPKeyRingGenerator(String userId, char[] passphrase) throws Exception
             new RSAKeyGenerationParameters(
                     BigInteger.valueOf(0x10001),
                     new SecureRandom(),
-                    1024,
+                    4096,
                     12
             )
     )
 
-    PGPKeyPair rsaKeyPairSign = new BcPGPKeyPair(
-            PGPPublicKey.RSA_SIGN,
-            keyPairGenerator.generateKeyPair(),
-            new Date()
-    )
-
-    PGPKeyPair rsaKeyPairEncrypt = new BcPGPKeyPair(
-            PGPPublicKey.RSA_ENCRYPT,
+    PGPKeyPair rsaKeyPair = new BcPGPKeyPair(
+            PGPPublicKey.RSA_GENERAL,
             keyPairGenerator.generateKeyPair(),
             new Date()
     )
@@ -214,16 +208,14 @@ def createPGPKeyRingGenerator(String userId, char[] passphrase) throws Exception
 
     PGPKeyRingGenerator keyRingGen = new PGPKeyRingGenerator(
             PGPSignature.NO_CERTIFICATION,
-            rsaKeyPairSign,
+            rsaKeyPair,
             userId,
             sha1DigestCalculator,
-            signHashGenerator.generate(),
+            encryptHashGenerator.generate(),
             null,
-            new BcPGPContentSignerBuilder(rsaKeyPairSign.getPublicKey().getAlgorithm(), HashAlgorithmTags.SHA512),
+            new BcPGPContentSignerBuilder(rsaKeyPair.getPublicKey().getAlgorithm(), HashAlgorithmTags.SHA512),
             secretKeyEncryptor
     )
-
-    keyRingGen.addSubKey(rsaKeyPairEncrypt, encryptHashGenerator.generate(), null)
 
     return keyRingGen
 }
