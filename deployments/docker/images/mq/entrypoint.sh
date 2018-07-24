@@ -69,11 +69,13 @@ cat > /etc/rabbitmq/defs-cega.json <<EOF
  "policies":[{"vhost":"/","name":"CEGA","pattern":"files","apply-to":"queues","definition":{"federation-upstream":"from-CEGA"},"priority":0}]
 }
 EOF
-# chown rabbitmq:rabbitmq /etc/rabbitmq/defs-cega.json
-# chmod 640 /etc/rabbitmq/defs-cega.json
+
+{
+chown rabbitmq:rabbitmq /etc/rabbitmq/defs-cega.json
+chmod 640 /etc/rabbitmq/defs-cega.json
+} || true
 
 # And...cue music
-# chown -R rabbitmq /var/lib/rabbitmq
 
 { # Spawn off
     sleep 5 # Small delay first
