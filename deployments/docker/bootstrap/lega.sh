@@ -23,7 +23,7 @@ ${OPENSSL} req -x509 -newkey rsa:2048 -keyout ${PRIVATE}/lega/certs/ssl.key -nod
 #########################################################################
 
 echomsg "\t* keys.ini"
-cat > ${PRIVATE}/lega/keys.ini <<EOF
+${OPENSSL} enc -aes-256-cbc -salt -out ${PRIVATE}/lega/keys.ini.enc -md md5 -k ${KEYS_PASSWORD} <<EOF
 [DEFAULT]
 active : key.1
 
@@ -37,6 +37,7 @@ path : /etc/ega/pgp/ega2.sec
 passphrase : ${PGP_PASSPHRASE}
 expire: 30/MAR/18 08:00:00
 EOF
+
 
 echomsg "\t* conf.ini"
 cat > ${PRIVATE}/lega/conf.ini <<EOF
@@ -211,7 +212,48 @@ services:
     restart: on-failure:3
     networks:
       - lega
-
+EOF
+if [[ $DEFAULT_INBOX == 'fuse' ]]; then
+cat >> ${PRIVATE}/lega.yml <<EOF
+  # SFTP inbox
+  inbox:
+    hostname: ega-inbox
+    depends_on:
+      - mq
+    # Required external link
+    external_links:
+      - cega-users:cega-users
+    environment:
+      - DB_INSTANCE=db
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=lega
+      - CEGA_ENDPOINT=http://cega-users/user/
+      - CEGA_ENDPOINT_CREDS=lega:${CEGA_REST_PASSWORD}
+      - CEGA_ENDPOINT_JSON_PASSWD=.password_hash
+      - CEGA_ENDPOINT_JSON_PUBKEY=.pubkey
+    ports:
+      - "${DOCKER_PORT_inbox}:9000"
+    container_name: inbox
+    image: nbisweden/ega-inbox
+    # privileged, cap_add and devices cannot be used by docker Swarm
+    privileged: true
+    cap_add:
+      - ALL
+    devices:
+      - /dev/fuse
+    volumes:
+      - ./lega/conf.ini:/etc/ega/conf.ini:ro
+      - inbox:/ega/inbox
+      - ../images/inbox/entrypoint.sh:/usr/bin/ega-entrypoint.sh
+    restart: on-failure:3
+    networks:
+      - lega
+      - cega
+    entrypoint: ["/bin/bash", "/usr/bin/ega-entrypoint.sh"]
+EOF
+elif [[ $DEFAULT_INBOX == 'mina' ]]; then
+cat >> ${PRIVATE}/lega.yml <<EOF
   # SFTP inbox
   inbox:
     hostname: ega-inbox
@@ -233,7 +275,9 @@ services:
     networks:
       - lega
       - cega
-
+EOF
+fi
+cat >> ${PRIVATE}/lega.yml <<EOF
   # Ingestion Workers
   ingest:
     depends_on:
@@ -249,8 +293,6 @@ services:
     volumes:
        - inbox:/ega/inbox
        - ./lega/conf.ini:/etc/ega/conf.ini:ro
-       - ../../../lega:/home/lega/.local/lib/python3.6/site-packages/lega
-       #- ~/_cryptor/legacryptor:/root/.local/lib/python3.6/site-packages/legacryptor
     restart: on-failure:3
     networks:
       - lega
@@ -265,21 +307,21 @@ services:
       - "8443"
     environment:
       - LEGA_PASSWORD=${LEGA_PASSWORD}
+      - KEYS_PASSWORD=${KEYS_PASSWORD}
     volumes:
        - ./lega/conf.ini:/etc/ega/conf.ini:ro
-       - ./lega/keys.ini:/etc/ega/keys.ini:ro
+       - ./lega/keys.ini.enc:/etc/ega/keys.ini.enc:ro
        - ./lega/certs/ssl.cert:/etc/ega/ssl.cert:ro
        - ./lega/certs/ssl.key:/etc/ega/ssl.key:ro
        - ./lega/pgp/ega.sec:/etc/ega/pgp/ega.sec:ro
        - ./lega/pgp/ega2.sec:/etc/ega/pgp/ega2.sec:ro
-       - ../../../lega:/home/lega/.local/lib/python3.6/site-packages/lega
     restart: on-failure:3
     external_links:
       - cega-eureka:cega-eureka
     networks:
       - lega
       - cega
-    entrypoint: ["gosu","lega","ega-keyserver","--keys","/etc/ega/keys.ini"]
+    entrypoint: ["gosu","lega","ega-keyserver","--keys","/etc/ega/keys.ini.enc"]
 
   # Quality Control
   verify:
@@ -299,8 +341,6 @@ services:
       - AWS_SECRET_ACCESS_KEY=${S3_SECRET_KEY}
     volumes:
        - ./lega/conf.ini:/etc/ega/conf.ini:ro
-       - ../../../lega:/home/lega/.local/lib/python3.6/site-packages/lega
-       #- ~/_cryptor/legacryptor:/root/.local/lib/python3.6/site-packages/legacryptor
     restart: on-failure:3
     networks:
       - lega
@@ -362,4 +402,5 @@ DOCKER_PORT_s3            = ${DOCKER_PORT_s3}
 DOCKER_PORT_kibana        = ${DOCKER_PORT_kibana}
 #
 LEGA_PASSWORD             = ${LEGA_PASSWORD}
+KEYS_PASSWORD             = ${KEYS_PASSWORD}
 EOF
