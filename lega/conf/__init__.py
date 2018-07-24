@@ -27,6 +27,14 @@ from logging.config import fileConfig, dictConfig
 import lega.utils.logging
 from pathlib import Path
 import yaml
+from hashlib import md5
+
+from cryptography.hazmat.primitives import padding
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives.ciphers import (
+    Cipher,
+    algorithms,
+    modes)
 
 _here = Path(__file__).parent
 _config_files = [
@@ -151,6 +159,43 @@ class Configuration(configparser.ConfigParser):
 
 CONF = Configuration()
 
+def EVP_ByteToKey(pwd, md, salt, key_len, iv_len):
+    """Derive key and IV.
+
+    Based on https://www.openssl.org/docs/man1.0.2/crypto/EVP_BytesToKey.html
+    """
+    buf = md(pwd + salt).digest()
+    d = buf
+    while len(buf) < (iv_len + key_len):
+        d = md(d + pwd + salt).digest()
+        buf += d
+    return buf[:key_len], buf[key_len:key_len + iv_len]
+
+
+def aes_decrypt(pwd, ctext, md, encoding='utf-8'):
+    """Decrypt AES."""
+
+    assert pwd, "You must supply a password as the first argument"
+
+    # check magic
+    if ctext[:8] != b'Salted__':
+        raise ValueError("bad magic number")
+
+    # get salt
+    salt = ctext[8:16]
+
+    # generate key, iv from password
+    key, iv = EVP_ByteToKey(pwd, md, salt, 32, 16)
+
+    # decrypt
+    cipher = Cipher(algorithms.AES(key), modes.CBC(iv), backend=default_backend())
+    decryptor = cipher.decryptor()
+    ptext = decryptor.update(ctext[16:]) + decryptor.finalize()
+
+    # unpad plaintext
+    unpadder = padding.PKCS7(128).unpadder()  # 128 bit
+    ptext = unpadder.update(ptext) + unpadder.finalize()
+    return ptext.decode(encoding)
 
 class KeysConfiguration(configparser.ConfigParser):
     """Parse keyserver configuration."""
@@ -165,11 +210,11 @@ class KeysConfiguration(configparser.ConfigParser):
             conf = filepath.open(encoding=encoding).read()
         else:
             # Quick solution, just for testing, to decrypt the encrypted keys configuration file (keys.ini)
-            # The 'LEGA_PASSWORD' must be defined
-            assert 'LEGA_PASSWORD' in os.environ, "LEGA_PASSWORD must be defined as an environment variable"
-            s = "openssl enc -aes-256-cbc -d -in {} -k {}".format(str(filepath), os.environ.get('LEGA_PASSWORD',None))
-            from subprocess import Popen, PIPE
-            with Popen(s.split(), stdout=PIPE) as proc:                
-                conf = proc.stdout.read().decode()
+            # The 'KEYS_PASSWORD' must be defined
+            assert 'KEYS_PASSWORD' in os.environ, "KEYS_PASSWORD must be defined as an environment variable"
+            with open(filepath, "rb") as f:
+                conf = aes_decrypt(os.environ.get('KEYS_PASSWORD',None).encode(), f.read(), md5, encoding=encoding)
 
         self.read_string(conf, source=str(filepath))
+
+
