@@ -1,7 +1,7 @@
 
 # Add those packages to the containers, in case DEV is defined
 ifdef DEV
-DEV_PACKAGES="nmap tcpdump lsof strace bash-completion bash-completion-extras"
+DEV_PACKAGES="nss-tools nc nmap tcpdump lsof strace bash-completion bash-completion-extras"
 endif
 
 CHECKOUT=$(shell git rev-parse --abbrev-ref HEAD)
@@ -16,12 +16,12 @@ endif
 
 TARGET=nbisweden/ega
 
-.PHONY: all erase delete clean cleanall base
+.PHONY: all erase delete clean cleanall base inbox
 
-all: base
+all: base inbox
 
 base: PIP_EGA_PACKAGES=pika==0.11.0 psycopg2-binary==2.7.4 cryptography==2.2.1 aiohttp==3.0.7 aiohttp-jinja2==0.13.0 pgpy fusepy aiopg==0.13.0 boto3
-base:
+base inbox:
 	docker build --build-arg checkout=$(CHECKOUT) \
                      --build-arg PIP_EGA_PACKAGES="$(PIP_EGA_PACKAGES)" \
                      --build-arg DEV_PACKAGES="$(DEV_PACKAGES)" \
