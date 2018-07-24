@@ -8,6 +8,49 @@ from . import pgp_data
 import pgpy
 from unittest import mock
 from testfixtures import tempdir
+import os
+from hashlib import md5
+
+from cryptography.hazmat.primitives import padding
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives.ciphers import (
+    Cipher,
+    algorithms,
+    modes)
+
+
+def EVP_ByteToKey(pwd, md, salt, key_len, iv_len):
+    buf = md(pwd + salt).digest()
+    d = buf
+    while len(buf) < (iv_len + key_len):
+        d = md(d + pwd + salt).digest()
+        buf += d
+    return buf[:key_len], buf[key_len:key_len + iv_len]
+
+
+def aes_encrypt(pwd, ptext, md):
+    key_len, iv_len = 32, 16
+
+    # generate salt
+    salt = os.urandom(8)
+
+    # generate key, iv from password
+    key, iv = EVP_ByteToKey(pwd, md, salt, key_len, iv_len)
+
+    # pad plaintext
+    pad = padding.PKCS7(128).padder()
+    ptext = pad.update(ptext) + pad.finalize()
+
+    # create an encryptor
+    cipher = Cipher(algorithms.AES(key), modes.CBC(iv), backend=default_backend())
+    encryptor = cipher.encryptor()
+
+    # encrypt plain text
+    ctext = encryptor.update(ptext) + encryptor.finalize()
+    ctext = b'Salted__' + salt + ctext
+
+    # encode base64
+    return ctext
 
 
 class KeyserverTestCase(AioHTTPTestCase):
@@ -17,6 +60,7 @@ class KeyserverTestCase(AioHTTPTestCase):
 
     env = EnvironmentVarGuard()
     env.set('LEGA_PASSWORD', 'value')
+    env.set('KEYS_PASSWORD', 'value')
     with env:
         _cache = Cache()
 
@@ -61,6 +105,7 @@ class CacheTestCase(unittest.TestCase):
         self.FMT = '%d/%b/%y %H:%M:%S'
         self.env = EnvironmentVarGuard()
         self.env.set('LEGA_PASSWORD', 'value')
+        self.env.set('KEYS_PASSWORD', 'value')
         self._key, _ = pgpy.PGPKey.from_blob(pgp_data.PGP_PRIVKEY)
         with self.env:
             self._cache = Cache()
@@ -68,6 +113,7 @@ class CacheTestCase(unittest.TestCase):
     def tearDown(self):
         """Remove setup variables."""
         self.env.unset('LEGA_PASSWORD')
+        self.env.unset('KEYS_PASSWORD')
 
     def test_clear(self):
         """Test clearing Cache, should return empty cache."""
@@ -114,10 +160,12 @@ class TestBasicFunctionsKeyserver(unittest.TestCase):
         """Initialise fixtures."""
         self.env = EnvironmentVarGuard()
         self.env.set('LEGA_PASSWORD', 'value')
+        self.env.set('KEYS_PASSWORD', 'value')
 
     def tearDown(self):
         """Remove setup variables."""
         self.env.unset('LEGA_PASSWORD')
+        self.env.unset('KEYS_PASSWORD')
 
     @tempdir()
     @mock.patch('lega.keyserver._cache')
@@ -166,6 +214,7 @@ class TestBasicFunctionsKeyserver(unittest.TestCase):
         conf_file = filedir.write('list.smth', fake_config.encode('utf-8'))
         main(['--keys', conf_file])
         mock_webapp.run_app.assert_called()
+        filedir.cleanup()
 
     @mock.patch('lega.keyserver.ssl')
     @mock.patch('lega.keyserver.web')
@@ -174,6 +223,8 @@ class TestBasicFunctionsKeyserver(unittest.TestCase):
         """Should raise file not found, unecrypted file."""
         with self.assertRaises(FileNotFoundError):
             main(['--keys', '/keys/somefile.smth'])
+
+    # TO DO Use to encrypthttps://www.pythonsheets.com/notes/python-crypto.html#aes-cbc-mode-encrypt-via-password-using-cryptography
 
     @tempdir()
     @mock.patch('lega.keyserver.ssl')
@@ -190,9 +241,12 @@ class TestBasicFunctionsKeyserver(unittest.TestCase):
         path : /etc/ega/pgp/ega.sec
         passphrase : smth
         expire: 30/MAR/19 08:00:00"""
-        conf_file = filedir.write('list.enc', fake_config.encode('utf-8'))
-        main(['--keys', conf_file])
-        mock_webapp.run_app.assert_called()
+        result = aes_encrypt(b'value', fake_config.encode('utf-8'), md5)
+        conf_file = filedir.write('list.enc', result)
+        with self.env:
+            main(['--keys', conf_file])
+            mock_webapp.run_app.assert_called()
+        filedir.cleanup()
 
     @mock.patch('lega.keyserver.ssl')
     @mock.patch('lega.keyserver.web')
