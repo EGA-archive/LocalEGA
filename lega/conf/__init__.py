@@ -159,6 +159,11 @@ class Configuration(configparser.ConfigParser):
 
 CONF = Configuration()
 
+# Based on
+# https://www.pythonsheets.com/notes/python-crypto.html#aes-cbc-mode-decrypt-via-password-using-cryptography
+# Provided under MIT license: https://github.com/crazyguitar/pysheeet/blob/master/LICENSE
+
+
 def EVP_ByteToKey(pwd, md, salt, key_len, iv_len):
     """Derive key and IV.
 
@@ -174,7 +179,6 @@ def EVP_ByteToKey(pwd, md, salt, key_len, iv_len):
 
 def aes_decrypt(pwd, ctext, md, encoding='utf-8'):
     """Decrypt AES."""
-
     assert pwd, "You must supply a password as the first argument"
 
     # check magic
@@ -197,6 +201,7 @@ def aes_decrypt(pwd, ctext, md, encoding='utf-8'):
     ptext = unpadder.update(ptext) + unpadder.finalize()
     return ptext.decode(encoding)
 
+
 class KeysConfiguration(configparser.ConfigParser):
     """Parse keyserver configuration."""
 
@@ -213,8 +218,6 @@ class KeysConfiguration(configparser.ConfigParser):
             # The 'KEYS_PASSWORD' must be defined
             assert 'KEYS_PASSWORD' in os.environ, "KEYS_PASSWORD must be defined as an environment variable"
             with open(filepath, "rb") as f:
-                conf = aes_decrypt(os.environ.get('KEYS_PASSWORD',None).encode(), f.read(), md5, encoding=encoding)
+                conf = aes_decrypt(os.environ.get('KEYS_PASSWORD', None).encode(), f.read(), md5, encoding=encoding)
 
         self.read_string(conf, source=str(filepath))
-
-
