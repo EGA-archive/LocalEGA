@@ -22,6 +22,7 @@ import com.rabbitmq.client.AMQP
 import com.rabbitmq.client.Channel
 import com.rabbitmq.client.Connection
 import com.rabbitmq.client.ConnectionFactory
+import io.minio.MinioClient
 import net.schmizz.sshj.SSHClient
 import net.schmizz.sshj.common.Buffer
 import net.schmizz.sshj.sftp.SFTPClient
@@ -55,8 +56,13 @@ import org.bouncycastle.openssl.jcajce.JcaPEMWriter
 import org.bouncycastle.operator.ContentSigner
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder
 
-import io.minio.MinioClient
-
+import javax.crypto.Cipher
+import javax.crypto.SecretKey
+import javax.crypto.SecretKeyFactory
+import javax.crypto.spec.IvParameterSpec
+import javax.crypto.spec.PBEKeySpec
+import javax.crypto.spec.PBEParameterSpec
+import javax.crypto.spec.SecretKeySpec
 import java.nio.ByteBuffer
 import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
@@ -64,6 +70,7 @@ import java.nio.file.Files
 import java.nio.file.attribute.PosixFilePermission
 import java.security.KeyPair
 import java.security.KeyPairGenerator
+import java.security.MessageDigest
 import java.security.SecureRandom
 import java.security.Security
 import java.security.cert.X509Certificate
@@ -369,6 +376,27 @@ def generateKeysIni() {
             "expire: 30/MAR/18 08:00:00", Charset.defaultCharset())
 }
 
+def encryptAES(File fileIn, File fileOut, String passphrase) {
+    byte[] magicNumber = "Salted__".bytes
+    String algorithm = "PBEWITHMD5AND256BITAES-CBC-OPENSSL"
+    PBEKeySpec keySpec = new PBEKeySpec(passphrase.toCharArray())
+    SecretKeyFactory factory = SecretKeyFactory.getInstance(algorithm)
+    SecretKey key = factory.generateSecret(keySpec)
+
+    Cipher cipher = Cipher.getInstance(algorithm)
+    def salt = new SecureRandom().generateSeed(8)
+    cipher.init(Cipher.ENCRYPT_MODE, key, new PBEParameterSpec(salt, 1))
+
+    byte[] encryptedContent = cipher.doFinal(FileUtils.readFileToByteArray(fileIn))
+
+    ByteBuffer buffer = ByteBuffer.allocate(magicNumber.length + salt.length + encryptedContent.length)
+    buffer.put(magicNumber)
+    buffer.put(salt)
+    buffer.put(encryptedContent)
+
+    FileUtils.writeByteArrayToFile(fileOut, buffer.array())
+}
+
 def generateFile() {
     mkdir ".tmp"
     File rawFile = new File(".tmp/data.raw")
@@ -425,7 +453,7 @@ def getFilesAmount() {
     String accessKey = readTrace(new File("lega/.tmp/.trace"), "S3_ACCESS_KEY")
     String secretKey = readTrace(new File("lega/.tmp/.trace"), "S3_SECRET_KEY")
     MinioClient minioClient = new MinioClient("http://localhost:9000", accessKey, secretKey)
-    if(!minioClient.bucketExists("lega")) {
+    if (!minioClient.bucketExists("lega")) {
         return 0
     }
     return minioClient.listObjects("lega").size()
@@ -441,6 +469,7 @@ ext {
     generatePGPKeyPair = this.&generatePGPKeyPair
     generateConfIni = this.&generateConfIni
     generateKeysIni = this.&generateKeysIni
+    encryptAES = this.&encryptAES
     generateFile = this.&generateFile
     encryptFile = this.&encryptFile
     uploadFile = this.&uploadFile

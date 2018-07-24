@@ -28,7 +28,7 @@ task clearLEGAConfiguration {
                     "ega.sec",
                     "ega2.sec",
                     "conf.ini",
-                    "keys.ini"
+                    "keys.ini.enc"
         }
         delete "${project.projectDir.toString()}/.tmp"
     }
@@ -137,8 +137,6 @@ task createLEGAKeysConfiguration {
 
         String masterPassphrase = UUID.randomUUID().toString().replace("-", "")
         writeTrace("LEGA_PASSWORD", masterPassphrase)
-        String keysPassphrase = UUID.randomUUID().toString().replace("-", "")
-        writeTrace("KEYS_PASSWORD", keysPassphrase)
     }
 }
 
@@ -188,11 +186,18 @@ task createKeysIni {
     doLast {
         generateKeysIni()
 
+        String keysPassphrase = UUID.randomUUID().toString().replace("-", "")
+        writeTrace("KEYS_PASSWORD", keysPassphrase)
+
+        encryptAES(new File("${project.projectDir.toString()}/.tmp/keys.ini"),
+                new File("${project.projectDir.toString()}/.tmp/keys.ini.enc"),
+                keysPassphrase)
+
         exec {
             workingDir "${project.projectDir.toString()}/.tmp"
             ignoreExitValue = true
             executable "docker"
-            args "config", "create", "keys.ini", "keys.ini"
+            args "config", "create", "keys.ini.enc", "keys.ini.enc"
         }
     }
 }
