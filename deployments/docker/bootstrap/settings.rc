@@ -31,3 +31,4 @@ S3_SECRET_KEY=$(generate_password 32)
 LOG_LEVEL=DEBUG
 
 LEGA_PASSWORD=$(generate_password 32)
+KEYS_PASSWORD=$(generate_password 32)
