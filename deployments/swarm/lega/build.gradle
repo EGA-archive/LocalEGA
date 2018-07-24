@@ -1,5 +1,16 @@
 apply from: "$rootDir/utils.gradle"
 
+task removeLEGAVolumes {
+    group "lega"
+
+    doLast {
+        exec {
+            executable "docker"
+            args "volume", "rm", "lega_inbox", "lega_s3", "lega_portainer"
+        }
+    }
+}
+
 task clearLEGAConfiguration {
     group "lega"
 
@@ -208,12 +219,6 @@ task removeLEGAStack {
         exec {
             executable "docker"
             args "stack", "rm", "lega"
-        }
-        sleep 10000
-        exec {
-            ignoreExitValue = true
-            executable "docker"
-            args "volume", "rm", "lega_inbox", "lega_s3"
         }
     }
 }

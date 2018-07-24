@@ -371,15 +371,15 @@ def generateKeysIni() {
 
 def generateFile() {
     mkdir ".tmp"
-    File rawFile = new File(".tmp/data2.raw")
+    File rawFile = new File(".tmp/data.raw")
     RandomAccessFile randomAccessFile = new RandomAccessFile(rawFile, "rw")
     randomAccessFile.setLength(1024 * 1024 * 10)
     randomAccessFile.close()
 }
 
 def encryptFile() {
-    File rawFile = new File(".tmp/data2.raw")
-    File encryptedFile = new File(".tmp/data2.raw.enc")
+    File rawFile = new File(".tmp/data.raw")
+    File encryptedFile = new File(".tmp/data.raw.enc")
     byte[] digest = DigestUtils.sha256(FileUtils.openInputStream(rawFile))
     String key = FileUtils.readFileToString(new File("lega/.tmp/pgp/ega.pub"), Charset.defaultCharset())
     FileOutputStream fileOutputStream = new FileOutputStream(encryptedFile)
@@ -394,7 +394,7 @@ def uploadFile() {
     ssh.connect("localhost", 2222)
     ssh.authPublickey("john", "cega/.tmp/users/john.sec")
     SFTPClient client = ssh.newSFTPClient()
-    client.put(".tmp/data2.raw.enc", "data2.raw.enc")
+    client.put(".tmp/data.raw.enc", "data.raw.enc")
     ssh.close()
 }
 
@@ -415,7 +415,7 @@ def ingestFile() {
     channel.basicPublish("localega.v1",
             "files",
             properties,
-            "{\"user\":\"john\",\"filepath\":\"data2.raw.enc\",\"stable_id\":\"${stableId}\"}".bytes)
+            "{\"user\":\"john\",\"filepath\":\"data.raw.enc\",\"stable_id\":\"${stableId}\"}".bytes)
 
     channel.close()
     connectionFactory.close()

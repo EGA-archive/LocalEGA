@@ -20,6 +20,12 @@ buildscript {
     }
 }
 
+task purge() {
+    group "swarm"
+
+    dependsOn ":lega:removeLEGAVolumes"
+}
+
 task clean() {
     group "swarm"
 
