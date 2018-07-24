@@ -115,11 +115,12 @@ services:
                   window: 120s
     environment:
       - LEGA_PASSWORD
+      - KEYS_PASSWORD
     configs:
           - source: conf.ini
             target: /etc/ega/conf.ini
-          - source: keys.ini
-            target: /etc/ega/keys.ini
+          - source: keys.ini.enc
+            target: /etc/ega/keys.ini.enc
           - source: ssl.cert
             target: /etc/ega/ssl.cert
           - source: ssl.key
@@ -128,7 +129,7 @@ services:
             target: /etc/ega/pgp/ega.sec
           - source: ega2.sec
             target: /etc/ega/pgp/ega2.sec
-    entrypoint: ["gosu","lega","ega-keyserver","--keys","/etc/ega/keys.ini"]
+    entrypoint: ["gosu","lega","ega-keyserver","--keys","/etc/ega/keys.ini.enc"]
 
   verify:
     image: nbisweden/ega-base
@@ -204,7 +205,7 @@ configs:
     external: true
   conf.ini:
     external: true
-  keys.ini:
+  keys.ini.enc:
     external: true
   ssl.cert:
     external: true
