@@ -214,8 +214,6 @@ class KeysConfiguration(configparser.ConfigParser):
         if filepath.suffix != '.enc':
             conf = filepath.open(encoding=encoding).read()
         else:
-            # Quick solution, just for testing, to decrypt the encrypted keys configuration file (keys.ini)
-            # The 'KEYS_PASSWORD' must be defined
             assert 'KEYS_PASSWORD' in os.environ, "KEYS_PASSWORD must be defined as an environment variable"
             with open(filepath, "rb") as f:
                 conf = aes_decrypt(os.environ.get('KEYS_PASSWORD', None).encode(), f.read(), md5, encoding=encoding)
