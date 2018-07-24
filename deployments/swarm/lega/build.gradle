@@ -134,8 +134,11 @@ task createLEGAKeysConfiguration {
             args "config", "create", "ega2.sec", "ega2.sec"
         }
         writeTrace("PGP_PASSPHRASE", pgpPassphrase)
+
         String masterPassphrase = UUID.randomUUID().toString().replace("-", "")
         writeTrace("LEGA_PASSWORD", masterPassphrase)
+        String keysPassphrase = UUID.randomUUID().toString().replace("-", "")
+        writeTrace("KEYS_PASSWORD", keysPassphrase)
     }
 }
 
