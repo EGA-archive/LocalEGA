@@ -5,10 +5,6 @@ set -x
 
 [[ -z "${CEGA_CONNECTION}" ]] && echo 'Environment CEGA_CONNECTION is empty' 1>&2 && exit 1
 
-apt-get update
-apt-get install -y curl netcat
-rm -rf /var/lib/apt/lists/*
-
 # Initialization
 rabbitmq-plugins enable --offline rabbitmq_federation
 rabbitmq-plugins enable --offline rabbitmq_federation_management
@@ -75,14 +71,21 @@ chown -R rabbitmq /var/lib/rabbitmq
 
 { # Spawn off
     sleep 5 # Small delay first
-    
-    # Wait until the server is ready (on the management port)
-    until nc -z 127.0.0.1 15672; do sleep 1; done
+
+    # Wait until the server is ready (because we don't nave netcat we use wait on the pid)
     ROUND=30
-    until curl -X POST -u guest:guest -H "Content-Type: application/json" --data @/etc/rabbitmq/defs-cega.json http://127.0.0.1:15672/api/definitions || ((ROUND<0))
+    until rabbitmqctl wait /var/lib/rabbitmq/mnesia/rabbit@${HOSTNAME}.pid || ((ROUND<0))
     do
-	sleep 1
-	$((ROUND--))
+			sleep 1
+			$((ROUND--))
+    done
+    ((ROUND<0)) && echo "Central EGA broker *_not_* started" 2>&1 && exit 1
+
+    ROUND=30
+    until rabbitmqadmin import /etc/rabbitmq/defs-cega.json || ((ROUND<0))
+    do
+		 	sleep 1
+		 	$((ROUND--))
     done
     ((ROUND<0)) && echo "Central EGA connections *_not_* loaded" 2>&1 && exit 1
     echo "Central EGA connections loaded"
