@@ -1,35 +1,18 @@
-apply from: "$rootDir/utils.gradle"
-
-buildscript {
-    repositories {
-        mavenCentral()
-        maven {
-            url "https://github.com/uio-bmi/crypt4gh/raw/maven"
-        }
-    }
-
-    dependencies {
-        classpath "org.bouncycastle:bcpg-jdk15on:1.59"
-        classpath "org.bouncycastle:bcpkix-jdk15on:1.59"
-        classpath "commons-io:commons-io:2.5"
-        classpath "commons-codec:commons-codec:1.11"
-        classpath "com.hierynomus:sshj:0.22.0"
-        classpath "com.rabbitmq:amqp-client:5.1.1"
-        classpath "io.minio:minio:4.0.2"
-        classpath "no.uio.ifi:crypt4gh:1.0.0"
-    }
-}
+import se.nbis.lega.deployment.test.EncryptFileTask
+import se.nbis.lega.deployment.test.GenerateFileTask
+import se.nbis.lega.deployment.test.IngestFileTask
+import se.nbis.lega.deployment.test.UploadFileTask
 
 task purge() {
     group "swarm"
 
-    dependsOn ":lega:removeLEGAVolumes"
+    dependsOn ":lega:removeVolumes"
 }
 
 task clean() {
     group "swarm"
 
-    dependsOn ":cega:clearCEGAConfiguration", ":lega:clearLEGAConfiguration"
+    dependsOn ":cega:clearConfiguration", ":lega:clearConfiguration"
     doLast {
         new File(".tmp").deleteDir()
     }
@@ -38,13 +21,13 @@ task clean() {
 task bootstrap() {
     group "swarm"
 
-    dependsOn ":cega:createCEGAConfiguration", ":lega:createLEGAConfiguration"
+    dependsOn ":cega:createConfiguration", ":lega:createConfiguration"
 }
 
 task deploy() {
     group "swarm"
 
-    dependsOn ":cega:deployCEGAStack", ":lega:deployLEGAStack"
+    dependsOn ":cega:deployStack", ":lega:deployStack"
 }
 
 task rm() {
@@ -74,46 +57,10 @@ task ls() {
     }
 }
 
-task file {
-    group "test"
+task file(type: GenerateFileTask)
 
-    doLast {
-        generateFile()
-    }
-}
+task encrypt(type: EncryptFileTask)
 
-task encrypt() {
-    group "test"
+task upload(type: UploadFileTask)
 
-    dependsOn file
-
-    doLast {
-        encryptFile()
-    }
-}
-
-task upload() {
-    group "test"
-
-    dependsOn encrypt
-
-    doLast {
-        uploadFile()
-    }
-}
-
-task ingest() {
-    group "test"
-
-    dependsOn upload
-
-    doLast {
-        int before = getFilesAmount()
-        ingestFile()
-        sleep 5000
-        int after = getFilesAmount()
-        if (after != before + 1) {
-            throw new GradleException("File was not ingested!")
-        }
-    }
-}
+task ingest(type: IngestFileTask)
