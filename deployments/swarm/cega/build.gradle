@@ -1,125 +1,37 @@
 apply from: "$rootDir/utils.gradle"
 
-task clearCEGAConfiguration {
+
+import se.nbis.lega.deployment.DeployStackTask
+import se.nbis.lega.deployment.RemoveStackTask
+import se.nbis.lega.deployment.cega.ClearConfigurationTask
+import se.nbis.lega.deployment.cega.CreateEurekaConfigurationTask
+import se.nbis.lega.deployment.cega.CreateMQConfigurationTask
+import se.nbis.lega.deployment.cega.CreateUsersConfigurationTask
+
+task clearConfiguration(type: ClearConfigurationTask)
+
+task createEurekaConfiguration(type: CreateEurekaConfigurationTask)
+
+task createUsersConfiguration(type: CreateUsersConfigurationTask)
+
+task createMQConfiguration(type: CreateMQConfigurationTask)
+
+task createConfiguration {
     group "cega"
 
-    doLast {
-        exec {
-            ignoreExitValue = true
-            executable "docker"
-            args "config", "rm", "cega.defs.json", "cega.rabbitmq.config", "eureka.py", "server.py", "users.html", "john.yml", "jane.yml"
-        }
-        delete "${project.projectDir.toString()}/.tmp"
-    }
+    dependsOn clearConfiguration, createEurekaConfiguration, createUsersConfiguration, createMQConfiguration
 }
 
-task createCEGAEurekaConfiguration {
+task deployStack(type: DeployStackTask) {
     group "cega"
 
-    doLast {
-        exec {
-            workingDir "${project.projectDir.toString()}/../../docker/images/cega"
-            ignoreExitValue = true
-            executable "docker"
-            args "config", "create", "eureka.py", "eureka.py"
-        }
-    }
+    composeFile file("docker-stack.yml").absolutePath
+    stackName "cega"
+    environment "LEGA_INSTANCES": "lega", "CEGA_REST_lega_PASSWORD": readTrace("CEGA_REST_PASSWORD")
 }
 
-task createCEGAUsersConfiguration {
+task removeStack(type: RemoveStackTask) {
     group "cega"
 
-    doLast {
-        exec {
-            workingDir "${project.projectDir.toString()}/../../docker/images/cega"
-            ignoreExitValue = true
-            executable "docker"
-            args "config", "create", "server.py", "server.py"
-        }
-
-        exec {
-            workingDir "${project.projectDir.toString()}/../../docker/images/cega"
-            ignoreExitValue = true
-            executable "docker"
-            args "config", "create", "users.html", "users.html"
-        }
-
-        String johnPassword = generateUser("john")
-        def result = exec {
-            workingDir "${project.projectDir.toString()}/.tmp/users"
-            ignoreExitValue = true
-            executable "docker"
-            args "config", "create", "john.yml", "john.yml"
-        }
-        if (result.exitValue == 0) {
-            writeTrace("EGA_USER_PASSWORD_JOHN", johnPassword)
-        }
-        String janePassword = generateUser("jane")
-        result = exec {
-            workingDir "${project.projectDir.toString()}/.tmp/users"
-            ignoreExitValue = true
-            executable "docker"
-            args "config", "create", "jane.yml", "jane.yml"
-        }
-        if (result.exitValue == 0) {
-            writeTrace("EGA_USER_PASSWORD_JANE", janePassword)
-        }
-    }
-}
-
-task createCEGAMQConfiguration {
-    group "cega"
-
-    doLast {
-        String password = generateCEGAMQConfiguration()
-
-        def result = exec {
-            workingDir "${project.projectDir.toString()}/.tmp/mq"
-            ignoreExitValue = true
-            executable "docker"
-            args "config", "create", "cega.defs.json", "defs.json"
-        }
-        if (result.exitValue == 0) {
-            writeTrace("CEGA_MQ_PASSWORD", password)
-        }
-
-        exec {
-            workingDir "${project.projectDir.toString()}/.tmp/mq"
-            ignoreExitValue = true
-            executable "docker"
-            args "config", "create", "cega.rabbitmq.config", "rabbitmq.config"
-        }
-
-        writeTrace("CEGA_REST_PASSWORD", UUID.randomUUID().toString().replace("-", ""))
-    }
-}
-
-task createCEGAConfiguration {
-    group "cega"
-
-    dependsOn clearCEGAConfiguration, createCEGAEurekaConfiguration, createCEGAUsersConfiguration, createCEGAMQConfiguration
-}
-
-task deployCEGAStack {
-    group "cega"
-
-    doLast {
-        String restPassword = readTrace("CEGA_REST_PASSWORD")
-        exec {
-            executable "docker"
-            args "stack", "deploy", "--compose-file", "docker-stack.yml", "cega"
-            environment "LEGA_INSTANCES": "lega", "CEGA_REST_lega_PASSWORD": restPassword
-        }
-    }
-}
-
-task removeCEGAStack {
-    group "cega"
-
-    doLast {
-        exec {
-            executable "docker"
-            args "stack", "rm", "cega"
-        }
-    }
+    stackName "cega"
 }
