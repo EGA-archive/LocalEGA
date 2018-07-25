@@ -99,65 +99,6 @@ public class Utils {
         return result;
     }
 
-    private KeyPair generateRSAKeyPair() throws NoSuchProviderException, NoSuchAlgorithmException {
-        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA", "BC");
-        keyPairGenerator.initialize(2048, new SecureRandom());
-        return keyPairGenerator.genKeyPair();
-    }
-
-    private PGPKeyRingGenerator createPGPKeyRingGenerator(String userId, char[] passphrase) throws Exception {
-        RSAKeyPairGenerator keyPairGenerator = new RSAKeyPairGenerator();
-
-        keyPairGenerator.init(
-                new RSAKeyGenerationParameters(
-                        BigInteger.valueOf(0x10001),
-                        new SecureRandom(),
-                        4096,
-                        12
-                )
-        );
-
-        PGPKeyPair rsaKeyPair = new BcPGPKeyPair(
-                PGPPublicKey.RSA_GENERAL,
-                keyPairGenerator.generateKeyPair(),
-                new Date()
-        );
-
-        PGPSignatureSubpacketGenerator signHashGenerator = new PGPSignatureSubpacketGenerator();
-        signHashGenerator.setKeyFlags(false, KeyFlags.SIGN_DATA | KeyFlags.CERTIFY_OTHER);
-        signHashGenerator.setFeature(false, Features.FEATURE_MODIFICATION_DETECTION);
-
-        PGPSignatureSubpacketGenerator encryptHashGenerator = new PGPSignatureSubpacketGenerator();
-        encryptHashGenerator.setKeyFlags(false, KeyFlags.ENCRYPT_COMMS | KeyFlags.ENCRYPT_STORAGE);
-
-        PGPDigestCalculator sha1DigestCalculator = new BcPGPDigestCalculatorProvider().get(HashAlgorithmTags.SHA1);
-        PGPDigestCalculator sha512DigestCalculator = new BcPGPDigestCalculatorProvider().get(HashAlgorithmTags.SHA512);
-
-        PBESecretKeyEncryptor secretKeyEncryptor = (
-                new BcPBESecretKeyEncryptorBuilder(PGPEncryptedData.AES_256, sha512DigestCalculator)
-        ).build(passphrase);
-
-        return new PGPKeyRingGenerator(
-                PGPSignature.NO_CERTIFICATION,
-                rsaKeyPair,
-                userId,
-                sha1DigestCalculator,
-                encryptHashGenerator.generate(),
-                null,
-                new BcPGPContentSignerBuilder(rsaKeyPair.getPublicKey().getAlgorithm(), HashAlgorithmTags.SHA512),
-                secretKeyEncryptor
-        );
-    }
-
-    private byte[] armorByteArray(byte[] data) throws IOException {
-        ByteArrayOutputStream encOut = new ByteArrayOutputStream();
-        ArmoredOutputStream armorOut = new ArmoredOutputStream(encOut);
-        armorOut.write(data);
-        armorOut.flush();
-        armorOut.close();
-        return encOut.toByteArray();
-    }
-
     public static void writePublicKey(KeyPair keyPair, File file) throws IOException {
         FileWriter fileWriter = new FileWriter(file);
         JcaPEMWriter pemWriter = new JcaPEMWriter(fileWriter);
@@ -174,64 +115,6 @@ public class Utils {
         perms.add(PosixFilePermission.OWNER_READ);
         perms.add(PosixFilePermission.OWNER_WRITE);
         Files.setPosixFilePermissions(file.toPath(), perms);
-    }
-
-    public void generateSSLCertificate() throws IOException, CertificateException, OperatorCreationException, NoSuchProviderException, NoSuchAlgorithmException {
-        KeyPair keyPair = generateRSAKeyPair();
-        X500Name subject = new X500NameBuilder(BCStyle.INSTANCE).addRDN(BCStyle.CN, "keys").build();
-        SecureRandom random = new SecureRandom();
-        byte[] id = new byte[20];
-        random.nextBytes(id);
-        BigInteger serial = new BigInteger(160, random);
-        X509v3CertificateBuilder certificate = new JcaX509v3CertificateBuilder(
-                subject,
-                serial,
-                Date.from(LocalDate.of(2018, 1, 1).atStartOfDay(ZoneOffset.UTC).toInstant()),
-                Date.from(LocalDate.of(2020, 1, 1).atStartOfDay(ZoneOffset.UTC).toInstant()),
-                subject,
-                keyPair.getPublic());
-
-        ContentSigner signer = new JcaContentSignerBuilder("SHA256withRSA").build(keyPair.getPrivate());
-        X509CertificateHolder holder = certificate.build(signer);
-
-        JcaX509CertificateConverter converter = new JcaX509CertificateConverter();
-        converter.setProvider(new BouncyCastleProvider());
-        X509Certificate x509 = converter.getCertificate(holder);
-
-        new File("${project.projectDir.toString()}/.tmp/ssl").mkdirs();
-        FileWriter fileWriter = new FileWriter("${project.projectDir.toString()}/.tmp/ssl/ssl.cert");
-        JcaPEMWriter pemWriter = new JcaPEMWriter(fileWriter);
-        pemWriter.writeObject(x509);
-        pemWriter.close();
-
-        writePrivateKey(keyPair, new File("${project.projectDir.toString()}/.tmp/ssl/ssl.key"));
-    }
-
-    public void generatePGPKeyPair(String userId, String passphrase) throws Exception {
-        PGPKeyRingGenerator generator = createPGPKeyRingGenerator(userId, passphrase.toCharArray());
-
-        PGPPublicKeyRing pkr = generator.generatePublicKeyRing();
-        ByteArrayOutputStream pubOut = new ByteArrayOutputStream();
-        pkr.encode(pubOut);
-        pubOut.close();
-
-        PGPSecretKeyRing skr = generator.generateSecretKeyRing();
-        ByteArrayOutputStream secOut = new ByteArrayOutputStream();
-        skr.encode(secOut);
-        secOut.close();
-
-        byte[] armoredPublicBytes = armorByteArray(pubOut.toByteArray());
-        byte[] armoredSecretBytes = armorByteArray(secOut.toByteArray());
-
-        new File("${project.projectDir.toString()}/.tmp/pgp").mkdirs();
-        File pubFile = new File("${project.projectDir.toString()}/.tmp/pgp/${userId}.pub");
-        FileUtils.write(pubFile, new String(armoredPublicBytes), Charset.defaultCharset());
-
-        File secFile = new File("${project.projectDir.toString()}/.tmp/pgp/${userId}.sec");
-        FileUtils.write(secFile, new String(armoredSecretBytes), Charset.defaultCharset());
-        Set<PosixFilePermission> perms = new HashSet<>();
-        perms.add(PosixFilePermission.OWNER_READ);
-        Files.setPosixFilePermissions(secFile.toPath(), perms);
     }
 
     public void generateConfIni() throws IOException {

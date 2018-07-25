@@ -1,14 +1,21 @@
 apply from: "$rootDir/utils.gradle"
 
 
+import se.nbis.lega.deployment.ClearConfigurationTask
 import se.nbis.lega.deployment.DeployStackTask
 import se.nbis.lega.deployment.RemoveStackTask
-import se.nbis.lega.deployment.cega.ClearConfigurationTask
+import se.nbis.lega.deployment.cega.Config
 import se.nbis.lega.deployment.cega.CreateEurekaConfigurationTask
 import se.nbis.lega.deployment.cega.CreateMQConfigurationTask
 import se.nbis.lega.deployment.cega.CreateUsersConfigurationTask
 
-task clearConfiguration(type: ClearConfigurationTask)
+import java.util.stream.Collectors
+
+task clearConfiguration(type: ClearConfigurationTask) {
+    group "cega"
+
+    setConfigs Arrays.stream(Config.values()).map { c -> c.getName() }.collect(Collectors.toSet())
+}
 
 task createEurekaConfiguration(type: CreateEurekaConfigurationTask)
 
@@ -25,13 +32,13 @@ task createConfiguration {
 task deployStack(type: DeployStackTask) {
     group "cega"
 
-    composeFile file("docker-stack.yml").absolutePath
-    stackName "cega"
-    environment "LEGA_INSTANCES": "lega", "CEGA_REST_lega_PASSWORD": readTrace("CEGA_REST_PASSWORD")
+    setComposeFile file("docker-stack.yml").absolutePath
+    setStackName "cega"
+    setEnvironment "LEGA_INSTANCES": "lega", "CEGA_REST_lega_PASSWORD": readTrace("CEGA_REST_PASSWORD")
 }
 
 task removeStack(type: RemoveStackTask) {
     group "cega"
 
-    stackName "cega"
+    setStackName "cega"
 }
