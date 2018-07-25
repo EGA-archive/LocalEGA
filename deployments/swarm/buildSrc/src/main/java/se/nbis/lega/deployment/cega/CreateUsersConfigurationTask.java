@@ -17,9 +17,6 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.UUID;
 
-import static se.nbis.lega.deployment.Utils.writePrivateKey;
-import static se.nbis.lega.deployment.Utils.writePublicKey;
-
 public class CreateUsersConfigurationTask extends LocalEGATask {
 
     public CreateUsersConfigurationTask() {

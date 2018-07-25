@@ -48,8 +48,6 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
-import static se.nbis.lega.deployment.Utils.writePrivateKey;
-
 public class CreateKeysConfigurationTask extends LocalEGATask {
 
     public CreateKeysConfigurationTask() {
