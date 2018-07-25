@@ -10,7 +10,6 @@ repositories {
 
 dependencies {
     compile "org.projectlombok:lombok:1.18.0"
-    compile "de.gesellix:docker-client:2018-01-26T21-28-05"
     compile "org.bouncycastle:bcpg-jdk15on:1.59"
     compile "org.bouncycastle:bcpkix-jdk15on:1.59"
     compile "commons-io:commons-io:2.5"

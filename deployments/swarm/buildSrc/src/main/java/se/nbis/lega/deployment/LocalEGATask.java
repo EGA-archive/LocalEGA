@@ -1,6 +1,5 @@
 package se.nbis.lega.deployment;
 
-import de.gesellix.docker.client.DockerClientImpl;
 import org.apache.commons.exec.CommandLine;
 import org.apache.commons.exec.DefaultExecutor;
 import org.apache.commons.io.FileUtils;
@@ -19,7 +18,6 @@ import java.util.*;
 
 public class LocalEGATask extends DefaultTask {
 
-    private DockerClientImpl docker = DockerClientHolder.getInstance().getDocker();
     private DefaultExecutor executor = new DefaultExecutor();
 
     protected void writeTrace(String key, String value) throws IOException {
@@ -62,12 +60,12 @@ public class LocalEGATask extends DefaultTask {
         return result;
     }
 
-    protected void removeConfig(String name) {
-        docker.rmConfig(name);
+    protected void removeConfig(String name) throws IOException {
+        exec("docker config rm", name);
     }
 
-    protected void removeVolume(String name) {
-        docker.rmVolume(name);
+    protected void removeVolume(String name) throws IOException {
+        exec("docker volume rm", name);
     }
 
     protected void createConfig(String name, File file) throws IOException {
