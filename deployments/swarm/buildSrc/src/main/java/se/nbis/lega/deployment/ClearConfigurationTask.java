@@ -1,25 +1,23 @@
-package se.nbis.lega.deployment.cega;
+package se.nbis.lega.deployment;
 
 import de.gesellix.docker.client.DockerClientException;
+import lombok.Data;
 import org.apache.commons.io.FileUtils;
 import org.gradle.api.tasks.TaskAction;
-import se.nbis.lega.deployment.Groups;
-import se.nbis.lega.deployment.LocalEGATask;
 
 import java.io.IOException;
+import java.util.Set;
 
+@Data
 public class ClearConfigurationTask extends LocalEGATask {
 
-    public ClearConfigurationTask() {
-        super();
-        this.setGroup(Groups.CEGA.name());
-    }
+    private Set<String> configs;
 
     @TaskAction
     public void run() throws IOException {
-        for (Config config : Config.values()) {
+        for (String config : configs) {
             try {
-                removeConfig(config.getName());
+                removeConfig(config);
             } catch (DockerClientException ignored) {
             }
         }

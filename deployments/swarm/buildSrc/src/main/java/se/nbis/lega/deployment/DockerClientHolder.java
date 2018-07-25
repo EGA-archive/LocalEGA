@@ -1,4 +1,4 @@
-package se.nbis.lega.deployment.cega;
+package se.nbis.lega.deployment;
 
 import de.gesellix.docker.client.DockerClientImpl;
 
