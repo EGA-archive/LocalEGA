@@ -6,8 +6,6 @@ import se.nbis.lega.deployment.lega.*
 
 import java.util.stream.Collectors
 
-apply from: "$rootDir/utils.gradle"
-
 task removeVolumes(type: RemoveVolumesTask) {
     group "lega"
 
@@ -32,58 +30,9 @@ task createKeysConfiguration(type: CreateKeysConfigurationTask)
 
 task createMinioConfiguration(type: CreateMinioConfigurationTask)
 
-task createConfIni {
-    group "lega"
+task createConfIni(type: CreateConfIniConfigurationTask)
 
-    dependsOn clearConfiguration,
-            createMQConfiguration,
-            createDBConfiguration,
-            createInboxConfiguration,
-            createIngestConfiguration,
-            createKeysConfiguration,
-            createMinioConfiguration
-
-    doLast {
-        generateConfIni()
-
-        exec {
-            workingDir "${project.projectDir.toString()}/.tmp"
-            ignoreExitValue = true
-            executable "docker"
-            args "config", "create", "conf.ini", "conf.ini"
-        }
-    }
-}
-
-task createKeysIni {
-    group "lega"
-
-    dependsOn clearConfiguration,
-            createMQConfiguration,
-            createDBConfiguration,
-            createInboxConfiguration,
-            createIngestConfiguration,
-            createKeysConfiguration,
-            createMinioConfiguration
-
-    doLast {
-        generateKeysIni()
-
-        String keysPassphrase = UUID.randomUUID().toString().replace("-", "")
-        writeTrace("KEYS_PASSWORD", keysPassphrase)
-
-        encryptAES(new File("${project.projectDir.toString()}/.tmp/keys.ini"),
-                new File("${project.projectDir.toString()}/.tmp/keys.ini.enc"),
-                keysPassphrase)
-
-        exec {
-            workingDir "${project.projectDir.toString()}/.tmp"
-            ignoreExitValue = true
-            executable "docker"
-            args "config", "create", "keys.ini.enc", "keys.ini.enc"
-        }
-    }
-}
+task createKeysIni(type: CreateKeysIniConfigurationTask)
 
 task createConfiguration {
     group "lega"
