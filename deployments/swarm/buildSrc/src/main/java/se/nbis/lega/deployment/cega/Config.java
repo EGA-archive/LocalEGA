@@ -8,7 +8,7 @@ public enum Config {
     SERVER_PY("server.py"),
     USERS_HTML("users.html"),
     JOHN_YML("john.yml"),
-    JANE_YML("jane.yml"),;
+    JANE_YML("jane.yml");
 
     private String name;
 

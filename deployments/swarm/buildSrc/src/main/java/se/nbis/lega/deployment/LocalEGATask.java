@@ -5,13 +5,13 @@ import org.apache.commons.exec.CommandLine;
 import org.apache.commons.exec.DefaultExecutor;
 import org.apache.commons.io.FileUtils;
 import org.gradle.api.DefaultTask;
-import se.nbis.lega.deployment.cega.DockerClientHolder;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -47,8 +47,25 @@ public class LocalEGATask extends DefaultTask {
         return readTrace(traceFile, key);
     }
 
+    Map<String, String> getTraceAsMAp() throws IOException {
+        File traceFile = getProject().file(".tmp/.trace");
+        if (!traceFile.exists()) {
+            return Collections.emptyMap();
+        }
+        List<String> lines = FileUtils.readLines(traceFile, Charset.defaultCharset());
+        Map<String, String> result = new HashMap<>();
+        for (String line : lines) {
+            result.put(line.split("=")[0].trim(), line.split("=")[1].trim());
+        }
+        return result;
+    }
+
     protected void removeConfig(String name) {
         docker.rmConfig(name);
+    }
+
+    protected void removeVolume(String name) {
+        docker.rmVolume(name);
     }
 
     protected void createConfig(String name, File file) throws IOException {

@@ -1,164 +1,47 @@
+import se.nbis.lega.deployment.ClearConfigurationTask
+import se.nbis.lega.deployment.DeployStackTask
+import se.nbis.lega.deployment.RemoveStackTask
+import se.nbis.lega.deployment.RemoveVolumesTask
+import se.nbis.lega.deployment.lega.*
+
+import java.util.stream.Collectors
+
 apply from: "$rootDir/utils.gradle"
 
-task removeLEGAVolumes {
+task removeVolumes(type: RemoveVolumesTask) {
     group "lega"
 
-    doLast {
-        exec {
-            executable "docker"
-            args "volume", "rm", "lega_inbox", "lega_s3", "lega_portainer"
-        }
-    }
+    setVolumes Arrays.stream(Volume.values()).map { v -> v.getName() }.collect(Collectors.toSet())
 }
 
-task clearLEGAConfiguration {
+task clearConfiguration(type: ClearConfigurationTask) {
     group "lega"
 
-    doLast {
-        exec {
-            ignoreExitValue = true
-            executable "docker"
-            args "config", "rm",
-                    "lega.defs.json",
-                    "lega.rabbitmq.config",
-                    "lega.entrypoint.sh",
-                    "db.sql",
-                    "ssl.cert",
-                    "ssl.key",
-                    "ega.sec",
-                    "ega2.sec",
-                    "conf.ini",
-                    "keys.ini.enc"
-        }
-        delete "${project.projectDir.toString()}/.tmp"
-    }
+    setConfigs Arrays.stream(Config.values()).map { c -> c.getName() }.collect(Collectors.toSet())
 }
 
-task createLEGAMQConfiguration {
-    group "lega"
+task createMQConfiguration(type: CreateMQConfigurationTask)
 
-    doLast {
-        exec {
-            workingDir "${project.projectDir.toString()}/../../docker/images/mq"
-            ignoreExitValue = true
-            executable "docker"
-            args "config", "create", "lega.defs.json", "defs.json"
-        }
+task createDBConfiguration(type: CreateDBConfigurationTask)
 
-        exec {
-            workingDir "${project.projectDir.toString()}/../../docker/images/mq"
-            ignoreExitValue = true
-            executable "docker"
-            args "config", "create", "lega.rabbitmq.config", "rabbitmq.config"
-        }
+task createInboxConfiguration(type: CreateInboxConfigurationTask)
 
-        exec {
-            workingDir "${project.projectDir.toString()}/../../docker/images/mq"
-            ignoreExitValue = true
-            executable "docker"
-            args "config", "create", "lega.entrypoint.sh", "entrypoint.sh"
-        }
+task createIngestConfiguration(type: CreateIngestConfigurationTask)
 
-        String cegaMQPassword = readTrace(new File("${project.projectDir.toString()}/../cega/.tmp/.trace"), "CEGA_MQ_PASSWORD")
-        writeTrace("CEGA_CONNECTION", "amqp://lega:${cegaMQPassword}@cega-mq:5672/lega")
-    }
-}
+task createKeysConfiguration(type: CreateKeysConfigurationTask)
 
-task createLEGADBConfiguration {
-    group "lega"
-
-    doLast {
-        exec {
-            workingDir "${project.projectDir.toString()}/../../../extras"
-            ignoreExitValue = true
-            executable "docker"
-            args "config", "create", "db.sql", "db.sql"
-        }
-
-        writeTrace("DB_INSTANCE", "db")
-        writeTrace("POSTGRES_USER", "lega")
-        writeTrace("POSTGRES_PASSWORD", UUID.randomUUID().toString().replace("-", ""))
-        writeTrace("POSTGRES_DB", "lega")
-    }
-}
-
-task createLEGAInboxConfiguration {
-    group "lega"
-
-    doLast {
-        writeTrace("CEGA_ENDPOINT", "http://cega-users/user/")
-        String cegaRESTPassword = readTrace(new File("${project.projectDir.toString()}/../cega/.tmp/.trace"), "CEGA_REST_PASSWORD")
-        writeTrace("CEGA_ENDPOINT_CREDS", "lega:${cegaRESTPassword}")
-    }
-}
-
-task createLEGAIngestConfiguration {
-    group "lega"
-
-    doLast {
-        writeTrace("S3_ACCESS_KEY", UUID.randomUUID().toString().replace("-", ""))
-        writeTrace("S3_SECRET_KEY", UUID.randomUUID().toString().replace("-", ""))
-    }
-}
-
-task createLEGAKeysConfiguration {
-    group "lega"
-
-    doLast {
-        generateSSLCertificate()
-        exec {
-            workingDir "${project.projectDir.toString()}/.tmp/ssl"
-            ignoreExitValue = true
-            executable "docker"
-            args "config", "create", "ssl.cert", "ssl.cert"
-        }
-        exec {
-            workingDir "${project.projectDir.toString()}/.tmp/ssl"
-            ignoreExitValue = true
-            executable "docker"
-            args "config", "create", "ssl.key", "ssl.key"
-        }
-        String pgpPassphrase = UUID.randomUUID().toString().replace("-", "")
-        generatePGPKeyPair("ega", pgpPassphrase)
-        exec {
-            workingDir "${project.projectDir.toString()}/.tmp/pgp"
-            ignoreExitValue = true
-            executable "docker"
-            args "config", "create", "ega.sec", "ega.sec"
-        }
-        generatePGPKeyPair("ega2", pgpPassphrase)
-        exec {
-            workingDir "${project.projectDir.toString()}/.tmp/pgp"
-            ignoreExitValue = true
-            executable "docker"
-            args "config", "create", "ega2.sec", "ega2.sec"
-        }
-        writeTrace("PGP_PASSPHRASE", pgpPassphrase)
-
-        String masterPassphrase = UUID.randomUUID().toString().replace("-", "")
-        writeTrace("LEGA_PASSWORD", masterPassphrase)
-    }
-}
-
-task createLEGAMinioConfiguration {
-    group "lega"
-
-    doLast {
-        writeTrace("MINIO_ACCESS_KEY", readTrace("S3_ACCESS_KEY"))
-        writeTrace("MINIO_SECRET_KEY", readTrace("S3_SECRET_KEY"))
-    }
-}
+task createMinioConfiguration(type: CreateMinioConfigurationTask)
 
 task createConfIni {
     group "lega"
 
-    dependsOn clearLEGAConfiguration,
-            createLEGAMQConfiguration,
-            createLEGADBConfiguration,
-            createLEGAInboxConfiguration,
-            createLEGAIngestConfiguration,
-            createLEGAKeysConfiguration,
-            createLEGAMinioConfiguration
+    dependsOn clearConfiguration,
+            createMQConfiguration,
+            createDBConfiguration,
+            createInboxConfiguration,
+            createIngestConfiguration,
+            createKeysConfiguration,
+            createMinioConfiguration
 
     doLast {
         generateConfIni()
@@ -175,13 +58,13 @@ task createConfIni {
 task createKeysIni {
     group "lega"
 
-    dependsOn clearLEGAConfiguration,
-            createLEGAMQConfiguration,
-            createLEGADBConfiguration,
-            createLEGAInboxConfiguration,
-            createLEGAIngestConfiguration,
-            createLEGAKeysConfiguration,
-            createLEGAMinioConfiguration
+    dependsOn clearConfiguration,
+            createMQConfiguration,
+            createDBConfiguration,
+            createInboxConfiguration,
+            createIngestConfiguration,
+            createKeysConfiguration,
+            createMinioConfiguration
 
     doLast {
         generateKeysIni()
@@ -202,31 +85,22 @@ task createKeysIni {
     }
 }
 
-task createLEGAConfiguration {
+task createConfiguration {
     group "lega"
 
-    dependsOn clearLEGAConfiguration, createConfIni, createKeysIni
+    dependsOn clearConfiguration, createConfIni, createKeysIni
 }
 
-task deployLEGAStack {
+task deployStack(type: DeployStackTask) {
     group "lega"
 
-    doLast {
-        exec {
-            executable "docker"
-            args "stack", "deploy", "--compose-file", "docker-stack.yml", "lega"
-            environment getTraceAsMAp()
-        }
-    }
+    setComposeFile file("docker-stack.yml").absolutePath
+    setStackName "lega"
+    setEnvironment getTraceAsMAp()
 }
 
-task removeLEGAStack {
+task removeStack(type: RemoveStackTask) {
     group "lega"
 
-    doLast {
-        exec {
-            executable "docker"
-            args "stack", "rm", "lega"
-        }
-    }
+    setStackName "lega"
 }
