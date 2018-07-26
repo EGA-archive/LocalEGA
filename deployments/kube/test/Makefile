@@ -1,9 +1,8 @@
 .PHONY: upload submit user
 
 # folder for the localegarepo
-MAIN_REPO=~/csc/dev/LocalEGA
+MAIN_REPO=~/LocalEGA
 # the RSA keys
-# SSH_KEY_PUB=~/.ssh/dummy.key.pub
 SSH_KEY_PRIV=$(MAIN_REPO)/deployments/kube/auto/config/user.key
 
 USER=ega-box-999
@@ -20,7 +19,7 @@ PGP_EMAIL=local-ega@ega.eu
 CEGA_PORT=$(shell kubectl describe svc cega-mq --namespace=testing | grep "NodePort:" | awk '$$2=="amqp" {print substr($$3,1,5)}')
 INBOX_PORT=$(shell kubectl describe svc inbox --namespace=testing | grep "NodePort:" | awk '{print substr($$3,1,5)}')
 #needs the same password that the Lega-MQ conencted to CEGA-MQ
-CEGA_PASWORD=password
+CEGA_PASWORD=$(shell kubectl exec mq-0 --namespace=testing env | grep "CEGA_CONNECTION=" | awk '{print substr($$1,29,32)}')
 CEGA_MQ_CONNECTION=amqp://lega:$(CEGA_PASWORD)@$(DEPLOY_IP):$(CEGA_PORT)/lega
 
 ##############################
@@ -37,10 +36,10 @@ upload: $(FILE).c4ga
 	cd $(<D) && sftp -P $(INBOX_PORT) -i $(SSH_KEY_PRIV) $(USER)@$(DEPLOY_IP) <<< $$"put $(<F)"
 
 $(FILE).c4ga.md5: $(FILE).c4ga
-	printf '%s' $(shell md5 $< | cut -d' ' -f4 || md5sum $< | cut -d' ' -f4) > $@
+	printf '%s' $(shell md5 $< | cut -d' ' -f4 || md5sum $< | cut -d' ' -f1) > $@
 
 $(FILE).md5: $(FILE)
-	printf '%s' $(shell md5 $< | cut -d' ' -f4 || md5sum $< | cut -d' ' -f4) > $@
+	printf '%s' $(shell md5 $< | cut -d' ' -f4 || md5sum $< | cut -d' ' -f1) > $@
 
 submit: $(FILE).c4ga $(FILE).c4ga.md5 $(FILE).md5
 	@echo publish.py --connection amqp://[redacted]@$(lastword $(subst @, ,$(CEGA_MQ_CONNECTION))) $(USER) dir/$(FILE).c4ga --enc ...
