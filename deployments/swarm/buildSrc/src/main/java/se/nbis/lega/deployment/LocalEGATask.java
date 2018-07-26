@@ -4,6 +4,7 @@ import org.apache.commons.exec.CommandLine;
 import org.apache.commons.exec.DefaultExecutor;
 import org.apache.commons.exec.ExecuteException;
 import org.apache.commons.io.FileUtils;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
 import org.gradle.api.DefaultTask;
 
@@ -15,9 +16,14 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.attribute.PosixFilePermission;
 import java.security.KeyPair;
+import java.security.Security;
 import java.util.*;
 
 public class LocalEGATask extends DefaultTask {
+
+    static {
+        Security.addProvider(new BouncyCastleProvider());
+    }
 
     private DefaultExecutor executor = new DefaultExecutor();
 
