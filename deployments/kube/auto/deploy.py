@@ -4,6 +4,8 @@ from pathlib import Path
 from configure import ConfigGenerator
 from kube import LocalEGADeploy
 import click
+from hashlib import md5
+from base64 import b64encode, b64decode
 
 
 # Logging
@@ -25,7 +27,7 @@ LOG.setLevel(logging.INFO)
 @click.option('--fake-cega', is_flag=True,
               help='Fake CEGA-Users and CEGA MQ.')
 def main(config, deploy, ns, fake_cega, cega_ip, cega_pwd, key_pass):
-    """LocalEGA deployment script."""
+    """Local EGA deployment script."""
     _localega = {
         'role': 'LocalEGA',
         'email': 'test@csc.fi',
@@ -106,6 +108,9 @@ def main(config, deploy, ns, fake_cega, cega_ip, cega_pwd, key_pass):
     env_lega_pass = client.V1EnvVar(name="LEGA_PASSWORD",
                                     value_from=client.V1EnvVarSource(secret_key_ref=client.V1SecretKeySelector(name='lega-password',
                                                                                                                key="password")))
+    env_keys_pass = client.V1EnvVar(name="KEYS_PASSWORD",
+                                    value_from=client.V1EnvVarSource(secret_key_ref=client.V1SecretKeySelector(name='keys-password',
+                                                                                                               key="password")))
     # mount_keys = client.V1VolumeMount(name="keyserver-conf", mount_path='/etc/ega')
     # mount_verify = client.V1VolumeMount(name="verify-conf", mount_path='/etc/ega')
     mount_config = client.V1VolumeMount(name="config", mount_path='/etc/ega')
@@ -120,7 +125,8 @@ def main(config, deploy, ns, fake_cega, cega_ip, cega_pwd, key_pass):
     pmap_ini_conf = client.V1VolumeProjection(config_map=client.V1ConfigMapProjection(name="lega-config",
                                                                                       items=[client.V1KeyToPath(key="conf.ini", path="conf.ini", mode=0o744)]))
     pmap_ini_keys = client.V1VolumeProjection(config_map=client.V1ConfigMapProjection(name="lega-keyserver-config",
-                                                                                      items=[client.V1KeyToPath(key="keys.ini", path="keys.ini", mode=0o744)]))
+                                                                                      items=[client.V1KeyToPath(key="keys.ini.enc",
+                                                                                                                path="keys.ini.enc", mode=0o744)]))
     sec_keys = client.V1VolumeProjection(secret=client.V1SecretProjection(name="keyserver-secret",
                                                                           items=[client.V1KeyToPath(key="key1.sec", path="pgp/key.1"), client.V1KeyToPath(key="ssl.cert", path="ssl.cert"), client.V1KeyToPath(key="ssl.key", path="ssl.key")]))
     if set.intersection(set(deploy), val) or fake_cega:
@@ -133,6 +139,7 @@ def main(config, deploy, ns, fake_cega, cega_ip, cega_pwd, key_pass):
         deploy_lega.config_secret('lega-db-secret', {'postgres_password': 32})
         deploy_lega.config_secret('s3-keys', {'access': 16, 'secret': 32})
         deploy_lega.config_secret('lega-password', {'password': 32})
+        deploy_lega.config_secret('keys-password', {'password': 32})
         with open(_here / 'config/key.1.sec') as key_file:
             key1_data = key_file.read()
 
@@ -158,12 +165,15 @@ def main(config, deploy, ns, fake_cega, cega_ip, cega_pwd, key_pass):
         with open(_here / 'config/keys.ini') as keys_file:
             data_keys = keys_file.read()
 
+        secret = deploy_lega.read_secret('keys-password')
+        enc_keys = conf.aes_encrypt(b64decode(secret.to_dict()['data']['password'].encode('utf-8')), data_keys.encode('utf-8'), md5)
+
         # Upload Configuration Maps
         deploy_lega.config_map('initsql', {'db.sql': init_sql})
         deploy_lega.config_map('mq-config', {'defs.json': defs_mq, 'rabbitmq.config': config_mq})
         deploy_lega.config_map('mq-entrypoint', {'mq.sh': init_mq})
         deploy_lega.config_map('lega-config', {'conf.ini': data_conf})
-        deploy_lega.config_map('lega-keyserver-config', {'keys.ini': data_keys})
+        deploy_lega.config_map('lega-keyserver-config', {'keys.ini.enc': b64encode(enc_keys).decode('utf-8')}, binary=True)
         deploy_lega.config_map('lega-db-config', {'user': 'lega', 'dbname': 'lega'})
 
     if set.intersection(set(deploy), set_pd):
@@ -192,8 +202,8 @@ def main(config, deploy, ns, fake_cega, cega_ip, cega_pwd, key_pass):
                                                                                            resources=client.V1ResourceRequirements(requests={"storage": "10Gi"})))
         # Deploy LocalEGA Pods
         deploy_lega.deployment('keys', 'nbisweden/ega-base:latest',
-                               ["ega-keyserver", "--keys", "/etc/ega/keys.ini"],
-                               [env_lega_pass], [mount_config], [volume_keys], ports=[8443], patch=True)
+                               ["ega-keyserver", "--keys", "/etc/ega/keys.ini.enc"],
+                               [env_lega_pass, env_keys_pass], [mount_config], [volume_keys], ports=[8443], patch=True)
         deploy_lega.deployment('db', 'postgres:9.6', None, [env_db_pass, env_db_user, env_db_name, env_db_data],
                                [mount_db_data, mound_db_init], [volume_db, volume_db_init], ports=[5432])
         deploy_lega.deployment('ingest', 'nbisweden/ega-base:latest', ["ega-ingest"],
