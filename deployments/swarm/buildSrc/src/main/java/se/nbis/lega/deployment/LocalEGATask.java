@@ -25,6 +25,13 @@ public class LocalEGATask extends DefaultTask {
         Security.addProvider(new BouncyCastleProvider());
     }
 
+    public static final List<String> DOCKER_ENV_VARS = Arrays.asList(
+            "DOCKER_TLS_VERIFY",
+            "DOCKER_HOST",
+            "DOCKER_CERT_PATH",
+            "DOCKER_MACHINE_NAME"
+    );
+
     private DefaultExecutor executor = new DefaultExecutor();
 
     protected void writeTrace(String key, String value) throws IOException {
@@ -92,6 +99,18 @@ public class LocalEGATask extends DefaultTask {
     }
 
     protected int exec(boolean ignoreExitCode, Map<String, String> environment, String command, String... arguments) throws IOException {
+        if (environment == null) {
+            environment = new HashMap<>();
+        }
+        Map<String, String> systemEnvironment = System.getenv();
+        for (String dockerEnvVar : DOCKER_ENV_VARS) {
+            if (environment.containsKey(dockerEnvVar)) {
+                continue;
+            }
+            if (systemEnvironment.containsKey(dockerEnvVar)) {
+                environment.put(dockerEnvVar, systemEnvironment.get(dockerEnvVar));
+            }
+        }
         CommandLine commandLine = CommandLine.parse(command);
         commandLine.addArguments(arguments);
         try {
