@@ -74,11 +74,25 @@ class LocalEGADeploy:
             else:
                 LOG.error(f'Exception message: {e}')
 
-    def config_map(self, name, data, patch=False):
+    def read_secret(self, name):
+        """Read secret."""
+        api_response = ''
+        try:
+            api_response = api_core.read_namespaced_secret(name, self._namespace, exact=True, export=True)
+            LOG.info(f'Secret: {name} read.')
+        except ApiException as e:
+            LOG.error(f'Exception message: {e}')
+        else:
+            return api_response
+
+    def config_map(self, name, data, binary=False, patch=False):
         """Create and upload configMap, patch option also available."""
         conf_map = client.V1ConfigMap()
         conf_map.metadata = client.V1ObjectMeta(name=name)
-        conf_map.data = data
+        if not binary:
+            conf_map.data = data
+        else:
+            conf_map.binary_data = data
 
         try:
             api_core.create_namespaced_config_map(namespace=self._namespace, body=conf_map)
