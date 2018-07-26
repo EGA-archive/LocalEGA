@@ -1,12 +1,10 @@
 package se.nbis.lega.deployment;
 
-import lombok.Data;
 import org.gradle.api.tasks.TaskAction;
 
 import java.io.IOException;
 import java.util.Set;
 
-@Data
 public class RemoveVolumesTask extends LocalEGATask {
 
     private Set<String> volumes;
@@ -16,6 +14,10 @@ public class RemoveVolumesTask extends LocalEGATask {
         for (String volume : volumes) {
             removeVolume(volume);
         }
+    }
+
+    public void setVolumes(Set<String> volumes) {
+        this.volumes = volumes;
     }
 
 }
