@@ -1,12 +1,10 @@
 package se.nbis.lega.deployment;
 
-import lombok.Data;
 import org.gradle.api.tasks.TaskAction;
 
 import java.io.IOException;
 import java.util.Map;
 
-@Data
 public class DeployStackTask extends LocalEGATask {
 
     private String composeFile;
@@ -16,6 +14,18 @@ public class DeployStackTask extends LocalEGATask {
     @TaskAction
     public void run() throws IOException {
         exec(environment, "docker stack deploy", "--compose-file", composeFile, stackName);
+    }
+
+    public void setComposeFile(String composeFile) {
+        this.composeFile = composeFile;
+    }
+
+    public void setStackName(String stackName) {
+        this.stackName = stackName;
+    }
+
+    public void setEnvironment(Map<String, String> environment) {
+        this.environment = environment;
     }
 
 }
