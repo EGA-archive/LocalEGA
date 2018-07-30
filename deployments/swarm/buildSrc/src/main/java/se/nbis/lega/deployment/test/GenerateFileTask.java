@@ -1,5 +1,6 @@
 package se.nbis.lega.deployment.test;
 
+import org.gradle.api.tasks.OutputFile;
 import org.gradle.api.tasks.TaskAction;
 import se.nbis.lega.deployment.Groups;
 import se.nbis.lega.deployment.LocalEGATask;
@@ -17,11 +18,14 @@ public class GenerateFileTask extends LocalEGATask {
 
     @TaskAction
     public void run() throws IOException {
-        getProject().file(".tmp").mkdirs();
-        File rawFile = getProject().file(".tmp/data.raw");
-        RandomAccessFile randomAccessFile = new RandomAccessFile(rawFile, "rw");
+        RandomAccessFile randomAccessFile = new RandomAccessFile(getRawFile(), "rw");
         randomAccessFile.setLength(1024 * 1024 * 10);
         randomAccessFile.close();
+    }
+
+    @OutputFile
+    public File getRawFile() {
+        return getProject().file(".tmp/data.raw");
     }
 
 }

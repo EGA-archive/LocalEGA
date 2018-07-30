@@ -4,6 +4,8 @@ import no.ifi.uio.crypt4gh.stream.Crypt4GHOutputStream;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.FileUtils;
 import org.bouncycastle.openpgp.PGPException;
+import org.gradle.api.tasks.InputFile;
+import org.gradle.api.tasks.OutputFile;
 import org.gradle.api.tasks.TaskAction;
 import se.nbis.lega.deployment.Groups;
 import se.nbis.lega.deployment.LocalEGATask;
@@ -24,14 +26,22 @@ public class EncryptFileTask extends LocalEGATask {
 
     @TaskAction
     public void run() throws IOException, PGPException, NoSuchAlgorithmException {
-        File rawFile = getProject().file(".tmp/data.raw");
-        File encryptedFile = getProject().file(".tmp/data.raw.enc");
-        byte[] digest = DigestUtils.sha256(FileUtils.openInputStream(rawFile));
+        byte[] digest = DigestUtils.sha256(FileUtils.openInputStream(getRawFile()));
         String key = FileUtils.readFileToString(new File("lega/.tmp/pgp/ega.pub"), Charset.defaultCharset());
-        FileOutputStream fileOutputStream = new FileOutputStream(encryptedFile);
+        FileOutputStream fileOutputStream = new FileOutputStream(getEncFile());
         Crypt4GHOutputStream crypt4GHOutputStream = new Crypt4GHOutputStream(fileOutputStream, key, digest);
-        FileUtils.copyFile(rawFile, crypt4GHOutputStream);
+        FileUtils.copyFile(getEncFile(), crypt4GHOutputStream);
         crypt4GHOutputStream.close();
+    }
+
+    @InputFile
+    public File getRawFile() {
+        return getProject().file(".tmp/data.raw");
+    }
+
+    @OutputFile
+    public File getEncFile() {
+        return getProject().file(".tmp/data.raw.enc");
     }
 
 }
