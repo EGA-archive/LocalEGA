@@ -1,6 +1,7 @@
 package se.nbis.lega.deployment.lega;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.sshd.common.config.keys.KeyUtils;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x500.X500NameBuilder;
 import org.bouncycastle.asn1.x500.style.BCStyle;
@@ -38,8 +39,9 @@ import java.math.BigInteger;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.attribute.PosixFilePermission;
-import java.security.*;
-import java.security.cert.CertificateException;
+import java.security.GeneralSecurityException;
+import java.security.KeyPair;
+import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
@@ -47,6 +49,8 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
+
+import static org.apache.sshd.common.config.keys.KeyUtils.RSA_ALGORITHM;
 
 public class CreateKeysConfigurationTask extends LocalEGATask {
 
@@ -72,10 +76,8 @@ public class CreateKeysConfigurationTask extends LocalEGATask {
         writeTrace("LEGA_PASSWORD", masterPassphrase);
     }
 
-    private void generateSSLCertificate() throws IOException, CertificateException, OperatorCreationException, NoSuchProviderException, NoSuchAlgorithmException {
-        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
-        keyPairGenerator.initialize(4096, new SecureRandom());
-        KeyPair keyPair = keyPairGenerator.genKeyPair();
+    private void generateSSLCertificate() throws IOException, GeneralSecurityException, OperatorCreationException {
+        KeyPair keyPair = KeyUtils.generateKeyPair("ssh-rsa", 4096);
 
         X500Name subject = new X500NameBuilder(BCStyle.INSTANCE).addRDN(BCStyle.CN, "keys").build();
         SecureRandom random = new SecureRandom();
