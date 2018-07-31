@@ -3,15 +3,13 @@ package se.nbis.lega.deployment;
 import org.apache.commons.exec.CommandLine;
 import org.apache.commons.exec.DefaultExecutor;
 import org.apache.commons.exec.ExecuteException;
+import org.apache.commons.exec.PumpStreamHandler;
 import org.apache.commons.io.FileUtils;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
 import org.gradle.api.DefaultTask;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.attribute.PosixFilePermission;
@@ -24,15 +22,6 @@ public class LocalEGATask extends DefaultTask {
     static {
         Security.addProvider(new BouncyCastleProvider());
     }
-
-    public static final List<String> DOCKER_ENV_VARS = Arrays.asList(
-            "DOCKER_TLS_VERIFY",
-            "DOCKER_HOST",
-            "DOCKER_CERT_PATH",
-            "DOCKER_MACHINE_NAME"
-    );
-
-    private DefaultExecutor executor = new DefaultExecutor();
 
     protected void writeTrace(String key, String value) throws IOException {
         File traceFile = getProject().file(".tmp/.trace");
@@ -86,38 +75,35 @@ public class LocalEGATask extends DefaultTask {
         exec("docker config create", name, file.getAbsolutePath());
     }
 
-    protected int exec(boolean ignoreExitCode, String command, String... arguments) throws IOException {
-        return exec(ignoreExitCode, null, command, arguments);
-    }
-
-    protected int exec(String command, String... arguments) throws IOException {
+    protected String exec(String command, String... arguments) throws IOException {
         return exec(false, null, command, arguments);
     }
 
-    protected int exec(Map<String, String> environment, String command, String... arguments) throws IOException {
+    protected String exec(boolean ignoreExitCode, String command, String... arguments) throws IOException {
+        return exec(ignoreExitCode, null, command, arguments);
+    }
+
+    protected String exec(Map<String, String> environment, String command, String... arguments) throws IOException {
         return exec(false, environment, command, arguments);
     }
 
-    protected int exec(boolean ignoreExitCode, Map<String, String> environment, String command, String... arguments) throws IOException {
-        if (environment == null) {
-            environment = new HashMap<>();
+    protected String exec(boolean ignoreExitCode, Map<String, String> environment, String command, String... arguments) throws IOException {
+        Map<String, String> systemEnvironment = new HashMap<>(System.getenv());
+        if (environment != null) {
+            systemEnvironment.putAll(environment);
         }
-        Map<String, String> systemEnvironment = System.getenv();
-        for (String dockerEnvVar : DOCKER_ENV_VARS) {
-            if (environment.containsKey(dockerEnvVar)) {
-                continue;
-            }
-            if (systemEnvironment.containsKey(dockerEnvVar)) {
-                environment.put(dockerEnvVar, systemEnvironment.get(dockerEnvVar));
-            }
-        }
+        DefaultExecutor executor = new DefaultExecutor();
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        PumpStreamHandler streamHandler = new PumpStreamHandler(outputStream);
+        executor.setStreamHandler(streamHandler);
         CommandLine commandLine = CommandLine.parse(command);
         commandLine.addArguments(arguments);
         try {
-            return executor.execute(commandLine, environment);
+            executor.execute(commandLine, systemEnvironment);
+            return outputStream.toString();
         } catch (ExecuteException e) {
             if (ignoreExitCode) {
-                return e.getExitValue();
+                return outputStream.toString();
             } else {
                 throw e;
             }

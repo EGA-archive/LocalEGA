@@ -4,7 +4,7 @@ repositories {
     mavenCentral()
     jcenter()
     maven {
-        url "https://github.com/uio-bmi/crypt4gh/raw/maven"
+        url "https://nexus.norgene.no/repository/maven-releases/"
     }
 }
 

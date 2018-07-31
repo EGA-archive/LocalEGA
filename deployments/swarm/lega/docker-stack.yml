@@ -17,11 +17,11 @@ services:
     ports:
       - "15672:15672"
     deploy:
-          restart_policy:
-                  condition: on-failure
-                  delay: 5s
-                  max_attempts: 3
-                  window: 120s
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
     environment:
       - CEGA_CONNECTION
     configs:
@@ -40,11 +40,11 @@ services:
     networks:
       - lega
     deploy:
-          restart_policy:
-                  condition: on-failure
-                  delay: 5s
-                  max_attempts: 3
-                  window: 120s
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
     environment:
       - DB_INSTANCE
       - POSTGRES_USER
@@ -64,11 +64,11 @@ services:
       - "2222:2222"
       - "5005:5005"
     deploy:
-          restart_policy:
-                  condition: on-failure
-                  delay: 5s
-                  max_attempts: 3
-                  window: 120s
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
     depends_on:
       - mq
     environment:
@@ -82,11 +82,11 @@ services:
     networks:
       - lega
     deploy:
-          restart_policy:
-                  condition: on-failure
-                  delay: 5s
-                  max_attempts: 3
-                  window: 120s
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
     depends_on:
       - db
       - mq
@@ -108,11 +108,11 @@ services:
       - lega
       - cega_cega
     deploy:
-          restart_policy:
-                  condition: on-failure
-                  delay: 5s
-                  max_attempts: 3
-                  window: 120s
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
     environment:
       - LEGA_PASSWORD
       - KEYS_PASSWORD
@@ -137,11 +137,11 @@ services:
     networks:
       - lega
     deploy:
-          restart_policy:
-                  condition: on-failure
-                  delay: 5s
-                  max_attempts: 3
-                  window: 120s
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
     depends_on:
       - db
       - mq
@@ -165,11 +165,11 @@ services:
     ports:
       - "9000:9000"
     deploy:
-          restart_policy:
-                  condition: on-failure
-                  delay: 5s
-                  max_attempts: 3
-                  window: 120s
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
     environment:
       - MINIO_ACCESS_KEY
       - MINIO_SECRET_KEY
@@ -183,8 +183,8 @@ services:
         - "30000:9000"
     command: --no-auth
     deploy:
-          placement:
-            constraints: [node.role == manager]
+      placement:
+        constraints: [node.role == manager]
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - portainer:/data
