@@ -64,6 +64,8 @@ services:
       - "2222:2222"
       - "5005:5005"
     deploy:
+      placement:
+        constraints: [node.role == manager]
       restart_policy:
         condition: on-failure
         delay: 5s
@@ -82,6 +84,8 @@ services:
     networks:
       - lega
     deploy:
+      placement:
+        constraints: [node.role == manager]
       restart_policy:
         condition: on-failure
         delay: 5s
