@@ -45,7 +45,7 @@ task deployStack(type: DeployStackTask) {
 
     setComposeFile file("docker-stack.yml").absolutePath
     setStackName "lega"
-    setEnvironment getTraceAsMAp()
+    setEnvironment getTraceAsMap()
 }
 
 task removeStack(type: RemoveStackTask) {

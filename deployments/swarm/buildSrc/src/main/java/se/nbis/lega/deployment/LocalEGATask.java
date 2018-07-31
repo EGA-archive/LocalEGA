@@ -17,7 +17,7 @@ import java.security.KeyPair;
 import java.security.Security;
 import java.util.*;
 
-public class LocalEGATask extends DefaultTask {
+public abstract class LocalEGATask extends DefaultTask {
 
     static {
         Security.addProvider(new BouncyCastleProvider());
@@ -50,12 +50,16 @@ public class LocalEGATask extends DefaultTask {
         return readTrace(traceFile, key);
     }
 
-    protected Map<String, String> getTraceAsMAp() throws IOException {
+    protected Map<String, String> getTraceAsMap() throws IOException {
         File traceFile = getProject().file(".tmp/.trace");
-        if (!traceFile.exists()) {
+        return readFileAsMap(traceFile);
+    }
+
+    protected Map<String, String> readFileAsMap(File file) throws IOException {
+        if (!file.exists()) {
             return Collections.emptyMap();
         }
-        List<String> lines = FileUtils.readLines(traceFile, Charset.defaultCharset());
+        List<String> lines = FileUtils.readLines(file, Charset.defaultCharset());
         Map<String, String> result = new HashMap<>();
         for (String line : lines) {
             result.put(line.split("=")[0].trim(), line.split("=")[1].trim());
@@ -75,19 +79,19 @@ public class LocalEGATask extends DefaultTask {
         exec("docker config create", name, file.getAbsolutePath());
     }
 
-    protected String exec(String command, String... arguments) throws IOException {
+    protected List<String> exec(String command, String... arguments) throws IOException {
         return exec(false, null, command, arguments);
     }
 
-    protected String exec(boolean ignoreExitCode, String command, String... arguments) throws IOException {
+    protected List<String> exec(boolean ignoreExitCode, String command, String... arguments) throws IOException {
         return exec(ignoreExitCode, null, command, arguments);
     }
 
-    protected String exec(Map<String, String> environment, String command, String... arguments) throws IOException {
+    protected List<String> exec(Map<String, String> environment, String command, String... arguments) throws IOException {
         return exec(false, environment, command, arguments);
     }
 
-    protected String exec(boolean ignoreExitCode, Map<String, String> environment, String command, String... arguments) throws IOException {
+    protected List<String> exec(boolean ignoreExitCode, Map<String, String> environment, String command, String... arguments) throws IOException {
         Map<String, String> systemEnvironment = new HashMap<>(System.getenv());
         if (environment != null) {
             systemEnvironment.putAll(environment);
@@ -100,10 +104,14 @@ public class LocalEGATask extends DefaultTask {
         commandLine.addArguments(arguments);
         try {
             executor.execute(commandLine, systemEnvironment);
-            return outputStream.toString();
+            String output = outputStream.toString();
+            System.out.println(output);
+            return Arrays.asList(output.split("\n"));
         } catch (ExecuteException e) {
+            String output = outputStream.toString();
+            System.out.println(output);
             if (ignoreExitCode) {
-                return outputStream.toString();
+                return Arrays.asList(output.split("\n"));
             } else {
                 throw e;
             }

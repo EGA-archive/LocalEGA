@@ -1,0 +1,12 @@
+import se.nbis.lega.deployment.cluster.CreateManagerTask
+import se.nbis.lega.deployment.cluster.CreateWorkerTask
+import se.nbis.lega.deployment.cluster.EnvTask
+import se.nbis.lega.deployment.cluster.LSTask
+
+task createManager(type: CreateManagerTask)
+
+task createWorker(type: CreateWorkerTask)
+
+task ls(type: LSTask)
+
+task env(type: EnvTask)
