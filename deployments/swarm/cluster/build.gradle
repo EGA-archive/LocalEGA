@@ -1,11 +1,24 @@
-import se.nbis.lega.deployment.cluster.CreateManagerTask
-import se.nbis.lega.deployment.cluster.CreateWorkersTask
-import se.nbis.lega.deployment.cluster.EnvTask
-import se.nbis.lega.deployment.cluster.ListTask
+import se.nbis.lega.deployment.cluster.*
 
 task createManager(type: CreateManagerTask)
 
 task createWorkers(type: CreateWorkersTask)
+
+task provision() {
+    setGroup "cluster"
+
+    dependsOn ":cluster:createManager", ":cluster:createWorkers"
+}
+
+task removeManager(type: RemoveManagerTask)
+
+task removeWorkers(type: RemoveWorkersTask)
+
+task destroy() {
+    setGroup "cluster"
+
+    dependsOn ":cluster:removeWorkers", ":cluster:removeManager"
+}
 
 task list(type: ListTask)
 
