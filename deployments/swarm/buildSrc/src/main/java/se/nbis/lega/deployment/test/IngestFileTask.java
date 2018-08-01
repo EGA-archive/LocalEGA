@@ -7,7 +7,6 @@ import com.rabbitmq.client.ConnectionFactory;
 import io.minio.MinioClient;
 import io.minio.errors.*;
 import org.apache.commons.collections4.IterableUtils;
-import org.gradle.api.GradleException;
 import org.gradle.api.tasks.TaskAction;
 import org.xmlpull.v1.XmlPullParserException;
 import se.nbis.lega.deployment.Groups;
@@ -36,10 +35,10 @@ public class IngestFileTask extends LocalEGATask {
         host = host == null ? "localhost" : host;
         int before = getFilesAmount(host);
         ingest(host);
-        Thread.sleep(5000);
-        int after = getFilesAmount(host);
-        if (after != before + 1) {
-            throw new GradleException("File was not ingested!");
+
+        int maxAttempts = 60;
+        while ((getFilesAmount(host) != before + 1) && (maxAttempts-- > 0)) {
+            Thread.sleep(1000);
         }
     }
 
