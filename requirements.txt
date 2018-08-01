@@ -4,7 +4,7 @@ aiohttp==3.0.7
 aiohttp-jinja2==0.13.0
 fusepy
 sphinx_rtd_theme
-cryptography==2.2.2
+cryptography==2.3
 pgpy
 psycopg2-binary==2.7.4
 aiopg==0.13.0
