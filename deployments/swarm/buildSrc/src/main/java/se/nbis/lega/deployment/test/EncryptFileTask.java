@@ -30,7 +30,7 @@ public class EncryptFileTask extends LocalEGATask {
         String key = FileUtils.readFileToString(new File("lega/.tmp/pgp/ega.pub"), Charset.defaultCharset());
         FileOutputStream fileOutputStream = new FileOutputStream(getEncFile());
         Crypt4GHOutputStream crypt4GHOutputStream = new Crypt4GHOutputStream(fileOutputStream, key, digest);
-        FileUtils.copyFile(getEncFile(), crypt4GHOutputStream);
+        FileUtils.copyFile(getRawFile(), crypt4GHOutputStream);
         crypt4GHOutputStream.close();
     }
 

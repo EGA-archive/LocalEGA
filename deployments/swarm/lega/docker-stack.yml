@@ -25,12 +25,12 @@ services:
     environment:
       - CEGA_CONNECTION
     configs:
-          - source: lega.defs.json
-            target: /etc/rabbitmq/defs.json
-          - source: lega.rabbitmq.config
-            target: /etc/rabbitmq/rabbitmq.config
-          - source: lega.entrypoint.sh
-            target: /usr/bin/ega-entrypoint.sh
+      - source: lega.defs.json
+        target: /etc/rabbitmq/defs.json
+      - source: lega.rabbitmq.config
+        target: /etc/rabbitmq/rabbitmq.config
+      - source: lega.entrypoint.sh
+        target: /usr/bin/ega-entrypoint.sh
     entrypoint: ["/bin/bash", "/usr/bin/ega-entrypoint.sh"]
     command: ["rabbitmq-server"]
 
@@ -51,8 +51,8 @@ services:
       - POSTGRES_PASSWORD
       - POSTGRES_DB
     configs:
-          - source: db.sql
-            target: /docker-entrypoint-initdb.d/ega.sql
+      - source: db.sql
+        target: /docker-entrypoint-initdb.d/ega.sql
 
   inbox:
     image: nbisweden/ega-mina-inbox
@@ -100,8 +100,8 @@ services:
     volumes:
        - inbox:/ega/inbox
     configs:
-          - source: conf.ini
-            target: /etc/ega/conf.ini
+      - source: conf.ini
+        target: /etc/ega/conf.ini
     entrypoint: ["gosu", "lega", "ega-ingest"]
 
   keys:
@@ -120,18 +120,18 @@ services:
       - LEGA_PASSWORD
       - KEYS_PASSWORD
     configs:
-          - source: conf.ini
-            target: /etc/ega/conf.ini
-          - source: keys.ini.enc
-            target: /etc/ega/keys.ini.enc
-          - source: ssl.cert
-            target: /etc/ega/ssl.cert
-          - source: ssl.key
-            target: /etc/ega/ssl.key
-          - source: ega.sec
-            target: /etc/ega/pgp/ega.sec
-          - source: ega2.sec
-            target: /etc/ega/pgp/ega2.sec
+      - source: conf.ini
+        target: /etc/ega/conf.ini
+      - source: keys.ini.enc
+        target: /etc/ega/keys.ini.enc
+      - source: ssl.cert
+        target: /etc/ega/ssl.cert
+      - source: ssl.key
+        target: /etc/ega/ssl.key
+      - source: ega.sec
+        target: /etc/ega/pgp/ega.sec
+      - source: ega2.sec
+        target: /etc/ega/pgp/ega2.sec
     entrypoint: ["gosu","lega","ega-keyserver","--keys","/etc/ega/keys.ini.enc"]
 
   verify:
@@ -156,8 +156,8 @@ services:
       - S3_ACCESS_KEY
       - S3_SECRET_KEY
     configs:
-          - source: conf.ini
-            target: /etc/ega/conf.ini
+      - source: conf.ini
+        target: /etc/ega/conf.ini
     entrypoint: ["gosu", "lega", "ega-verify"]
 
   s3:
