@@ -24,8 +24,6 @@ import java.util.concurrent.TimeoutException;
 
 public class IngestFileTask extends LocalEGATask {
 
-    private String host;
-
     public IngestFileTask() {
         super();
         this.setGroup(Groups.TEST.name());
@@ -34,17 +32,18 @@ public class IngestFileTask extends LocalEGATask {
 
     @TaskAction
     public void run() throws IOException, NoSuchAlgorithmException, KeyManagementException, URISyntaxException, TimeoutException, InvalidKeyException, XmlPullParserException, InvalidPortException, ErrorResponseException, NoResponseException, InvalidBucketNameException, InsufficientDataException, InvalidEndpointException, InternalException, InterruptedException {
-        host = System.getenv("DOCKER_HOST").substring(6).split(":")[0];
-        int before = getFilesAmount();
-        ingest();
+        String host = System.getenv("DOCKER_HOST").substring(6).split(":")[0];
+        host = host == null ? "localhost" : host;
+        int before = getFilesAmount(host);
+        ingest(host);
         Thread.sleep(5000);
-        int after = getFilesAmount();
+        int after = getFilesAmount(host);
         if (after != before + 1) {
             throw new GradleException("File was not ingested!");
         }
     }
 
-    private void ingest() throws IOException, URISyntaxException, NoSuchAlgorithmException, KeyManagementException, TimeoutException {
+    private void ingest(String host) throws IOException, URISyntaxException, NoSuchAlgorithmException, KeyManagementException, TimeoutException {
         String mqPassword = readTrace(getProject().file("cega/.tmp/.trace"), "CEGA_MQ_PASSWORD");
         ConnectionFactory factory = new ConnectionFactory();
         factory.setUri(String.format("amqp://lega:%s@%s:5672/lega", mqPassword, host));
@@ -67,7 +66,7 @@ public class IngestFileTask extends LocalEGATask {
         connectionFactory.close();
     }
 
-    private int getFilesAmount() throws XmlPullParserException, IOException, InvalidPortException, InvalidEndpointException, InsufficientDataException, NoSuchAlgorithmException, NoResponseException, InternalException, InvalidKeyException, InvalidBucketNameException, ErrorResponseException {
+    private int getFilesAmount(String host) throws XmlPullParserException, IOException, InvalidPortException, InvalidEndpointException, InsufficientDataException, NoSuchAlgorithmException, NoResponseException, InternalException, InvalidKeyException, InvalidBucketNameException, ErrorResponseException {
         String accessKey = readTrace(getProject().file("lega/.tmp/.trace"), "S3_ACCESS_KEY");
         String secretKey = readTrace(getProject().file("lega/.tmp/.trace"), "S3_SECRET_KEY");
         MinioClient minioClient = new MinioClient(String.format("http://%s:9000", host), accessKey, secretKey);

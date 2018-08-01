@@ -23,6 +23,10 @@ public abstract class LocalEGATask extends DefaultTask {
         Security.addProvider(new BouncyCastleProvider());
     }
 
+    protected String getProperty(String key) {
+        return (String) getProject().getProperties().getOrDefault(key, null);
+    }
+
     protected void writeTrace(String key, String value) throws IOException {
         File traceFile = getProject().file(".tmp/.trace");
         String existingValue = readTrace(traceFile, key);

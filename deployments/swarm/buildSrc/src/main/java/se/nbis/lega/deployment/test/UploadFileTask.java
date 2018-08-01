@@ -15,8 +15,6 @@ import java.io.IOException;
 
 public class UploadFileTask extends LocalEGATask {
 
-    private String host;
-
     public UploadFileTask() {
         super();
         this.setGroup(Groups.TEST.name());
@@ -25,7 +23,8 @@ public class UploadFileTask extends LocalEGATask {
 
     @TaskAction
     public void run() throws IOException {
-        host = System.getenv("DOCKER_HOST").substring(6).split(":")[0];
+        String host = System.getenv("DOCKER_HOST").substring(6).split(":")[0];
+        host = host == null ? "localhost" : host;
         SSHClient ssh = new SSHClient();
         ssh.addHostKeyVerifier(new PromiscuousVerifier());
         ssh.connect(host, 2222);

@@ -62,7 +62,6 @@ services:
       - cega_cega
     ports:
       - "2222:2222"
-      - "5005:5005"
     deploy:
       placement:
         constraints: [node.role == manager]

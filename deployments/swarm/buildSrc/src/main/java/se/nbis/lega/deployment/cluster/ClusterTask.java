@@ -62,6 +62,10 @@ public abstract class ClusterTask extends LocalEGATask {
         return getMachines(name).get(name);
     }
 
+    protected void removeMachine(String name) throws IOException {
+        exec("docker-machine rm -y", name);
+    }
+
     protected String getMachineIPAddress(String name) throws IOException {
         return exec("docker-machine ip", name).iterator().next();
     }
