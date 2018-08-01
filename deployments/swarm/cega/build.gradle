@@ -9,7 +9,7 @@ import se.nbis.lega.deployment.cega.CreateUsersConfigurationTask
 import java.util.stream.Collectors
 
 task clearConfiguration(type: ClearConfigurationTask) {
-    group "cega"
+    setGroup "cega"
 
     setConfigs Arrays.stream(Config.values()).map { c -> c.getName() }.collect(Collectors.toSet())
 }
@@ -21,13 +21,13 @@ task createUsersConfiguration(type: CreateUsersConfigurationTask)
 task createMQConfiguration(type: CreateMQConfigurationTask)
 
 task createConfiguration {
-    group "cega"
+    setGroup "cega"
 
     dependsOn clearConfiguration, createEurekaConfiguration, createUsersConfiguration, createMQConfiguration
 }
 
 task deployStack(type: DeployStackTask) {
-    group "cega"
+    setGroup "cega"
 
     setComposeFile file("docker-stack.yml").absolutePath
     setStackName "cega"
@@ -35,7 +35,7 @@ task deployStack(type: DeployStackTask) {
 }
 
 task removeStack(type: RemoveStackTask) {
-    group "cega"
+    setGroup "cega"
 
     setStackName "cega"
 }

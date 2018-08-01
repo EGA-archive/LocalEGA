@@ -7,13 +7,13 @@ import se.nbis.lega.deployment.lega.*
 import java.util.stream.Collectors
 
 task removeVolumes(type: RemoveVolumesTask) {
-    group "lega"
+    setGroup "lega"
 
     setVolumes Arrays.stream(Volume.values()).map { v -> v.getName() }.collect(Collectors.toSet())
 }
 
 task clearConfiguration(type: ClearConfigurationTask) {
-    group "lega"
+    setGroup "lega"
 
     setConfigs Arrays.stream(Config.values()).map { c -> c.getName() }.collect(Collectors.toSet())
 }
@@ -35,13 +35,13 @@ task createConfIni(type: CreateConfIniConfigurationTask)
 task createKeysIni(type: CreateKeysIniConfigurationTask)
 
 task createConfiguration {
-    group "lega"
+    setGroup "lega"
 
     dependsOn clearConfiguration, createConfIni, createKeysIni
 }
 
 task deployStack(type: DeployStackTask) {
-    group "lega"
+    setGroup "lega"
 
     setComposeFile file("docker-stack.yml").absolutePath
     setStackName "lega"
@@ -49,7 +49,7 @@ task deployStack(type: DeployStackTask) {
 }
 
 task removeStack(type: RemoveStackTask) {
-    group "lega"
+    setGroup "lega"
 
     setStackName "lega"
 }

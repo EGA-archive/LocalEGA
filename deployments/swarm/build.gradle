@@ -4,13 +4,13 @@ import se.nbis.lega.deployment.test.IngestFileTask
 import se.nbis.lega.deployment.test.UploadFileTask
 
 task purge() {
-    group "swarm"
+    setGroup "swarm"
 
     dependsOn ":lega:removeVolumes"
 }
 
 task clean() {
-    group "swarm"
+    setGroup "swarm"
 
     dependsOn ":cega:clearConfiguration", ":lega:clearConfiguration"
     doLast {
@@ -19,19 +19,19 @@ task clean() {
 }
 
 task bootstrap() {
-    group "swarm"
+    setGroup "swarm"
 
     dependsOn ":cega:createConfiguration", ":lega:createConfiguration"
 }
 
 task deploy() {
-    group "swarm"
+    setGroup "swarm"
 
     dependsOn ":cega:deployStack", ":lega:deployStack"
 }
 
 task rm() {
-    group "swarm"
+    setGroup "swarm"
 
     doLast {
         exec {
@@ -47,7 +47,7 @@ task rm() {
 }
 
 task ls() {
-    group "swarm"
+    setGroup "swarm"
 
     doLast {
         exec {
