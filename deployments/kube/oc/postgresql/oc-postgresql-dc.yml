@@ -1,5 +1,5 @@
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: v1
+kind: DeploymentConfig
 metadata:
   name: postgresql
   labels:
@@ -8,13 +8,11 @@ metadata:
 spec:
   replicas: 1
   selector:
-    matchLabels:
-      app: postgresql
+    app: postgresql
   template:
     metadata:
       labels:
         app: postgresql
-        role: database
     spec:
       containers:
       - name: postgresql
@@ -92,3 +90,13 @@ spec:
               path: postgresql/openshift-custom-postgresql.conf.template
             - key: openshift-custom-postgresql-replication.conf.template
               path: postgresql/openshift-custom-postgresql-replication.conf.template
+  triggers:
+  - type: ConfigChange
+  strategy:
+    type: Rolling
+    rollingParams:
+      intervalSeconds: 1
+      maxSurge: 25%
+      maxUnavailable: 25%
+      timeoutSeconds: 600
+      updatePeriodSeconds: 1

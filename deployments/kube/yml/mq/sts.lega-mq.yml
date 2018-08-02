@@ -20,7 +20,7 @@ spec:
       containers:
       - name: mq
         image: rabbitmq:3.6.14-management
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         command: ["/script/mq.sh"]
         env:
           - name: CEGA_CONNECTION
