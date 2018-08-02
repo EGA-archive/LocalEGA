@@ -29,22 +29,25 @@ python deploy.py --fake-cega --config --deploy all
 In the `deploy.py` service/pods names and other parameters should be configured:
 ```json
 _localega = {
-			"role": "LocalEGA",
-			"email": "test@csc.fi",
-			"services": {"keys": "keys",
-									 "inbox": "inbox",
-									 "ingest": "ingest",
-									 "s3": "minio",
-									 "broker": "mq",
-									 "db": "db",
-									 "verify": "verify"},
-			"key": {"name": "Test PGP",
-							"comment": "SOme comment",
-							"expire": "30/DEC/19 08:00:00",
-							"id": "key.1"},
-			"ssl": {"country": "Finland", "country_code": "FI", "location": "Espoo", "org": "CSC"},
-			"cega": {"user": "lega", "endpoint": "http://cega-users.testing:8001/user/"}
-		}
+"role": "LocalEGA",
+"email": "test@csc.fi",
+"services": {"keys": "keys",
+						 "inbox": "inbox",
+						 "ingest": "ingest",
+						 "s3": "minio",
+						 "broker": "mq",
+						 "db": "db",
+						 "verify": "verify"},
+"key": {"name": "Test PGP",
+				"comment": "SOme comment",
+				"expire": "30/DEC/19 08:00:00",
+				"id": "key.1"},
+"ssl": {"country": "Finland",
+				"country_code": "FI",
+				"location": "Espoo", "org": "CSC"},
+"cega": {"user": "lega",
+	       "endpoint": "http://cega-users.testing:8001/user/"}
+}
 ```
 
 Using the deploy script:
@@ -72,7 +75,7 @@ Options:
 
 ### Deployment The Difficult Way
 
-The YAML files (from the `yml` directory) represent vanilla deployment setup configuration for LocalEGA, configuration that does not include configuration/passwords for starting services. Such configuration can generated using the `make bootstrap` script in the `~/LocalEGA/deployment/docker` folder or provided per each case. The YML file only provide base `hostPath` volumes, for other volume types check [Kubernetes Volumes](https://kubernetes.io/docs/concepts/storage/volumes/).
+The YAML files (from the `yml` directory) represent vanilla deployment setup configuration for LocalEGA, configuration that does not include configuration/passwords for starting services. Such configuration can generated using the `make bootstrap` script in the `~/LocalEGA/deployment/docker` folder or provided per each case. The YAML file only provide base `hostPath` volumes, for other volume types check [Kubernetes Volumes](https://kubernetes.io/docs/concepts/storage/volumes/).
 
 Files that require configuration:
 * `keys/cm.keyserver.yml`
@@ -123,5 +126,6 @@ The files provided in the `yml` directory can be reused for deployment to OpenSh
 - Minio requires `10Gi` volume to start properly in Openshift, although in minikube it it seems to do by with just 0.5Gi.
 - By default, OpenShift Origin runs containers using an arbitrarily assigned user ID as per [OpenShift Guidelines](https://docs.openshift.org/latest/creating_images/guidelines.html#openshift-specific-guidelines), thus using `gosu` command for changing user is not allowed. The command for keyserver would look like `["ega-keyserver","--keys","/etc/ega/keys.ini"]` instead of `["gosu","lega","ega-keyserver","--keys","/etc/ega/keys.ini"]`.
 
-* Postgres DB requires a different container therefore we provided a different YML configuration file for it in the `os/postgres` directory, also the volume attached to Postgres DB needs `ReadWriteMany` permissions.
-* Keyserver requires different configuration therefore we provided a different YML configuration file for it in the `os/keys` directory.
+* Postgres DB requires a different container therefore we provided a different YAML configuration file for it in the [`oc/postgres` directory](oc/postgres), also the volume attached to Postgres DB needs `ReadWriteMany` permissions.
+* Keyserver requires different configuration therefore we provided a different YAML configuration file for it in the [`oc/keys` directory](oc/keys).
+* Inbox requires different configuration therefore we provided a different YAML configuration file for it in the [`oc/inbox` directory](oc/inbox).
