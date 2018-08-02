@@ -75,10 +75,17 @@ chmod 640 /etc/rabbitmq/defs-cega.json
     ROUND=30
     until rabbitmqctl wait /var/lib/rabbitmq/mnesia/rabbit@${HOSTNAME}.pid || ((ROUND<0))
     do
-	sleep 1
-	$((ROUND--))
+			sleep 1
+			$((ROUND--))
     done
-    rabbitmqadmin import /etc/rabbitmq/defs-cega.json
+    ((ROUND<0)) && echo "Central EGA broker *_not_* started" 2>&1 && exit 1
+
+    ROUND=30
+    until rabbitmqadmin import /etc/rabbitmq/defs-cega.json || ((ROUND<0))
+    do
+		 	sleep 1
+		 	$((ROUND--))
+    done
     ((ROUND<0)) && echo "Central EGA connections *_not_* loaded" 2>&1 && exit 1
     echo "Central EGA connections loaded"
 } &

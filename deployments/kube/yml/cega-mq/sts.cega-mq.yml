@@ -19,7 +19,7 @@ spec:
       containers:
       - name: cega-mq
         image: rabbitmq:3.6.14-management
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         command: ["/scripts/cega-mq.sh"]
         ports:
         - name: cega-mq
@@ -28,7 +28,7 @@ spec:
         - containerPort: 5672
           name: amqp
         volumeMounts:
-        - name: cega-script
+        - name: cega-mq-entrypoint
           mountPath: /scripts
         - name: temp
           mountPath: /temp
@@ -38,9 +38,9 @@ spec:
       - name: rabbitmq
         persistentVolumeClaim:
           claimName: rabbitmq
-      - name: cega-script
+      - name: cega-mq-entrypoint
         configMap:
-          name: cega-script
+          name: cega-mq-entrypoint
           defaultMode: 0744
       - name: temp
         configMap:

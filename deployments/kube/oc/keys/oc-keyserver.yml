@@ -28,18 +28,18 @@ spec:
             - '--keys'
             - /etc/ega/keys.ini
           env:
-            - name: POSTGRES_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  key: postgres_password
-                  name: lega-db-secret
             - name: LEGA_PASSWORD
               valueFrom:
                 secretKeyRef:
                   key: password
                   name: lega-password
+            - name: KEYS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: password
+                  name: keys-password
           image: 'nbisweden/ega-base:latest'
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           name: keys
           ports:
             - containerPort: 8443
@@ -53,10 +53,10 @@ spec:
             periodSeconds: 20
           volumeMounts:
             - mountPath: /etc/ega
-              name: keyserver-conf
+              name: config
 
       volumes:
-        - name: keyserver-conf
+        - name: config
           projected:
             defaultMode: 420
             sources:
@@ -76,8 +76,6 @@ spec:
                   items:
                     - key: key1.sec
                       path: pgp/key.1
-                    - key: key2.sec
-                      path: pgp/key.2
                     - key: ssl.cert
                       path: ssl.cert
                     - key: ssl.key
