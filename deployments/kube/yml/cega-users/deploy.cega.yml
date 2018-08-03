@@ -17,10 +17,9 @@ spec:
     spec:
       containers:
       - name: cega-users
-        image: python:3.6-alpine3.7
-        imagePullPolicy: IfNotPresent
-        command: ["/bin/sh","-c"]
-        args: ["pip install PyYAML aiohttp aiohttp_jinja2; python /cega/server.py"]
+        image: nbisweden/ega-base
+        imagePullPolicy: Always
+        command: ["python3.6", "/cega/server.py"]
         env:
           - name: LEGA_INSTANCES
             value: lega

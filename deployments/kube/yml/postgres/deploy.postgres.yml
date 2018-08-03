@@ -19,7 +19,7 @@ spec:
       containers:
       - name: postgresql
         image: postgres:latest
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         env:
         - name: POSTGRES_USER
           valueFrom:
