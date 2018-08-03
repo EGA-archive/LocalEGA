@@ -17,6 +17,12 @@ from base64 import b64encode
 from pgpy import PGPKey, PGPUID
 from pgpy.constants import PubKeyAlgorithm, KeyFlags, HashAlgorithm, SymmetricKeyAlgorithm, CompressionAlgorithm
 
+from cryptography.hazmat.primitives import padding
+from cryptography.hazmat.primitives.ciphers import (
+    Cipher,
+    algorithms,
+    modes)
+
 # Logging
 FORMAT = '[%(asctime)s][%(name)s][%(process)d %(processName)s][%(levelname)-8s] (L:%(lineno)s) %(funcName)s: %(message)s'
 logging.basicConfig(format=FORMAT, datefmt='%Y-%m-%d %H:%M:%S')
@@ -46,6 +52,47 @@ class ConfigGenerator:
             except OSError as exc:  # Guard against race condition
                 if exc.errno != errno.EEXIST:
                     raise
+
+    # Based on
+    # https://www.pythonsheets.com/notes/python-crypto.html#aes-cbc-mode-encrypt-via-password-using-cryptography
+    # Provided under MIT license: https://github.com/crazyguitar/pysheeet/blob/master/LICENSE
+
+    def _EVP_ByteToKey(self, pwd, md, salt, key_len, iv_len):
+        """Derive key and IV.
+
+        Based on https://www.openssl.org/docs/man1.0.2/crypto/EVP_BytesToKey.html
+        """
+        buf = md(pwd + salt).digest()
+        d = buf
+        while len(buf) < (iv_len + key_len):
+            d = md(d + pwd + salt).digest()
+            buf += d
+        return buf[:key_len], buf[key_len:key_len + iv_len]
+
+    def aes_encrypt(self, pwd, ptext, md):
+        """Encrypt AES."""
+        key_len, iv_len = 32, 16
+
+        # generate salt
+        salt = os.urandom(8)
+
+        # generate key, iv from password
+        key, iv = self._EVP_ByteToKey(pwd, md, salt, key_len, iv_len)
+
+        # pad plaintext
+        pad = padding.PKCS7(128).padder()
+        ptext = pad.update(ptext) + pad.finalize()
+
+        # create an encryptor
+        cipher = Cipher(algorithms.AES(key), modes.CBC(iv), backend=default_backend())
+        encryptor = cipher.encryptor()
+
+        # encrypt plain text
+        ctext = encryptor.update(ptext) + encryptor.finalize()
+        ctext = b'Salted__' + salt + ctext
+
+        # encode base64
+        return ctext
 
     def _generate_pgp_pair(self, comment, passphrase, armor):
         """Generate PGP key pair to be used by keyserver."""

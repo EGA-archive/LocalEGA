@@ -23,11 +23,17 @@ spec:
         imagePullPolicy: Always
         env:
         - name: BROKER_HOST
-          value: mq.localega.svc.cluster.local
+          valueFrom:
+            configMapKeyRef:
+              name: lega-inbox
+              key: broker
         - name: INBOX_PORT
           value: "2222"
         - name: CEGA_ENDPOINT
-          value: http://cega-users/user/
+          valueFrom:
+            configMapKeyRef:
+              name: lega-inbox
+              key: cega_endpoint
         - name: CEGA_ENDPOINT_CREDS
           valueFrom:
             secretKeyRef:
@@ -37,6 +43,13 @@ spec:
         - name: inbox
           containerPort: 2222
           protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /healthcheck
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: 120
+          periodSeconds: 20
         volumeMounts:
         - name: lega-inbox
           mountPath: /ega/inbox
