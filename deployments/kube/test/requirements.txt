@@ -1,1 +1,3 @@
 pika
+paramiko
+git+https://github.com/NBISweden/LocalEGA-cryptor.git
