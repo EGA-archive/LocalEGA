@@ -18,9 +18,8 @@ services:
       - "15672:15672"
     deploy:
       restart_policy:
-        condition: on-failure
+        condition: always
         delay: 5s
-        max_attempts: 3
         window: 120s
     environment:
       - CEGA_CONNECTION
@@ -41,9 +40,8 @@ services:
       - lega
     deploy:
       restart_policy:
-        condition: on-failure
+        condition: always
         delay: 5s
-        max_attempts: 3
         window: 120s
     environment:
       - DB_INSTANCE
@@ -66,9 +64,8 @@ services:
       placement:
         constraints: [node.role == manager]
       restart_policy:
-        condition: on-failure
+        condition: always
         delay: 5s
-        max_attempts: 3
         window: 120s
     depends_on:
       - mq
@@ -86,9 +83,8 @@ services:
       placement:
         constraints: [node.role == manager]
       restart_policy:
-        condition: on-failure
+        condition: always
         delay: 5s
-        max_attempts: 3
         window: 120s
     depends_on:
       - db
@@ -112,9 +108,8 @@ services:
       - cega_cega
     deploy:
       restart_policy:
-        condition: on-failure
+        condition: always
         delay: 5s
-        max_attempts: 3
         window: 120s
     environment:
       - LEGA_PASSWORD
@@ -141,9 +136,8 @@ services:
       - lega
     deploy:
       restart_policy:
-        condition: on-failure
+        condition: always
         delay: 5s
-        max_attempts: 3
         window: 120s
     depends_on:
       - db
@@ -169,9 +163,8 @@ services:
       - "9000:9000"
     deploy:
       restart_policy:
-        condition: on-failure
+        condition: always
         delay: 5s
-        max_attempts: 3
         window: 120s
     environment:
       - MINIO_ACCESS_KEY
