@@ -10,26 +10,39 @@ be installed on your machine in order to use it. On MacOS with Homebrew it can b
 
 Make sure [Java Cryptography Extension (JCE) Unlimited Strength Jurisdiction Policy](http://www.oracle.com/technetwork/java/javase/downloads/jce8-download-2133166.html) is set up.
 
-Also this tool doesn't (at least yet) create a Swarm cluster for you, so one needs to have it beforehand. Creation of
-such a cluster is currently out of the scope of this instructions.
-
 ## Structure
 
-Gradle project has the following structure:
+Gradle project has the following groups of tasks:
 
-![](https://habrastorage.org/webt/bp/6r/sh/bp6rshamdpwd53lhzbobpcqct6a.png)
+- `cluster` - code related to Docker Machine and Docker Swarm cluster provisioning
+- `cega` - "fake" CentralEGA bootstrapping and deployment code
+- `lega` - main LocalEGA microservices bootstrapping and deployment code
+- `swarm` - root project aggregating both `cega` and `lega` 
+- `test` - sample test case: generating a file, encrypting it, uploading to the inbox and ingesting it
 
-- `cega` - "fake" CentralEGA
-- `lega` - main LocalEGA microservices
-- `LocalEGA` - root project aggregating both of the above
+## Cluster provisioning
 
-Also there are multiple groups of tasks in the project:
-- `cega` - for spinning up Central EGA part
-- `lega` - for spinning up Local EGA part
-- `swarm` - for spinning up both
-- `test` - for testing the setup
+Docker Swarm cluster can be provisioned using `gradle provision` command. Provisioning is done via 
+[Docker Machine](https://docs.docker.com/machine/). Two providers are supported at the moment: `virtualbox` (default 
+one) and `openstack`. 
+
+To provision cluster in the OpenStack one needs to have OpenStack configuration file with filled
+settings from [this list](https://docs.docker.com/machine/drivers/openstack/) (there's a sample file called 
+`openstack.properties.sample` in the project folder). Then the command will look like this:
+`gradle provision -PopenStackConfig=/absolute/path/to/openstack.properties`. 
+
+By default one manager and one worker node are created. To increase the amount of workers, `workers` option can be 
+used, e.g.: `gradle provision -Pworkers=8 PopenStackConfig=/absolute/path/to/openstack.properties`. 
+
+Note that it may take a while to provision the cluster in OpenStack. To see how many nodes are ready one can run
+`gradle list`. 
+
+`gradle destroy` will remove all the virtual machines and destroy the cluster.
 
 ## Bootstrapping
+
+**NB**: before bootstrapping execute `gradle env` and the `eval`-command printed out. *This is required in order to
+run all subsequent commands against the Docker Swarm Manager and not against the local Docker daemon.*
 
 The bootstrapping (generating of required configuration files, keys, credentials, etc.) is as simple as
 `gradle bootstrap`. You may also bootstrap `cega` or `lega` parts separately by calling `gradle createCEGAConfiguration`
@@ -59,6 +72,11 @@ upload to the inbox of test-user `john`, ingest this file and check if it has su
 ## Portainer
 
 For convenience, as an analogue for Kubernetes Dashboard, the [Portainer](https://portainer.io/) was added to this
-deployment. It's accessible at http://localhost:30000/#/dashboard
+deployment. It's accessible at 30000 port. 
 
 ![](https://habrastorage.org/webt/js/kv/6y/jskv6yxfauuw11qpiji4q3hjbw8.png)
+
+## Demo
+
+There's a short demo recorded with explanations on provisioning and deployment process:
+[![Demo](https://img.youtube.com/vi/8hvXxqW8uP0/0.jpg)](https://www.youtube.com/watch?v=8hvXxqW8uP0)

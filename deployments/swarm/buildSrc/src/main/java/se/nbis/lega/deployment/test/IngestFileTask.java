@@ -32,19 +32,24 @@ public class IngestFileTask extends LocalEGATask {
 
     @TaskAction
     public void run() throws IOException, NoSuchAlgorithmException, KeyManagementException, URISyntaxException, TimeoutException, InvalidKeyException, XmlPullParserException, InvalidPortException, ErrorResponseException, NoResponseException, InvalidBucketNameException, InsufficientDataException, InvalidEndpointException, InternalException, InterruptedException {
-        int before = getFilesAmount();
-        ingest();
-        Thread.sleep(5000);
-        int after = getFilesAmount();
-        if (after != before + 1) {
-            throw new GradleException("File was not ingested!");
+        String host = System.getenv("DOCKER_HOST").substring(6).split(":")[0];
+        host = host == null ? "localhost" : host;
+        int before = getFilesAmount(host);
+        ingest(host);
+
+        int maxAttempts = 60;
+        while ((getFilesAmount(host) != before + 1)) {
+            if (maxAttempts-- == 0) {
+                throw new GradleException("File is not ingested!");
+            }
+            Thread.sleep(1000);
         }
     }
 
-    private void ingest() throws IOException, URISyntaxException, NoSuchAlgorithmException, KeyManagementException, TimeoutException {
+    private void ingest(String host) throws IOException, URISyntaxException, NoSuchAlgorithmException, KeyManagementException, TimeoutException {
         String mqPassword = readTrace(getProject().file("cega/.tmp/.trace"), "CEGA_MQ_PASSWORD");
         ConnectionFactory factory = new ConnectionFactory();
-        factory.setUri(String.format("amqp://lega:%s@localhost:5672/lega", mqPassword));
+        factory.setUri(String.format("amqp://lega:%s@%s:5672/lega", mqPassword, host));
         Connection connectionFactory = factory.newConnection();
         Channel channel = connectionFactory.createChannel();
         AMQP.BasicProperties properties = new AMQP.BasicProperties().builder().
@@ -64,10 +69,10 @@ public class IngestFileTask extends LocalEGATask {
         connectionFactory.close();
     }
 
-    private int getFilesAmount() throws XmlPullParserException, IOException, InvalidPortException, InvalidEndpointException, InsufficientDataException, NoSuchAlgorithmException, NoResponseException, InternalException, InvalidKeyException, InvalidBucketNameException, ErrorResponseException {
+    private int getFilesAmount(String host) throws XmlPullParserException, IOException, InvalidPortException, InvalidEndpointException, InsufficientDataException, NoSuchAlgorithmException, NoResponseException, InternalException, InvalidKeyException, InvalidBucketNameException, ErrorResponseException {
         String accessKey = readTrace(getProject().file("lega/.tmp/.trace"), "S3_ACCESS_KEY");
         String secretKey = readTrace(getProject().file("lega/.tmp/.trace"), "S3_SECRET_KEY");
-        MinioClient minioClient = new MinioClient("http://localhost:9000", accessKey, secretKey);
+        MinioClient minioClient = new MinioClient(String.format("http://%s:9000", host), accessKey, secretKey);
         if (!minioClient.bucketExists("lega")) {
             return 0;
         }
