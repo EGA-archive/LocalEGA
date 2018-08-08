@@ -9,5 +9,6 @@
 
 rootProject.name = 'LocalEGA'
 
+include 'cluster'
 include 'cega'
 include 'lega'

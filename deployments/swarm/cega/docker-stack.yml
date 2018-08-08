@@ -17,10 +17,9 @@ services:
       - "5672:5672"
     deploy:
       restart_policy:
-              condition: on-failure
-              delay: 5s
-              max_attempts: 3
-              window: 120s
+        condition: always
+        delay: 5s
+        window: 120s
     configs:
       - source: cega.defs.json
         target: /etc/rabbitmq/defs.json
@@ -34,10 +33,9 @@ services:
           - cega
     deploy:
       restart_policy:
-              condition: on-failure
-              delay: 5s
-              max_attempts: 3
-              window: 120s
+        condition: always
+        delay: 5s
+        window: 120s
     environment:
       - LEGA_INSTANCES
       - CEGA_REST_lega_PASSWORD
@@ -59,10 +57,9 @@ services:
           - cega
     deploy:
       restart_policy:
-              condition: on-failure
-              delay: 5s
-              max_attempts: 3
-              window: 120s
+        condition: always
+        delay: 5s
+        window: 120s
     configs:
       - source: eureka.py
         target: /cega/eureka.py
