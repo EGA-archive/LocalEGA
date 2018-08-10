@@ -11,7 +11,7 @@ You can provision and deploy the different components:
 * locally, using [docker-compose](deployments/docker).
 * on an OpenStack cluster, using [terraform](https://github.com/NBISweden/LocalEGA-deploy-terraform).
 * on a Kubernetes/OpenShift cluster, using [kubernetes](https://github.com/NBISweden/LocalEGA-deploy-k8s)
-* on a Docker Swarm cluster, using [Gradle](deployments/swarm)
+* on a Docker Swarm cluster, using [Gradle](https://github.com/NBISweden/LocalEGA-deploy-swarm)
 
 # Architecture
 
