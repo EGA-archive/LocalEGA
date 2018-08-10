@@ -1,7 +1,0 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: lega-keyserver-config
-data:
-  keys.ini: |-
-     <Place your keys.ini file content>
