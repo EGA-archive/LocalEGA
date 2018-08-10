@@ -1,4 +1,0 @@
-kubernetes
-cryptography
-PGPy==0.4.3
-click==6.7
