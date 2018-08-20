@@ -8,7 +8,7 @@ Central EGA contains a database of users, with IDs and passwords.
 We have developed two solutions both of them allowing user authentication via either a password or
 an RSA key against CentralEGA database itself:
 
-* :ref:`nss-pam-inbox` also known as FUSE based inbox;
+* :ref:`openssh-inbox`;
 * :ref:`apache-mina-inbox`.
 
 Each solution uses CentralEGA's user IDs but can also be extended to
@@ -26,26 +26,34 @@ expire. The cache has a default TTL of one hour, and is wiped clean
 upon reboot (as a cache should).
 
 
-.. _nss-pam-inbox:
+.. _openssh-inbox:
 
-NSS+PAM Inbox
+OpenSSH Inbox
 -------------
 
-The user's home directory is created when its credentials are retrieved
-from CentralEGA. Moreover, for each user, we use FUSE mountpoint and
-``chroot`` the user into it. The FUSE application is in charge of
-detecting when the file upload is completed and computing its
-checksum. This information is provided to CentralEGA via a
-:doc:`shovel mechanism on the local message broker <connection>`.
+We use the OpenSSH SFTP server (version 7.7p1), on a Linux
+distribution (currently CentOS7).
+
+Authentication is performed by the Operating System, using the classic
+plugable mechanism (PAM), and username resolution module (called NSS).
+
+The user's home directory is created when its credentials are
+retrieved from CentralEGA. Moreover, we isolate each user in its
+respective home directory (i.e. we ``chroot`` the user into it).
+
+We installed a hook inside the OpenSSH SFTP server to detect when a
+file is (re)uploaded. The hook runs a checksum on the uploaded file
+and notifies CentralEGA via a :doc:`shovel mechanism on the local
+message broker <connection>`.
 
 Configuration
 ^^^^^^^^^^^^^
 
-The NSS and PAM modules look at ``/etc/ega/auth.conf``.
+The NSS and PAM modules are configured by the file ``/etc/ega/auth.conf``.
 
 Some configuration parameters can be specified, while others have
 default values in case they are not specified. Some of the parameters must be
-specified (mostly those for which we can invent a value!).
+specified (mostly those for which we can't invent a value!).
 
 A sample configuration file can be found on the `LocalEGA-auth
 repository
@@ -54,58 +62,64 @@ eg:
 
 .. code-block:: none
 
-   ##################
-   # Central EGA
-   #
-   # The username will be appended to the endpoint
-   # eg the endpoint for 'john' will be
-   # http://cega_users/user/john
-   #
-   # Note: Change the cega_creds !
-   #
-   ##################
-
-   enable_cega = yes
-   cega_endpoint = http://cega_users/user/
+   ##########################################
+   # Remote database settings (using ReST)
+   ##########################################
+   
+   # The username will be appended to the endpoints
+   cega_endpoint_name = http://cega_users/user/
+   cega_endpoint_uid = http://cega_users/id/
    cega_creds = user:password
-   cega_json_passwd = .password
-   cega_json_pubkey = .public_key
+   
+   # Selects where the JSON object is rooted
+   # Use a dotted format à la JQ, eg level1.level2.level3
+   # Default: empty
+   cega_json_prefix = 
+   
+   ##########################################
+   # Local database settings (for NSS & PAM)
+   ##########################################
 
-   ##################
-   # NSS & PAM
-   ##################
-
-   cache_ttl = 36000.0 # Float in seconds... Here 10 hours
-   prompt    = Knock Knock:
-   cache_dir = /ega/cache
-   ega_gecos = EGA User
-   ega_shell = /sbin/nologin
-
-   ega_uid = 1000
-   ega_gid = 1000
-
+   # Absolute path to the SQLite database.
+   # Required setting. No default value.
+   db_path = /run/ega-users.db
+   
+   # Sets how long a cache entry is valid, in seconds.
+   # Default: 3600 (ie 1h).
+   # cache_ttl = 86400
+   
+   # Per site configuration, to shift the users id range
+   # Default: 10000
+   #ega_uid_shift = 1000
+   
+   # The group to which all users belong.
+   # For the moment, only only.
+   # Required setting. No default.
+   ega_gid = 997
+   
+   # This causes the PAM sessions to be chrooted into the user's home directory.
+   # Useful for SFTP connections, but complicated for regular ssh
+   # connections (since no proper environment exists there).
+   # Default: false
+   chroot_sessions = yes
+   
+   # Per site configuration, where the home directories are located
+   # The user's name will be appended.
+   # Required setting. No default.
    ega_dir = /ega/inbox
    ega_dir_attrs = 2750 # rwxr-s---
-
-   ##################
-   # FUSE mount
-   ##################
-   ega_fuse_exec = /usr/bin/ega-inbox
-   ega_fuse_flags = nodev,noexec,suid,default_permissions,allow_other,uid=1000,gid=1000
-
-
-
-We use the following default values if the option is not specified in
-the configuration file.
-
-.. code-block:: bash
-
-   cache_ttl   = 3600.0 // 1 hour
-   enable_cega = "yes"
-   cache_dir   = "/ega/cache"
-   prompt      = "Please, enter your EGA password: "
-   ega_gecos   = "EGA User"
-   ega_shell   = "/sbin/nologin"
+   
+   # sets the umask for each session (in octal format)
+   # Default: 027 # world-denied
+   #ega_dir_umask = 027
+   
+   # When the password is asked
+   # Default: "Please, enter your EGA password: "
+   #prompt = Knock Knock:
+   
+   # The user's login shell.
+   # Default: /bin/bash
+   #ega_shell = /bin/aspshell-r
 
 
 .. note:: After proper configuration, there is no user maintenance, it is
@@ -120,29 +134,25 @@ the configuration file.
 Implementation
 ^^^^^^^^^^^^^^
 
-The cache directory can be mounted as a ``ramfs`` partition of size
-200M. We use a directory per user, containing files for the user's
-password hash, ssh key and last access record. Files and directories
-in the cache are stored in memory, not on disk, giving us an extra
-performance boost. A ``ramfs`` partition does not survive a reboot, grow
-dynamically and does not use the swap partition (as a ``tmpfs`` partition
-would). By default such option is disabled but can be enabled in the `inbox`
-entrypoint script.
+The cache is a SQLite database, mounted in a ``ramfs`` partition (of
+initial size 200M). A ``ramfs`` partition does not survive a reboot,
+grows dynamically and does not use the swap partition (as a ``tmpfs``
+partition would). By default such option is disabled but can be
+enabled in the `inbox` entrypoint script.
 
-We use OpenSSH (version 7.5p1) and its ``sftp`` component. The NSS+PAM
-source code has its own `repository
+The NSS+PAM source code has its own `repository
 <https://github.com/NBISweden/LocalEGA-auth>`_. A makefile is provided
 to compile and install the necessary shared libraries.
 
-We copied the ``/sbin/sshd`` into an ``/sbin/ega`` binary and
+We copied the ``sshd`` into an ``/opt/openshh/sbin/ega`` binary and
 configured the *ega* service by adding a file into the ``/etc/pam.d``
 directory. In this case, the name of the file is ``/etc/pam.d/ega``.
 
-.. literalinclude:: /../deployments/docker/images/inbox/pam.ega
+.. literalinclude:: /../docker/images/inbox/pam.ega
 
-The *ega* service is configured just like ``sshd`` is. We only use the
-``-c`` switch to specify where the configuration file is. The service
-runs for the moment on port 9000.
+The *ega* service is configured using the ``-c`` switch to specify
+where the configuration file is. The service runs for the moment on
+port 9000.
 
 Note that when PAM is configured as above, and a user is either not
 found, or its authentication fails, the access to the service is
@@ -159,27 +169,17 @@ algorithm. LocalEGA also supports the usual ``md5``, ``sha256`` and
 part of the C library).
 
 Updating a user password is not allowed (ie therefore the ``password``
-*type* is configure to deny every access).
+*type* is configured to deny every access).
 
-The ``session`` *type* handles the FUSE mount and chrooting.
+The ``session`` *type* handles the chrooting.
 
 The ``account`` *type* of the PAM module is a pass-through. It
-succeeds.
-
-"Refreshing" the last access time is done by the ``setcred``
-service. The latter is usually called before a session is open, and
-after a session is closed. Since we are in a chrooted environment when
-the session closes, ``setcred`` is bound to fail. However, it
-succeeded on the original login, and it will again on the subsequent
-logins. That way, if a user logs in again, within a cache TTL delay,
-we do not re-query the CentralEGA database. After the TTL has elapsed,
-we do query anew the CentralEGA database, eventually receiving new
-credentials for that user.
-
-Note that it is unlikely that a user will keep logging in and out,
-while its password and/or ssh key have been reset. If so, we can
-implement a flush mechanism, given to CentralEGA, if necessary (not
-complicated, and ... not a priority).
+succeeds. It also "refreshes" the cache information is case it has
+expired. This cache expiration mechanism will capture the situation
+where the user's credentials have been reset. If the user stays logged
+in and idle, the ssh session will expire. If the user is not idle,
+then it is the same behaviour as if the user account was created
+locally (ie. in /etc/passwd and /etc/shadow).
 
 
 .. _apache-mina-inbox:
@@ -191,11 +191,11 @@ This solution makes use of `Apache Mina SSHD project <https://mina.apache.org/ss
 the user is locked within their home folder, which is done by using `RootedFileSystem
 <https://github.com/apache/mina-sshd/blob/master/sshd-core/src/main/java/org/apache/sshd/common/file/root/RootedFileSystem.java>`_.
 
-The user's home directory is created when its credentials upon successful login.
+The user's home directory is created upon successful login.
 Moreover, for each user, we detect when the file upload is completed and compute its
 checksum. This information is provided to CentralEGA via a
 :doc:`shovel mechanism on the local message broker <connection>`.
-We can configure default cache TTL via ``CACHE_TTL`` env var.
+We can configure default cache TTL via ``CACHE_TTL`` environment variable.
 
 Configuration
 ^^^^^^^^^^^^^
@@ -228,7 +228,7 @@ Implementation
 ^^^^^^^^^^^^^^
 
 As mentioned above, the implementation is based on Java library Apache Mina SSHD. It provides a scalable and high
-performance asynchronous IO API to support the SSH (and SFPT) protocols on both the client and server side.
+performance asynchronous IO API to support the SSH (and SFTP) protocols.
 
 Sources are located at the separate repo: https://github.com/NBISweden/LocalEGA-inbox
-Basically, it's a Spring-based Maven project, integrated to a common LocalEGA MQ bus.
+Essentially, it's a Spring-based Maven project, integrated to a common LocalEGA MQ bus.
