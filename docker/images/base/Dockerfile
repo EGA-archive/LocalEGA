@@ -35,8 +35,8 @@ RUN gosu nobody true && \
 
 RUN yum clean all && rm -rf /var/cache/yum
 
-RUN groupadd -r lega
-#    useradd -M -r -g lega lega
+RUN groupadd -r lega && \
+    useradd -M -r -g lega lega
 
 ARG PIP_EGA_PACKAGES=
 RUN pip3.6 install --upgrade pip && \
