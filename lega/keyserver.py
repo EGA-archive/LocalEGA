@@ -259,7 +259,7 @@ def main(args=None):
 
     # Adding the keystore to the server
     keyserver['store'] = KeysConfiguration(args)
-    keyserver['interval'] = CONF.get_value('eureka', 'interval', conv=int)
+    keyserver['interval'] = CONF.get_value('eureka', 'try_interval', conv=int, default=20)
     keyserver['eureka'] = EurekaClient("keyserver", port=port, ip_addr=host,
                                        eureka_url=eureka_endpoint, hostname=host,
                                        health_check_url=health_check_url,
