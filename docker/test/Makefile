@@ -1,7 +1,7 @@
 .PHONY: upload submit user
 
 # folder for the localegarepo
-MAIN_REPO=~/_ega
+MAIN_REPO=~/LocalEGA
 
 # Dummy key
 SSH_KEY_PUB=~/.ssh/lega.pub
@@ -13,7 +13,7 @@ FILE=HG00458.unmapped.ILLUMINA.bwa.CHS.low_coverage.20130415.bam
 
 ##############################
 
-DOCKER_PATH=$(MAIN_REPO)/deploy
+DOCKER_PATH=$(MAIN_REPO)/docker
 INSTANCE_PORT=$(shell awk -F= '/DOCKER_PORT_inbox/ {print $$2}' $(DOCKER_PATH)/bootstrap/settings.rc)
 PGP_PUB=$(DOCKER_PATH)/private/lega/pgp/ega.pub
 PGP_EMAIL=$(shell awk -F= '/PGP_EMAIL/ {print $$2}' $(DOCKER_PATH)/bootstrap/settings.rc)
