@@ -38,8 +38,6 @@ RUN mkdir -p /usr/local/lib/ega && \
     git checkout ${AUTH_BRANCH} && \
     make install clean
 
-RUN ldconfig -v
-
 #################################################
 ##
 ## Install OpenSSH from sources
@@ -97,6 +95,8 @@ RUN rm -rf /root/openssh && \
     cp ${OPENSSH_DIR}/sbin/sshd ${OPENSSH_DIR}/sbin/ega
 
 #################################################
+
+RUN ldconfig -v
 
 COPY banner /ega/banner
 COPY pam.ega /etc/pam.d/ega

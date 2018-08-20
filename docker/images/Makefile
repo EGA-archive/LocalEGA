@@ -8,7 +8,7 @@ BUILD_ARGS=--build-arg checkout=$(CHECKOUT)
 
 .PHONY: all erase delete clean cleanall base inbox
 
-all: base lega inbox
+all: base inbox
 
 base: PIP_EGA_PACKAGES=pika==0.12.0 psycopg2-binary==2.7.5 cryptography==2.3 aiohttp==3.0.7 aiohttp-jinja2==0.13.0 pgpy boto3 aiohttp-jinja2==0.13.0
 inbox: BUILD_ARGS+=--build-arg AUTH_BRANCH=cega-ids
