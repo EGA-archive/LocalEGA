@@ -191,7 +191,7 @@ services:
       - db
       - mq
     image: nbisweden/ega-base
-    container_name: ingest
+    #container_name: ingest
     environment:
       - S3_ACCESS_KEY=${S3_ACCESS_KEY}
       - S3_SECRET_KEY=${S3_SECRET_KEY}
@@ -240,7 +240,7 @@ services:
       - mq
       - keys
     hostname: verify
-    container_name: verify
+    #container_name: verify
     image: nbisweden/ega-base
     environment:
       - LEGA_PASSWORD=${LEGA_PASSWORD}
