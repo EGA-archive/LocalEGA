@@ -1,6 +1,6 @@
 import unittest
 from lega.utils.db import insert_file, get_errors, set_error, get_info, set_info
-from lega.utils.db import set_status, Status, fetch_args, create_pool, connect
+from lega.utils.db import set_status, Status, fetch_args, connect
 from unittest import mock
 import asyncio
 
@@ -77,16 +77,6 @@ class DBTest(unittest.TestCase):
         set_status('file_id', Status.In_Progress)
         mock_connect().__enter__().cursor().__enter__().execute.assert_called()
 
-    @mock.patch('lega.utils.db.fetch_args')
-    @mock.patch('lega.utils.db.aiopg.create_pool')
-    def test_create_pool(self, mock_aiopg, mock_args):
-        """Create pool should call aipg and fetch args."""
-        f = asyncio.Future()
-        f.set_result('whatever result you want')
-        mock_aiopg.return_value = f
-        self._loop.run_until_complete(create_pool(self._loop))
-        mock_args.assert_called()
-        mock_aiopg.assert_called()
 
     def test_fetch_args(self):
         """Test fetching arguments."""
