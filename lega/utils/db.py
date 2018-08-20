@@ -11,8 +11,6 @@ import logging
 import psycopg2
 from socket import gethostname
 from time import sleep
-import asyncio
-import aiopg
 from enum import Enum
 
 from legacryptor import exceptions as crypt_exc
@@ -44,54 +42,40 @@ def fetch_args(d):
     LOG.info(f"Initializing a connection to: {db_args['host']}:{db_args['port']}/{db_args['database']}")
     return db_args
 
-async def _retry(run, on_failure=None, exception=psycopg2.OperationalError):
-    '''Main retry loop'''
-    nb_try = CONF.get_value('postgres', 'try', conv=int, default=1)
-    try_interval = CONF.get_value('postgres', 'try_interval', conv=int, default=1)
-    LOG.debug(f"{nb_try} attempts (every {try_interval} seconds)")
-    count = 0
-    backoff = try_interval
-    while count < nb_try:
-        try:
-            return await run()
-        except exception as e:
-            LOG.debug(f"Database connection error: {e!r}")
-            LOG.debug(f"Retrying in {backoff} seconds")
-            sleep( backoff )
-            count += 1
-            backoff = (2 ** (count // 10)) * try_interval
-            # from  0 to  9, sleep 1 * try_interval secs
-            # from 10 to 19, sleep 2 * try_interval secs
-            # from 20 to 29, sleep 4 * try_interval secs ... etc
-
-    # fail to connect
-    if nb_try:
-        LOG.error(f"Database connection fail after {nb_try} attempts ...")
-    else:
-        LOG.error("Database connection attempts was set to 0 ...")
-
-    if on_failure:
-        on_failure()
-
-
 def retry_loop(on_failure=None, exception=psycopg2.OperationalError):
     '''Decorator retry something ``try`` times every ``try_interval`` seconds.
     Run the ``on_failure`` if after ``try`` attempts (configured in CONF).
     '''
     def decorator(func):
-        if asyncio.iscoroutinefunction(func):
-            @wraps(func)
-            async def wrapper(*args, **kwargs):
-                async def _process():
-                    return await func(*args,**kwargs)
-                return await _retry(_process, on_failure=on_failure, exception=exception)
-        else:
-            @wraps(func)
-            def wrapper(*args, **kwargs):
-                async def _process():
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            '''Main retry loop'''
+            nb_try = CONF.get_value('postgres', 'try', conv=int, default=1)
+            try_interval = CONF.get_value('postgres', 'try_interval', conv=int, default=1)
+            LOG.debug(f"{nb_try} attempts (every {try_interval} seconds)")
+            count = 0
+            backoff = try_interval
+            while count < nb_try:
+                try:
                     return func(*args,**kwargs)
-                loop = asyncio.get_event_loop()
-                return loop.run_until_complete(_retry(_process, on_failure=on_failure, exception=exception))
+                except exception as e:
+                    LOG.debug(f"Database connection error: {e!r}")
+                    LOG.debug(f"Retrying in {backoff} seconds")
+                    sleep( backoff )
+                    count += 1
+                    backoff = (2 ** (count // 10)) * try_interval
+                    # from  0 to  9, sleep 1 * try_interval secs
+                    # from 10 to 19, sleep 2 * try_interval secs
+                    # from 20 to 29, sleep 4 * try_interval secs ... etc
+
+            # fail to connect
+            if nb_try:
+                LOG.error(f"Database connection fail after {nb_try} attempts ...")
+            else:
+                LOG.error("Database connection attempts was set to 0 ...")
+
+            if on_failure:
+                on_failure()
         return wrapper
     return decorator
 
@@ -194,20 +178,6 @@ def set_info(file_id, vault_path, vault_filesize, header):
                          'vault_filesize': vault_filesize,
                          'header': header,
                         })
-
-######################################
-##           Async code             ##
-######################################
-
-@retry_loop(on_failure=_do_exit)
-async def create_pool(loop):
-    '''\
-    Async function to create a pool of connection to the database.
-    Used by the frontend.
-    '''
-    db_args = fetch_args(CONF)
-    return await aiopg.create_pool(**db_args, loop=loop, echo=True)
-
 
 ######################################
 ##           Decorator              ##

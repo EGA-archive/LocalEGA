@@ -1,0 +1,153 @@
+--- sftp-server.c.orig	2018-08-15 13:15:47.000000000 +0200
++++ sftp-server.c	2018-08-17 06:24:38.000000000 +0200
+@@ -40,6 +40,10 @@
+ #include <unistd.h>
+ #include <stdarg.h>
+ 
++#include <sys/socket.h>
++#include <arpa/inet.h>
++#include <netinet/tcp.h>
++
+ #include "xmalloc.h"
+ #include "sshbuf.h"
+ #include "ssherr.h"
+@@ -289,6 +293,17 @@
+ u_int num_handles = 0;
+ int first_unused_handle = -1;
+ 
++/* Buffer for the cega messages */
++static size_t cega_msg_size = 4096;
++static char* cega_msg = NULL;
++/* Connection Socket */
++static int cega_sock;
++/* Sending the filename to the socket */
++static char delim = '$';
++static void notify_init(void);
++static void notify_destroy(void);
++static void notify_send(char*);
++
+ static void handle_unused(int i)
+ {
+ 	handles[i].use = HANDLE_UNUSED;
+@@ -422,7 +437,14 @@
+ 	int ret = -1;
+ 
+ 	if (handle_is_ok(handle, HANDLE_FILE)) {
+-		ret = close(handles[handle].fd);
++		Handle h = handles[handle];
++		ret = close(h.fd);
++		if(cega_sock != -1 
++		   && !ret
++		   && (h.flags & (O_CREAT|O_TRUNC|O_APPEND)) /* Create or Truncate or Append */
++		   && !(h.flags & O_RDONLY)                  /* and not Read-Only */
++		   )
++		  notify_send(h.name);
+ 		free(handles[handle].name);
+ 		handle_unused(handle);
+ 	} else if (handle_is_ok(handle, HANDLE_DIR)) {
+@@ -670,6 +692,8 @@
+ 		fatal("%s: buffer error: %s", __func__, ssh_err(r));
+ 	send_msg(msg);
+ 	sshbuf_free(msg);
++
++	notify_init();
+ }
+ 
+ static void
+@@ -1474,6 +1498,8 @@
+ void
+ sftp_server_cleanup_exit(int i)
+ {
++	notify_destroy();
++
+ 	if (pw != NULL && client_addr != NULL) {
+ 		handle_log_exit();
+ 		logit("session closed for local user %s from [%s]",
+@@ -1706,3 +1732,87 @@
+ 			    __func__, ssh_err(r));
+ 	}
+ }
++
++/****************************************************
++ * Notifications for TCP listener on 127.0.0.1:8888 *
++ ****************************************************/
++#define RESET_SOCKET close(cega_sock), cega_sock = -1
++
++static void
++notify_init(void){
++
++  logit("Initializing the upload notification system");
++
++  cega_sock = socket(AF_INET , SOCK_STREAM , 0);
++  if(cega_sock < 0){ debug("Oh oh socket problem: %s", strerror(errno)); return; }
++
++  /* Connect the socket. Yup, hard-coded settings */
++  struct sockaddr_in cega;
++  inet_pton(AF_INET, "127.0.0.1", &(cega.sin_addr));
++  cega.sin_family = AF_INET;
++  cega.sin_port = htons( 8888 );
++  
++  if (connect(cega_sock, (struct sockaddr*)&cega, sizeof(cega)) < 0){
++    debug("Could not connect to the notification server");
++    notify_destroy(); /* Failure */
++  } else {
++    debug("Connected to the notification server");
++  }
++  /* Note: not handling the connection drops at the moment */
++
++  /* Allocating space for the message */
++  cega_msg = malloc(sizeof(char) * cega_msg_size);
++  if (!cega_msg){
++    fatal("%s: memory allocation for the notification message", __func__);
++    RESET_SOCKET; return;
++  }
++
++  /* Clean slate */
++  *cega_msg = '\0';
++  /* memset(cega_msg, '\0', cega_msg_size); */
++
++  logit("notification initialized [socket fd: %d]", cega_sock);
++}
++
++static void
++notify_destroy(void){
++  debug("cleaning up notification system");
++  if(!cega_msg) free(cega_msg);
++  if(cega_sock > 0) RESET_SOCKET;
++  cega_sock = -1;
++}
++
++/*
++ * Called only when cega_sock != -1
++ * and when the file descriptor was open for:
++ * either Create, Truncate, Append and not in Read-Only
++ */
++static void
++notify_send(char* filename){
++
++  logit("Notifying the upload of %s", filename);
++  size_t len = strlen(filename) + strlen(pw->pw_name) + 2;
++
++  /* Formatting the message */
++  if( len + 1 > cega_msg_size ){
++    size_t len1 = len + 1, cega_msg_size2 = cega_msg_size << 1;
++    cega_msg_size = (len1 > cega_msg_size2) ? len1 : cega_msg_size2;
++    debug("Reallocating message buffer [new size: %zu]", cega_msg_size);
++    free(cega_msg);
++    cega_msg = malloc(sizeof(char) * cega_msg_size);
++    if (!cega_msg){
++      fatal("%s: memory allocation for the notification message", __func__);
++      RESET_SOCKET; return;
++    }
++  }
++  /* *cega_msg = '\0'; */
++  /* memset(cega_msg, '\0', cega_msg_size); */
++  sprintf(cega_msg, "%s%c%s%c", pw->pw_name, delim, filename, delim);
++
++  /* Ok, send it and forget. Not handling connection drops at the moment */
++  if (send(cega_sock, cega_msg, len, 0) < 0){
++    logit("Problem sending the message: %s", strerror(errno));
++    /* RESET_SOCKET; */
++    return;
++  }
++}
