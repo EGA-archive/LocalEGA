@@ -1,8 +1,20 @@
 
+# Add those packages to the containers, in case DEV is defined
+ifdef DEV
+DEV_PACKAGES=nss-tools nc nmap tcpdump lsof strace bash-completion bash-completion-extras
+endif
+
 CHECKOUT=$(shell git rev-parse --abbrev-ref HEAD)
 TAG=$(shell git rev-parse --short HEAD)
-TARGET_PREFIX=nbisweden/ega
+ifdef TRAVIS_COMMIT
+TAG=$(TRAVIS_COMMIT)
+CHECKOUT=$(TAG)
+endif
+ifdef TRAVIS_PULL_REQUEST_SHA
+TAG=$(TRAVIS_PULL_REQUEST_SHA)
+endif
 
+TARGET_PREFIX=nbisweden/ega
 
 BUILD_ARGS=--build-arg checkout=$(CHECKOUT)
 
@@ -10,7 +22,7 @@ BUILD_ARGS=--build-arg checkout=$(CHECKOUT)
 
 all: base inbox
 
-base: PIP_EGA_PACKAGES=pika==0.12.0 psycopg2-binary==2.7.5 cryptography==2.3 aiohttp==3.0.7 aiohttp-jinja2==0.13.0 pgpy boto3 aiohttp-jinja2==0.13.0
+base: BUILD_ARGS+=--build-arg DEV_PACKAGES="$(DEV_PACKAGES)"
 inbox: BUILD_ARGS+=--build-arg AUTH_BRANCH=cega-ids
 base inbox:
 	docker build ${BUILD_ARGS} \

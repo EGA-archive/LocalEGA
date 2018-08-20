@@ -1,16 +1,32 @@
 FROM centos:7.4.1708
 LABEL maintainer "NBIS System Developers"
 
+#################################################
+##
+## Upgrade CentOS 7, and install Python 3.6
+##
+#################################################
+
+ARG DEV_PACKAGES=
 RUN yum -y install https://centos7.iuscommunity.org/ius-release.rpm && \
     yum -y install epel-release && \
     yum -y update && \
-    yum -y install git gcc make bzip2 curl \
+    yum -y install git gcc make bzip2 curl ${DEV_PACKAGES} \
                    zlib-devel bzip2-devel unzip \
 		   wget dpkg \
                    openssl \
 		   python36u python36u-pip
 
 RUN [[ -e /lib64/libpython3.6m.so ]] || ln -s /lib64/libpython3.6m.so.1.0 /lib64/libpython3.6m.so
+
+RUN pip3.6 install --upgrade pip && \
+    pip3.6 install PyYaml
+
+#################################################
+##
+## Install GOSU
+##
+#################################################
 
 ENV GOSU_VERSION 1.10
 ENV GPG_KEYS B42F6819007F00F88E364FD4036A9C25BF357DD4
@@ -33,17 +49,24 @@ RUN export GNUPGHOME="$(mktemp -d)" && \
 RUN gosu nobody true && \
     yum -y remove dpkg
 
+#################################################
+# Clean up
+
 RUN yum clean all && rm -rf /var/cache/yum
+
+#################################################
+##
+## Install LocalEGA stuff
+##
+#################################################
 
 RUN groupadd -r lega && \
     useradd -M -r -g lega lega
 
-ARG PIP_EGA_PACKAGES=
-RUN pip3.6 install --upgrade pip && \
-    pip3.6 install PyYaml ${PIP_EGA_PACKAGES}
+ARG checkout=dev
 
+RUN pip3.6 install -r https://raw.githubusercontent.com/NBISweden/LocalEGA/${checkout}/requirements.txt
 RUN pip3.6 install git+https://github.com/NBISweden/LocalEGA.git@${checkout}
 
+RUN pip3.6 install -r https://raw.githubusercontent.com/NBISweden/LocalEGA-cryptor/master/requirements.txt
 RUN pip3.6 install git+https://github.com/NBISweden/LocalEGA-cryptor.git
-
-
