@@ -137,15 +137,16 @@ class Configuration(configparser.ConfigParser):
 
         ``section`` and ``option`` are mandatory while ``conv``, ``default`` (fallback) and ``raw`` are optional.
         """
-        result = os.environ.get('_'.join([section.upper(), option.upper()]), None)
-        if result:
+        result = os.environ.get(f'{section.upper()}_{option.upper()}', None)
+        if result is not None: # it might be empty
             return self._convert(result, conv)
-        elif result is None and self.has_option(section, option):
-            return self._convert(self.get(section, option, fallback=default, raw=raw), conv)
+        #if self.has_option(section, option):
+        return self._convert(self.get(section, option, fallback=default, raw=raw), conv)
 
     def _convert(self, value, conv):
         """Convert value properly to ``str``, ``float`` or ``int``, also consider ``bool`` type."""
         if conv == bool:
+            assert value, "Can not convert an empty value"
             val = value.lower()
             if val in ('y', 'yes', 't', 'true', 'on', '1'):
                 return True
@@ -154,7 +155,7 @@ class Configuration(configparser.ConfigParser):
             else:
                 raise ValueError(f"Invalid truth value: {val}")
         else:
-            return conv(value)
+            return conv(value) # raise error in case we can't convert an empty value
 
 
 CONF = Configuration()
