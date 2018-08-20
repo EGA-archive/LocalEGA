@@ -39,7 +39,7 @@ async def _retry(run, on_failure=None):
                 asyncio.TimeoutError) as e:
             LOG.debug(f"Eureka connection error: {e!r}")
             LOG.debug(f"Retrying in {backoff} seconds")
-            asyncio.sleep(backoff)
+            await asyncio.sleep(backoff)
             count += 1
             backoff = (2 ** (count // 10)) * try_interval
 
