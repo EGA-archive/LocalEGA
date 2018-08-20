@@ -1,0 +1,29 @@
+Port 9000
+Protocol 2
+HostKey /etc/ssh/ssh_host_rsa_key
+HostKey /etc/ssh/ssh_host_ecdsa_key
+HostKey /etc/ssh/ssh_host_ed25519_key
+# Authentication
+UsePAM yes
+AuthenticationMethods "publickey" "keyboard-interactive:pam"
+PubkeyAuthentication yes
+PasswordAuthentication no
+ChallengeResponseAuthentication yes
+# Faster connection
+UseDNS no
+# Limited access
+DenyGroups *,!lega
+DenyUsers root ega lega
+PermitRootLogin no
+X11Forwarding no
+AllowTcpForwarding no
+PermitTunnel no
+AcceptEnv LANG LC_CTYPE LC_NUMERIC LC_TIME LC_COLLATE LC_MONETARY LC_MESSAGES
+AcceptEnv LC_PAPER LC_NAME LC_ADDRESS LC_TELEPHONE LC_MEASUREMENT
+AcceptEnv LC_IDENTIFICATION LC_ALL LANGUAGE
+AcceptEnv XMODIFIERS
+Subsystem sftp internal-sftp
+ForceCommand internal-sftp
+Banner /ega/banner
+AuthorizedKeysCommand /usr/local/bin/ega_ssh_keys
+AuthorizedKeysCommandUser root

@@ -1,13 +1,12 @@
-pika==0.11.0
+pika==0.12.0
 colorama==0.3.7
 aiohttp==3.0.7
 aiohttp-jinja2==0.13.0
-fusepy
 sphinx_rtd_theme
-cryptography==2.3
+cryptography==2.3.1
 pgpy
-psycopg2-binary==2.7.4
-aiopg==0.13.0
+psycopg2-binary==2.7.5
 PyYaml
 boto3
 git+https://github.com/NBISweden/LocalEGA-cryptor.git
+uvloop
