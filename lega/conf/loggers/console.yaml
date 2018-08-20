@@ -10,13 +10,10 @@ loggers:
     propagate: true
     qualname: lega
   asyncio:
-    level: INFO
-    handlers: [console]
-  aiopg:
-    level: INFO
+    level: ERROR
     handlers: [console]
   aiohttp:
-    level: INFO
+    level: ERROR
     handlers: [console]
     propagate: true
     qualname: aiohttp
