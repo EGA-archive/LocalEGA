@@ -22,7 +22,7 @@ jobs:
       script: tox
     - stage: integration tests
       before_script:
-        - cd deployments/docker
+        - cd docker
         - make bootstrap ARGS="--inbox mina"
         - sudo chown -R travis private
         - docker network create cega
@@ -34,7 +34,7 @@ jobs:
         - mvn test -Dtest=CommonTests -B
     - stage: integration tests
       before_script:
-        - cd deployments/docker
+        - cd docker
         - make bootstrap ARGS="--inbox mina"
         - sudo chown -R travis private
         - docker network create cega
