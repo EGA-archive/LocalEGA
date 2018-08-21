@@ -6,6 +6,7 @@ import os
 from io import UnsupportedOperation, BufferedReader
 from unittest import mock
 import boto3
+import botocore.response as br
 
 
 class TestFileStorage(unittest.TestCase):
@@ -107,9 +108,10 @@ class TestS3FileReader(unittest.TestCase):
 
     def setUp(self):
         """Initialise fixtures."""
-        s3 = mock.MagicMock(name='head_object')
-        s3.head_object.return_value = {'ContentLength': 32}
-        self._reader = S3FileReader(s3, 'lega', '/path', 'rb', 10)
+        self._s3 = mock.MagicMock(name='head_object')
+        self._s3.head_object.return_value = {'ContentLength': 32}
+        self._s3.get_object.return_value = mock.MagicMock()
+        self._reader = S3FileReader(self._s3, 'lega', '/path', 'rb', 10)
 
     def test_tell(self):
         """Test tell, should return the proper loc result."""
@@ -151,6 +153,45 @@ class TestS3FileReader(unittest.TestCase):
         self._reader.closed = True
         with self.assertRaises(ValueError):
             self._reader.read()
+
+    def test_read(self):
+        """Test end of file."""
+        self._reader.closed = False
+        self._reader.loc = self._reader.size = 1
+        self.assertEqual(b'', self._reader.read())
+
+    def test_read_length(self):
+        """Test read file length."""
+        self._reader.closed = False
+        self._reader._fetch = mock.MagicMock()
+        self._reader.loc = 1
+        self._reader.size = 10
+        with self._reader.read(-2):
+            self._reader._fetch.assert_called()
+
+    def test_read1(self):
+        """Test read1."""
+        self._reader.read = mock.Mock()
+        self._reader.read1()
+        self._reader.read.assert_called()
+
+    def test_readinto(self):
+        """Test readinto."""
+        self._reader.read = mock.MagicMock()
+        data = []
+        self.assertEqual(0, self._reader.readinto(data))
+
+    def test_readinto1(self):
+        """Test readinto1."""
+        self._reader.readinto = mock.Mock()
+        self._reader.readinto1([])
+        self._reader.readinto.assert_called()
+
+    def test_fetch(self):
+        """Test fetch."""
+        self._reader.size = 10
+        self._reader._fetch(1, 9, max_attempts=1)
+        self._s3.get_object.assert_called()
 
     def test_close(self):
         """Testing close of the file reader."""
