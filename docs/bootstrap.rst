@@ -20,6 +20,5 @@ like Docker Swarm, Kubernetes, Openstack or a local-machine.
 .. note::
    More on that coming...
 
-.. _Docker: https://github.com/NBISweden/LocalEGA/tree/dev/deployments/docker
-.. _OpenStack cloud: https://github.com/NBISweden/LocalEGA/tree/dev/deployments/terraform
-
+.. _Docker: https://github.com/NBISweden/LocalEGA/tree/dev/docker
+.. _OpenStack cloud: https://github.com/NBISweden/LocalEGA-deploy-terraform

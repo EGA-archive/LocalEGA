@@ -41,7 +41,7 @@ Next step is about mapping Gherkin scenarios to executable code. Currently we us
         Given("^I am a user \"([^\"]*)\"$", (String user) -> this.user = user);
 
         Given("^I have a private key$",
-                () -> privateKey = new File(Paths.get("").toAbsolutePath().getParent().toString() + String.format("deployments/docker/bootstrap/private/cega/users/%s.sec", user)));
+                () -> privateKey = new File(Paths.get("").toAbsolutePath().getParent().toString() + String.format("docker/bootstrap/private/cega/users/%s.sec", user)));
 
         When("^I connect to the LocalEGA inbox via SFTP using private key$", () -> {
             try {
@@ -87,7 +87,7 @@ Test-suite is executed using Maven: `mvn clean test` from within the `tests` fol
 ```
 Feature: Uploading
   As a user I want to be able to upload files to the LocalEGA inbox
-  
+
   Scenario: Upload files to the LocalEGA inbox                     # src/test/resources/cucumber/features/uploading.feature:4
     Given I am a user "john"                                       # Definitions.java:55
     And I have a private key                                       # Definitions.java:57
@@ -116,9 +116,9 @@ Flow
 --------------------
 
 Behavior-driven development is a software development methodology which essentially states that for each feature of software, a software developer must:
- - define a scenarios set for the feature first; 
- - make the scenarios fail; 
- - then implement the feature; 
+ - define a scenarios set for the feature first;
+ - make the scenarios fail;
+ - then implement the feature;
  - finally verify that the implementation of the feature makes the scenarios succeed.
 
 So *ideally* one should always contribute new functionality along with a correspondent implemented test-case.
