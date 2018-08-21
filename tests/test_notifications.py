@@ -1,12 +1,13 @@
 import unittest
-from lega.notifications import Forwarder
+from lega.notifications import Forwarder, main
 from unittest import mock
+import socket
 
 
 class testForwarder(unittest.TestCase):
-    """Ingest
+    """Notifications
 
-    Testing ingestion functionalities."""
+    Testing Notifications functionalities."""
 
     def setUp(self):
         """Initialise fixtures."""
@@ -22,14 +23,41 @@ class testForwarder(unittest.TestCase):
         self._forwarder.connection_made(mock_transport)
         mock_logger.debug.assert_called_with('Connection from 127.0.0.1')
 
+    @mock.patch('lega.notifications.LOG')
+    def test_connection_close(self, mock_logger):
+        self._forwarder.transport = mock.Mock()
+        self._forwarder.connection_lost('')
+        self._forwarder.transport.close.assert_called()
+
     def test_data_single_file_parsed(self):
-        """Test parsed data."""
+        """Test parsed data single file."""
         for u, f in self._forwarder.parse(b'user$file.name$'):
             self.assertEqual(u, "user")
             self.assertEqual(f, "file.name")
 
     def test_data_multiple_file_parsed(self):
-        """Test parsed data."""
+        """Test parsed data, multiple files."""
         for u, f in self._forwarder.parse(b'john$/dir/subdir/fileA.txt$john$/dir/subdir/fileB.txt$john$/dir/subdir/fileC.txt$'):
             self.assertEqual(u, "john")
             self.assertIn(f, ["/dir/subdir/fileA.txt", "/dir/subdir/fileB.txt", "/dir/subdir/fileC.txt"])
+
+    def test_received_data(self):
+        """Test received data send message."""
+        self._forwarder.send_message = mock.Mock()
+        self._forwarder.data_received(b'user$file.name$')
+        self._forwarder.send_message.assert_called_with('user', 'file.name')
+
+    @mock.patch('os.stat')
+    @mock.patch('lega.notifications.publish')
+    @mock.patch('lega.notifications.calculate')
+    def test_send_message(self, mock_calculate, mock_publish, mock_stat):
+        """Test received data error."""
+        mock_stat.size.return_value = 1
+        self._forwarder.send_message('user', 'file.name')
+        mock_publish.assert_called()
+
+    # @mock.patch('lega.notifications.asyncio')
+    # def test_main(self, mock_async):
+    #     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    #     s.connect(("127.0.0.1", 8888))
+    #     s.close()

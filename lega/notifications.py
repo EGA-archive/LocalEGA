@@ -11,8 +11,6 @@ The message includes filesize and checksum.
 import sys
 import logging
 import os
-# import re
-# import socket
 import asyncio
 import uvloop
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
@@ -78,7 +76,7 @@ class Forwarder(asyncio.Protocol):
             filepath = os.path.join(inbox, filename.lstrip('/'))
         else:
             filepath = filename
-            filename = filename[len(inbox):] # there is surelt better
+            filename = filename[len(inbox):]  # there is surelt better
         LOG.debug("Filepath %s", filepath)
         msg = { 'user': username, 'filepath': filename }
         if filename.endswith(supported_algorithms()):
@@ -105,10 +103,9 @@ def main(args=None):
     if not args:
         args = sys.argv[1:]
 
-    CONF.setup(args) # re-conf
+    CONF.setup(args)  # re-conf
 
     loop = asyncio.get_event_loop()
-    loop.set_debug(True)
     broker = get_connection('broker')
     server = loop.run_until_complete(loop.create_server(lambda: Forwarder(broker), host, port))
 
@@ -126,6 +123,7 @@ def main(args=None):
     server.close()
     loop.run_until_complete(server.wait_closed())
     loop.close()
+
 
 if __name__ == '__main__':
     main()
