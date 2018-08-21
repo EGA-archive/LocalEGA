@@ -3,7 +3,7 @@ from lega.utils.storage import FileStorage, S3FileReader, S3Storage
 from test.support import EnvironmentVarGuard
 from testfixtures import TempDirectory
 import os
-from io import UnsupportedOperation
+from io import UnsupportedOperation, BufferedReader
 from unittest import mock
 import boto3
 
@@ -38,6 +38,12 @@ class TestFileStorage(unittest.TestCase):
         result = self._store.copy(open(path, 'rb'), path1)
         self.assertEqual(os.stat(path1).st_size, result)
 
+    def test_open(self):
+        """Test open file."""
+        path = self._dir.write('test.file', 'data1'.encode('utf-8'))
+        with self._store.open(path) as resource:
+            self.assertEqual(BufferedReader, type(resource))
+
 
 class TestS3Storage(unittest.TestCase):
     """S3Storage
@@ -46,6 +52,7 @@ class TestS3Storage(unittest.TestCase):
 
     def setUp(self):
         """Initialise fixtures."""
+        self._dir = TempDirectory()
         self.env = EnvironmentVarGuard()
         self.env.set('VAULT_URL', 'http://localhost:5000')
         self.env.set('VAULT_REGION', 'lega')
@@ -58,6 +65,7 @@ class TestS3Storage(unittest.TestCase):
         self.env.unset('VAULT_REGION')
         self.env.unset('S3_ACCESS_KEY')
         self.env.unset('S3_SECRET_KEY')
+        self._dir.cleanup_all()
 
     @mock.patch.object(boto3, 'client')
     def test_init_s3storage(self, mock_boto):
@@ -72,6 +80,24 @@ class TestS3Storage(unittest.TestCase):
         result = storage.location('file_id')
         self.assertEqual('file_id', result)
         mock_boto.assert_called()
+
+    @mock.patch.object(boto3, 'client')
+    def test_upload(self, mock_boto):
+        """Test copy to S3, should call boto3 client."""
+        path = self._dir.write('test.file', 'data1'.encode('utf-8'))
+        storage = S3Storage()
+        storage.copy(path, 'lega')
+        mock_boto.assert_called_with('s3', aws_access_key_id='test', aws_secret_access_key='test',
+                                     endpoint_url='http://localhost:5000', region_name='lega',
+                                     use_ssl=False, verify=False)
+
+    @mock.patch.object(boto3, 'client')
+    def test_open(self, mock_boto):
+        """Test open , should call S3FileReader."""
+        path = self._dir.write('test.file', 'data1'.encode('utf-8'))
+        storage = S3Storage()
+        with storage.open(path) as resource:
+            self.assertEqual(S3FileReader, type(resource))
 
 
 class TestS3FileReader(unittest.TestCase):

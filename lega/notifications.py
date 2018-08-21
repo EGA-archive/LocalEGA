@@ -11,8 +11,8 @@ The message includes filesize and checksum.
 import sys
 import logging
 import os
-import re
-import socket
+# import re
+# import socket
 import asyncio
 import uvloop
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
@@ -48,7 +48,7 @@ class Forwarder(asyncio.Protocol):
     # Buffering can concatenate multiple messages, especially if they arrive too quickly
     # We tried to use TCP_NODELAY (to turn off the socket buffering on the sender's side)
     # but that didn't help. Therefore we use an out-of-band method:
-    # We separate messages with a '|' character
+    # We separate messages with a '$' character
     def parse(self, data):
         while True:
             if data.count(b'$') < 2:
@@ -111,7 +111,7 @@ def main(args=None):
     loop.set_debug(True)
     broker = get_connection('broker')
     server = loop.run_until_complete(loop.create_server(lambda: Forwarder(broker), host, port))
-    
+
     # Serve requests until Ctrl+C is pressed
     LOG.info('Serving on %s', host)
     try:
