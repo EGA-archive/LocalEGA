@@ -1,7 +1,6 @@
 import unittest
-from lega.notifications import Forwarder, main
+from lega.notifications import Forwarder
 from unittest import mock
-import socket
 
 
 class testForwarder(unittest.TestCase):
@@ -47,6 +46,17 @@ class testForwarder(unittest.TestCase):
         self._forwarder.data_received(b'user$file.name$')
         self._forwarder.send_message.assert_called_with('user', 'file.name')
 
+    def test_received_data_2(self):
+        """Test received data send message."""
+        self._forwarder.send_message = mock.Mock()
+        self._forwarder.data_received(b'user$file.name$user$/to')
+        self._forwarder.send_message.assert_called_with('user', 'file.name')
+        self._forwarder.data_received(b'to4.txt$us')
+        self._forwarder.send_message.assert_called_with('user', '/toto4.txt')
+        self._forwarder.data_received(b'er$test.fi')
+        self._forwarder.data_received(b'le$')
+        self._forwarder.send_message.assert_called_with('user', 'test.file')
+
     @mock.patch('os.stat')
     @mock.patch('lega.notifications.publish')
     @mock.patch('lega.notifications.calculate')
@@ -55,9 +65,3 @@ class testForwarder(unittest.TestCase):
         mock_stat.size.return_value = 1
         self._forwarder.send_message('user', 'file.name')
         mock_publish.assert_called()
-
-    # @mock.patch('lega.notifications.asyncio')
-    # def test_main(self, mock_async):
-    #     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    #     s.connect(("127.0.0.1", 8888))
-    #     s.close()
