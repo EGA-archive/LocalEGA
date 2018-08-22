@@ -84,8 +84,6 @@ try = 30
 endpoint = http://cega-eureka:8761
 EOF
 
-# echomsg "\t* SFTP Inbox port"
-
 echomsg "\t* db.sql"
 # Running in container
 cat /tmp/db.sql >> ${PRIVATE}/lega/db.sql
@@ -164,27 +162,44 @@ services:
   # SFTP inbox
   inbox:
     hostname: ega-inbox
-    #depends_on:
-    #  - mq
+    depends_on:
+      - mq
     # Required external link
     external_links:
       - cega-users:cega-users
+    container_name: inbox
+    restart: on-failure:3
+    networks:
+      - lega
+      - cega
+EOF
+if [[ $INBOX == 'mina' ]]; then
+cat >> ${PRIVATE}/lega.yml <<EOF
+    environment:
+      - CEGA_ENDPOINT=http://cega-users/user/
+      - CEGA_ENDPOINT_CREDS=lega:${CEGA_REST_PASSWORD}
+    ports:
+      - "${DOCKER_PORT_inbox}:2222"
+    image: nbisweden/ega-mina-inbox
+    volumes:
+      - inbox:/ega/inbox
+EOF
+else
+cat >> ${PRIVATE}/lega.yml <<EOF  # SFTP inbox
     environment:
       - CEGA_ENDPOINT=http://cega-users
       - CEGA_ENDPOINT_CREDS=lega:${CEGA_REST_PASSWORD}
       - CEGA_ENDPOINT_JSON_PREFIX=
     ports:
       - "${DOCKER_PORT_inbox}:9000"
-    container_name: inbox
     image: nbisweden/ega-inbox
     volumes:
       - ./lega/conf.ini:/etc/ega/conf.ini:ro
       - inbox:/ega/inbox
-    restart: on-failure:3
-    networks:
-      - lega
-      - cega
+EOF
+fi
 
+cat >> ${PRIVATE}/lega.yml <<EOF
   # Ingestion Workers
   ingest:
     depends_on:
