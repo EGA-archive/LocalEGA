@@ -17,6 +17,7 @@ asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
 host = '127.0.0.1'
 port = 8888
+delim = b'$'
 
 from .conf import CONF
 from .utils.amqp import get_connection, publish
@@ -46,16 +47,16 @@ class Forwarder(asyncio.Protocol):
     # Buffering can concatenate multiple messages, especially if they arrive too quickly
     # We tried to use TCP_NODELAY (to turn off the socket buffering on the sender's side)
     # but that didn't help. Therefore we use an out-of-band method:
-    # We separate messages with a '$' character
+    # We separate messages with a delim character
     def parse(self, data):
         while True:
-            if data.count(b'$') < 2:
+            if data.count(delim) < 2:
                 self.buf = data
                 return
             # We have 2 bars
-            pos1 = data.find(b'$')
+            pos1 = data.find(delim)
             username = data[:pos1]
-            pos2 = data.find(b'$',pos1+1)
+            pos2 = data.find(delim,pos1+1)
             filename = data[pos1+1:pos2]
             yield (username.decode(),filename.decode())
             data = data[pos2+1:]
