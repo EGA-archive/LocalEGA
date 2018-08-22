@@ -23,7 +23,7 @@ jobs:
     - stage: integration tests
       before_script:
         - cd docker
-        - make bootstrap
+        - make bootstrap ARGS='--inbox mina'
         - sudo chown -R travis private
         - docker network create cega
         - make up
@@ -35,7 +35,7 @@ jobs:
     - stage: integration tests
       before_script:
         - cd docker
-        - make bootstrap
+        - make bootstrap ARGS='--inbox mina'
         - sudo chown -R travis private
         - docker network create cega
         - make up

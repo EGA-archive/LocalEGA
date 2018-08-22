@@ -12,11 +12,13 @@ EXTRAS=${HERE}/../../../extras
 VERBOSE=no
 FORCE=yes
 OPENSSL=openssl
+INBOX=openssh
 
 function usage {
     echo "Usage: $0 [options]"
     echo -e "\nOptions are:"
     echo -e "\t--openssl <value> \tPath to the Openssl executable [Default: ${OPENSSL}]"
+    echo -e "\t--inbox <value>   \tSelect inbox \"openssh\" or \"mina\" [Default: ${INBOX}]"
     echo ""
     echo -e "\t--verbose, -v     \tShow verbose output"
     echo -e "\t--polite, -p      \tDo not force the re-creation of the subfolders. Ask instead"
@@ -33,6 +35,7 @@ while [[ $# -gt 0 ]]; do
         --verbose|-v) VERBOSE=yes;;
         --polite|-p) FORCE=no;;
         --openssl) OPENSSL=$2; shift;;
+	--inbox) INBOX=$2; shift;;
 	--) shift; break;;
         *) echo "$0: error - unrecognized option $1" 1>&2; usage; exit 1;;    esac
     shift
