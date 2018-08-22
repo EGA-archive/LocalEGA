@@ -1,6 +1,8 @@
 language: python
 
 python: 3.6
+install:
+  - echo "Dependencies on Travis? No, thanks"
 
 services: docker
 
