@@ -46,7 +46,16 @@ jobs:
         - sleep 10
         - cd tests
         - mvn test -Dtest=RobustnessTests -B
-
+    - stage: integration tests
+      before_script:
+        - cd docker
+        - make bootstrap
+        - sudo chown -R travis private
+        - make up
+        - make ps
+      script:
+        - sleep 5
+        - make -C test
 notifications:
   email: false
   slack:
