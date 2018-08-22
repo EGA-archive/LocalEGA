@@ -51,6 +51,7 @@ jobs:
         - cd docker
         - make bootstrap
         - sudo chown -R travis private
+        - docker network create cega
         - make up
         - make ps
       script:
