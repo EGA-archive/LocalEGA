@@ -4,6 +4,10 @@ python: 3.6
 install:
   - echo "Dependencies on Travis? No, thanks"
 
+git:
+  depth: false
+  quiet: true
+
 services: docker
 
 # command to install dependencies
@@ -52,11 +56,17 @@ jobs:
         - make bootstrap
         - sudo chown -R travis private
         - docker network create cega
-        - make up
-        - make ps
+        - docker-compose up -d --scale ingest=3 --scale verify=5
+        - docker-compose ps
       script:
         - sleep 5
+        - pip install -r https://raw.githubusercontent.com/NBISweden/LocalEGA-cryptor/master/requirements.txt
+        - pip install git+https://github.com/NBISweden/LocalEGA-cryptor.git
+        - pip install pika
         - make -C test
+        - sleep 10
+        - make -C test check
+
 notifications:
   email: false
   slack:

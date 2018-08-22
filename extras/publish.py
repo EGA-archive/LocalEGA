@@ -8,9 +8,10 @@ creation of a user or the ingestion of a file.
 import argparse
 import uuid
 import json
-import pika
 import string
 import secrets
+
+import pika
 
 parser = argparse.ArgumentParser(description='''Publish message to the broker on this machine.''')
 
