@@ -151,7 +151,7 @@ services:
       - PGDATA=/ega/data
     hostname: db
     container_name: db
-    image: postgres:latest
+    image: postgres:9.6
     volumes:
       - db:/ega/data
       - ./lega/db.sql:/docker-entrypoint-initdb.d/ega.sql:ro
