@@ -29,14 +29,14 @@ Integration tests are more involved and simulate how a user will use
 the system. Therefore, we have develop a `bootstrap script
 <bootstrap>`_ to kickstart the system, and we execute a set of scenarii
 in it. `The implementation
-<https://github.com/NBISweden/LocalEGA/blob/dev/deployments/docker/tests/README.md>`_
+<https://github.com/NBISweden/LocalEGA/blob/dev/docker/tests/README.md>`_
 is in Java, and we target a docker-based environment.
 
 We have grouped the integration around 2 targets: *Common tests* and *Robustness tests*.
 
 .. code-block:: console
 
-    $ cd [git-repo]/deployments/docker/tests
+    $ cd [git-repo]/docker/tests
     $ mvn test -Dtest=CommonTests -B
     $ mvn test -Dtest=RobustnessTests -B
 
@@ -45,21 +45,21 @@ Scenarii
 
 Here follow the different scenarii we currently test, using a Gherkin-style description.
 
-.. literalinclude:: /../deployments/docker/tests/src/test/resources/cucumber/features/authentication.feature
+.. literalinclude:: /../docker/tests/src/test/resources/cucumber/features/authentication.feature
    :language: gherkin
    :lines: 1-20
 
-.. literalinclude:: /../deployments/docker/tests/src/test/resources/cucumber/features/ingestion.feature
+.. literalinclude:: /../docker/tests/src/test/resources/cucumber/features/ingestion.feature
    :language: gherkin
    :lines: 1-25,38-
 
-.. literalinclude:: /../deployments/docker/tests/src/test/resources/cucumber/features/uploading.feature
+.. literalinclude:: /../docker/tests/src/test/resources/cucumber/features/uploading.feature
    :language: gherkin
 
 ..
-   .. literalinclude:: /../deployments/docker/tests/src/test/resources/cucumber/features/checksums.feature
+   .. literalinclude:: /../docker/tests/src/test/resources/cucumber/features/checksums.feature
       :language: gherkin
 
-.. literalinclude:: /../deployments/docker/tests/src/test/resources/cucumber/features/robustness.feature
+.. literalinclude:: /../docker/tests/src/test/resources/cucumber/features/robustness.feature
    :language: gherkin
    :lines: 1-15
