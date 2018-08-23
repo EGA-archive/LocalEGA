@@ -83,5 +83,5 @@ interface.
 
 
 .. _NBIS Github repo: https://github.com/NBISweden/LocalEGA
-.. _Docker: https://github.com/NBISweden/LocalEGA/tree/dev/deployments/docker
-.. _OpenStack cloud: https://github.com/NBISweden/LocalEGA/tree/dev/deployments/terraform
+.. _Docker: https://github.com/NBISweden/LocalEGA/tree/dev/docker
+.. _OpenStack cloud: https://github.com/NBISweden/LocalEGA-deploy-terraform

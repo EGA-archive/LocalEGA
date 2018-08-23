@@ -22,7 +22,7 @@ class Mock(MagicMock):
 
 
 # Some modules need to be mocked
-MOCK_MODULES = ['fuse', 'yaml', 'pika', 'aiohttp', 'asyncio', 'psycopg2', 'aiopg']
+MOCK_MODULES = ['yaml', 'pika', 'aiohttp', 'asyncio', 'psycopg2']
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 # If your documentation needs a minimal Sphinx version, state it here.
