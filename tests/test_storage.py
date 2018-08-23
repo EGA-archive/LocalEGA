@@ -3,9 +3,10 @@ from lega.utils.storage import FileStorage, S3FileReader, S3Storage
 from test.support import EnvironmentVarGuard
 from testfixtures import TempDirectory
 import os
-from io import UnsupportedOperation
+from io import UnsupportedOperation, BufferedReader
 from unittest import mock
 import boto3
+import botocore.response as br
 
 
 class TestFileStorage(unittest.TestCase):
@@ -38,6 +39,12 @@ class TestFileStorage(unittest.TestCase):
         result = self._store.copy(open(path, 'rb'), path1)
         self.assertEqual(os.stat(path1).st_size, result)
 
+    def test_open(self):
+        """Test open file."""
+        path = self._dir.write('test.file', 'data1'.encode('utf-8'))
+        with self._store.open(path) as resource:
+            self.assertEqual(BufferedReader, type(resource))
+
 
 class TestS3Storage(unittest.TestCase):
     """S3Storage
@@ -46,6 +53,7 @@ class TestS3Storage(unittest.TestCase):
 
     def setUp(self):
         """Initialise fixtures."""
+        self._dir = TempDirectory()
         self.env = EnvironmentVarGuard()
         self.env.set('VAULT_URL', 'http://localhost:5000')
         self.env.set('VAULT_REGION', 'lega')
@@ -58,6 +66,7 @@ class TestS3Storage(unittest.TestCase):
         self.env.unset('VAULT_REGION')
         self.env.unset('S3_ACCESS_KEY')
         self.env.unset('S3_SECRET_KEY')
+        self._dir.cleanup_all()
 
     @mock.patch.object(boto3, 'client')
     def test_init_s3storage(self, mock_boto):
@@ -73,6 +82,24 @@ class TestS3Storage(unittest.TestCase):
         self.assertEqual('file_id', result)
         mock_boto.assert_called()
 
+    @mock.patch.object(boto3, 'client')
+    def test_upload(self, mock_boto):
+        """Test copy to S3, should call boto3 client."""
+        path = self._dir.write('test.file', 'data1'.encode('utf-8'))
+        storage = S3Storage()
+        storage.copy(path, 'lega')
+        mock_boto.assert_called_with('s3', aws_access_key_id='test', aws_secret_access_key='test',
+                                     endpoint_url='http://localhost:5000', region_name='lega',
+                                     use_ssl=False, verify=False)
+
+    @mock.patch.object(boto3, 'client')
+    def test_open(self, mock_boto):
+        """Test open , should call S3FileReader."""
+        path = self._dir.write('test.file', 'data1'.encode('utf-8'))
+        storage = S3Storage()
+        with storage.open(path) as resource:
+            self.assertEqual(S3FileReader, type(resource))
+
 
 class TestS3FileReader(unittest.TestCase):
     """S3FileReader
@@ -81,9 +108,10 @@ class TestS3FileReader(unittest.TestCase):
 
     def setUp(self):
         """Initialise fixtures."""
-        s3 = mock.MagicMock(name='head_object')
-        s3.head_object.return_value = {'ContentLength': 32}
-        self._reader = S3FileReader(s3, 'lega', '/path', 'rb', 10)
+        self._s3 = mock.MagicMock(name='head_object')
+        self._s3.head_object.return_value = {'ContentLength': 32}
+        self._s3.get_object.return_value = mock.MagicMock()
+        self._reader = S3FileReader(self._s3, 'lega', '/path', 'rb', 10)
 
     def test_tell(self):
         """Test tell, should return the proper loc result."""
@@ -125,6 +153,45 @@ class TestS3FileReader(unittest.TestCase):
         self._reader.closed = True
         with self.assertRaises(ValueError):
             self._reader.read()
+
+    def test_read(self):
+        """Test end of file."""
+        self._reader.closed = False
+        self._reader.loc = self._reader.size = 1
+        self.assertEqual(b'', self._reader.read())
+
+    def test_read_length(self):
+        """Test read file length."""
+        self._reader.closed = False
+        self._reader._fetch = mock.MagicMock()
+        self._reader.loc = 1
+        self._reader.size = 10
+        with self._reader.read(-2):
+            self._reader._fetch.assert_called()
+
+    def test_read1(self):
+        """Test read1."""
+        self._reader.read = mock.Mock()
+        self._reader.read1()
+        self._reader.read.assert_called()
+
+    def test_readinto(self):
+        """Test readinto."""
+        self._reader.read = mock.MagicMock()
+        data = []
+        self.assertEqual(0, self._reader.readinto(data))
+
+    def test_readinto1(self):
+        """Test readinto1."""
+        self._reader.readinto = mock.Mock()
+        self._reader.readinto1([])
+        self._reader.readinto.assert_called()
+
+    def test_fetch(self):
+        """Test fetch."""
+        self._reader.size = 10
+        self._reader._fetch(1, 9, max_attempts=1)
+        self._s3.get_object.assert_called()
 
     def test_close(self):
         """Testing close of the file reader."""
