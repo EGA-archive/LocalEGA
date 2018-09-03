@@ -137,13 +137,6 @@ def set_error(file_id, error, from_user=False):
             cur.execute('SELECT insert_error(%(file_id)s,%(h)s,%(etype)s,%(msg)s,%(from_user)s);',
                         {'h':hostname, 'etype': error.__class__.__name__, 'msg': repr(error), 'file_id': file_id, 'from_user': from_user})
 
-def get_info(file_id):
-    """Retrieve information for ``file_id``."""
-    with connect() as conn:
-        with conn.cursor() as cur:
-            query = 'SELECT inbox_path, vault_path, stable_id, header from files WHERE id = %(file_id)s;'
-            cur.execute(query, { 'file_id': file_id})
-            return cur.fetchone()
 
 def _set_status(file_id, status):
     """Updating status for file with id ``file_id``."""
@@ -169,11 +162,19 @@ def set_stable_id(file_id, stable_id):
         with conn.cursor() as cur:
             cur.execute('UPDATE files '
                         'SET status = %(status)s, '
-                        '    stable_id = %(stable_id)s '
+                        '    file_name = %(stable_id)s '
                         'WHERE id = %(file_id)s;',
                         {'status': 'Ready',
                          'file_id': file_id,
                          'stable_id': stable_id })
+
+# def get_info(file_id):
+#     """Retrieve information for ``file_id``."""
+#     with connect() as conn:
+#         with conn.cursor() as cur:
+#             query = 'SELECT file_path, file_name, header from files WHERE id = %(file_id)s;'
+#             cur.execute(query, { 'file_id': file_id})
+#             return cur.fetchone()
 
 def set_info(file_id, vault_path, vault_filesize, header):
     """Updating information in database for ``file_id``."""
@@ -184,8 +185,8 @@ def set_info(file_id, vault_path, vault_filesize, header):
         with conn.cursor() as cur:
             cur.execute('UPDATE files '
                         'SET status = %(status)s, '
-                        '    vault_path = %(vault_path)s, '
-                        '    vault_filesize = %(vault_filesize)s, '
+                        '    file_path = %(vault_path)s, '
+                        '    file_size = %(vault_filesize)s, '
                         '    header = %(header)s '
                         'WHERE id = %(file_id)s;',
                         {'status': 'Archived',
