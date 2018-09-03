@@ -10,6 +10,13 @@ USER_ID=100
 FILE=file.txt
 FILESIZE=10 # in MB
 
+get_shasum =                                          \
+         if which shasum &> /dev/null; then           \
+           shasum -a 256 $(1) | cut -d' ' -f1 > $(2); \
+         else                                         \
+           sha256sum $(1) | cut -d' ' -f1 > $(2);     \
+         fi
+
 ##############################
 
 DOCKER_PATH=$(MAIN_REPO)/docker
@@ -86,11 +93,14 @@ $(SSH_KEY):
 check: CEGA_MQ_USER=$(shell awk -F= '/CEGA_MQ_USER/ {print $$2}' $(DOCKER_PATH)/private/lega/.trace)
 check: CEGA_MQ_PASSWORD=$(shell awk -F= '/CEGA_MQ_PASSWORD/ {print $$2}' $(DOCKER_PATH)/private/lega/.trace)
 check: MESSAGE=$(shell ./rabbitmqadmin -H localhost -P 15670 -V lega -u lega -p $(CEGA_MQ_PASSWORD) get queue=completed count=1 requeue=true)
-check: $(FILE).c4ga
-	@echo "$(MESSAGE)" | grep 'state: COMPLETED' &>/dev/null
+check: $(FILE).c4ga $(FILE).sha256
+	@echo "$(MESSAGE)" | grep 'checksum: {value: $(shell cat $(FILE).sha256), algorithm: sha256}' &>/dev/null
 	@echo "$(MESSAGE)" | grep 'user: $(USER)' &>/dev/null
-	@echo "$(MESSAGE)" | grep 'filepath: $(<F)' &>/dev/null
+	@echo "$(MESSAGE)" | grep 'filepath: /$(FILE).c4ga' &>/dev/null
 	@echo "Message found in the CentralEGA broker"
+
+$(FILE).sha256: $(FILE)
+	$(call get_shasum,$<,$@)
 
 ####################################################################
 ## Cleaning

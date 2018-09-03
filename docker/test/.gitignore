@@ -1,6 +1,8 @@
 *.bam
 *.c4ga
 *.c4ga.md5
+*.c4ga.sha256
 *.md5
+*.sha256
 mq.env
 file.txt
