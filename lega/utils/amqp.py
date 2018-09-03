@@ -80,11 +80,11 @@ def consume(work, connection, from_queue, to_routing):
     waits for new messages.
 
     If the function ``work`` returns a non-None message, the latter is
-    published to the exchange ``to_exchange`` with ``to_routing`` as the
+    published to the `lega` exchange with ``to_routing`` as the
     routing key.
     '''
 
-    assert( from_queue and to_routing )
+    assert( from_queue )
 
     LOG.debug(f'Consuming message from {from_queue}')
 
@@ -102,6 +102,7 @@ def consume(work, connection, from_queue, to_routing):
 
         # Publish the answer
         if answer:
+            assert( to_routing )
             publish(answer, to_channel, 'lega', to_routing, correlation_id = props.correlation_id)
 
         # Acknowledgment: Cancel the message resend in case MQ crashes

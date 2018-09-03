@@ -8,6 +8,8 @@ DOCKER_PORT_s3=9000
 DOCKER_PORT_keyserver=8443
 
 CEGA_MQ_PASSWORD=$(generate_password 16)
+[[ "${DEPLOY_DEV}" = "yes" ]] && CEGA_MQ_PASSWORD=lega # overwrite
+
 CEGA_REST_PASSWORD=$(generate_password 16)
 
 SSL_SUBJ="/C=SE/ST=Sweden/L=Uppsala/O=NBIS/OU=SysDevs/CN=LocalEGA/emailAddress=ega@nbis.se"

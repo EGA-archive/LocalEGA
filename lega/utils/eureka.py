@@ -11,7 +11,7 @@ import json
 import uuid
 from functools import wraps
 
-from lega.conf import CONF
+from ..conf import CONF
 
 eureka_status = {
     0: 'UP',
@@ -25,12 +25,11 @@ LOG = logging.getLogger(__name__)
 
 
 def retry_loop(func):
-    """Retry connection for ``try`` times every ``try_interval`` seconds."""
+    """Decorator retry something ``try`` times every ``try_interval`` seconds."""
     assert asyncio.iscoroutinefunction(func), "This decorator is only for coroutines"
-
     @wraps(func)
     async def wrapper(*args, **kwargs):
-        """Retry loop."""
+        """Main retry loop."""
         # similar to the rety loop from db.py
         nb_try = CONF.get_value('eureka', 'try', conv=int, default=1)
         try_interval = CONF.get_value('eureka', 'try_interval', conv=int, default=1)
@@ -83,8 +82,8 @@ class EurekaRequests:
         url = f'{self._eureka_url}/apps/{app_name}/{instance_id}/status?value={eureka_status[3]}'
         async with aiohttp.ClientSession(headers=self._headers) as session:
             async with session.put(url) as resp:
+                LOG.debug('Eureka out_of_service status response %s', resp.status)
                 return resp.status
-                LOG.debug('Eureka out_of_service status response %s' % resp.status)
 
     async def list_apps(self):
         """Get the apps known to the eureka server."""
@@ -188,8 +187,8 @@ class EurekaClient(EurekaRequests):
         LOG.debug('Registering %s', self._app_name)
         async with aiohttp.ClientSession(headers=self._headers) as session:
             async with session.post(url, data=json.dumps(payload)) as resp:
+                LOG.debug('Eureka register response %s', resp.status)
                 return resp.status
-                LOG.debug('Eureka register response %s' % resp.status)
 
     @retry_loop
     async def renew(self):
@@ -198,8 +197,8 @@ class EurekaClient(EurekaRequests):
         LOG.debug('Renew lease for %s', self._app_name)
         async with aiohttp.ClientSession(headers=self._headers) as session:
             async with session.put(url) as resp:
+                LOG.debug('Eureka renew response %s', resp.status)
                 return resp.status
-                LOG.debug('Eureka renew response %s' % resp.status)
 
     @retry_loop
     async def deregister(self):
@@ -208,8 +207,8 @@ class EurekaClient(EurekaRequests):
         LOG.debug('Deregister %s', self._app_name)
         async with aiohttp.ClientSession(headers=self._headers) as session:
             async with session.delete(url) as resp:
+                LOG.debug('Eureka deregister response %s', resp.status)
                 return resp.status
-                LOG.debug('Eureka deregister response %s' % resp.status)
 
     @retry_loop
     async def update_metadata(self, key, value):
@@ -218,8 +217,8 @@ class EurekaClient(EurekaRequests):
         LOG.debug(f'Update metadata for {self._app_name} instance {self._instance_id}')
         async with aiohttp.ClientSession(headers=self._headers) as session:
             async with session.put(url) as resp:
+                LOG.debug('Eureka update metadata response %s', resp.status)
                 return resp.status
-                LOG.debug('Eureka update metadata response %s' % resp.status)
 
     def _generate_instance_id(self):
         """Generate a unique instance id."""

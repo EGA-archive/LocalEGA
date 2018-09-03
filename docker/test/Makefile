@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 
-.PHONY: upload submit user check
+.PHONY: upload submit user check stable_id
 
 HERE:=$(dir $(realpath $(lastword $(MAKEFILE_LIST))))
 MAIN_REPO:=$(realpath $(HERE)/../..)
@@ -9,13 +9,6 @@ USER=ega-box-999
 USER_ID=100
 FILE=file.txt
 FILESIZE=10 # in MB
-
-get_md5 =                                      \
-         if which md5 &> /dev/null; then       \
-           md5 $(1) | cut -d' ' -f4 > $(2);    \
-         else                                  \
-           md5sum $(1) | cut -d' ' -f1 > $(2); \
-         fi
 
 ##############################
 
@@ -43,15 +36,29 @@ $(FILE).c4ga: $(FILE)
 upload: $(FILE).c4ga $(SSH_KEY) user
 	sftp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -P $(INSTANCE_PORT) -i $(SSH_KEY) $(USER)@localhost <<< $$"put $<"
 
-$(FILE).md5: $(FILE)
-	$(call get_md5,$<,$@)
+####################################################################
+## Publish messages
+####################################################################
 
-$(FILE).c4ga.md5: $(FILE).c4ga
-	$(call get_md5,$<,$@)
+submit: $(FILE).c4ga
+	python $(MAIN_REPO)/extras/cega_publish.py \
+	--connection $(CEGA_MQ_CONNECTION) \
+	'files' \
+	"{ \"user\": \"$(USER)\", \"filepath\": \"/$(FILE).c4ga\"}"
 
-submit: $(FILE).c4ga $(FILE).c4ga.md5 $(FILE).md5
-	python $(MAIN_REPO)/extras/publish.py --connection $(CEGA_MQ_CONNECTION) $(USER) $(FILE).c4ga --enc $(shell cat $(FILE).c4ga.md5) --stableID EGAF$(shell cat $(FILE).md5)
 
+stable_id: STABLE_ID=$(shell uuidgen)
+stable_id:
+	@read -p "File ID:" FILE_ID && \
+	python $(MAIN_REPO)/extras/cega_publish.py \
+	--connection $(CEGA_MQ_CONNECTION) \
+	'files.stableIDs' \
+	"{\"file_id\": \"$${FILE_ID}\", \"stable_id\": \"EGAF$(STABLE_ID)\"}" && \
+	echo "Mapping file reference $${FILE_ID} to EGAF$(STABLE_ID)"
+
+####################################################################
+## Creating the user
+####################################################################
 user: $(CEGA_USERS)/lega/$(USER).yml
 
 $(CEGA_USERS)/lega/$(USER).yml: $(CEGA_USERS)/$(USER).yml
@@ -69,6 +76,9 @@ $(SSH_KEY):
 	ssh-keygen -t rsa -b 2048 -f $@ -N $(SSH_PASS) -C "$(USER)@LocalEGA"
 	chmod 400 $@
 
+####################################################################
+## Checking the results
+####################################################################
 # We only read the first message from the completed queue
 # If it contains COMPLETED, and it is the right user/filepath/stableID, 
 # then we say it's ok
@@ -80,11 +90,17 @@ check: $(FILE).c4ga
 	@echo "$(MESSAGE)" | grep 'state: COMPLETED' &>/dev/null
 	@echo "$(MESSAGE)" | grep 'user: $(USER)' &>/dev/null
 	@echo "$(MESSAGE)" | grep 'filepath: $(<F)' &>/dev/null
-	@echo "$(MESSAGE)" | grep 'details: EGAF$(shell cat $(FILE).md5)' &>/dev/null
 	@echo "Message found in the CentralEGA broker"
 
+####################################################################
+## Cleaning
+####################################################################
 clean:
+	rm -rf $(FILE){,.c4ga}
+
+cleanuser:
 	-unlink $(CEGA_USERS)/lega/$(USER).yml
 	-unlink $(CEGA_USERS)/lega_ids/$(USER_ID).yml
-	rm -rf $(FILE){,.c4ga,.c4ga.md5,.md5}
 	rm -rf $(CEGA_USERS)/$(USER).yml $(SSH_KEY) $(SSH_KEY).pub
+
+cleanall: cleanuser clean

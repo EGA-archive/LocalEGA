@@ -11,7 +11,6 @@ import logging
 import psycopg2
 from socket import gethostname
 from time import sleep
-from enum import Enum
 
 from legacryptor import exceptions as crypt_exc
 
@@ -20,13 +19,6 @@ from .exceptions import FromUser, KeyserverError, PGPKeyError
 from .amqp import publish, get_connection
 
 LOG = logging.getLogger(__name__)
-
-class Status(Enum):
-    Received = 'Received'
-    In_Progress = 'In progress'
-    Completed = 'Completed'
-    Archived = 'Archived'
-    Error = 'Error'
 
 ######################################
 ##         DB connection            ##
@@ -110,12 +102,14 @@ def connect():
     return psycopg2.connect(**db_args)
 
 
-def insert_file(filename, user_id, stable_id):
-    """Store file related information such as related ``user_id``, ``stable_id``, ``status`` etc."""
+def insert_file(filename, user_id):
+    """Insert a new file entry and returns its id"""
     with connect() as conn:
         with conn.cursor() as cur:
-            cur.execute('SELECT insert_file(%(filename)s,%(user_id)s,%(stable_id)s,%(status)s);',
-                        { 'filename': filename, 'user_id': user_id, 'status' : Status.Received.value, 'stable_id': stable_id })
+            cur.execute('SELECT insert_file(%(filename)s,%(user_id)s);',
+                        { 'filename': filename,
+                          'user_id': user_id,
+                        })
             file_id = (cur.fetchone())[0]
             if file_id:
                 LOG.debug(f'Created id {file_id} for {filename}')
@@ -151,13 +145,35 @@ def get_info(file_id):
             cur.execute(query, { 'file_id': file_id})
             return cur.fetchone()
 
-def set_status(file_id, status):
-    """Updaring File ``file_id`` status."""
+def _set_status(file_id, status):
+    """Updating status for file with id ``file_id``."""
     assert file_id, 'Eh? No file_id?'
-    LOG.debug(f'Updating status file_id {file_id} with "{status.value}"')
+    LOG.debug(f'Updating status file_id {file_id} with "{status}"')
     with connect() as conn:
         with conn.cursor() as cur:
-            cur.execute('UPDATE files SET status = %(status)s WHERE id = %(file_id)s;', {'status': status.value, 'file_id': file_id })
+            cur.execute('UPDATE files SET status = %(status)s WHERE id = %(file_id)s;',
+                        {'status': status,
+                         'file_id': file_id })
+
+def mark_in_progress(file_id):
+    return _set_status(file_id, 'In progress')
+
+def mark_completed(file_id):
+    return _set_status(file_id, 'Completed')
+
+def set_stable_id(file_id, stable_id):
+    """Updating File ``file_id`` stable ID."""
+    assert file_id, 'Eh? No file_id?'
+    LOG.debug(f'Updating file_id {file_id} with stable ID "{stable_id}"')
+    with connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute('UPDATE files '
+                        'SET status = %(status)s, '
+                        '    stable_id = %(stable_id)s '
+                        'WHERE id = %(file_id)s;',
+                        {'status': 'Ready',
+                         'file_id': file_id,
+                         'stable_id': stable_id })
 
 def set_info(file_id, vault_path, vault_filesize, header):
     """Updating information in database for ``file_id``."""
@@ -172,7 +188,7 @@ def set_info(file_id, vault_path, vault_filesize, header):
                         '    vault_filesize = %(vault_filesize)s, '
                         '    header = %(header)s '
                         'WHERE id = %(file_id)s;',
-                        {'status': Status.Archived.value,
+                        {'status': 'Archived',
                          'file_id': file_id,
                          'vault_path': vault_path,
                          'vault_filesize': vault_filesize,
@@ -211,7 +227,7 @@ def catch_error(func):
 
             try:
                 data = args[-1] # data is the last argument
-                data['status'] = Status.Error.value
+                data['status'] = 'Error'
                 file_id = data.get('file_id', None) # should be there
                 if file_id:
                     set_error(file_id, cause, from_user)
