@@ -1,6 +1,10 @@
 import unittest
-from lega.utils.db import insert_file, get_errors, set_error, get_info, set_info
-from lega.utils.db import set_status, Status, fetch_args, connect
+from lega.utils.db import (insert_file,
+                           get_errors, set_error,
+                           get_info, set_info,
+                           mark_in_progress, mark_completed,
+                           set_stable_id,
+                           fetch_args, connect)
 from unittest import mock
 import asyncio
 
@@ -27,7 +31,7 @@ class DBTest(unittest.TestCase):
     def test_insert(self, mock_connect):
         """DB insert."""
         mock_connect().__enter__().cursor().__enter__().fetchone.return_value = self._query_result
-        result = insert_file('filename', 'user_id', 'stable_id')
+        result = insert_file('filename', 'user_id')
         assert result == ("example", "result")
 
     @mock.patch('lega.utils.db.connect')
@@ -71,12 +75,25 @@ class DBTest(unittest.TestCase):
         mock_connect().__enter__().cursor().__enter__().execute.assert_called()
 
     @mock.patch('lega.utils.db.connect')
-    def test_set_status(self, mock_connect):
-        """DB set encryption."""
+    def test_mark_in_progress(self, mock_connect):
+        """DB mark in progress."""
         # Values are not important in this call
-        set_status('file_id', Status.In_Progress)
+        mark_in_progress('file_id')
         mock_connect().__enter__().cursor().__enter__().execute.assert_called()
 
+    @mock.patch('lega.utils.db.connect')
+    def test_mark_completed(self, mock_connect):
+        """DB mark completed."""
+        # Values are not important in this call
+        mark_completed('file_id')
+        mock_connect().__enter__().cursor().__enter__().execute.assert_called()
+
+    @mock.patch('lega.utils.db.connect')
+    def test_set_stable_id(self, mock_connect):
+        """DB mark completed."""
+        # Values are not important in this call
+        set_stable_id("file_id", 'EGAF00001')
+        mock_connect().__enter__().cursor().__enter__().execute.assert_called()
 
     def test_fetch_args(self):
         """Test fetching arguments."""
