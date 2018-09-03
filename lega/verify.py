@@ -16,6 +16,7 @@ import logging
 from functools import partial
 from urllib.request import urlopen
 from urllib.error import HTTPError
+import hashlib
 
 from legacryptor.crypt4gh import get_key_id, header_to_records, body_decrypt
 
@@ -64,7 +65,6 @@ def work(chunk_size, mover, channel, data):
     file_id = data['file_id']
     header = bytes.fromhex(data['header'])[16:] # in hex -> bytes, and take away 16 bytes
     vault_path = data['vault_path']
-    stable_id = data['stable_id']
 
     # Get it from the header and the keyserver
     records, key_id = get_records(header) # might raise exception
@@ -72,12 +72,21 @@ def work(chunk_size, mover, channel, data):
 
     LOG.info('Opening vault file: %s', vault_path)
     # If you can decrypt... the checksum is valid
+
+    # Calculate the checksum of the original content
+    md = hashlib.sha256()
+    def checksum_content(data):
+        md.update(data)
+
     with mover.open(vault_path, 'rb') as infile:
         LOG.info('Decrypting (chunk size: %s)', chunk_size)
-        body_decrypt(r, infile, chunk_size=chunk_size) # It will ignore the output
+        body_decrypt(r, infile, process_output=checksum_content, chunk_size=chunk_size)
 
-    LOG.info('Verification completed. Updating database.')
-    db.set_status(file_id, db.Status.Completed)
+    digest = md.hexdigest()
+    LOG.info('Verification completed [sha256: %s]', digest)
+
+    # Updating the database
+    db.mark_completed(file_id)
 
     # Send to QC
     data.pop('status', None)
@@ -85,8 +94,11 @@ def work(chunk_size, mover, channel, data):
     LOG.debug(f'Sending message to QC: {data}')
     publish(data, channel, 'lega', 'qc') # We keep the org msg in there
 
+    # Shape successful message
     org_msg = data['org_msg']
-    org_msg['status'] = { 'state': 'COMPLETED', 'details': stable_id }
+    org_msg.pop('file_id', None)
+    org_msg['reference'] = file_id
+    org_msg['checksum'] = { 'value': digest, 'algorithm': 'sha256' }
     LOG.debug(f"Reply message: {org_msg}")
     return org_msg
 

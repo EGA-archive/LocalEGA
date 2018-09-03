@@ -59,8 +59,26 @@ cat > /etc/rabbitmq/defs-cega.json <<EOF
 			 "queue":"files"},
 		"vhost":"/",
 		"component":"federation-upstream",
-		"name":"from-CEGA"}],
- "policies":[{"vhost":"/","name":"CEGA","pattern":"files","apply-to":"queues","definition":{"federation-upstream":"from-CEGA"},"priority":0}]
+		"name":"CEGA-files"},
+	       {"value":{"uri":"${CEGA_CONNECTION}",
+			 "ack-mode":"on-confirm",
+			 "trust-user-id":false,
+			 "queue":"stableIDs"},
+		"vhost":"/",
+		"component":"federation-upstream",
+		"name":"CEGA-ids"}],
+ "policies":[{"vhost":"/",
+              "name":"CEGA-files",
+              "pattern":"files",
+              "apply-to":"queues",
+              "definition":{"federation-upstream":"CEGA-files"},
+              "priority":0},
+             {"vhost":"/",
+              "name":"CEGA-ids",
+              "pattern":"stableIDs",
+              "apply-to":"queues",
+              "definition":{"federation-upstream":"CEGA-ids"},
+              "priority":0}]
 }
 EOF
 chown rabbitmq:rabbitmq /etc/rabbitmq/defs-cega.json
