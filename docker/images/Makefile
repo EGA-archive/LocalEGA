@@ -18,18 +18,21 @@ TARGET_PREFIX=nbisweden/ega
 
 BUILD_ARGS=--build-arg checkout=$(CHECKOUT)
 
-.PHONY: all erase delete clean cleanall base inbox
+.PHONY: all erase delete clean cleanall base lega inbox
 
-all: base inbox
+all: base lega inbox
 
 base: BUILD_ARGS+=--build-arg DEV_PACKAGES="$(DEV_PACKAGES)"
 inbox: BUILD_ARGS+=--build-arg AUTH_BRANCH=cega-ids
-base inbox:
+base lega inbox:
 	docker build ${BUILD_ARGS} \
                      --cache-from $(TARGET_PREFIX)-$@:latest \
                      --tag $(TARGET_PREFIX)-$@:$(TAG) \
                      --tag $(TARGET_PREFIX)-$@:latest \
                      $@
+
+remove-%:
+	@docker rmi $(TARGET_PREFIX)-$(@:remove-%=%):latest
 
 clean:
 	@docker images $(TARGET_PREFIX)-* -f "dangling=true" -q | uniq | while read n; do docker rmi -f $$n; done

@@ -18,7 +18,8 @@ import ssl
 from aiohttp import web
 import pgpy
 
-from .conf import CONF, KeysConfiguration
+from .conf import CONF
+from .conf.keys import KeysConfiguration
 from .utils.eureka import EurekaClient
 
 LOG = logging.getLogger(__name__)

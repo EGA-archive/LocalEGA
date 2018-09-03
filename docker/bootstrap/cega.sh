@@ -171,7 +171,7 @@ services:
 
   cega-users:
     env_file: cega/env
-    image: nbisweden/ega-base
+    image: nbisweden/ega-lega
     hostname: cega-users
     container_name: cega-users
     #ports:
@@ -182,7 +182,6 @@ services:
       - ./cega/users:/cega/users:rw
       - ../images/cega/users.html:/cega/users.html
       - ../images/cega/server.py:/cega/server.py
-      # - ../..:/root/.local/lib/python3.6/site-packages:ro
     restart: on-failure:3
     networks:
       - cega
@@ -197,7 +196,7 @@ services:
     #  - "8761:8761"
     expose:
       - 8761
-    image: nbisweden/ega-base
+    image: nbisweden/ega-lega
     container_name: cega-eureka
     volumes:
       - ../images/cega/eureka.py:/cega/eureka.py

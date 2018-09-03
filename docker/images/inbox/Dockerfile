@@ -95,6 +95,20 @@ RUN rm -rf /root/openssh && \
     cp ${OPENSSH_DIR}/sbin/sshd ${OPENSSH_DIR}/sbin/ega
 
 #################################################
+##
+## Install LocalEGA stuff
+##
+#################################################
+
+ARG checkout=dev
+
+#RUN pip3.6 install -r https://raw.githubusercontent.com/NBISweden/LocalEGA/${checkout}/requirements.txt
+# These are enough
+RUN pip3.6 install pika==0.12.0 uvloop
+
+RUN pip3.6 install git+https://github.com/NBISweden/LocalEGA.git@${checkout}
+
+#################################################
 
 RUN ldconfig -v
 
@@ -104,4 +118,4 @@ COPY sshd_config /etc/ega/sshd_config
 
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod 755 /usr/local/bin/entrypoint.sh
-ENTRYPOINT ["entrypoint.sh"]
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

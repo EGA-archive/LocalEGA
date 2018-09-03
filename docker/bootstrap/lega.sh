@@ -201,11 +201,10 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     depends_on:
       - db
       - mq
-    image: nbisweden/ega-base
+    image: nbisweden/ega-lega
     container_name: id-mapper
     volumes:
        - ./lega/conf.ini:/etc/ega/conf.ini:ro
-       - ~/_ega/lega:/home/lega/.local/lib/python3.6/site-packages/lega
     restart: on-failure:3
     networks:
       - lega
@@ -216,7 +215,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     depends_on:
       - db
       - mq
-    image: nbisweden/ega-base
+    image: nbisweden/ega-lega
     container_name: ingest
     environment:
       - S3_ACCESS_KEY=${S3_ACCESS_KEY}
@@ -226,8 +225,6 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     volumes:
        - inbox:/ega/inbox
        - ./lega/conf.ini:/etc/ega/conf.ini:ro
-       - ~/_ega/lega:/home/lega/.local/lib/python3.6/site-packages/lega
-       - ~/_cryptor/legacryptor:/root/.local/lib/python3.6/site-packages/legacryptor
     restart: on-failure:3
     networks:
       - lega
@@ -237,7 +234,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
   keys:
     hostname: keys
     container_name: keys
-    image: nbisweden/ega-base
+    image: nbisweden/ega-lega
     expose:
       - "8443"
     environment:
@@ -250,7 +247,6 @@ cat >> ${PRIVATE}/lega.yml <<EOF
        - ./lega/certs/ssl.key:/etc/ega/ssl.key:ro
        - ./lega/pgp/ega.sec:/etc/ega/pgp/ega.sec:ro
        - ./lega/pgp/ega2.sec:/etc/ega/pgp/ega2.sec:ro
-       - ~/_ega/lega:/home/lega/.local/lib/python3.6/site-packages/lega
     restart: on-failure:3
     external_links:
       - cega-eureka:cega-eureka
@@ -267,7 +263,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - keys
     hostname: verify
     container_name: verify
-    image: nbisweden/ega-base
+    image: nbisweden/ega-lega
     environment:
       - LEGA_PASSWORD=${LEGA_PASSWORD}
       - S3_ACCESS_KEY=${S3_ACCESS_KEY}
@@ -276,8 +272,6 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - AWS_SECRET_ACCESS_KEY=${S3_SECRET_KEY}
     volumes:
        - ./lega/conf.ini:/etc/ega/conf.ini:ro
-       - ~/_ega/lega:/home/lega/.local/lib/python3.6/site-packages/lega
-       - ~/_cryptor/legacryptor:/root/.local/lib/python3.6/site-packages/legacryptor
     restart: on-failure:3
     networks:
       - lega

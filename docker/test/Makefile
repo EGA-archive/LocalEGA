@@ -106,7 +106,7 @@ $(FILE).sha256: $(FILE)
 ## Cleaning
 ####################################################################
 clean:
-	rm -rf $(FILE){,.c4ga}
+	rm -rf $(FILE){,.c4ga,.sha256}
 
 cleanuser:
 	-unlink $(CEGA_USERS)/lega/$(USER).yml
