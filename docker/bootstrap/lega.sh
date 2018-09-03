@@ -42,8 +42,8 @@ EOF
 echomsg "\t* conf.ini"
 cat > ${PRIVATE}/lega/conf.ini <<EOF
 [DEFAULT]
-#log = debug
-log = silent
+log = debug
+#log = silent
 
 [keyserver]
 port = 8443
@@ -83,10 +83,6 @@ try = 30
 [eureka]
 endpoint = http://cega-eureka:8761
 EOF
-
-echomsg "\t* db.sql"
-# Running in container
-cat /tmp/db.sql >> ${PRIVATE}/lega/db.sql
 
 
 #########################################################################
@@ -154,7 +150,7 @@ services:
     image: postgres:9.6
     volumes:
       - db:/ega/data
-      - ./lega/db.sql:/docker-entrypoint-initdb.d/ega.sql:ro
+      - ../images/db/db.sql:/docker-entrypoint-initdb.d/ega.sql:ro
     restart: on-failure:3
     networks:
       - lega
@@ -200,13 +196,28 @@ EOF
 fi
 
 cat >> ${PRIVATE}/lega.yml <<EOF
+  # Stable ID mapper
+  id-mapper:
+    depends_on:
+      - db
+      - mq
+    image: nbisweden/ega-base
+    container_name: id-mapper
+    volumes:
+       - ./lega/conf.ini:/etc/ega/conf.ini:ro
+       - ~/_ega/lega:/home/lega/.local/lib/python3.6/site-packages/lega
+    restart: on-failure:3
+    networks:
+      - lega
+    entrypoint: ["gosu", "lega", "ega-id-mapper"]
+
   # Ingestion Workers
   ingest:
     depends_on:
       - db
       - mq
     image: nbisweden/ega-base
-    #container_name: ingest
+    container_name: ingest
     environment:
       - S3_ACCESS_KEY=${S3_ACCESS_KEY}
       - S3_SECRET_KEY=${S3_SECRET_KEY}
@@ -255,7 +266,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - mq
       - keys
     hostname: verify
-    #container_name: verify
+    container_name: verify
     image: nbisweden/ega-base
     environment:
       - LEGA_PASSWORD=${LEGA_PASSWORD}

@@ -56,7 +56,7 @@ jobs:
         - make bootstrap
         - sudo chown -R travis private
         - docker network create cega
-        - docker-compose up -d --scale ingest=3 --scale verify=5
+        - docker-compose up -d #--scale ingest=3 --scale verify=5
         - docker-compose ps
       script:
         - sleep 5
