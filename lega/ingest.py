@@ -42,12 +42,12 @@ def work(fs, channel, data):
     # Use user_id, and not elixir_id
     user_id = sanitize_user_id(data['user'])
 
+    org_msg = data.copy()
+    data['org_msg'] = org_msg
+
     # Insert in database
     file_id = db.insert_file(filepath, user_id)
     data['file_id'] = file_id
-
-    org_msg = data.copy()
-    data['org_msg'] = org_msg
 
     # Find inbox
     inbox = Path(CONF.get_value('inbox', 'location', raw=True) % user_id)
