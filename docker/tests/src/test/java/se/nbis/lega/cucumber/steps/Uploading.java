@@ -4,7 +4,6 @@ import cucumber.api.java8.En;
 import lombok.extern.slf4j.Slf4j;
 import net.schmizz.sshj.sftp.RemoteResourceInfo;
 import no.ifi.uio.crypt4gh.stream.Crypt4GHOutputStream;
-import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.FileUtils;
 import org.junit.Assert;
 import se.nbis.lega.cucumber.Context;
@@ -33,10 +32,9 @@ public class Uploading implements En {
                     randomAccessFile.setLength(1024 * 1024 * size);
                 }
                 File encryptedFile = new File(rawFile.getAbsolutePath() + ".enc");
-                byte[] digest = DigestUtils.sha256(FileUtils.openInputStream(rawFile));
                 String key = FileUtils.readFileToString(new File(String.format("%s/%s/pgp/ega.pub", utils.getPrivateFolderPath(), utils.getProperty("instance.name"))), Charset.defaultCharset());
                 FileOutputStream fileOutputStream = new FileOutputStream(encryptedFile);
-                Crypt4GHOutputStream crypt4GHOutputStream = new Crypt4GHOutputStream(fileOutputStream, key, digest);
+                Crypt4GHOutputStream crypt4GHOutputStream = new Crypt4GHOutputStream(fileOutputStream, key);
                 FileUtils.copyFile(rawFile, crypt4GHOutputStream);
                 crypt4GHOutputStream.close();
                 context.setEncryptedFile(encryptedFile);
