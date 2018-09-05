@@ -227,14 +227,13 @@ def catch_error(func):
 
             try:
                 data = args[-1] # data is the last argument
-                data['status'] = 'Error'
                 file_id = data.get('file_id', None) # should be there
                 if file_id:
                     set_error(file_id, cause, from_user)
                 LOG.debug('Catching error on file id: %s', file_id)
                 if from_user: # Send to CentralEGA
                     org_msg = data.pop('org_msg', None) # should be there
-                    org_msg['status'] = { 'state': 'ERROR', 'message': str(cause) } # str = Informal
+                    org_msg['reason'] = str(cause) # str = Informal
                     LOG.info(f'Sending user error to local broker: {org_msg}')
                     global _channel
                     if _channel is None:
