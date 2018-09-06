@@ -4,6 +4,7 @@ import asyncio
 import json
 from aioresponses import aioresponses
 from unittest import mock
+from test.support import EnvironmentVarGuard
 
 
 class EurekaRequestsTest(unittest.TestCase):
@@ -73,7 +74,10 @@ class EurekaClientTest(unittest.TestCase):
     Testing Eureka client connection."""
 
     def setUp(self):
-        """Setting things up."""
+        """Set things up."""
+        self.env = EnvironmentVarGuard()
+        self.env.set("EUREKA_TRY_INTERVAL", "1")
+        self.env.set("EUREKA_TRY", "1")
         self._loop = asyncio.get_event_loop()
         self._eureka_url = 'http://localhost:8761'
         self._port = 5050
@@ -85,6 +89,11 @@ class EurekaClientTest(unittest.TestCase):
                                           eureka_url=self._eureka_url, hostname=self._host,
                                           health_check_url=f'http://{self._host}:{self._port}/health',
                                           loop=self._loop)
+
+    def tearDown(self):
+        """Remove setup variables."""
+        self.env.unset("EUREKA_TRY_INTERVAL")
+        self.env.unset("EUREKA_TRY")
 
     @aioresponses()
     def test_register_app(self, mocked):
@@ -128,19 +137,8 @@ class EurekaClientTest(unittest.TestCase):
         instance_id = self._eurekaclient._generate_instance_id()
         assert instance_id.endswith(f':{self._app}:{self._port}')
 
-    # @mock.patch('lega.utils.eureka.CONF')
-    # @mock.patch('lega.utils.eureka.LOG')
-    # def test_connection_error(self, mock_logger, mock_conf):
-    #     """Assert connection error."""
-    #     self._loop.run_until_complete(self._eurekaclient.update_metadata('test', 'value'))
-    #     vals = { 'try_interval': 20, 'try': 1 }
-    #     def values(domain,value):
-    #         vals.get(value, mock.DEFAULT) if domain == 'eureka' else mock.DEFAULT
-    #     mock_conf.get_value = mock.MagicMock(side_effect=values)
-    #     mock_logger.debug.assert_called_with(f"Eureka server connection fail after 1 attempts ...")
-
-    # @mock.patch('lega.utils.eureka.LOG')
-    # def test_connection_error(self, mock_logger):
-    #     """Assert connection error."""
-    #     self._loop.run_until_complete(self._eurekaclient.update_metadata('test', 'value'))
-    #     mock_logger.debug.assert_called_with(f"Eureka server connection fail after 1 attempts ...")
+    @mock.patch('lega.utils.eureka.LOG')
+    def test_connection_error(self, mock_logger):
+        """Assert connection error."""
+        self._loop.run_until_complete(self._eurekaclient.update_metadata('test', 'value'))
+        mock_logger.debug.assert_called_with(f"Eureka server connection fail after 1 attempts ...")
