@@ -17,8 +17,13 @@ file there.
 Moreover, we use different deployment strategies for environments
 like Docker Swarm, Kubernetes, Openstack or a local-machine.
 
-.. note::
-   More on that coming...
+
+* locally, using `docker-compose <https://github.com/NBISweden/LocalEGA/tree/dev/docker>`_;
+* on an OpenStack cluster, using `terraform <https://github.com/NBISweden/LocalEGA-deploy-terraform>`_;
+* on a Kubernetes/OpenShift cluster, using `kubernetes <https://github.com/NBISweden/LocalEGA-deploy-k8s>`_;
+* on a Docker Swarm cluster, using `Gradle <https://github.com/NBISweden/LocalEGA-deploy-swarm>`_.
+
+
 
 .. _Docker: https://github.com/NBISweden/LocalEGA/tree/dev/docker
 .. _OpenStack cloud: https://github.com/NBISweden/LocalEGA-deploy-terraform
