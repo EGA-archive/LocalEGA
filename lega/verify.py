@@ -88,12 +88,6 @@ def work(chunk_size, mover, channel, data):
     # Updating the database
     db.mark_completed(file_id)
 
-    # Send to QC
-    data.pop('status', None)
-    data['key_id'] = key_id
-    LOG.debug(f'Sending message to QC: {data}')
-    publish(data, channel, 'lega', 'qc') # We keep the org msg in there
-
     # Shape successful message
     org_msg = data['org_msg']
     org_msg.pop('file_id', None)
