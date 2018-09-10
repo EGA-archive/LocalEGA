@@ -6,7 +6,7 @@ from unittest import mock
 class testMapper(unittest.TestCase):
     """Mapper
 
-    Testing verify functionalities."""
+    Testing mapper functionalities."""
     def setUp(self):
         """Initialise fixtures."""
         pass
