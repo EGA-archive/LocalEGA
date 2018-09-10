@@ -3,7 +3,7 @@ from lega import __version__
 
 setup(name='lega',
       version=__version__,
-      url='http://LocalEGA.nbis.se',
+      url='https://localega.readthedocs.io/',
       license='Apache License 2.0',
       author='NBIS System Developers',
       author_email='ega@nbis.se',
