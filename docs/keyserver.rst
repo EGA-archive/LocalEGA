@@ -16,7 +16,7 @@ case the request is unsuccessful the response code is ``404``.
 **Retrieve keys endpoint**:
 
 * ``/retrieve/<key_id>/private`` - GET request for a private PGP key with a given ``<key_id>`` of fingerprint
-* ``/retrieve/<key_id>/public`` - GET request for a private PGP key with a given ``<key_id>`` of fingerprint
+* ``/retrieve/<key_id>/public`` - GET request for a public PGP key with a given ``<key_id>`` of fingerprint
 
 **Admin endpoint**:
 
