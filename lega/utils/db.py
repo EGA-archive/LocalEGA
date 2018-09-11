@@ -195,7 +195,7 @@ def set_archived(file_id, vault_path, vault_filesize):
     """Archive ``file_id``."""
     assert file_id, 'Eh? No file_id?'
     assert vault_path, 'Eh? No vault name?'
-    LOG.debug(f'Setting status to arhived for file_id {file_id}')
+    LOG.debug(f'Setting status to archived for file_id {file_id}')
     with connect() as conn:
         with conn.cursor() as cur:
             cur.execute('UPDATE files '
