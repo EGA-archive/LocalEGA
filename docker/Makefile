@@ -6,11 +6,13 @@ help:
 	@echo "Usage: make <target>\n"
 	@echo "where <target> is: 'bootstrap', 'up' 'ps', 'down', 'network' or 'clean'\n"
 
+# If DEPLOY_DEV is yes, we use dummy passwords
+bootstrap: ENVS=--env DEPLOY_DEV=yes
 private/cega.yml private/lega.yml private bootstrap:
 	@docker run --rm -it \
 		    -v /dev/urandom:/dev/random \
+                    ${ENVS} \
 		    -v ${PWD}:/ega \
-		    -v ${PWD}/../extras/db.sql:/tmp/db.sql \
 		    -v ${PWD}/../extras/generate_pgp_key.py:/tmp/generate_pgp_key.py \
 		    -v ${PWD}/../extras/rabbitmq_hash.py:/tmp/rabbitmq_hash.py \
 		    --entrypoint /ega/bootstrap/boot.sh \

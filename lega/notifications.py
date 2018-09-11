@@ -3,7 +3,6 @@
 
 '''
 Send message to the local broker when a file is uploaded.
-The message includes filesize and checksum.
 '''
 
 # This is helping the helpdesk on the Central EGA side.
@@ -36,8 +35,6 @@ class Forwarder(asyncio.Protocol):
         self.isolation = CONF.get_value('inbox', 'chroot_sessions', conv=bool)
         if self.isolation:
             LOG.info('Using chroot isolation')
-        self.checksums_rkey = 'files.inbox.checksums' #CONF.get_value('inbox', 'checksum_routing_key', default='files.inbox.checksums')
-        self.inbox_rkey = 'files.inbox' #CONF.get_value('inbox', 'inbox_routing_key', default='files.inbox')
 
     def connection_made(self, transport):
         peername = transport.get_extra_info('peername')
@@ -73,25 +70,18 @@ class Forwarder(asyncio.Protocol):
 
     def send_message(self, username, filename):
         inbox = self.inbox_location % username
-        if self.isolation:
-            filepath = os.path.join(inbox, filename.lstrip('/'))
-        else:
-            filepath = filename
-            filename = filename[len(inbox):]  # there is surelt better
+        filepath, filename = (os.path.join(inbox, filename.lstrip('/')), filename) if self.isolation \
+                             else (filename, filename[len(inbox):]) # surely there is better!
         LOG.debug("Filepath %s", filepath)
-        msg = { 'user': username, 'filepath': filename }
-        if filename.endswith(supported_algorithms()):
-            routing_key = self.checksums_rkey
-            with open(filepath, 'rt', encoding='utf-8') as f:
-                msg['content'] = f.read()
-        else:
-            routing_key = self.inbox_rkey
-            msg['filesize'] = os.stat(filepath).st_size
-            c = calculate(filepath, 'md5')
-            if c:
-                msg['encrypted_integrity'] = {'algorithm': 'md5', 'checksum': c}
+        msg = { 'user': username,
+                'filepath': filename,
+                'filesize': os.stat(filepath).st_size
+        }
+        c = calculate(filepath, 'sha256')
+        if c:
+            msg['encrypted_integrity'] = {'algorithm': 'sha256', 'checksum': c}
         # Sending
-        publish(msg, self.channel, 'cega', routing_key)
+        publish(msg, self.channel, 'cega', 'files.inbox')
 
     def connection_lost(self, exc):
         if self.buf:

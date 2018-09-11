@@ -2,7 +2,7 @@
 
 SET TIME ZONE 'Europe/Stockholm';
 
-CREATE TYPE status AS ENUM ('Received', 'In progress', 'Completed', 'Archived', 'Error');
+CREATE TYPE status AS ENUM ('Received', 'In progress', 'Completed', 'Archived', 'Ready', 'Error');
 -- CREATE TYPE hash_algo AS ENUM ('md5', 'sha256');
 
 CREATE EXTENSION pgcrypto;
@@ -24,20 +24,19 @@ CREATE TABLE files (
 );
 
 CREATE FUNCTION insert_file(inpath files.inbox_path%TYPE,
-			    eid    files.elixir_id%TYPE,
-			    sid    files.stable_id%TYPE,
-			    status files.status%TYPE)
+			    eid    files.elixir_id%TYPE)
     RETURNS files.id%TYPE AS $insert_file$
     #variable_conflict use_column
     DECLARE
         file_id files.id%TYPE;
     BEGIN
-	INSERT INTO files (inbox_path,elixir_id,stable_id,status)
-	VALUES(inpath,eid,sid,status) RETURNING files.id
+	INSERT INTO files (inbox_path, elixir_id, status)
+	VALUES(inpath,eid,'Received') RETURNING files.id
 	INTO file_id;
 	RETURN file_id;
     END;
 $insert_file$ LANGUAGE plpgsql;
+
 
 -- ##################################################
 --                      ERRORS

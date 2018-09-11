@@ -10,16 +10,17 @@ Python Modules
 
     lega.conf
     lega.utils
-    lega.inbox
+    lega.notifications
     lega.ingest
     lega.verify
     lega.keyserver
+    lega.mapper
 
 *******************
 Inbox notifications
 *******************
 
-.. automodule:: lega.inbox
+.. automodule:: lega.notifications
 
 
 ****************
@@ -30,6 +31,8 @@ Ingestion Worker
    :members:
 .. automodule:: lega.verify
    :members:
+.. automodule:: lega.mapper
+   :members:
 
 
 ..
@@ -37,7 +40,7 @@ Ingestion Worker
    Quality Control
    ***************
 
-   .. automodule:: lega.verify
+   .. automodule:: lega.qc
       :members:
 
 *********
