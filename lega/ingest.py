@@ -39,7 +39,7 @@ def work(fs, channel, data):
     filepath = data['filepath']
     LOG.info(f"Processing {filepath}")
 
-    # Use user_id, and not elixir_id
+    # Remove the host part of the user name
     user_id = sanitize_user_id(data['user'])
 
     # Keeping data as-is (cuz the decorator is using it)
@@ -65,6 +65,7 @@ def work(fs, channel, data):
 
     # Record in database
     db.mark_in_progress(file_id)
+
     # Sending a progress message to CentralEGA
     org_msg['status'] = 'PROCESSING'
     LOG.debug(f'Sending message to CentralEGA: {data}')
