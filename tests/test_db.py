@@ -1,7 +1,8 @@
 import unittest
 from lega.utils.db import (insert_file,
                            get_errors, set_error,
-                           get_info, set_info,
+                           get_info,
+                           store_header, set_archived,
                            mark_in_progress, mark_completed,
                            set_stable_id,
                            fetch_args, connect)
@@ -68,10 +69,17 @@ class DBTest(unittest.TestCase):
         mock_connect().__enter__().cursor().__enter__().execute.assert_called()
 
     @mock.patch('lega.utils.db.connect')
-    def test_set_info(self, mock_connect):
+    def test_store_header(self, mock_connect):
         """DB set progress."""
         # Values are not important in this call
-        set_info("file_id", '/ega/vault/000/000/0a1', 1000, b'header')
+        store_header("file_id", b'header')
+        mock_connect().__enter__().cursor().__enter__().execute.assert_called()
+
+    @mock.patch('lega.utils.db.connect')
+    def test_set_archived(self, mock_connect):
+        """DB set progress."""
+        # Values are not important in this call
+        set_archived("file_id", '/ega/vault/000/000/0a1', 1000)
         mock_connect().__enter__().cursor().__enter__().execute.assert_called()
 
     @mock.patch('lega.utils.db.connect')
