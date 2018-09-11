@@ -3,7 +3,7 @@ from lega import __version__
 
 setup(name='lega',
       version=__version__,
-      url='http://lega.nbis.se',
+      url='https://localega.readthedocs.io/',
       license='Apache License 2.0',
       author='NBIS System Developers',
       author_email='ega@nbis.se',
@@ -26,22 +26,9 @@ Users are handled throught Central EGA, directly.
               'ega-verify = lega.verify:main',
               'ega-keyserver = lega.keyserver:main',
               'ega-notifications = lega.notifications:main',
+              'ega-id-mapper = lega.mapper:main',
               'ega-conf = lega.conf.__main__:main',
           ]
       },
       platforms = 'any',
-      # install_requires=[
-      #     'pika==0.11.0',
-      #     'colorama==0.3.7',
-      #     'psycopg2-binary==2.7.4',
-      #     'aiopg'==0.13.0,
-      #     'aiohttp==2.3.8',
-      #     'aiohttp-jinja2==0.13.0',
-      #     'fusepy',
-      #     'sphinx_rtd_theme',
-      #     'cryptography==2.1.4',
-      #     'pgpy',
-      #     'boto3',
-      #     'git+https://github.com/NBISweden/LocalEGA-cryptor.git',
-      # ],
 )

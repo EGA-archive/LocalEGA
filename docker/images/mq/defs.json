@@ -7,14 +7,8 @@
  "policies":[],
  "queues":[{"name":"files","vhost":"/","durable":true,"auto_delete":false,"arguments":{}},
 	   {"name":"archived","vhost":"/","durable":true,"auto_delete":false,"arguments":{}},
-	   {"name":"qc","vhost":"/","durable":true,"auto_delete":false,"arguments":{}},
-	   {"name":"qc.errors","vhost":"/","durable":true,"auto_delete":false,"arguments":{}},
-	   {"name":"qc.done","vhost":"/","durable":true,"auto_delete":false,"arguments":{}}],
+	   {"name":"stableIDs","vhost":"/","durable":true,"auto_delete":false,"arguments":{}}],
  "exchanges":[{"name":"lega","vhost":"/","type":"topic","durable":true,"auto_delete":false,"internal":false,"arguments":{}},
               {"name":"cega","vhost":"/","type":"topic","durable":true,"auto_delete":false,"internal":false,"arguments":{}}],
- "bindings":[{"source":"lega", "vhost":"/", "destination":"archived",  "destination_type":"queue", "routing_key":"archived",     "arguments":{}},
-	     {"source":"lega", "vhost":"/", "destination":"qc",        "destination_type":"queue", "routing_key":"qc",           "arguments":{}},
-	     {"source":"lega", "vhost":"/", "destination":"qc.done",   "destination_type":"queue", "routing_key":"qc.done",      "arguments":{}},
-	     {"source":"lega", "vhost":"/", "destination":"qc.errors", "destination_type":"queue", "routing_key":"qc.errors",    "arguments":{}},
-	     {"source":"lega", "vhost":"/", "destination":"cega",      "destination_type":"exchange", "routing_key":"qc.errors", "arguments":{}}]
+ "bindings":[{"source":"lega", "vhost":"/", "destination":"archived",  "destination_type":"queue", "routing_key":"archived", "arguments":{}}]
 }

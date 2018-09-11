@@ -5,7 +5,7 @@ We use a Postgres database (version 9.6) to store intermediate data,
 in order to track progress in file ingestion. The ``lega`` database
 schema is as follows.
 
-.. literalinclude:: /../extras/db.sql
+.. literalinclude:: /../docker/images/db/db.sql
    :language: sql
    :lines: 5,12-25,44-53
 
