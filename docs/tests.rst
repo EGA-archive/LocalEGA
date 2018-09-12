@@ -15,7 +15,22 @@ Unit Tests
 Unit tests are minimal: Given a set of input values for a chosen
 function, they execute the function and check if the output has the
 expected values. Moreover, they capture triggered exceptions and
-errors. Unit tests can be run using the ``tox`` commands.
+errors. Additionally we also perform pep8 and pep257 style guide checks
+using `flake8  <http://flake8.pycqa.org/en/latest/>`_ with the following
+configuration:
+
+.. code-block:: yaml
+
+    [flake8]
+    ignore = E226,E302
+    exclude =
+        docker,
+        extras,
+        .tox
+    max-line-length = 160
+    max-complexity = 10
+
+Unit tests can be run using the ``tox`` commands.
 
 .. code-block:: console
 
