@@ -22,10 +22,6 @@ These networks are reflected in their corresponding YML files
 
 The passwords are in `private/lega/.trace` and the errors (if any) are in `private/.err`.
 
-If you don't have the volumes already, you can create them with
-
-    make volumes
-
 
 ## Running
 
