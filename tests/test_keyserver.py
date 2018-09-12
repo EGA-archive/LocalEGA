@@ -142,11 +142,18 @@ class CacheTestCase(unittest.TestCase):
         end_date = date_1 + datetime.timedelta(days=10)
         with self._key.unlock(pgp_data.PGP_PASSPHRASE) as privkey:
             self._cache.set('test_key', privkey, end_date.strftime('%d/%b/%y %H:%M:%S'))
+
         today = datetime.datetime.today().strftime(self.FMT)
         tdelta = end_date - datetime.datetime.strptime(today, self.FMT)
         tdelta = datetime.timedelta(days=tdelta.days, seconds=tdelta.seconds)
+
+        days = tdelta.days
+        hours = tdelta.days * 24 + tdelta.seconds // 3600
+        minutes = tdelta.seconds % 3600 // 60
+        seconds = tdelta.seconds
+
         expected_value = [{"keyID": "test_key",
-                           "ttl": f"{tdelta.days} days {tdelta.days * 24 + tdelta.seconds // 3600} hours {(tdelta.seconds % 3600) // 60} minutes {tdelta.seconds} seconds"}]
+                           "ttl": f"{days} days {hours} hours {minutes} minutes {seconds} seconds"}]
         self.assertEqual(self._cache.check_ttl(), expected_value)
         self._cache.clear()
 

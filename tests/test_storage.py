@@ -6,7 +6,6 @@ import os
 from io import UnsupportedOperation, BufferedReader
 from unittest import mock
 import boto3
-import botocore.response as br
 
 
 class TestFileStorage(unittest.TestCase):
