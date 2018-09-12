@@ -31,7 +31,7 @@ def get_connection(domain, blocking=True):
             CONF.get_value(domain, 'password', default='guest')
         ),
         'connection_attempts': CONF.get_value(domain, 'connection_attempts', conv=int, default=10),
-        'retry_delay': CONF.get_value(domain,'retry_delay', conv=int, default=10), # seconds
+        'retry_delay': CONF.get_value(domain, 'retry_delay', conv=int, default=10),  # seconds
     }
     heartbeat = CONF.get_value(domain, 'heartbeat', conv=int, default=0)
     if heartbeat is not None:  # can be 0
@@ -46,7 +46,7 @@ def get_connection(domain, blocking=True):
         params['ssl_options'] = {
             'ca_certs': CONF.get_value(domain, 'cacert'),
             'certfile': CONF.get_value(domain, 'cert'),
-            'keyfile':  CONF.get_value(domain, 'keyfile'),
+            'keyfile': CONF.get_value(domain, 'keyfile'),
             'cert_reqs': 2,  # ssl.CERT_REQUIRED is actually <VerifyMode.CERT_REQUIRED: 2>
         }
 
@@ -62,12 +62,12 @@ def publish(message, channel, exchange, routing, correlation_id=None):
     Sending a message to the local broker with ``path`` was updated
     '''
     LOG.debug(f'Sending {message} to exchange: {exchange} [routing key: {routing}]')
-    channel.basic_publish(exchange    = exchange,
-                          routing_key = routing,
-                          body        = json.dumps(message),
-                          properties  = pika.BasicProperties(correlation_id=correlation_id or str(uuid.uuid4()),
-                                                             content_type='application/json',
-                                                             delivery_mode=2))
+    channel.basic_publish(exchange=exchange,
+                          routing_key=routing,
+                          body=json.dumps(message),
+                          properties=pika.BasicProperties(correlation_id=correlation_id or str(uuid.uuid4()),
+                                                          content_type='application/json',
+                                                          delivery_mode=2))
 
 
 def consume(work, connection, from_queue, to_routing):
@@ -84,12 +84,12 @@ def consume(work, connection, from_queue, to_routing):
     routing key.
     '''
 
-    assert( from_queue )
+    assert(from_queue)
 
     LOG.debug(f'Consuming message from {from_queue}')
 
     from_channel = connection.channel()
-    from_channel.basic_qos(prefetch_count=1) # One job per worker
+    from_channel.basic_qos(prefetch_count=1)  # One job per worker
     to_channel = connection.channel()
 
     def process_request(channel, method_frame, props, body):
@@ -98,12 +98,12 @@ def consume(work, connection, from_queue, to_routing):
         LOG.debug(f'Consuming message {message_id} (Correlation ID: {correlation_id})')
 
         # Process message in JSON format
-        answer = work( json.loads(body) ) # Exceptions should be already caught
+        answer = work(json.loads(body))  # Exceptions should be already caught
 
         # Publish the answer
         if answer:
-            assert( to_routing )
-            publish(answer, to_channel, 'lega', to_routing, correlation_id = props.correlation_id)
+            assert(to_routing)
+            publish(answer, to_channel, 'lega', to_routing, correlation_id=props.correlation_id)
 
         # Acknowledgment: Cancel the message resend in case MQ crashes
         LOG.debug(f'Sending ACK for message {message_id} (Correlation ID: {correlation_id})')
