@@ -20,7 +20,7 @@ TARGET_PREFIX=nbisweden/ega
 
 BUILD_ARGS=--build-arg checkout=$(CHECKOUT)
 
-.PHONY: all erase delete clean cleanall base inbox
+.PHONY: all erase delete clean cleanall base inbox push
 
 all: base inbox
 
@@ -45,3 +45,7 @@ delete:
 
 erase: # erasing all including base
 	@docker images $(TARGET_PREFIX)-* -q | uniq | while read n; do docker rmi -f $$n; done
+
+push:
+	docker push $(TARGET_PREFIX)-base:latest
+	docker push $(TARGET_PREFIX)-inbox:latest
