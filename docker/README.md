@@ -22,6 +22,11 @@ These networks are reflected in their corresponding YML files
 
 The passwords are in `private/lega/.trace` and the errors (if any) are in `private/.err`.
 
+If you don't have the volumes already, you can create them with
+
+    make volumes
+
+
 ## Running
 
 	docker-compose up -d
@@ -40,3 +45,19 @@ will be created on-the-fly by docker-compose.
 ## Status
 
 	docker-compose ps
+
+## Cleaning
+
+To clean up everything you can use the following commands
+
+Remove the bootstrap stuff (including network):
+
+    make clean
+
+Remove the volumes:
+
+    make clean-volumes
+
+Remove everything:
+
+    make clean-all
