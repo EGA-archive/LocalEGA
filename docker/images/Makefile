@@ -28,6 +28,7 @@ base inbox:
 	docker build ${BUILD_ARGS} \
                      --cache-from $(TARGET_PREFIX)-$@:latest \
                      --tag $(TARGET_PREFIX)-$@:$(TAG) \
+										 --tag $(TARGET_PREFIX)-$@:dev \
                      --tag $(TARGET_PREFIX)-$@:latest \
                      $@
 

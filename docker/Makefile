@@ -16,7 +16,7 @@ private/cega.yml private/lega.yml private bootstrap:
 		    -v ${PWD}/../extras/generate_pgp_key.py:/tmp/generate_pgp_key.py \
 		    -v ${PWD}/../extras/rabbitmq_hash.py:/tmp/rabbitmq_hash.py \
 		    --entrypoint /ega/bootstrap/boot.sh \
-		    nbisweden/ega-base ${ARGS}
+		    nbisweden/ega-base:dev ${ARGS}
 
 network:
 	@docker network inspect cega &>/dev/null || docker network create cega &>/dev/null
