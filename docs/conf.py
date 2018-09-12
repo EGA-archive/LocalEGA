@@ -7,11 +7,9 @@ import datetime
 from unittest.mock import MagicMock
 
 # Get the project root dir, which is the parent dir of this
-#sys.path.insert(0, os.path.dirname(os.getcwd()))
 sys.path.insert(0, os.path.abspath('..'))
-#print('PYTHONPATH =', sys.path)
 
-import lega
+import lega  # noqa: E402
 
 # -- General configuration ------------------------------------------------
 
@@ -39,7 +37,7 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.viewcode',
               'sphinx.ext.githubpages',
               'sphinx.ext.todo',
-]
+              ]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['templates']
@@ -97,21 +95,11 @@ html_title = 'NBIS Local EGA'
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-#
-#html_theme = 'alabaster'
-# html_theme_options = {
-#     'fixed_sidebar': True,
-#     'show_powered_by': False,
-#     #'badge_branch': 'dev',
-#     'github_repo': 'https://github.com/NBISweden/LocalEGA',
-#     'github_button': True,
-# }
 
 html_theme = 'sphinx_rtd_theme'
 html_theme_options = {
     'collapse_navigation': True,
     'sticky_navigation': True,
-    #'navigation_depth': 4,
     'display_version': True,
     'prev_next_buttons_location': 'bottom',
 }
@@ -127,13 +115,7 @@ html_static_path = ['static']
 # This is required for the alabaster theme
 # refs: http://alabaster.readthedocs.io/en/latest/installation.html#sidebars
 html_sidebars = {
-    '**': [
-        #'about.html',
-        #'navigation.html',
-        #'relations.html',  # needs 'show_related': True theme option to display
-        #'searchbox.html',
-        #'donate.html',
-    ]
+    '**': []
 }
 
 
@@ -142,9 +124,10 @@ today_fmt = '%B %d, %Y'
 def setup(app):
     app.add_stylesheet('custom.css')
 
+
 # -- Other stuff ----------------------------------------------------------
 htmlhelp_basename = 'LocalEGA'
 latex_elements = {}
-latex_documents = [ (master_doc, 'LocalEGA.tex', 'Local EGA', 'NBIS System Developers', 'manual') ]
-man_pages = [ (master_doc, 'localega', 'Local EGA', [author], 1) ]
-texinfo_documents = [ (master_doc, 'LocalEGA', 'Local EGA', author, 'LocalEGA', 'Local extension to the European Genomic Archive', 'Miscellaneous') ]
+latex_documents = [(master_doc, 'LocalEGA.tex', 'Local EGA', 'NBIS System Developers', 'manual')]
+man_pages = [(master_doc, 'localega', 'Local EGA', [author], 1)]
+texinfo_documents = [(master_doc, 'LocalEGA', 'Local EGA', author, 'LocalEGA', 'Local extension to the European Genomic Archive', 'Miscellaneous')]
