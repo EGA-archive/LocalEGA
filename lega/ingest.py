@@ -26,7 +26,7 @@ from functools import partial
 from legacryptor.crypt4gh import get_header
 
 from .conf import CONF
-from .utils import db, exceptions, checksum, sanitize_user_id, storage
+from .utils import db, exceptions, sanitize_user_id, storage
 from .utils.amqp import consume, publish, get_connection
 
 LOG = logging.getLogger(__name__)
@@ -49,7 +49,7 @@ def work(fs, channel, data):
 
     # Insert in database
     file_id = db.insert_file(filepath, user_id)
-    data['file_id'] = file_id # must be there: database error uses it
+    data['file_id'] = file_id  # must be there: database error uses it
 
     # Find inbox
     inbox = Path(CONF.get_value('inbox', 'location', raw=True) % user_id)
@@ -59,7 +59,7 @@ def work(fs, channel, data):
     inbox_filepath = inbox / filepath.lstrip('/')
     LOG.info(f"Inbox file path: {inbox_filepath}")
     if not inbox_filepath.exists():
-        raise exceptions.NotFoundInInbox(filepath) # return early
+        raise exceptions.NotFoundInInbox(filepath)  # return early
 
     # Ok, we have the file in the inbox
 
@@ -71,7 +71,7 @@ def work(fs, channel, data):
     LOG.debug(f'Sending message to CentralEGA: {data}')
     publish(org_msg, channel, 'cega', 'files.processing')
     org_msg.pop('status', None)
-    
+
     # Strip the header out and copy the rest of the file to the vault
     LOG.debug(f'Opening {inbox_filepath}')
     with open(inbox_filepath, 'rb') as infile:
@@ -80,11 +80,11 @@ def work(fs, channel, data):
 
         header_hex = (beginning+header).hex()
         data['header'] = header_hex
-        db.store_header(file_id, header_hex) # header bytes will be .hex()
+        db.store_header(file_id, header_hex)  # header bytes will be .hex()
 
         target = fs.location(file_id)
         LOG.info(f'[{fs.__class__.__name__}] Moving the rest of {filepath} to {target}')
-        target_size = fs.copy(infile, target) # It will copy the rest only
+        target_size = fs.copy(infile, target)  # It will copy the rest only
 
         LOG.info(f'Vault copying completed. Updating database')
         db.set_archived(file_id, target, target_size)
@@ -97,7 +97,7 @@ def main(args=None):
     if not args:
         args = sys.argv[1:]
 
-    CONF.setup(args) # re-conf
+    CONF.setup(args)  # re-conf
 
     fs = getattr(storage, CONF.get_value('vault', 'driver', default='FileStorage'))
     broker = get_connection('broker')
@@ -105,6 +105,7 @@ def main(args=None):
 
     # upstream link configured in local broker
     consume(do_work, broker, 'files', 'archived')
+
 
 if __name__ == '__main__':
     main()
