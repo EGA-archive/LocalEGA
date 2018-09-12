@@ -175,24 +175,38 @@ def set_stable_id(file_id, stable_id):
                          'file_id': file_id,
                          'stable_id': stable_id })
 
-def set_info(file_id, vault_path, vault_filesize, header):
-    """Updating information in database for ``file_id``."""
+
+def store_header(file_id, header):
+    """Store header for ``file_id``."""
+    assert file_id, 'Eh? No file_id?'
+    assert header, 'Eh? No header?'
+    LOG.debug(f'Store header for file_id {file_id}')
+    with connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute('UPDATE files '
+                        'SET header = %(header)s '
+                        'WHERE id = %(file_id)s;',
+                        {'file_id': file_id,
+                         'header': header,
+                        })
+
+
+def set_archived(file_id, vault_path, vault_filesize):
+    """Archive ``file_id``."""
     assert file_id, 'Eh? No file_id?'
     assert vault_path, 'Eh? No vault name?'
-    LOG.debug(f'Updating status file_id {file_id}')
+    LOG.debug(f'Setting status to archived for file_id {file_id}')
     with connect() as conn:
         with conn.cursor() as cur:
             cur.execute('UPDATE files '
                         'SET status = %(status)s, '
                         '    vault_path = %(vault_path)s, '
-                        '    vault_filesize = %(vault_filesize)s, '
-                        '    header = %(header)s '
+                        '    vault_filesize = %(vault_filesize)s '
                         'WHERE id = %(file_id)s;',
                         {'status': 'Archived',
                          'file_id': file_id,
                          'vault_path': vault_path,
-                         'vault_filesize': vault_filesize,
-                         'header': header,
+                         'vault_filesize': vault_filesize
                         })
 
 ######################################

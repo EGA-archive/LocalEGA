@@ -77,14 +77,16 @@ def work(fs, channel, data):
         LOG.debug(f'Reading header | file_id: {file_id}')
         beginning, header = get_header(infile)
 
+        header_hex = (beginning+header).hex()
+        data['header'] = header_hex
+        db.store_header(file_id, header_hex) # header bytes will be .hex()
+
         target = fs.location(file_id)
         LOG.info(f'[{fs.__class__.__name__}] Moving the rest of {filepath} to {target}')
         target_size = fs.copy(infile, target) # It will copy the rest only
 
         LOG.info(f'Vault copying completed. Updating database')
-        header_hex = (beginning+header).hex()
-        db.set_info(file_id, target, target_size, header_hex) # header bytes will be .hex()
-        data['header'] = header_hex
+        db.set_archived(file_id, target, target_size)
         data['vault_path'] = target
 
     LOG.debug(f"Reply message: {data}")
