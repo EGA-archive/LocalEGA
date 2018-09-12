@@ -32,8 +32,8 @@ jobs:
       before_script:
         - cd docker
       script:
+        - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
         - make -C images all
-        - docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
         - docker push nbisweden/ega-base:dev
         - docker push nbisweden/ega-inbox:dev
     - stage: integration tests
@@ -79,7 +79,7 @@ jobs:
 
 after_success:
   - if [[ "$TRAVIS_BRANCH" == "dev" && "$TRAVIS_PULL_REQUEST" == "false" ]]; then
-      docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD ;
+      echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin ;
       docker pull nbisweden/ega-base:dev ;
       docker pull nbisweden/ega-inbox:dev ;
       docker tag nbisweden/ega-base:dev nbisweden/ega-base:latest ;
