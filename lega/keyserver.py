@@ -94,12 +94,11 @@ class Cache:
 
     def clear(self):
         """Clear all cache."""
-        #self.store = dict()
         self.store.clear()
 
 
-_cache = None  # key IDs are uppercase
-_active = None # will be a KeyID (not a key name)
+_cache = None   # key IDs are uppercase
+_active = None  # will be a KeyID (not a key name)
 
 ####################################
 # Caching the keys
@@ -127,13 +126,13 @@ async def retrieve_active_key(request):
     key_type = request.match_info['key_type'].lower()
     LOG.debug(f'Requesting active ({key_type}) key')
     if key_type not in ('public', 'private'):
-        return web.HTTPForbidden() # web.HTTPBadRequest()
+        return web.HTTPForbidden()  # web.HTTPBadRequest()
     key_format = 'armored' if request.content_type == 'text/plain' else None
     if _active is None:
         return web.HTTPNotFound()
     k = _cache.get(_active, key_type, key_format=key_format)
     if k:
-        return web.Response(body=k) # web.Response(text=k.hex())
+        return web.Response(body=k)  # web.Response(text=k.hex())
     else:
         LOG.warn(f"Requested active ({key_type}) key not found.")
         return web.HTTPNotFound()
@@ -144,13 +143,13 @@ async def retrieve_key(request):
     requested_id = request.match_info['requested_id']
     key_type = request.match_info['key_type'].lower()
     if key_type not in ('public', 'private'):
-        return web.HTTPForbidden() # web.HTTPBadRequest()
+        return web.HTTPForbidden()  # web.HTTPBadRequest()
     key_id = requested_id[-16:].upper()
     key_format = 'armored' if request.content_type == 'text/plain' else None
     LOG.debug(f'Requested {key_type.upper()} key with ID {requested_id}')
     k = _cache.get(key_id, key_type, key_format=key_format)
     if k:
-        return web.Response(body=k) # web.Response(text=value.hex())
+        return web.Response(body=k)  # web.Response(text=value.hex())
     else:
         LOG.warn(f"Requested key {requested_id} not found.")
         return web.HTTPNotFound()
@@ -181,7 +180,7 @@ async def healthcheck(request):
 @routes.get('/admin/ttl')
 async def check_ttl(request):
     """Evict from the cache if TTL expired
-       and return the keys that survived""" # ehh...why? /Fred
+       and return the keys that survived"""  # ehh...why? /Fred
     LOG.debug('Admin TTL')
     expire = _cache.check_ttl()
     if expire:
@@ -196,7 +195,8 @@ def load_keys_conf(store):
     _cache = Cache()
     # Load all the keys in the store
     for section in store.sections():
-        _unlock_key(section, **dict(store.items(section))) # includes defaults
+        _unlock_key(section, **dict(store.items(section)))  # includes defaults
+
 
 alive = True  # used to set if the keyserver is alive in the shutdown
 
@@ -239,8 +239,8 @@ def main(args=None):
 
     host = CONF.get_value('keyserver', 'host')  # fallbacks are in defaults.ini
     port = CONF.get_value('keyserver', 'port', conv=int)
-    health_check_url='http://{}:{}{}'.format(host, port, CONF.get_value('keyserver', 'health_endpoint'))
-    status_check_url='http://{}:{}{}'.format(host, port, CONF.get_value('keyserver', 'status_endpoint'))
+    health_check_url = 'http://{}:{}{}'.format(host, port, CONF.get_value('keyserver', 'health_endpoint'))
+    status_check_url = 'http://{}:{}{}'.format(host, port, CONF.get_value('keyserver', 'status_endpoint'))
 
     eureka_endpoint = CONF.get_value('eureka', 'endpoint')
 
