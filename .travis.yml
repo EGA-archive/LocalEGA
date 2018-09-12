@@ -15,6 +15,8 @@ services: docker
 stages:
   - name: unit tests
     if: type IN (push, pull_request)
+  - name: image build
+    if: type IN (pull_request)
   - name: integration tests
     if: type IN (pull_request)
 
@@ -26,6 +28,14 @@ jobs:
         - pip install tox-travis
       # command to run tests
       script: tox
+    - stage: image build
+      before_script:
+        - cd docker
+      script:
+        - make -C images all
+        - docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
+        - docker push nbisweden/ega-base:dev
+        - docker push nbisweden/ega-inbox:dev
     - stage: integration tests
       before_script:
         - cd docker
@@ -66,6 +76,17 @@ jobs:
         - make -C test
         - sleep 10
         - make -C test check
+
+after_success:
+  - if [[ "$TRAVIS_BRANCH" == "dev" && "$TRAVIS_PULL_REQUEST" == "false" ]]; then
+      docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD ;
+      docker pull nbisweden/ega-base:dev ;
+      docker pull nbisweden/ega-inbox:dev ;
+      docker tag nbisweden/ega-base:dev nbisweden/ega-base:latest ;
+      docker tag nbisweden/ega-inbox:dev nbisweden/ega-inbox:latest ;
+      docker push nbisweden/ega-base:latest ;
+      docker push nbisweden/ega-inbox:latest ;
+    fi
 
 notifications:
   email: false
