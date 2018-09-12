@@ -22,7 +22,7 @@ from legacryptor.crypt4gh import get_key_id, header_to_records, body_decrypt
 
 from .conf import CONF
 from .utils import db, exceptions, storage
-from .utils.amqp import consume, publish, get_connection
+from .utils.amqp import consume, get_connection
 
 LOG = logging.getLogger(__name__)
 
@@ -34,8 +34,8 @@ def get_records(header):
     LOG.info(f'Retrieving the Private Key from {keyurl} (verify certificate: {verify})')
 
     if verify:
-        ctx=None # nothing to be done: done by default in urlopen
-    else: # no verification
+        ctx = None  # nothing to be done: done by default in urlopen
+    else:  # no verification
         import ssl
         ctx = ssl.create_default_context()
         ctx.check_hostname = False
@@ -48,7 +48,7 @@ def get_records(header):
     except HTTPError as e:
         LOG.error(e)
         msg = str(e)
-        if e.code == 404: # If key not found, then probably wrong key.
+        if e.code == 404:  # If key not found, then probably wrong key.
             raise exceptions.PGPKeyError(msg)
         # Otherwise
         raise exceptions.KeyserverError(msg)
@@ -63,18 +63,19 @@ def work(chunk_size, mover, channel, data):
     LOG.info('Verification | message: %s', data)
 
     file_id = data['file_id']
-    header = bytes.fromhex(data['header'])[16:] # in hex -> bytes, and take away 16 bytes
+    header = bytes.fromhex(data['header'])[16:]  # in hex -> bytes, and take away 16 bytes
     vault_path = data['vault_path']
 
     # Get it from the header and the keyserver
-    records, key_id = get_records(header) # might raise exception
-    r = records[0] # only first one
+    records, key_id = get_records(header)  # might raise exception
+    r = records[0]  # only first one
 
     LOG.info('Opening vault file: %s', vault_path)
     # If you can decrypt... the checksum is valid
 
     # Calculate the checksum of the original content
     md = hashlib.sha256()
+
     def checksum_content(data):
         md.update(data)
 
@@ -92,7 +93,7 @@ def work(chunk_size, mover, channel, data):
     org_msg = data['org_msg']
     org_msg.pop('file_id', None)
     org_msg['reference'] = file_id
-    org_msg['checksum'] = { 'value': digest, 'algorithm': 'sha256' }
+    org_msg['checksum'] = {'value': digest, 'algorithm': 'sha256'}
     LOG.debug(f"Reply message: {org_msg}")
     return org_msg
 
@@ -101,15 +102,16 @@ def main(args=None):
     if not args:
         args = sys.argv[1:]
 
-    CONF.setup(args) # re-conf
+    CONF.setup(args)  # re-conf
 
     store = getattr(storage, CONF.get_value('vault', 'driver', default='FileStorage'))
-    chunk_size = CONF.get_value('vault', 'chunk_size', conv=int, default=1<<22) # 4 MB
+    chunk_size = CONF.get_value('vault', 'chunk_size', conv=int, default=1 << 22)  # 4 MB
 
     broker = get_connection('broker')
     do_work = partial(work, chunk_size, store(), broker.channel())
 
     consume(do_work, broker, 'archived', 'completed')
+
 
 if __name__ == '__main__':
     main()
