@@ -1,6 +1,6 @@
 ARGS=
 
-.PHONY: help bootstrap private network up down clean ps
+.PHONY: help bootstrap private network up down clean ps clean-volumes clean-all
 
 help:
 	@echo "Usage: make <target>\n"
@@ -24,6 +24,9 @@ network:
 up:network private/cega.yml private/lega.yml
 	@docker-compose -f private/cega.yml -f private/lega.yml up -d
 
+clean-volumes:
+	docker volume rm lega_db lega_inbox lega_s3
+
 ps:
 	@docker-compose ps
 
@@ -33,3 +36,5 @@ down: #.env
 clean:
 	rm -rf .env private
 	-docker network rm cega &>/dev/null
+
+clean-all: clean clean-volumes

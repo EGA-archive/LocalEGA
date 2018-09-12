@@ -4,7 +4,9 @@ ifdef DEV
 DEV_PACKAGES=nss-tools nc nmap tcpdump lsof strace bash-completion bash-completion-extras
 endif
 
+ifndef CHECKOUT
 CHECKOUT=$(shell git rev-parse --abbrev-ref HEAD)
+endif
 TAG=$(shell git rev-parse --short HEAD)
 ifdef TRAVIS_COMMIT
 TAG=$(TRAVIS_COMMIT)
@@ -18,7 +20,7 @@ TARGET_PREFIX=nbisweden/ega
 
 BUILD_ARGS=--build-arg checkout=$(CHECKOUT)
 
-.PHONY: all erase delete clean cleanall base inbox
+.PHONY: all erase delete clean cleanall base inbox push
 
 all: base inbox
 
@@ -43,3 +45,7 @@ delete:
 
 erase: # erasing all including base
 	@docker images $(TARGET_PREFIX)-* -q | uniq | while read n; do docker rmi -f $$n; done
+
+push:
+	docker push $(TARGET_PREFIX)-base:latest
+	docker push $(TARGET_PREFIX)-inbox:latest
