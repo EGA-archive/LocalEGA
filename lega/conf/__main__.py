@@ -15,12 +15,12 @@ def main(args=None):
     parser = argparse.ArgumentParser(description="Forward message between CentralEGA's broker and the local one",
                                      allow_abbrev=False)
     parser.add_argument('--conf', help='configuration file, in INI or YAML format')
-    parser.add_argument('--log',  help='configuration file for the loggers')
-    
+    parser.add_argument('--log', help='configuration file for the loggers')
+
     parser.add_argument('--list', dest='list_content', action='store_true', help='Lists the content of the configuration file')
     pargs = parser.parse_args(args)
-    
-    CONF.setup( args )
+
+    CONF.setup(args)
 
     print(repr(CONF))
 
