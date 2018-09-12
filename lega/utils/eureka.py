@@ -27,6 +27,7 @@ LOG = logging.getLogger(__name__)
 def retry_loop(func):
     """Decorator retry something ``try`` times every ``try_interval`` seconds."""
     assert asyncio.iscoroutinefunction(func), "This decorator is only for coroutines"
+
     @wraps(func)
     async def wrapper(*args, **kwargs):
         """Main retry loop."""
