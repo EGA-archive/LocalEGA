@@ -3,7 +3,7 @@
 Logs Formatter
 """
 from logging import Formatter
-from logging.handlers import SocketHandler as handler # or DatagramHandler ?
+from logging.handlers import SocketHandler as handler  # or DatagramHandler ?
 import json
 import re
 
@@ -56,4 +56,4 @@ class JSONFormatter(Formatter):
         if record.stack_info:
             log_record['stack_info'] = self.formatStack(record.stack_info)
 
-        return json.dumps(log_record) #, ensure_ascii=False)
+        return json.dumps(log_record)
