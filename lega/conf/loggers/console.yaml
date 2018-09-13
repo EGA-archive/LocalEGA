@@ -5,15 +5,23 @@ root:
 
 loggers:
   lega:
-    level: INFO
+    level: DEBUG
     handlers: [console]
     propagate: true
     qualname: lega
+  lega.utils.eureka:
+    level: INFO
+    handlers: [console]
+    propagate: false
+  lega.keyserver:
+    level: INFO
+    handlers: [console]
+    propagate: false
   asyncio:
-    level: ERROR
+    level: WARN
     handlers: [console]
   aiohttp:
-    level: ERROR
+    level: WARN
     handlers: [console]
     propagate: true
     qualname: aiohttp

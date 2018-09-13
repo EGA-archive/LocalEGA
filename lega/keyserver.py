@@ -112,7 +112,7 @@ def _unlock_key(name, active=None, path=None, expire=None, passphrase=None, **kw
     assert not key.is_public, f"The key {name} should be private"
     with key.unlock(passphrase) as k:
         key_id = k.fingerprint.keyid.upper()
-        LOG.debug(f'Activating key: {key_id} ({name})')
+        LOG.info(f'Activating key: {key_id} ({name})')
         _cache.set(key_id, k, ttl=expire)
         if active and name == active:
             global _active
@@ -128,7 +128,7 @@ def _unlock_key(name, active=None, path=None, expire=None, passphrase=None, **kw
 async def retrieve_active_key(request):
     """Retrieve the active key from the cache and serve it via HTTPS."""
     key_type = request.match_info['key_type'].lower()
-    LOG.debug(f'Requesting active ({key_type}) key')
+    LOG.info(f'Requesting active ({key_type}) key')
     if key_type not in ('public', 'private'):
         return web.HTTPForbidden()  # web.HTTPBadRequest()
     key_format = 'armored' if request.content_type == 'text/plain' else None
@@ -152,7 +152,7 @@ async def retrieve_key(request):
         return web.HTTPForbidden()  # web.HTTPBadRequest()
     key_id = requested_id[-16:].upper()
     key_format = 'armored' if request.content_type == 'text/plain' else None
-    LOG.debug(f'Requested {key_type.upper()} key with ID {requested_id}')
+    LOG.info(f'Requested {key_type.upper()} key with ID {requested_id}')
     k = _cache.get(key_id, key_type, key_format=key_format)
     if k:
         return web.Response(body=k)  # web.Response(text=value.hex())
@@ -169,7 +169,7 @@ async def unlock_key(request):
     {"private": "path/to/file.sec", "passphrase": "pass", "expire": "30/MAR/18 08:00:00"}
     """
     key_info = await request.json()
-    LOG.debug(f'Admin unlocking: {key_info}')
+    LOG.info(f'Admin unlocking: {key_info}')
     if all(k in key_info for k in("path", "passphrase", "expire")):
         _unlock_key('whichname?', **key_info)
         return web.HTTPAccepted()
@@ -217,7 +217,7 @@ async def renew_lease(eureka, interval):
     while alive:
         await asyncio.sleep(interval)
         await eureka.renew()
-        LOG.info('Keyserver Eureka lease renewed.')
+        LOG.debug('Keyserver Eureka lease renewed.')
 
 
 async def init(app):
