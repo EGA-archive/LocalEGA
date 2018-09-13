@@ -27,6 +27,10 @@ from pathlib import Path
 import yaml
 from hashlib import md5
 
+# These two imports are needed to get the logging config files to work
+import logging  # noqa: F401
+import lega.utils.logging  # noqa: F401
+
 from cryptography.hazmat.primitives import padding
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import (
