@@ -1,3 +1,4 @@
+# flake8: noqa
 PGP_PASSPHRASE = 'crazywow'
 PGP_NAME = 'PyTest'
 PGP_COMMENT = 'Fake Key for PyTest'
