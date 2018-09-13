@@ -22,9 +22,7 @@ which case, it must end in ``.yaml`` or ``.yml``.
 import sys
 import os
 import configparser
-import logging
 from logging.config import fileConfig, dictConfig
-import lega.utils.logging
 from pathlib import Path
 import yaml
 from hashlib import md5
@@ -138,9 +136,8 @@ class Configuration(configparser.ConfigParser):
         ``section`` and ``option`` are mandatory while ``conv``, ``default`` (fallback) and ``raw`` are optional.
         """
         result = os.environ.get(f'{section.upper()}_{option.upper()}', None)
-        if result is not None: # it might be empty
+        if result is not None:  # it might be empty
             return self._convert(result, conv)
-        #if self.has_option(section, option):
         return self._convert(self.get(section, option, fallback=default, raw=raw), conv)
 
     def _convert(self, value, conv):
@@ -155,7 +152,7 @@ class Configuration(configparser.ConfigParser):
             else:
                 raise ValueError(f"Invalid truth value: {val}")
         else:
-            return conv(value) # raise error in case we can't convert an empty value
+            return conv(value)  # raise error in case we can't convert an empty value
 
 
 CONF = Configuration()

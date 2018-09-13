@@ -117,12 +117,10 @@ class testVerify(unittest.TestCase):
     @tempdir()
     @mock.patch('lega.verify.db')
     @mock.patch('lega.verify.body_decrypt')
-    @mock.patch('lega.verify.publish')
     @mock.patch('lega.verify.get_records')
-    def test_work(self, mock_records, mock_publish, mock_decrypt, mock_db, filedir):
+    def test_work(self, mock_records, mock_decrypt, mock_db, filedir):
         """Test verify worker, should send a messge."""
         # Mocking a lot of stuff, ast it is previously tested
-        mock_publish.return_value = mock.MagicMock()
         mock_db.status.return_value = mock.Mock()
         mock_records.return_value = ['data'], 'key_id'
         mock_decrypt.return_value = mock.Mock()

@@ -23,7 +23,7 @@ class FileStorage():
         self.vault_area = Path(CONF.get_value('vault', 'location'))
 
     def location(self, file_id):
-        name = f"{file_id:0>20}" # filling with zeros, and 20 characters wide
+        name = f"{file_id:0>20}"  # filling with zeros, and 20 characters wide
         name_bits = [name[i:i+3] for i in range(0, len(name), 3)]
         target = self.vault_area.joinpath(*name_bits)
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -35,7 +35,7 @@ class FileStorage():
         return os.stat(location).st_size
 
     @contextmanager
-    def open(self, path, mode = 'rb'):
+    def open(self, path, mode='rb'):
         f = open(path, mode)
         yield f
         f.close()
@@ -45,9 +45,9 @@ class S3FileReader(object):
     """
     Implements a few of the BufferedIOBase methods
     """
-    def __init__(self, s3, bucket, path, mode='rb', blocksize = 1<<22): # 1<<22 = 4194304 = 4MB
-        
-        if mode != 'rb': # if mode not in ('rb', 'wb', 'ab'):
+    def __init__(self, s3, bucket, path, mode='rb', blocksize=1 << 22):  # 1<<22 = 4194304 = 4MB
+
+        if mode != 'rb':  # if mode not in ('rb', 'wb', 'ab'):
             raise NotImplementedError(f"File mode '{mode}' not supported")
         self.mode = mode
         self.path = path
@@ -70,11 +70,11 @@ class S3FileReader(object):
         return self.loc
 
     def seek(self, loc, whence=0):
-        if whence == 0: # from start
+        if whence == 0:  # from start
             nloc = loc
-        elif whence == 1: # from here
+        elif whence == 1:  # from here
             nloc = self.loc + loc
-        elif whence == 2: # from end
+        elif whence == 2:  # from end
             nloc = self.size + loc
         else:
             raise ValueError("invalid whence (%s, should be 0, 1 or 2)" % whence)
@@ -114,13 +114,13 @@ class S3FileReader(object):
         if self.closed:
             raise ValueError('I/O operation on closed file.')
 
-        if self.loc == self.size: # at the end already
+        if self.loc == self.size:  # at the end already
             return b''
 
-        if length < 0: # the rest of the file
-            length = self.size - self.loc 
+        if length < 0:  # the rest of the file
+            length = self.size - self.loc
 
-        end = min(self.loc + length, self.size) # in case it's too much
+        end = min(self.loc + length, self.size)  # in case it's too much
         out = self._fetch(self.loc, end)
         self.loc += len(out)
         return out
@@ -165,7 +165,7 @@ class S3FileReader(object):
         # if end > self.size:
         #     end = self.size
         assert end <= self.size
-        #LOG.debug("Fetch: Bucket: %s, File=%s, Range: %s-%s, Chunk: %s", self.bucket, self.path, start, end, end-start)
+        # LOG.debug("Fetch: Bucket: %s, File=%s, Range: %s-%s, Chunk: %s", self.bucket, self.path, start, end, end-start)
         for i in range(max_attempts):
             try:
                 resp = self.s3.get_object(Bucket=self.bucket, Key=self.path, Range='bytes=%i-%i' % (start, end - 1))
@@ -191,7 +191,6 @@ class S3Storage():
 
     def __init__(self):
         import boto3
-        import socket
 
         endpoint = CONF.get_value('vault', 'url')
         region = CONF.get_value('vault', 'region')
@@ -205,9 +204,9 @@ class S3Storage():
                                region_name=region,
                                use_ssl=False,
                                verify=False,
-                               aws_access_key_id = access_key,
-                               aws_secret_access_key = secret_key)
-        #LOG.debug(f'S3 client: {self.s3!r}')
+                               aws_access_key_id=access_key,
+                               aws_secret_access_key=secret_key)
+        # LOG.debug(f'S3 client: {self.s3!r}')
         try:
             LOG.debug('Creating "%s" bucket', bucket)
             self.bucket = bucket
@@ -225,8 +224,7 @@ class S3Storage():
         return resp['ContentLength']
 
     @contextmanager
-    def open(self, path, mode = 'rb'):
+    def open(self, path, mode='rb'):
         f = S3FileReader(self.s3, self.bucket, path, mode=mode)
         yield f
         f.close()
-    

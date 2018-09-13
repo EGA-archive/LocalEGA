@@ -21,16 +21,16 @@ from .amqp import publish, get_connection
 LOG = logging.getLogger(__name__)
 
 ######################################
-##         DB connection            ##
+#          DB connection             #
 ######################################
 def fetch_args(d):
     """Initializing a connection to db."""
-    db_args = { 'user'     : d.get_value('postgres', 'user'),
-                'password' : d.get_value('postgres', 'password'),
-                'database' : d.get_value('postgres', 'db'),
-                'host'     : d.get_value('postgres', 'host'),
-                'port'     : d.get_value('postgres', 'port', conv=int)
-    }
+    db_args = {'user': d.get_value('postgres', 'user'),
+               'password': d.get_value('postgres', 'password'),
+               'database': d.get_value('postgres', 'db'),
+               'host': d.get_value('postgres', 'host'),
+               'port': d.get_value('postgres', 'port', conv=int)
+               }
     LOG.info(f"Initializing a connection to: {db_args['host']}:{db_args['port']}/{db_args['database']}")
     return db_args
 
@@ -49,11 +49,11 @@ def retry_loop(on_failure=None, exception=psycopg2.OperationalError):
             backoff = try_interval
             while count < nb_try:
                 try:
-                    return func(*args,**kwargs)
+                    return func(*args, **kwargs)
                 except exception as e:
                     LOG.debug(f"Database connection error: {e!r}")
                     LOG.debug(f"Retrying in {backoff} seconds")
-                    sleep( backoff )
+                    sleep(backoff)
                     count += 1
                     backoff = (2 ** (count // 10)) * try_interval
                     # from  0 to  9, sleep 1 * try_interval secs
@@ -75,8 +75,9 @@ def _do_exit():
     LOG.error("Could not connect to the database: Exiting")
     sys.exit(1)
 
+
 ######################################
-##         "Classic" code           ##
+#          "Classic" code            #
 ######################################
 _conn = None
 def cache_connection(func):
@@ -107,9 +108,9 @@ def insert_file(filename, user_id):
     with connect() as conn:
         with conn.cursor() as cur:
             cur.execute('SELECT insert_file(%(filename)s,%(user_id)s);',
-                        { 'filename': filename,
-                          'user_id': user_id,
-                        })
+                        {'filename': filename,
+                         'user_id': user_id,
+                         })
             file_id = (cur.fetchone())[0]
             if file_id:
                 LOG.debug(f'Created id {file_id} for {filename}')
@@ -135,14 +136,14 @@ def set_error(file_id, error, from_user=False):
     with connect() as conn:
         with conn.cursor() as cur:
             cur.execute('SELECT insert_error(%(file_id)s,%(h)s,%(etype)s,%(msg)s,%(from_user)s);',
-                        {'h':hostname, 'etype': error.__class__.__name__, 'msg': repr(error), 'file_id': file_id, 'from_user': from_user})
+                        {'h': hostname, 'etype': error.__class__.__name__, 'msg': repr(error), 'file_id': file_id, 'from_user': from_user})
 
 def get_info(file_id):
     """Retrieve information for ``file_id``."""
     with connect() as conn:
         with conn.cursor() as cur:
             query = 'SELECT inbox_path, vault_path, stable_id, header from files WHERE id = %(file_id)s;'
-            cur.execute(query, { 'file_id': file_id})
+            cur.execute(query, {'file_id': file_id})
             return cur.fetchone()
 
 def _set_status(file_id, status):
@@ -153,7 +154,7 @@ def _set_status(file_id, status):
         with conn.cursor() as cur:
             cur.execute('UPDATE files SET status = %(status)s WHERE id = %(file_id)s;',
                         {'status': status,
-                         'file_id': file_id })
+                         'file_id': file_id})
 
 def mark_in_progress(file_id):
     return _set_status(file_id, 'In progress')
@@ -173,7 +174,7 @@ def set_stable_id(file_id, stable_id):
                         'WHERE id = %(file_id)s;',
                         {'status': 'Ready',
                          'file_id': file_id,
-                         'stable_id': stable_id })
+                         'stable_id': stable_id})
 
 
 def store_header(file_id, header):
@@ -187,8 +188,7 @@ def store_header(file_id, header):
                         'SET header = %(header)s '
                         'WHERE id = %(file_id)s;',
                         {'file_id': file_id,
-                         'header': header,
-                        })
+                         'header': header})
 
 
 def set_archived(file_id, vault_path, vault_filesize):
@@ -206,48 +206,48 @@ def set_archived(file_id, vault_path, vault_filesize):
                         {'status': 'Archived',
                          'file_id': file_id,
                          'vault_path': vault_path,
-                         'vault_filesize': vault_filesize
-                        })
+                         'vault_filesize': vault_filesize})
+
 
 ######################################
-##           Decorator              ##
+#            Decorator               #
 ######################################
 _channel = None
 
-def catch_error(func):
+
+def catch_error(func):  # noqa: C901
     '''Decorator to store the raised exception in the database'''
     @wraps(func)
     def wrapper(*args):
         try:
             return func(*args)
         except Exception as e:
-            if isinstance(e,AssertionError):
+            if isinstance(e, AssertionError):
                 raise e
 
             exc_type, _, exc_tb = sys.exc_info()
             g = traceback.walk_tb(exc_tb)
-            frame, lineno = next(g) # that should be the decorator
+            frame, lineno = next(g)  # that should be the decorator
             try:
-                frame, lineno = next(g) # that should be where is happened
+                frame, lineno = next(g)  # that should be where is happened
             except StopIteration:
-                pass # In case the trace is too short
+                pass  # In case the trace is too short
 
-            #fname = os.path.split(frame.f_code.co_filename)[1]
             fname = frame.f_code.co_filename
             LOG.error(f'Exception: {exc_type} in {fname} on line: {lineno}')
-            from_user = isinstance(e,FromUser)
+            from_user = isinstance(e, FromUser)
             cause = e.__cause__ or e
-            LOG.error(f'{cause!r} (from user: {from_user})') # repr = Technical
+            LOG.error(f'{cause!r} (from user: {from_user})')  # repr = Technical
 
             try:
-                data = args[-1] # data is the last argument
-                file_id = data.get('file_id', None) # should be there
+                data = args[-1]  # data is the last argument
+                file_id = data.get('file_id', None)  # should be there
                 if file_id:
                     set_error(file_id, cause, from_user)
                 LOG.debug('Catching error on file id: %s', file_id)
-                if from_user: # Send to CentralEGA
-                    org_msg = data.pop('org_msg', None) # should be there
-                    org_msg['reason'] = str(cause) # str = Informal
+                if from_user:  # Send to CentralEGA
+                    org_msg = data.pop('org_msg', None)  # should be there
+                    org_msg['reason'] = str(cause)  # str = Informal
                     LOG.info(f'Sending user error to local broker: {org_msg}')
                     global _channel
                     if _channel is None:
@@ -272,6 +272,7 @@ def crypt4gh_to_user_errors(func):
             LOG.critical(repr(e))
             raise
     return wrapper
+
 
 # Testing connection with `python -m lega.utils.db`
 if __name__ == '__main__':

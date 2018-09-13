@@ -1,6 +1,5 @@
 import unittest
 from lega.ingest import main, work
-from lega.utils.exceptions import NotFoundInInbox
 from unittest import mock
 from testfixtures import tempdir
 from pathlib import PosixPath
@@ -36,7 +35,7 @@ class testIngest(unittest.TestCase):
         store.open.return_value = mock.MagicMock()
         mock_broker = mock.MagicMock(name='channel')
         mock_broker.channel.return_value = mock.Mock()
-        infile = filedir.write('infile.in',  bytearray.fromhex(pgp_data.ENC_FILE))
+        infile = filedir.write('infile.in', bytearray.fromhex(pgp_data.ENC_FILE))
         data = {'filepath': infile, 'user': 'user_id@elixir-europe.org'}
         result = work(store, mock_broker, data)
         mocked = {'filepath': infile, 'user': 'user_id@elixir-europe.org',

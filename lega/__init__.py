@@ -6,7 +6,7 @@
 __title__ = 'Local EGA'
 __version__ = VERSION = '1.1'
 __author__ = 'Frédéric Haziza'
-#__license__ = 'Apache 2.0'
+__license__ = 'Apache 2.0'
 __copyright__ = 'Local EGA @ NBIS Sweden'
 
 # Set default logging handler to avoid "No handler found" warnings.

@@ -12,15 +12,17 @@ import logging
 import os
 import asyncio
 import uvloop
+
+from .conf import CONF
+from .utils.amqp import get_connection, publish
+from .utils.checksum import calculate
+
+
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
 host = '127.0.0.1'
 port = 8888
 delim = b'$'
-
-from .conf import CONF
-from .utils.amqp import get_connection, publish
-from .utils.checksum import calculate, supported_algorithms
 
 LOG = logging.getLogger(__name__)
 
@@ -53,9 +55,9 @@ class Forwarder(asyncio.Protocol):
             # We have 2 bars
             pos1 = data.find(delim)
             username = data[:pos1]
-            pos2 = data.find(delim,pos1+1)
+            pos2 = data.find(delim, pos1+1)
             filename = data[pos1+1:pos2]
-            yield (username.decode(),filename.decode())
+            yield (username.decode(), filename.decode())
             data = data[pos2+1:]
 
     def data_received(self, data):
@@ -70,13 +72,15 @@ class Forwarder(asyncio.Protocol):
 
     def send_message(self, username, filename):
         inbox = self.inbox_location % username
-        filepath, filename = (os.path.join(inbox, filename.lstrip('/')), filename) if self.isolation \
-                             else (filename, filename[len(inbox):]) # surely there is better!
+        filepath, filename = (filename, filename[len(inbox):])
+        if self.isolation:
+            filepath, filename = (os.path.join(inbox, filename.lstrip('/')), filename)
+
         LOG.debug("Filepath %s", filepath)
-        msg = { 'user': username,
-                'filepath': filename,
-                'filesize': os.stat(filepath).st_size
-        }
+        msg = {'user': username,
+               'filepath': filename,
+               'filesize': os.stat(filepath).st_size
+               }
         c = calculate(filepath, 'sha256')
         if c:
             msg['encrypted_integrity'] = {'algorithm': 'sha256', 'checksum': c}
