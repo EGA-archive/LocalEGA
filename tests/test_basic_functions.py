@@ -9,7 +9,6 @@ from lega.utils import get_file_content, sanitize_user_id
 import io
 from testfixtures import tempdir
 from . import pgp_data
-import sys
 from io import StringIO
 
 
@@ -94,12 +93,12 @@ class TestBasicFunctions(unittest.TestCase):
     def test_config_main(self):
         """Testing main configuration."""
         with mock.patch('sys.stdout', new=StringIO()) as fake_stdout:
-                main(['--conf', 'fake/conf.ini'])
-                self.assertTrue(fake_stdout.getvalue(), 'Configuration files:')
+            main(['--conf', 'fake/conf.ini'])
+            self.assertTrue(fake_stdout.getvalue(), 'Configuration files:')
 
         with mock.patch('sys.stdout', new=StringIO()) as fake_stdout:
-                main(['--list'])
-                self.assertTrue(fake_stdout.getvalue(), 'Configuration values:')
+            main(['--list'])
+            self.assertTrue(fake_stdout.getvalue(), 'Configuration values:')
 
     def test_do_exit(self):
         """Testing simple exit."""

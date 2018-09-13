@@ -39,12 +39,13 @@ def main(args=None):
     if not args:
         args = sys.argv[1:]
 
-    CONF.setup(args) # re-conf
+    CONF.setup(args)  # re-conf
 
     broker = get_connection('broker')
 
     # upstream link configured in local broker
     consume(work, broker, 'stableIDs', None)
+
 
 if __name__ == '__main__':
     main()

@@ -31,7 +31,7 @@ def calculate(filepath, algo, bsize=8192):
     '''
     try:
         m = instantiate(algo)
-        with open(filepath, 'rb') as f: # Open the file in binary mode. No encoding dance.
+        with open(filepath, 'rb') as f:  # Open the file in binary mode. No encoding dance.
             while True:
                 data = f.read(bsize)
                 if not data:
@@ -43,10 +43,10 @@ def calculate(filepath, algo, bsize=8192):
         return None
 
 
-def is_valid(filepath, digest, hashAlgo = 'md5'):
+def is_valid(filepath, digest, hashAlgo='md5'):
     '''Verify the integrity of a file against a hash value.'''
 
-    assert( isinstance(digest,str) )
+    assert(isinstance(digest, str))
 
     res = calculate(filepath, hashAlgo)
     LOG.debug('Calculated digest: '+res)
@@ -67,10 +67,9 @@ def get_from_companion(filepath):
         try:
             with open(companion, 'rt', encoding='utf-8') as f:
                 return f.read(), h
-        except OSError as e: # Not found, not readable, ...
+        except OSError as e:  # Not found, not readable, ...
             LOG.debug(f'Companion {companion}: {e!r}')
             # Check the next
 
-    else: # no break statement was encountered
+    else:  # no break statement was encountered
         raise CompanionNotFound(filepath)
-

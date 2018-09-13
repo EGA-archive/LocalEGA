@@ -35,14 +35,6 @@ Ingestion Worker
    :members:
 
 
-..
-   ***************
-   Quality Control
-   ***************
-
-   .. automodule:: lega.qc
-      :members:
-
 *********
 Keyserver
 *********
@@ -64,7 +56,8 @@ Utility Functions
     lega.utils.storage
     lega.utils.eureka
     lega.utils.exceptions
-    lega.utils.logging
+    lega.utils.logging.LEGAHandler
+    lega.utils.logging.JSONFormatter
 
 
 
