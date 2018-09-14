@@ -107,10 +107,13 @@ class testIngest(unittest.TestCase):
     def test_mark_in_progress_fail_with_from_user_error(self, mock_publish, mock_get_connection, mock_set_error, mock_db, mock_path, mock_header, filedir):
         """Test ingest worker, mark_in_progress fails."""
         # Mocking a lot of stuff, as it is previously tested
+        raised_exception = FromUser()
+
         mock_path = mock.Mock(spec=PosixPath)
         mock_path.return_value = ''
         mock_header.return_value = b'beginning', b'header'
-        mock_db.mark_in_progress.side_effect = FromUser()
+        mock_db.mark_in_progress.side_effect = raised_exception
+        mock_db.insert_file.return_value = 32
 
         store = mock.MagicMock()
         store.location.return_value = 'smth'
@@ -121,8 +124,19 @@ class testIngest(unittest.TestCase):
 
         data = {'filepath': infile, 'user': 'user_id@elixir-europe.org'}
         result = work(store, mock_broker, data)
+
         self.assertEqual(None, result)
-        mock_set_error.assert_called()
-        mock_publish.assert_called()
+        mock_set_error.assert_called_with(32, raised_exception, True)
         mock_get_connection.assert_called()
+
+        mock_publish.assert_called()
+        args_to_publish = mock_publish.call_args[0]
+        assert(args_to_publish[2] == 'cega')
+        assert(args_to_publish[3] == 'files.error')
+        assert('filepath' in args_to_publish[0])
+        assert('user' in args_to_publish[0])
+        assert('reason' in args_to_publish[0])
+        assert(args_to_publish[0]['user'] == 'user_id@elixir-europe.org')
+        assert(args_to_publish[0]['reason'] == str(raised_exception))
+
         filedir.cleanup()
