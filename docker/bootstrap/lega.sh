@@ -235,6 +235,9 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     entrypoint: ["gosu", "lega", "ega-ingest"]
 
   # Key server
+EOF
+if [[ $KEYSERVER == 'ega' ]]; then
+cat >> ${PRIVATE}/lega.yml <<EOF
   keys:
     hostname: keys
     container_name: keys
@@ -259,6 +262,37 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - lega
       - cega
 
+EOF
+else
+cat >> ${PRIVATE}/lega.yml <<EOF
+  keys:
+    hostname: keys
+    container_name: keys
+    image: nbisweden/ega-base:dev
+    expose:
+      - "8443"
+    environment:
+      - LEGA_PASSWORD=${LEGA_PASSWORD}
+      - KEYS_PASSWORD=${KEYS_PASSWORD}
+    volumes:
+       - ./lega/conf.ini:/etc/ega/conf.ini:ro
+       - ./lega/keys.ini.enc:/etc/ega/keys.ini.enc:ro
+       - ./lega/certs/ssl.cert:/etc/ega/ssl.cert:ro
+       - ./lega/certs/ssl.key:/etc/ega/ssl.key:ro
+       - ./lega/pgp/ega.sec:/etc/ega/pgp/ega.sec:ro
+       - ./lega/pgp/ega2.sec:/etc/ega/pgp/ega2.sec:ro
+    restart: on-failure:3
+    external_links:
+      - cega-eureka:cega-eureka
+    networks:
+      - lega
+      - cega
+    entrypoint: ["gosu","lega","ega-keyserver","--keys","/etc/ega/keys.ini.enc"]
+
+EOF
+fi
+
+cat >> ${PRIVATE}/lega.yml <<EOF
   # Quality Control
   verify:
     depends_on:
