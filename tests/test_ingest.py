@@ -6,9 +6,6 @@ from pathlib import PosixPath
 from . import pgp_data
 from lega.utils.exceptions import FromUser
 
-def stupid_shit(*args, **kwargs):
-    for i in range(10):
-        print("HELLO IN THE GAME WHAT IS GOING ON!!")
 
 class testIngest(unittest.TestCase):
     """Ingest
