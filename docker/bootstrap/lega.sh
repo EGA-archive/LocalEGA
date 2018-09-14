@@ -15,9 +15,9 @@ chmod 644 ${PRIVATE}/lega/pgp/ega.pub
 ${GEN_KEY} "${PGP_NAME}" "${PGP_EMAIL}" "${PGP_COMMENT}" --passphrase "${PGP_PASSPHRASE}" --pub ${PRIVATE}/lega/pgp/ega2.pub --priv ${PRIVATE}/lega/pgp/ega2.sec --armor
 chmod 644 ${PRIVATE}/lega/pgp/ega2.pub
 
-echo ${PGP_PASSPHRASE} > ${PRIVATE}/lega/pgp/ega.sec.pass
-echo ${PGP_PASSPHRASE} > ${PRIVATE}/lega/pgp/ega2.sec.pass
-echo ${LEGA_PASSWORD} > ${PRIVATE}/lega/pgp/ega.shared.pass
+echo -n ${PGP_PASSPHRASE} > ${PRIVATE}/lega/pgp/ega.sec.pass
+echo -n ${PGP_PASSPHRASE} > ${PRIVATE}/lega/pgp/ega2.sec.pass
+echo -n ${LEGA_PASSWORD} > ${PRIVATE}/lega/pgp/ega.shared.pass
 
 #########################################################################
 
