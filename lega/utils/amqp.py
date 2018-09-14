@@ -69,8 +69,11 @@ def publish(message, channel, exchange, routing, correlation_id=None):
 def consume(work, connection, from_queue, to_routing):
     """Blocking function, registering callback ``work`` to be called.
 
-    from_broker must be a pair (from_connection: pika:Connection, from_queue: str)
-    to_broker must be a triplet (to_connection: pika:Connection, to_exchange: str, to_routing: str)
+    Args:
+        work (fun): Callback function that consumes from_queue, first parameter is data, second is a correlation_id
+        connection (pika obj): Connection to RabbitMQ
+        from_queue (str): The queue to take messages from
+        to_routing (str): The queue to send results of `work` to
 
     If there are no message in ``from_queue``, the function blocks and
     waits for new messages.
