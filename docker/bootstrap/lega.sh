@@ -49,11 +49,34 @@ cat > ${PRIVATE}/lega/conf.ini <<EOF
 log = debug
 #log = silent
 
+EOF
+if [[ $KEYSERVER == 'ega' ]]; then
+cat >> ${PRIVATE}/lega/conf.ini <<EOF
+
 [keyserver]
 port = 8080
 
 [quality_control]
 keyserver_endpoint = http://keys:8080/keys/retrieve/%s/private/bin?idFormat=hex
+
+[outgestion]
+# Just for test
+keyserver_endpoint = http://keys:8080/keys/retrieve/%s/private/bin?idFormat=hex
+EOF
+else
+cat >> ${PRIVATE}/lega/conf.ini <<EOF
+[keyserver]
+port = 8443
+
+[quality_control]
+keyserver_endpoint = https://keys:8443/retrieve/%s/private
+
+[outgestion]
+# Just for test
+keyserver_endpoint = https://keys:8443/retrieve/%s/private
+EOF
+fi
+cat >> ${PRIVATE}/lega/conf.ini <<EOF
 
 [inbox]
 location = /ega/inbox/%s
@@ -65,11 +88,6 @@ url = http://s3:9000
 access_key = ${S3_ACCESS_KEY}
 secret_key = ${S3_SECRET_KEY}
 #region = lega
-
-
-[outgestion]
-# Just for test
-keyserver_endpoint = http://keys:8080/keys/retrieve/%s/private/bin?idFormat=hex
 
 ## Connecting to Local EGA
 [broker]
@@ -87,7 +105,6 @@ try = 30
 [eureka]
 endpoint = http://cega-eureka:8761
 EOF
-
 
 #########################################################################
 # Populate env-settings for docker compose
@@ -256,11 +273,8 @@ cat >> ${PRIVATE}/lega.yml <<EOF
        - ./lega/pgp/ega2.sec.pass:/etc/ega/pgp/ega2.sec.pass:ro
        - ./lega/pgp/ega.shared.pass:/etc/ega/pgp/ega.shared.pass:ro
     restart: on-failure:3
-    external_links:
-      - cega-eureka:cega-eureka
     networks:
       - lega
-      - cega
 
 EOF
 else
@@ -291,7 +305,6 @@ cat >> ${PRIVATE}/lega.yml <<EOF
 
 EOF
 fi
-
 cat >> ${PRIVATE}/lega.yml <<EOF
   # Quality Control
   verify:
