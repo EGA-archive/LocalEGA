@@ -13,9 +13,10 @@ from io import StringIO
 
 
 class TestBasicFunctions(unittest.TestCase):
-    """Basic Tests
+    """Basic Tests.
 
-    Suite of basic tests for various functions."""
+    Suite of basic tests for various functions.
+    """
 
     def test_instantiate(self):
         """Instantiate algorithm."""
@@ -76,7 +77,7 @@ class TestBasicFunctions(unittest.TestCase):
         assert 'T.M.' == get_file_content('data/file')
 
     def test_get_file_fail(self):
-        """Reading file error. File does not exist."""
+        """Reading file error, file should not exist."""
         assert get_file_content('data/notexists.file') is None
 
     def test_sanitize_user_id(self):

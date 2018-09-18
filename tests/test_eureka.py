@@ -8,12 +8,13 @@ from test.support import EnvironmentVarGuard
 
 
 class EurekaRequestsTest(unittest.TestCase):
-    """Eureka Requests
+    """Eureka Requests.
 
-    Testing Base Eureka connection and requests."""
+    Testing Base Eureka connection and requests.
+    """
 
     def setUp(self):
-        """Setting things up."""
+        """Set things up."""
         self._loop = asyncio.get_event_loop()
         self._eureka_url = 'http://localhost:8761'
         self._eurekaconn = EurekaRequests(self._eureka_url, self._loop)
@@ -69,9 +70,10 @@ class EurekaRequestsTest(unittest.TestCase):
 
 
 class EurekaClientTest(unittest.TestCase):
-    """Eureka Client
+    """Eureka Client.
 
-    Testing Eureka client connection."""
+    Testing Eureka client connection.
+    """
 
     def setUp(self):
         """Set things up."""

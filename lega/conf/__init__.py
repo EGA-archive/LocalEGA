@@ -1,5 +1,5 @@
-"""\
-Configuration Module provides a dictionary-like with configuration settings.
+"""Configuration Module provides a dictionary-like with configuration settings.
+
 It also loads the logging settings when ``setup`` is called.
 
 * The ``--log <file>`` argument is used to configuration where the logs go.
@@ -109,7 +109,7 @@ class Configuration(configparser.ConfigParser):
         self.log_conf = None
 
     def _load_log_conf(self, args=None):
-        """Finding the `--log` file."""
+        """Find the `--log` file."""
         try:
             lconf = args[args.index('--log') + 1]
             self._load_log_file(lconf)
@@ -135,7 +135,7 @@ class Configuration(configparser.ConfigParser):
         return res
 
     def get_value(self, section, option, conv=str, default=None, raw=False):
-        """"Get a specific value for this paramater either as env variable or from config files.
+        """Get a specific value for this paramater either as env variable or from config files.
 
         ``section`` and ``option`` are mandatory while ``conv``, ``default`` (fallback) and ``raw`` are optional.
         """
