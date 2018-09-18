@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
-Database Connection
-'''
+"""Database Connection."""
 
 import sys
 import traceback
@@ -20,11 +18,12 @@ from .amqp import publish, get_connection
 
 LOG = logging.getLogger(__name__)
 
+
 ######################################
 #          DB connection             #
 ######################################
 def fetch_args(d):
-    """Initializing a connection to db."""
+    """Initialize a connection to db."""
     db_args = {'user': d.get_value('postgres', 'user'),
                'password': d.get_value('postgres', 'password'),
                'database': d.get_value('postgres', 'db'),
@@ -34,14 +33,16 @@ def fetch_args(d):
     LOG.info(f"Initializing a connection to: {db_args['host']}:{db_args['port']}/{db_args['database']}")
     return db_args
 
+
 def retry_loop(on_failure=None, exception=psycopg2.OperationalError):
-    '''Decorator retry something ``try`` times every ``try_interval`` seconds.
+    """Retry function decorator, ``try`` times every ``try_interval`` seconds.
+
     Run the ``on_failure`` if after ``try`` attempts (configured in CONF).
-    '''
+    """
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
-            '''Main retry loop'''
+            """Retry loop."""
             nb_try = CONF.get_value('postgres', 'try', conv=int, default=1)
             try_interval = CONF.get_value('postgres', 'try_interval', conv=int, default=1)
             LOG.debug(f"{nb_try} attempts (every {try_interval} seconds)")
@@ -71,7 +72,9 @@ def retry_loop(on_failure=None, exception=psycopg2.OperationalError):
         return wrapper
     return decorator
 
+
 def _do_exit():
+    """Exit on error."""
     LOG.error("Could not connect to the database: Exiting")
     sys.exit(1)
 
@@ -80,8 +83,10 @@ def _do_exit():
 #          "Classic" code            #
 ######################################
 _conn = None
+
+
 def cache_connection(func):
-    '''Decorator to cache the database connection'''
+    """Cache the database connection decorator."""
     @wraps(func)
     def wrapper(*args, **kwargs):
         global _conn
@@ -90,21 +95,22 @@ def cache_connection(func):
         return _conn
     return wrapper
 
+
 @cache_connection
 @retry_loop(on_failure=_do_exit)
 def connect():
-    '''Get the database connection (which encapsulates a database session)
+    """Get the database connection (which encapsulates a database session).
 
     Upon success, the connection is cached.
 
     Before success, we try to connect ``try`` times every ``try_interval`` seconds (defined in CONF)
-    '''
+    """
     db_args = fetch_args(CONF)
     return psycopg2.connect(**db_args)
 
 
 def insert_file(filename, user_id):
-    """Insert a new file entry and returns its id"""
+    """Insert a new file entry and returns its id."""
     with connect() as conn:
         with conn.cursor() as cur:
             cur.execute('SELECT insert_file(%(filename)s,%(user_id)s);',
@@ -127,6 +133,7 @@ def get_errors(from_user=False):
             cur.execute(query)
             return cur.fetchall()
 
+
 def set_error(file_id, error, from_user=False):
     """Store error related to ``file_id`` in database."""
     assert file_id, 'Eh? No file_id?'
@@ -138,6 +145,7 @@ def set_error(file_id, error, from_user=False):
             cur.execute('SELECT insert_error(%(file_id)s,%(h)s,%(etype)s,%(msg)s,%(from_user)s);',
                         {'h': hostname, 'etype': error.__class__.__name__, 'msg': repr(error), 'file_id': file_id, 'from_user': from_user})
 
+
 def get_info(file_id):
     """Retrieve information for ``file_id``."""
     with connect() as conn:
@@ -146,8 +154,9 @@ def get_info(file_id):
             cur.execute(query, {'file_id': file_id})
             return cur.fetchone()
 
+
 def _set_status(file_id, status):
-    """Updating status for file with id ``file_id``."""
+    """Update status for file with id ``file_id``."""
     assert file_id, 'Eh? No file_id?'
     LOG.debug(f'Updating status file_id {file_id} with "{status}"')
     with connect() as conn:
@@ -156,14 +165,19 @@ def _set_status(file_id, status):
                         {'status': status,
                          'file_id': file_id})
 
+
 def mark_in_progress(file_id):
+    """Mark file in progress."""
     return _set_status(file_id, 'In progress')
 
+
 def mark_completed(file_id):
+    """Mark file in completed."""
     return _set_status(file_id, 'Completed')
 
+
 def set_stable_id(file_id, stable_id):
-    """Updating File ``file_id`` stable ID."""
+    """Update File ``file_id`` stable ID."""
     assert file_id, 'Eh? No file_id?'
     LOG.debug(f'Updating file_id {file_id} with stable ID "{stable_id}"')
     with connect() as conn:
@@ -216,7 +230,7 @@ _channel = None
 
 
 def catch_error(func):  # noqa: C901
-    '''Decorator to store the raised exception in the database'''
+    """Store the raised exception in the database decorator."""
     @wraps(func)
     def wrapper(*args):
         try:
@@ -259,8 +273,9 @@ def catch_error(func):  # noqa: C901
             return None
     return wrapper
 
+
 def crypt4gh_to_user_errors(func):
-    '''Decorator to convert Crypt4GH exceptions to User Errors'''
+    """Convert Crypt4GH exceptions to User Errors decorator."""
     @wraps(func)
     def wrapper(*args):
         try:

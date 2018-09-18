@@ -8,9 +8,10 @@ from lega.utils.exceptions import FromUser
 
 
 class testIngest(unittest.TestCase):
-    """Ingest
+    """Ingest.
 
-    Testing ingestion functionalities."""
+    Testing ingestion functionalities.
+    """
 
     @mock.patch('lega.ingest.get_connection')
     @mock.patch('lega.ingest.consume')

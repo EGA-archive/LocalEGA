@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # __init__ is here so that we don't collapse in sys.path with another lega module
 
-"""The lega package contains code to start a *Local EGA*. """
+"""The lega package contains code to start a *Local EGA*."""
 
 __title__ = 'Local EGA'
 __version__ = VERSION = '1.1'

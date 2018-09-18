@@ -1,44 +1,48 @@
 # -*- coding: utf-8 -*-
-"""
-Logs Formatter
-"""
+"""Logs Formatter."""
+
 from logging import Formatter
 from logging.handlers import SocketHandler as handler  # or DatagramHandler ?
 import json
 import re
 
+
 class LEGAHandler(handler):
-    """
-    Formats the record according to the formatter.
+    """Formats the record according to the formatter.
+
     A new line is sent to support Logstash input plugin.
     """
 
     terminator = b'\n'
 
     def send(self, s):
-        """
-        SocketHandler send() plus the class terminator (\n)
-        """
+        """Register SocketHandler ``send`` plus the class terminator (newline)."""
         super().send(s)
         if self.sock is not None:
             self.sock.sendall(self.terminator)
 
     def makePickle(self, record):
+        """Create python pickle."""
         # pickle.dumps creates problem for logstash
         # to parse a JSON formatted string.
         # Especially when the bytes length is prepended.
         return self.format(record).encode('utf-8')
 
+
 class JSONFormatter(Formatter):
+    """Json Logs formattingself.
+
+    Mainly used for ELK stack.
+    """
 
     def __init__(self, *args, **kwargs):
+        """Initialise formatter."""
         Formatter.__init__(self, *args, **kwargs)
         standard_formatters = re.compile(r'\((.+?)\)', re.IGNORECASE)
         self._fields = standard_formatters.findall(self._fmt)
 
     def format(self, record):
-        """Formats a log record and serializes to json"""
-
+        """Format a log record and serializes to json."""
         log_record = {}
 
         for field in self._fields:
