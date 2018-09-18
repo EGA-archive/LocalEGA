@@ -4,9 +4,11 @@ from unittest import mock
 
 
 class testMapper(unittest.TestCase):
-    """Mapper
+    """Mapper.
 
-    Testing mapper functionalities."""
+    Testing mapper functionalities.
+    """
+
     def setUp(self):
         """Initialise fixtures."""
         pass

@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-'''
-Send message to the local broker when a file is uploaded.
-'''
+"""Send message to the local broker when a file is uploaded.
 
-# This is helping the helpdesk on the Central EGA side.
+.. note:: This is helping the helpdesk on the Central EGA side.
+"""
 
 import sys
 import logging
@@ -26,11 +25,14 @@ delim = b'$'
 
 LOG = logging.getLogger(__name__)
 
+
 class Forwarder(asyncio.Protocol):
+    """Forwarder server."""
 
     buf = b''
 
     def __init__(self, broker, *args, **kwargs):
+        """Initialise Forwarder server."""
         super().__init__(*args, **kwargs)
         self.channel = broker.channel()
         self.inbox_location = CONF.get_value('inbox', 'location', raw=True)
@@ -39,6 +41,7 @@ class Forwarder(asyncio.Protocol):
             LOG.info('Using chroot isolation')
 
     def connection_made(self, transport):
+        """Establish connection, inherited from ``asyncio.Protocol``."""
         peername = transport.get_extra_info('peername')
         LOG.debug('Connection from {}'.format(peername))
         self.transport = transport
@@ -48,6 +51,7 @@ class Forwarder(asyncio.Protocol):
     # but that didn't help. Therefore we use an out-of-band method:
     # We separate messages with a delim character
     def parse(self, data):
+        """Parse received messages and split them accordingly."""
         while True:
             if data.count(delim) < 2:
                 self.buf = data
@@ -61,6 +65,7 @@ class Forwarder(asyncio.Protocol):
             data = data[pos2+1:]
 
     def data_received(self, data):
+        """Call when some data is received, inherited from ``asyncio.Protocol``."""
         if self.buf:
             data = self.buf + data
         for username, filename in self.parse(data):
@@ -71,6 +76,7 @@ class Forwarder(asyncio.Protocol):
                 LOG.error("Error notifying upload: %s", e)
 
     def send_message(self, username, filename):
+        """Publish message to message broker that a file was added to inbox."""
         inbox = self.inbox_location % username
         filepath, filename = (filename, filename[len(inbox):])
         if self.isolation:
@@ -88,6 +94,7 @@ class Forwarder(asyncio.Protocol):
         publish(msg, self.channel, 'cega', 'files.inbox')
 
     def connection_lost(self, exc):
+        """Close connection, inherited from ``asyncio.Protocol``."""
         if self.buf:
             LOG.error('Ignoring data still in transit: %s', self.buf)
         LOG.debug('Closing the connection')
@@ -95,6 +102,7 @@ class Forwarder(asyncio.Protocol):
 
 
 def main(args=None):
+    """Run notifications service."""
     if not args:
         args = sys.argv[1:]
 

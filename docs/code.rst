@@ -56,8 +56,7 @@ Utility Functions
     lega.utils.storage
     lega.utils.eureka
     lega.utils.exceptions
-    lega.utils.logging.LEGAHandler
-    lega.utils.logging.JSONFormatter
+    lega.utils.logging
 
 
 

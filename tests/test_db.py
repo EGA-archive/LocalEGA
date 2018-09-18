@@ -11,9 +11,10 @@ import asyncio
 
 
 class DBTest(unittest.TestCase):
-    """Database
+    """Database.
 
-    Testing database actions."""
+    Testing database actions.
+    """
 
     def setUp(self):
         """Initialise fixtures."""
