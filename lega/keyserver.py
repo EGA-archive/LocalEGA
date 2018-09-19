@@ -29,7 +29,7 @@ class Cache:
     """In memory cache."""
 
     def __init__(self, max_size=10, ttl=None):
-        """Initialise cache."""
+        """Initialize cache."""
         self.store = dict()
         self.max_size = max_size
         self.ttl = ttl
