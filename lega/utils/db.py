@@ -172,7 +172,7 @@ def mark_in_progress(file_id):
 
 
 def mark_completed(file_id):
-    """Mark file in completed."""
+    """Mark file as completed."""
     return _set_status(file_id, 'Completed')
 
 

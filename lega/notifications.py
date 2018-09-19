@@ -32,7 +32,7 @@ class Forwarder(asyncio.Protocol):
     buf = b''
 
     def __init__(self, broker, *args, **kwargs):
-        """Initialise Forwarder server."""
+        """Initialize Forwarder server."""
         super().__init__(*args, **kwargs)
         self.channel = broker.channel()
         self.inbox_location = CONF.get_value('inbox', 'location', raw=True)
