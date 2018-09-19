@@ -2,9 +2,9 @@
 
 
 check_image(){
-  (git diff --name-only ${TRAVIS_COMMIT_RANGE} | grep docker/images/$1/Dockerfile >/dev/null)
+  (git diff --exit-status origin/dev docker/images/os/Dockerfile >/dev/null)
   local docker=$?
-  if [[ "$osdocker" == "0" ]]; then
+  if [[ "$docker" == "0" || "$docker" == "128" ]]; then
     echo "$1 base image changed, building new $1 image." ;
     make -C images $1 ;
     docker push nbisweden/ega-$1 ;
