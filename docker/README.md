@@ -4,7 +4,7 @@
 
 First [create the EGA docker images](images) beforehand, with `make -C images`.
 
-You can then [generate the private data](bootstrap), with either:
+You can then [generate the private data](bootstrap), with:
 
 	make bootstrap
 
@@ -21,6 +21,13 @@ These networks are reflected in their corresponding YML files
 * `private/lega.yml`
 
 The passwords are in `private/lega/.trace` and the errors (if any) are in `private/.err`.
+
+### Bootstrapping with advanced options
+
+If you want to use the [keyserver from
+ega-data-api](https://github.com/EGA-archive/ega-data-api/tree/master/ega-data-api-key) instead of the [LocalEGA keyserver](https://github.com/NBISweden/LocalEGA/blob/dev/lega/keyserver.py), bootstrap with 
+
+    make "ARGS=--keyserver ega" bootstrap
 
 
 ## Running
