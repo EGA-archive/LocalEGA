@@ -18,19 +18,28 @@ endif
 
 TARGET_PREFIX=nbisweden/ega
 
-BUILD_ARGS=--build-arg checkout=$(CHECKOUT)
+.PHONY: all erase delete clean cleanall base os inbox push openssh
 
-.PHONY: all erase delete clean cleanall base inbox push
+all: os base openssh inbox
 
-all: base inbox
+os:
+	docker build --build-arg DEV_PACKAGES="$(DEV_PACKAGES)" \
+                     --cache-from $(TARGET_PREFIX)-$@:latest \
+                     --tag $(TARGET_PREFIX)-$@:latest \
+                     $@
 
-base: BUILD_ARGS+=--build-arg DEV_PACKAGES="$(DEV_PACKAGES)"
-inbox: BUILD_ARGS+=--build-arg AUTH_BRANCH=cega-ids
-base inbox:
+openssh:
+	docker build --build-arg AUTH_BRANCH=cega-ids \
+                     --cache-from $(TARGET_PREFIX)-$@:latest \
+                     --tag $(TARGET_PREFIX)-$@:latest \
+                     $@
+
+base: BUILD_ARGS+=--build-arg checkout=$(CHECKOUT)
+inbox base:
 	docker build ${BUILD_ARGS} \
                      --cache-from $(TARGET_PREFIX)-$@:latest \
                      --tag $(TARGET_PREFIX)-$@:$(TAG) \
-										 --tag $(TARGET_PREFIX)-$@:dev \
+                     --tag $(TARGET_PREFIX)-$@:dev \
                      --tag $(TARGET_PREFIX)-$@:latest \
                      $@
 
@@ -48,4 +57,5 @@ erase: # erasing all including base
 
 push:
 	docker push $(TARGET_PREFIX)-base:latest
+	docker push $(TARGET_PREFIX)-app:latest
 	docker push $(TARGET_PREFIX)-inbox:latest
