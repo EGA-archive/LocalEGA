@@ -39,25 +39,25 @@ jobs:
     - stage: integration tests
       before_script:
         - cd docker
-        - make bootstrap ARGS='--inbox mina'
+        - make bootstrap ARGS='--inbox mina --keyserver ega'
         - sudo chown -R travis private
         - docker network create cega
         - make up
         - docker-compose ps
       script:
-        - sleep 10
+        - sleep 20
         - cd tests
         - mvn test -Dtest=CommonTests -B
     - stage: integration tests
       before_script:
         - cd docker
-        - make bootstrap ARGS='--inbox mina'
+        - make bootstrap ARGS='--inbox mina --keyserver ega'
         - sudo chown -R travis private
         - docker network create cega
         - make up
         - docker-compose ps
       script:
-        - sleep 10
+        - sleep 20
         - cd tests
         - mvn test -Dtest=RobustnessTests -B
     - stage: integration tests

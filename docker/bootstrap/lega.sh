@@ -15,6 +15,10 @@ chmod 644 ${PRIVATE}/lega/pgp/ega.pub
 ${GEN_KEY} "${PGP_NAME}" "${PGP_EMAIL}" "${PGP_COMMENT}" --passphrase "${PGP_PASSPHRASE}" --pub ${PRIVATE}/lega/pgp/ega2.pub --priv ${PRIVATE}/lega/pgp/ega2.sec --armor
 chmod 644 ${PRIVATE}/lega/pgp/ega2.pub
 
+echo -n ${PGP_PASSPHRASE} > ${PRIVATE}/lega/pgp/ega.sec.pass
+echo -n ${PGP_PASSPHRASE} > ${PRIVATE}/lega/pgp/ega2.sec.pass
+echo -n ${LEGA_PASSWORD} > ${PRIVATE}/lega/pgp/ega.shared.pass
+
 #########################################################################
 
 echomsg "\t* the SSL certificates"
@@ -45,11 +49,34 @@ cat > ${PRIVATE}/lega/conf.ini <<EOF
 log = debug
 #log = silent
 
+EOF
+if [[ $KEYSERVER == 'ega' ]]; then
+cat >> ${PRIVATE}/lega/conf.ini <<EOF
+
+[keyserver]
+port = 8080
+
+[quality_control]
+keyserver_endpoint = http://keys:8080/keys/retrieve/%s/private/bin?idFormat=hex
+
+[outgestion]
+# Just for test
+keyserver_endpoint = http://keys:8080/keys/retrieve/%s/private/bin?idFormat=hex
+EOF
+else
+cat >> ${PRIVATE}/lega/conf.ini <<EOF
 [keyserver]
 port = 8443
 
 [quality_control]
 keyserver_endpoint = https://keys:8443/retrieve/%s/private
+
+[outgestion]
+# Just for test
+keyserver_endpoint = https://keys:8443/retrieve/%s/private
+EOF
+fi
+cat >> ${PRIVATE}/lega/conf.ini <<EOF
 
 [inbox]
 location = /ega/inbox/%s
@@ -61,11 +88,6 @@ url = http://s3:9000
 access_key = ${S3_ACCESS_KEY}
 secret_key = ${S3_SECRET_KEY}
 #region = lega
-
-
-[outgestion]
-# Just for test
-keyserver_endpoint = https://keys:8443/retrieve/%s/private
 
 ## Connecting to Local EGA
 [broker]
@@ -83,7 +105,6 @@ try = 30
 [eureka]
 endpoint = http://cega-eureka:8761
 EOF
-
 
 #########################################################################
 # Populate env-settings for docker compose
@@ -231,6 +252,33 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     entrypoint: ["gosu", "lega", "ega-ingest"]
 
   # Key server
+EOF
+if [[ $KEYSERVER == 'ega' ]]; then
+cat >> ${PRIVATE}/lega.yml <<EOF
+  keys:
+    hostname: keys
+    container_name: keys
+    image: nbisweden/keys
+    environment:
+      - SPRING_PROFILES_ACTIVE=no-oss
+      - EGA_KEY_PATH=/etc/ega/pgp/ega.sec,/etc/ega/pgp/ega2.sec
+      - EGA_KEYPASS_PATH=/etc/ega/pgp/ega.sec.pass,/etc/ega/pgp/ega2.sec.pass
+      - EGA_SHAREDPASS_PATH=/etc/ega/pgp/ega.shared.pass
+      - EGA_PUBLICKEY_URL=
+      - EGA_LEGACY_PATH=
+    volumes:
+       - ./lega/pgp/ega.sec:/etc/ega/pgp/ega.sec:ro
+       - ./lega/pgp/ega.sec.pass:/etc/ega/pgp/ega.sec.pass:ro
+       - ./lega/pgp/ega2.sec:/etc/ega/pgp/ega2.sec:ro
+       - ./lega/pgp/ega2.sec.pass:/etc/ega/pgp/ega2.sec.pass:ro
+       - ./lega/pgp/ega.shared.pass:/etc/ega/pgp/ega.shared.pass:ro
+    restart: on-failure:3
+    networks:
+      - lega
+
+EOF
+else
+cat >> ${PRIVATE}/lega.yml <<EOF
   keys:
     hostname: keys
     container_name: keys
@@ -255,6 +303,9 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - cega
     entrypoint: ["gosu","lega","ega-keyserver","--keys","/etc/ega/keys.ini.enc"]
 
+EOF
+fi
+cat >> ${PRIVATE}/lega.yml <<EOF
   # Quality Control
   verify:
     depends_on:
