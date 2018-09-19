@@ -48,15 +48,6 @@ ARG OPENSSH_TAG=V_7_7_P1
 RUN getent group ssh_keys >/dev/null || groupadd -r ssh_keys || :
 RUN getent group sshd || groupadd -g ${SSHD_GID} -r sshd
 
-# RUN mkdir -p /var/empty && \
-#     useradd -c "Privilege-separated SSH" \
-#             -u ${SSHD_UID} \
-# 	    -g sshd \
-# 	    -s /sbin/nologin \
-# 	    -r \
-# 	    -m -d /var/empty/sshd sshd
-#### Weird.... useradd does segfault.
-
 RUN sed -i -e '/sshd/ d' /etc/passwd && \
     echo "sshd:x:${SSHD_UID}:${SSHD_GID}:Privilege-separated SSH:/var/empty/sshd:/sbin/nologin" >> /etc/passwd && \
     mkdir -p /var/empty/sshd && chmod 700 /var/empty/sshd
