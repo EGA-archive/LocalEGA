@@ -57,5 +57,6 @@ erase: # erasing all including base
 
 push:
 	docker push $(TARGET_PREFIX)-base:latest
-	docker push $(TARGET_PREFIX)-app:latest
+	docker push $(TARGET_PREFIX)-os:latest
 	docker push $(TARGET_PREFIX)-inbox:latest
+	docker push $(TARGET_PREFIX)-openssh:latest

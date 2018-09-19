@@ -33,7 +33,21 @@ jobs:
         - cd docker
       script:
         - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin
-        - make -C images all
+        - git diff --exit-code --name-only ${TRAVIS_COMMIT_RANGE}! | grep docker/images/os/Dockerfile >/dev/null
+        - osdocker=$?
+        - if [[ "$osdocker" == "0" ]]; then
+            echo "OS base image changed, building new OS image" ;
+            make -C images os
+            docker push nbisweden/ega-os
+          fi
+        - git diff --exit-code --name-only ${TRAVIS_COMMIT_RANGE} | grep docker/images/openssh/Dockerfile >/dev/null
+        - opensshdocker=$?
+        - if [[ "$opensshdocker" == "0" ]]; then
+            echo "OpenSSH inbox image changed, building new OpenSSH inbox image" ;
+            make -C images openssh
+            docker push nbisweden/ega-openssh
+          fi
+        - make -C images base inbox
         - docker push nbisweden/ega-base:dev
         - docker push nbisweden/ega-inbox:dev
     - stage: integration tests
