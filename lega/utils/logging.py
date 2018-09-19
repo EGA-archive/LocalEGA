@@ -30,13 +30,13 @@ class LEGAHandler(handler):
 
 
 class JSONFormatter(Formatter):
-    """Json Logs formattingself.
+    """Json Logs formatting.
 
     Mainly used for ELK stack.
     """
 
     def __init__(self, *args, **kwargs):
-        """Initialise formatter."""
+        """Initialize formatter."""
         Formatter.__init__(self, *args, **kwargs)
         standard_formatters = re.compile(r'\((.+?)\)', re.IGNORECASE)
         self._fields = standard_formatters.findall(self._fmt)

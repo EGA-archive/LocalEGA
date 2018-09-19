@@ -10,7 +10,7 @@ class FromUser(Exception):
     """Raised Exception on incorrect user input."""
 
     def __str__(self):  # Informal description
-        """Return readale informal description."""
+        """Return readable informal description."""
         return 'Incorrect user input'
 
     def __repr__(self):  # Technical description
@@ -29,7 +29,7 @@ class NotFoundInInbox(FromUser):
         self.filename = filename
 
     def __str__(self):
-        """Return readale informal exception description."""
+        """Return readable informal exception description."""
         return f'File not found in inbox'
 
     def __repr__(self):
@@ -57,7 +57,7 @@ class CompanionNotFound(FromUser):
         self.name = name
 
     def __str__(self):
-        """Return readale informal exception description."""
+        """Return readable informal exception description."""
         return f'Companion file not found in inbox'
 
     def __repr__(self):
@@ -75,11 +75,11 @@ class Checksum(FromUser):
         self.file = file
 
     def __str__(self):
-        """Return readale informal exception description about checksumed exception."""
+        """Return readable informal exception description about checksumed exception."""
         return 'Invalid {} checksum for the {} file'.format(self.algo, 'original' if self.decrypted else 'encrypted')
 
     def __repr__(self):
-        """Return readale informal exception description about checksumed exception, with file name."""
+        """Return readable informal exception description about checksumed exception, with file name."""
         return 'Invalid {} checksum for the {} file: {}'.format(self.algo, 'original' if self.decrypted else 'encrypted', self.file)
 
 
@@ -95,7 +95,7 @@ class PGPKeyError(Exception):
         self.msg = msg
 
     def __str__(self):
-        """Return readale informal exception description."""
+        """Return readable informal exception description."""
         return 'PGP Key error'
 
     def __repr__(self):
@@ -111,7 +111,7 @@ class KeyserverError(Exception):
         self.msg = msg
 
     def __str__(self):
-        """Return readale informal exception description."""
+        """Return readable informal exception description."""
         return 'Keyserver error'
 
     def __repr__(self):

@@ -18,7 +18,7 @@ class FileStorage():
     """Vault storage on disk and related I/O."""
 
     def __init__(self):
-        """Initialise POSIX storage at a path."""
+        """Initialize POSIX storage at a path."""
         self.vault_area = Path(CONF.get_value('vault', 'location'))
 
     def location(self, file_id):
@@ -50,7 +50,7 @@ class S3FileReader(object):
     """
 
     def __init__(self, s3, bucket, path, mode='rb', blocksize=1 << 22):  # 1<<22 = 4194304 = 4MB
-        """Initialise class."""
+        """Initialize class."""
         if mode != 'rb':  # if mode not in ('rb', 'wb', 'ab'):
             raise NotImplementedError(f"File mode '{mode}' not supported")
         self.mode = mode
@@ -207,7 +207,7 @@ class S3Storage():
     """Vault S3 object storage and related I/O."""
 
     def __init__(self):
-        """Initialise S3 object Storage."""
+        """Initialize S3 object Storage."""
         import boto3
 
         endpoint = CONF.get_value('vault', 'url')
