@@ -6,9 +6,9 @@ import argparse
 
 from . import CONF
 
-def main(args=None):
-    """The main routine."""
 
+def main(args=None):
+    """Run the main routine, for loading configuration."""
     if not args:
         args = sys.argv[1:]
 

@@ -25,12 +25,12 @@ LOG = logging.getLogger(__name__)
 
 
 def retry_loop(func):
-    """Decorator retry something ``try`` times every ``try_interval`` seconds."""
+    """Retry decorator, ``try`` times every ``try_interval`` seconds."""
     assert asyncio.iscoroutinefunction(func), "This decorator is only for coroutines"
 
     @wraps(func)
     async def wrapper(*args, **kwargs):
-        """Main retry loop."""
+        """Retry loop."""
         # similar to the rety loop from db.py
         nb_try = CONF.get_value('eureka', 'try', conv=int, default=1)
         try_interval = CONF.get_value('eureka', 'try_interval', conv=int, default=1)

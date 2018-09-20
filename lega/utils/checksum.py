@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
-"""
-Computes the checksum.
-"""
+"""Computes the checksum."""
+
 import logging
 import hashlib
 
@@ -15,20 +14,22 @@ _DIGEST = {
     'sha256': hashlib.sha256,
 }
 
+
 def supported_algorithms():
     """Supported hashing algorithms, currently ``md5`` and ``sha256``."""
     return tuple(_DIGEST.keys())
 
+
 def instantiate(algo):
+    """Instantiate algorithm."""
     try:
         return (_DIGEST[algo])()
     except KeyError:
         raise UnsupportedHashAlgorithm(algo)
 
+
 def calculate(filepath, algo, bsize=8192):
-    '''
-    Computes the checksum of the file-object ``f`` using the message digest ``m``.
-    '''
+    """Compute the checksum of the file-object ``f`` using the message digest ``m``."""
     try:
         m = instantiate(algo)
         with open(filepath, 'rb') as f:  # Open the file in binary mode. No encoding dance.
@@ -44,8 +45,7 @@ def calculate(filepath, algo, bsize=8192):
 
 
 def is_valid(filepath, digest, hashAlgo='md5'):
-    '''Verify the integrity of a file against a hash value.'''
-
+    """Verify the integrity of a file against a hash value."""
     assert(isinstance(digest, str))
 
     res = calculate(filepath, hashAlgo)
@@ -55,13 +55,13 @@ def is_valid(filepath, digest, hashAlgo='md5'):
 
 
 def get_from_companion(filepath):
-    '''Attempts to read a companion file.
+    """Attempt to read a companion file.
 
     For each supported algorithms, we check if a companion file exists.
     If so, we read its content and return it, along with the selected current algorithm.
 
     We exit at the first one found and raise a CompanionNotFound exception in case none worked.
-    '''
+    """
     for h in _DIGEST:
         companion = str(filepath) + '.' + h
         try:
