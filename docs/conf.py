@@ -13,9 +13,16 @@ import lega  # noqa: E402
 
 # -- General configuration ------------------------------------------------
 
+
 class Mock(MagicMock):
+    """Mock modules.
+
+    For some modules we will not build docs.
+    """
+
     @classmethod
     def __getattr__(cls, name):
+        """Mock modules."""
         return MagicMock()
 
 
@@ -121,7 +128,9 @@ html_sidebars = {
 
 today_fmt = '%B %d, %Y'
 
+
 def setup(app):
+    """Add custom stylesheet."""
     app.add_stylesheet('custom.css')
 
 

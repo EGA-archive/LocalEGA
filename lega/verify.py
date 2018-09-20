@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-'''This module reads a message from the ``archived`` queue, and
-attempts to decrypt the file. The decryption includes a checksum step.
+"""This module reads a message from the ``archived`` queue, and attempts to decrypt the file.
+
+The decryption includes a checksum step.
 It the checksum is valid, we consider that the vault has a properly
 stored file. In such case, a message is sent to the local exchange
 with the routing key: ``completed``.
 
-Note: The header is not retrieved from the database, it is already in the message.
-'''
+.. note:: The header is not retrieved from the database, it is already in the message.
+"""
 
 import sys
 import os
@@ -26,7 +27,9 @@ from .utils.amqp import consume, get_connection
 
 LOG = logging.getLogger(__name__)
 
+
 def get_records(header):
+    """Retrieve Crypt4GH header information (records) from Keyserver."""
     keyid = get_key_id(header)
     LOG.info(f'Key ID {keyid}')
     keyurl = CONF.get_value('quality_control', 'keyserver_endpoint', raw=True) % keyid
@@ -55,11 +58,11 @@ def get_records(header):
     except Exception as e:
         raise exceptions.KeyserverError(str(e))
 
+
 @db.catch_error
 @db.crypt4gh_to_user_errors
 def work(chunk_size, mover, channel, data):
-    '''Verifying that the file in the vault can be properly decrypted.'''
-
+    """Verify that the file in the vault can be properly decrypted."""
     LOG.info('Verification | message: %s', data)
 
     file_id = data['file_id']
@@ -97,8 +100,9 @@ def work(chunk_size, mover, channel, data):
     LOG.debug(f"Reply message: {org_msg}")
     return org_msg
 
-def main(args=None):
 
+def main(args=None):
+    """Run verify service."""
     if not args:
         args = sys.argv[1:]
 
