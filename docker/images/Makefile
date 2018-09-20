@@ -34,14 +34,21 @@ openssh:
                      --tag $(TARGET_PREFIX)-$@:latest \
                      $@
 
-base: BUILD_ARGS+=--build-arg checkout=$(CHECKOUT)
-inbox base:
-	docker build ${BUILD_ARGS} \
+base:
+	docker build --build-arg checkout=$(CHECKOUT) \
                      --cache-from $(TARGET_PREFIX)-$@:latest \
                      --tag $(TARGET_PREFIX)-$@:$(TAG) \
                      --tag $(TARGET_PREFIX)-$@:dev \
                      --tag $(TARGET_PREFIX)-$@:latest \
                      $@
+
+inbox:
+	docker build --cache-from $(TARGET_PREFIX)-$@:latest \
+                    --tag $(TARGET_PREFIX)-$@:$(TAG) \
+                    --tag $(TARGET_PREFIX)-$@:dev \
+                    --tag $(TARGET_PREFIX)-$@:latest \
+                    $@
+
 
 clean:
 	@docker images $(TARGET_PREFIX)-* -f "dangling=true" -q | uniq | while read n; do docker rmi -f $$n; done
