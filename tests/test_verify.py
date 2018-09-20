@@ -10,14 +10,19 @@ from lega.utils.exceptions import PGPKeyError, KeyserverError
 
 
 class PatchContextManager:
-    """Following: https://stackoverflow.com/a/32127557 example."""
+    """Patch Context Manger.
+
+    Following: https://stackoverflow.com/a/32127557 example.
+    """
 
     def __init__(self, method, enter_return, exit_return=False):
+        """Init for class."""
         self._patched = mock.patch(method)
         self._enter_return = enter_return
         self._exit_return = exit_return
 
     def __enter__(self):
+        """Define enter function."""
         res = self._patched.__enter__()
         res.context = mock.MagicMock()
         res.context.__enter__.return_value = self._enter_return
@@ -26,13 +31,16 @@ class PatchContextManager:
         return res
 
     def __exit__(self, type, value, tb):
+        """Define exit function."""
         return self._patched.__exit__()
 
 
 class testVerify(unittest.TestCase):
-    """Verify
+    """Verify.
 
-    Testing verify functionalities."""
+    Testing verify functionalities.
+    """
+
     def setUp(self):
         """Initialise fixtures."""
         self.env = EnvironmentVarGuard()

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
-'''\
-The Keyserver provides a REST endpoint for retrieving PGP and Re-encryption keys.
+"""The Keyserver provides a REST endpoint for retrieving PGP and Re-encryption keys.
+
 The keyserver also registers with Eureka service discovery.
-'''
+"""
 
 
 import sys
@@ -24,11 +24,12 @@ from .utils.eureka import EurekaClient
 LOG = logging.getLogger(__name__)
 routes = web.RouteTableDef()
 
+
 class Cache:
     """In memory cache."""
 
     def __init__(self, max_size=10, ttl=None):
-        """Initialise cache."""
+        """Initialize cache."""
         self.store = dict()
         self.max_size = max_size
         self.ttl = ttl
@@ -70,7 +71,7 @@ class Cache:
         return keys
 
     def _time_delta(self, expire):
-        """"Convert time left in human readable format."""
+        """Convert time left in human readable format."""
         # A lot of back and forth transformation
         end_time = datetime.datetime.fromtimestamp(expire).strftime(self.FMT)
         today = datetime.datetime.today().strftime(self.FMT)
@@ -104,8 +105,9 @@ _active = None  # will be a KeyID (not a key name)
 # Caching the keys
 ####################################
 
+
 def _unlock_key(name, active=None, path=None, expire=None, passphrase=None, **kwargs):
-    """Unlocking a key and loading it in the cache."""
+    """Unlock a key and loading it in the cache."""
     key, _ = pgpy.PGPKey.from_file(path)
     assert not key.is_public, f"The key {name} should be private"
     with key.unlock(passphrase) as k:
@@ -121,8 +123,10 @@ def _unlock_key(name, active=None, path=None, expire=None, passphrase=None, **kw
 # Retrieve the active keys
 ####################################
 
+
 @routes.get('/active/{key_type}')
 async def retrieve_active_key(request):
+    """Retrieve the active key from the cache and serve it via HTTPS."""
     key_type = request.match_info['key_type'].lower()
     LOG.debug(f'Requesting active ({key_type}) key')
     if key_type not in ('public', 'private'):
@@ -137,8 +141,10 @@ async def retrieve_active_key(request):
         LOG.warn(f"Requested active ({key_type}) key not found.")
         return web.HTTPNotFound()
 
+
 @routes.get('/retrieve/{requested_id}/{key_type}')
 async def retrieve_key(request):
+    """Retrieve a specific key via keyID or fingerprint from the cache and serve it via HTTPS."""
     LOG.debug('Retrieve key')
     requested_id = request.match_info['requested_id']
     key_type = request.match_info['key_type'].lower()
@@ -154,11 +160,13 @@ async def retrieve_key(request):
         LOG.warn(f"Requested key {requested_id} not found.")
         return web.HTTPNotFound()
 
+
 @routes.post('/admin/unlock')
 async def unlock_key(request):
     """Unlock a key via a POST request.
+
     POST request takes the form:
-    \{"private": "path/to/file.sec", "passphrase": "pass", "expire": "30/MAR/18 08:00:00"\}
+    {"private": "path/to/file.sec", "passphrase": "pass", "expire": "30/MAR/18 08:00:00"}
     """
     key_info = await request.json()
     LOG.debug(f'Admin unlocking: {key_info}')
@@ -168,25 +176,28 @@ async def unlock_key(request):
     else:
         return web.HTTPBadRequest()
 
+
 @routes.get('/health')
 async def healthcheck(request):
-    """A health endpoint for service discovery.
+    """Return ok, health endpoint for service discovery.
+
     It will always return ok.
     """
     LOG.debug('Healthcheck called')
     return web.HTTPOk()
 
 
+# TO BE REMOVED
 @routes.get('/admin/ttl')
 async def check_ttl(request):
-    """Evict from the cache if TTL expired
-       and return the keys that survived"""  # ehh...why? /Fred
+    """Evict from the cache if TTL expired and return the keys that survived."""
     LOG.debug('Admin TTL')
     expire = _cache.check_ttl()
     if expire:
         return web.json_response(expire)
     else:
         return web.HTTPBadRequest()
+
 
 def load_keys_conf(store):
     """Parse and load keys configuration."""
@@ -200,38 +211,49 @@ def load_keys_conf(store):
 
 alive = True  # used to set if the keyserver is alive in the shutdown
 
+
 async def renew_lease(eureka, interval):
-    '''Renew eureka lease at specific interval.'''
+    """Renew eureka lease at specific interval."""
     while alive:
         await asyncio.sleep(interval)
         await eureka.renew()
         LOG.info('Keyserver Eureka lease renewed.')
 
+
 async def init(app):
-    '''Initialization running before the loop.run_forever'''
+    """Initialize run before the loop.run_forever."""
     app['renew_eureka'] = app.loop.create_task(renew_lease(app['eureka'], app['interval']))
     # Note: will exit on failure
     load_keys_conf(app['store'])
     await app['eureka'].register()
     LOG.info('Keyserver registered with Eureka.')
 
+
 async def shutdown(app):
-    '''Function run after a KeyboardInterrupt. After that: cleanup'''
+    """Perform shutdown, after a KeyboardInterrupt.
+
+    After that: cleanup.
+    """
     LOG.info('Shutting down the database engine')
     global alive
     await app['eureka'].deregister()
     alive = False
 
+
 async def cleanup(app):
-    '''Function run after a KeyboardInterrupt. Right after, the loop is closed'''
+    """Perform cleanup, after a KeyboardInterrupt.
+
+    Right after, the loop is closed.
+    """
     LOG.info('Cancelling all pending tasks')
     # THIS SPAWNS an error see https://github.com/aio-libs/aiohttp/blob/master/aiohttp/web_runner.py#L178
     # for more details how the cleanup happens.
     # for task in asyncio.Task.all_tasks():
     #     task.cancel()
 
+
 def main(args=None):
-    """Where the magic happens."""
+    """Run keyserver with configuration."""
     if not args:
         args = sys.argv[1:]
 

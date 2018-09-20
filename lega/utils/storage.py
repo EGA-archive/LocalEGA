@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
-File I/O for disk or S3 Object storage
-'''
+"""File I/O for disk or S3 Object storage."""
 
 import os
 import logging
@@ -20,9 +18,11 @@ class FileStorage():
     """Vault storage on disk and related I/O."""
 
     def __init__(self):
+        """Initialize backend storage to a POSIX file system's path."""
         self.vault_area = Path(CONF.get_value('vault', 'location'))
 
     def location(self, file_id):
+        """Retrieve file location."""
         name = f"{file_id:0>20}"  # filling with zeros, and 20 characters wide
         name_bits = [name[i:i+3] for i in range(0, len(name), 3)]
         target = self.vault_area.joinpath(*name_bits)
@@ -30,23 +30,27 @@ class FileStorage():
         return str(target)
 
     def copy(self, fileobj, location):
+        """Copy file object at a specific location."""
         with open(location, 'wb') as h:
             shutil.copyfileobj(fileobj, h)
         return os.stat(location).st_size
 
     @contextmanager
     def open(self, path, mode='rb'):
+        """Open stored file."""
         f = open(path, mode)
         yield f
         f.close()
 
 
 class S3FileReader(object):
-    """
-    Implements a few of the BufferedIOBase methods
-    """
-    def __init__(self, s3, bucket, path, mode='rb', blocksize=1 << 22):  # 1<<22 = 4194304 = 4MB
+    """Implements a few of the BufferedIOBase methods.
 
+    see https://docs.python.org/3/library/io.html#io.BufferedIOBase
+    """
+
+    def __init__(self, s3, bucket, path, mode='rb', blocksize=1 << 22):  # 1<<22 = 4194304 = 4MB
+        """Initialize class."""
         if mode != 'rb':  # if mode not in ('rb', 'wb', 'ab'):
             raise NotImplementedError(f"File mode '{mode}' not supported")
         self.mode = mode
@@ -67,9 +71,11 @@ class S3FileReader(object):
         #     self.buffer.write(self.read())
 
     def tell(self):
+        """Return position."""
         return self.loc
 
     def seek(self, loc, whence=0):
+        """Change position to the given byte offset."""
         if whence == 0:  # from start
             nloc = loc
         elif whence == 1:  # from here
@@ -111,6 +117,7 @@ class S3FileReader(object):
     #     return list(self)
 
     def read(self, length=-1):
+        """Read and return up to size bytes."""
         if self.closed:
             raise ValueError('I/O operation on closed file.')
 
@@ -126,42 +133,52 @@ class S3FileReader(object):
         return out
 
     def close(self):
+        """Close object reader."""
         if self.closed:
             return
         self.closed = True
 
     def __del__(self):
+        """Prepare for object destruction."""
         self.close()
 
     def __str__(self):
+        """Return string representation."""
         return f"<S3FileReader {self.path}>"
 
     __repr__ = __str__
 
     def __enter__(self):
+        """Set things."""
         return self
 
     def __exit__(self, *args):
+        """Prepare for object destruction."""
         self.close()
 
     # Implementations of BufferedIOBase stub methods
 
     def read1(self, length=-1):
+        """Read and return up to size bytes, with at most one call to the underlying raw stream’s read()."""
         return self.read(length)
 
     def detach(self):
+        """Raise unssuported operation."""
         raise io.UnsupportedOperation()
 
     def readinto(self, b):
+        """Read bytes into a pre-allocated object b and return the number of bytes read."""
         data = self.read()
         datalen = len(data)
         b[:datalen] = data
         return datalen
 
     def readinto1(self, b):
+        """Read bytes into an object."""
         return self.readinto(b)
 
     def _fetch(self, start, end, max_attempts=10):
+        """Read object from S3."""
         # if end > self.size:
         #     end = self.size
         assert end <= self.size
@@ -190,6 +207,7 @@ class S3Storage():
     """Vault S3 object storage and related I/O."""
 
     def __init__(self):
+        """Initialize S3 object Storage."""
         import boto3
 
         endpoint = CONF.get_value('vault', 'url')
@@ -216,15 +234,18 @@ class S3Storage():
         # No need to close anymore?
 
     def location(self, file_id):
+        """Retrieve object location."""
         return str(file_id)
 
     def copy(self, fileobj, location):
+        """Copy file object in a bucket."""
         self.s3.upload_fileobj(fileobj, self.bucket, location)
         resp = self.s3.head_object(Bucket=self.bucket, Key=location)
         return resp['ContentLength']
 
     @contextmanager
     def open(self, path, mode='rb'):
+        """Open stored object."""
         f = S3FileReader(self.s3, self.bucket, path, mode=mode)
         yield f
         f.close()

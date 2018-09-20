@@ -20,6 +20,10 @@ from cryptography.hazmat.primitives.ciphers import (
 
 
 def EVP_ByteToKey(pwd, md, salt, key_len, iv_len):
+    """Derive key and IV.
+
+    Based on https://www.openssl.org/docs/man1.0.2/crypto/EVP_BytesToKey.html
+    """
     buf = md(pwd + salt).digest()
     d = buf
     while len(buf) < (iv_len + key_len):
@@ -29,6 +33,7 @@ def EVP_ByteToKey(pwd, md, salt, key_len, iv_len):
 
 
 def aes_encrypt(pwd, ptext, md):
+    """Encrypt AES."""
     key_len, iv_len = 32, 16
 
     # generate salt
@@ -54,9 +59,10 @@ def aes_encrypt(pwd, ptext, md):
 
 
 class KeyserverTestCase(AioHTTPTestCase):
-    """KeyServer
+    """KeyServer.
 
-    Testing keyserver by importing the routes and mocking the innerworkings."""
+    Testing keyserver by importing the routes and mocking the innerworkings.
+    """
 
     env = EnvironmentVarGuard()
     env.set('LEGA_PASSWORD', 'value')
@@ -96,9 +102,10 @@ class KeyserverTestCase(AioHTTPTestCase):
 
 
 class CacheTestCase(unittest.TestCase):
-    """KeyServer Cache
+    """KeyServer Cache.
 
-    Testing in memory cache."""
+    Testing in memory cache.
+    """
 
     def setUp(self):
         """Initialise fixtures."""
@@ -159,9 +166,10 @@ class CacheTestCase(unittest.TestCase):
 
 
 class TestBasicFunctionsKeyserver(unittest.TestCase):
-    """Keyserver Base
+    """Keyserver Base.
 
-    Testing basic functions from keyserver."""
+    Testing basic functions from keyserver.
+    """
 
     def setUp(self):
         """Initialise fixtures."""

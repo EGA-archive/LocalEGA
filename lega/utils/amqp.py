@@ -1,6 +1,4 @@
-"""
-Ensures communication with RabbitMQ Message Broker
-"""
+"""Ensures communication with RabbitMQ Message Broker."""
 
 import logging
 import pika
@@ -13,13 +11,12 @@ LOG = logging.getLogger(__name__)
 
 
 def get_connection(domain, blocking=True):
-    '''
-    Returns a blocking connection to the Message Broker supporting AMQP(S).
+    """Return a blocking connection to the Message Broker supporting AMQP(S).
 
     The host, portm virtual_host, username, password and
     heartbeat values are read from the CONF argument.
     So are the SSL options.
-    '''
+    """
     assert domain in CONF.sections(), "Section not found in config file"
 
     params = {
@@ -57,10 +54,9 @@ def get_connection(domain, blocking=True):
         return pika.BlockingConnection(pika.ConnectionParameters(**params))
     return pika.SelectConnection(pika.ConnectionParameters(**params))
 
+
 def publish(message, channel, exchange, routing, correlation_id=None):
-    '''
-    Sending a message to the local broker with ``path`` was updated
-    '''
+    """Send a message to the local broker with ``path`` was updated."""
     LOG.debug(f'Sending {message} to exchange: {exchange} [routing key: {routing}]')
     channel.basic_publish(exchange=exchange,
                           routing_key=routing,
@@ -71,7 +67,7 @@ def publish(message, channel, exchange, routing, correlation_id=None):
 
 
 def consume(work, connection, from_queue, to_routing):
-    '''Blocking function, registering callback ``work`` to be called.
+    """Blocking function, registering callback ``work`` to be called.
 
     from_broker must be a pair (from_connection: pika:Connection, from_queue: str)
     to_broker must be a triplet (to_connection: pika:Connection, to_exchange: str, to_routing: str)
@@ -82,8 +78,7 @@ def consume(work, connection, from_queue, to_routing):
     If the function ``work`` returns a non-None message, the latter is
     published to the `lega` exchange with ``to_routing`` as the
     routing key.
-    '''
-
+    """
     assert(from_queue)
 
     LOG.debug(f'Consuming message from {from_queue}')
