@@ -126,7 +126,7 @@ def _unlock_key(name, active=None, path=None, expire=None, passphrase=None, **kw
 
 @routes.get('/active/{key_type}')
 async def retrieve_active_key(request):
-    """Retrive the active key from the cache and serve it via HTTPS."""
+    """Retrieve the active key from the cache and serve it via HTTPS."""
     key_type = request.match_info['key_type'].lower()
     LOG.debug(f'Requesting active ({key_type}) key')
     if key_type not in ('public', 'private'):
@@ -144,7 +144,7 @@ async def retrieve_active_key(request):
 
 @routes.get('/retrieve/{requested_id}/{key_type}')
 async def retrieve_key(request):
-    """Retrive a specific key via keyID or fingerprint from the cache and serve it via HTTPS."""
+    """Retrieve a specific key via keyID or fingerprint from the cache and serve it via HTTPS."""
     LOG.debug('Retrieve key')
     requested_id = request.match_info['requested_id']
     key_type = request.match_info['key_type'].lower()
@@ -187,9 +187,10 @@ async def healthcheck(request):
     return web.HTTPOk()
 
 
+# TO BE REMOVED
 @routes.get('/admin/ttl')
 async def check_ttl(request):
-    """Evict from the cache if TTL expired and return the keys that survived."""  # ehh...why? /Fred
+    """Evict from the cache if TTL expired and return the keys that survived."""
     LOG.debug('Admin TTL')
     expire = _cache.check_ttl()
     if expire:
