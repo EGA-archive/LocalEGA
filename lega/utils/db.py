@@ -23,7 +23,7 @@ LOG = logging.getLogger(__name__)
 #          DB connection             #
 ######################################
 def fetch_args(d):
-    """Initialize a connection to db."""
+    """Fetch arguments for initializing a connection to db."""
     db_args = {'user': d.get_value('postgres', 'user'),
                'password': d.get_value('postgres', 'password'),
                'database': d.get_value('postgres', 'db'),

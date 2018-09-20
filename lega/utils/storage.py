@@ -18,7 +18,7 @@ class FileStorage():
     """Vault storage on disk and related I/O."""
 
     def __init__(self):
-        """Initialize POSIX storage at a path."""
+        """Initialize backend storage to a POSIX file system's path."""
         self.vault_area = Path(CONF.get_value('vault', 'location'))
 
     def location(self, file_id):
