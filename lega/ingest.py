@@ -34,7 +34,7 @@ LOG = logging.getLogger(__name__)
 @db.catch_error
 @db.crypt4gh_to_user_errors
 def work(fs, channel, data):
-    """Read a message, splits the header and sends the remainder to the backend store."""
+    """Read a message, split the header and send the remainder to the backend store."""
     filepath = data['filepath']
     LOG.info(f"Processing {filepath}")
 
