@@ -79,16 +79,7 @@ jobs:
         - sleep 10
         - make -C test check
 
-after_success:
-  - if [[ "$TRAVIS_BRANCH" == "dev" && "$TRAVIS_PULL_REQUEST" == "false" ]]; then
-      echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin ;
-      docker pull nbisweden/ega-base:dev ;
-      docker pull nbisweden/ega-inbox:dev ;
-      docker tag nbisweden/ega-base:dev nbisweden/ega-base:latest ;
-      docker tag nbisweden/ega-inbox:dev nbisweden/ega-inbox:latest ;
-      docker push nbisweden/ega-base:latest ;
-      docker push nbisweden/ega-inbox:latest ;
-    fi
+after_success: ./extra/travis_push_docker_hub.sh
 
 notifications:
   email: false
