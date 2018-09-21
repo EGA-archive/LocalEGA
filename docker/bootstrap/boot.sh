@@ -15,6 +15,13 @@ OPENSSL=openssl
 INBOX=openssh
 KEYSERVER=lega
 
+# Testing Docker Image Tag
+TAG=dev
+if [[ "${TRAVIS_PULL_REQUEST}" != "" ]]; then
+  TAG="test${TRAVIS_PULL_REQUEST}"
+fi
+echo "Testing tag for images: ${TAG}"
+
 function usage {
     echo "Usage: $0 [options]"
     echo -e "\nOptions are:"

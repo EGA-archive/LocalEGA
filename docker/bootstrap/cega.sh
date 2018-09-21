@@ -171,7 +171,7 @@ services:
 
   cega-users:
     env_file: cega/env
-    image: nbisweden/ega-base:dev
+    image: nbisweden/ega-base:${TAG}
     hostname: cega-users
     container_name: cega-users
     #ports:
@@ -197,7 +197,7 @@ services:
     #  - "8761:8761"
     expose:
       - 8761
-    image: nbisweden/ega-base:dev
+    image: nbisweden/ega-base:${TAG}
     container_name: cega-eureka
     volumes:
       - ../images/cega/eureka.py:/cega/eureka.py

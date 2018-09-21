@@ -23,14 +23,14 @@ echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin ;
 
 ## Travis run on dev branch and not a PR (this is after a PR has been approved)
 if [[ "$TRAVIS_BRANCH" == "dev" && "$TRAVIS_PULL_REQUEST" == "false" ]]; then
-    retag_images "dev" "latest"
+    retag_images "PR${TRAVIS_PULL_REQUEST}" "latest"
 fi
 
 if [[ "$TRAVIS_TAG" != "" ]]; then
     ## TODO should we just retag :dev in this case?? What happens if we have multiple builds at the same time?
-    retag_images "dev" "$TRAVIS_TAG"
+    retag_images "PR${TRAVIS_PULL_REQUEST}" "$TRAVIS_TAG"
 fi
 
 if [[ "$TRAVIS_PULL_REQUEST" != "false" && "$TRAVIS_PULL_REQUEST" != "" ]]; then
-    retag_images "dev" "PR${TRAVIS_PULL_REQUEST}"
+    retag_images "PR${TRAVIS_PULL_REQUEST}" "PR${TRAVIS_PULL_REQUEST}"
 fi
