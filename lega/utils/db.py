@@ -26,9 +26,10 @@ def fetch_args(d):
     """Fetch arguments for initializing a connection to db."""
     db_args = {'user': d.get_value('postgres', 'user'),
                'password': d.get_value('postgres', 'password'),
-               'database': d.get_value('postgres', 'db'),
+               'database': d.get_value('postgres', 'database'),
                'host': d.get_value('postgres', 'host'),
-               'port': d.get_value('postgres', 'port', conv=int)
+               'port': d.get_value('postgres', 'port', conv=int),
+               'sslmode' : CONF.get_value('db', 'sslmode'),
                }
     LOG.info(f"Initializing a connection to: {db_args['host']}:{db_args['port']}/{db_args['database']}")
     return db_args
@@ -127,7 +128,7 @@ def insert_file(filename, user_id):
 
 def get_errors(from_user=False):
     """Retrieve error from database."""
-    query = 'SELECT * from errors WHERE from_user = true;' if from_user else 'SELECT * from errors;'
+    query = 'SELECT * from local_ega.errors WHERE from_user = true;' if from_user else 'SELECT * from local_ega.errors;'
     with connect() as conn:
         with conn.cursor() as cur:
             cur.execute(query)
@@ -150,7 +151,7 @@ def get_info(file_id):
     """Retrieve information for ``file_id``."""
     with connect() as conn:
         with conn.cursor() as cur:
-            query = 'SELECT inbox_path, vault_path, stable_id, header from files WHERE id = %(file_id)s;'
+            query = 'SELECT inbox_path, vault_path, stable_id, header from local_ega.files WHERE id = %(file_id)s;'
             cur.execute(query, {'file_id': file_id})
             return cur.fetchone()
 
@@ -161,7 +162,7 @@ def _set_status(file_id, status):
     LOG.debug(f'Updating status file_id {file_id} with "{status}"')
     with connect() as conn:
         with conn.cursor() as cur:
-            cur.execute('UPDATE files SET status = %(status)s WHERE id = %(file_id)s;',
+            cur.execute('UPDATE local_ega.files SET status = %(status)s WHERE id = %(file_id)s;',
                         {'status': status,
                          'file_id': file_id})
 
@@ -182,7 +183,7 @@ def set_stable_id(file_id, stable_id):
     LOG.debug(f'Updating file_id {file_id} with stable ID "{stable_id}"')
     with connect() as conn:
         with conn.cursor() as cur:
-            cur.execute('UPDATE files '
+            cur.execute('UPDATE local_ega.files '
                         'SET status = %(status)s, '
                         '    stable_id = %(stable_id)s '
                         'WHERE id = %(file_id)s;',
@@ -198,7 +199,7 @@ def store_header(file_id, header):
     LOG.debug(f'Store header for file_id {file_id}')
     with connect() as conn:
         with conn.cursor() as cur:
-            cur.execute('UPDATE files '
+            cur.execute('UPDATE local_ega.files '
                         'SET header = %(header)s '
                         'WHERE id = %(file_id)s;',
                         {'file_id': file_id,
@@ -212,7 +213,7 @@ def set_archived(file_id, vault_path, vault_filesize):
     LOG.debug(f'Setting status to archived for file_id {file_id}')
     with connect() as conn:
         with conn.cursor() as cur:
-            cur.execute('UPDATE files '
+            cur.execute('UPDATE local_ega.files '
                         'SET status = %(status)s, '
                         '    vault_path = %(vault_path)s, '
                         '    vault_filesize = %(vault_filesize)s '
