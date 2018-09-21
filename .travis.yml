@@ -33,11 +33,14 @@ jobs:
         - cd docker
       script:
         - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin
-        - ../extras/travis.sh os
-        - ../extras/travis.sh openssh
+        - ../extras/travis_check_image_change.sh os
+        - ../extras/travis_check_image_change.sh openssh
+        # Pulling image for layer caching
+        - docker pull nbisweden/ega-base
+        - docker pull nbisweden/ega-inbox
         - make -C images base inbox
-        - docker push nbisweden/ega-base:dev
-        - docker push nbisweden/ega-inbox:dev
+        - docker push nbisweden/ega-base:"PR${TRAVIS_PULL_REQUEST}"
+        - docker push nbisweden/ega-inbox:"PR${TRAVIS_PULL_REQUEST}"
     - stage: integration tests
       before_script:
         - cd docker
@@ -47,7 +50,7 @@ jobs:
         - make up
         - docker-compose ps
       script:
-        - sleep 20
+        - sleep 25
         - cd tests
         - mvn test -Dtest=CommonTests -B
     - stage: integration tests
@@ -59,7 +62,7 @@ jobs:
         - make up
         - docker-compose ps
       script:
-        - sleep 20
+        - sleep 25
         - cd tests
         - mvn test -Dtest=RobustnessTests -B
     - stage: integration tests
