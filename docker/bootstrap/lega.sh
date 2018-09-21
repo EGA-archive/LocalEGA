@@ -328,6 +328,37 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - lega
     entrypoint: ["gosu", "lega", "ega-verify"]
 
+  # Data Out re-encryption service
+  res:
+    depends_on:
+      - s3
+      - keys
+    hostname: res
+    container_name: res
+    image: ega-data-api/res:v1
+    ports:
+      - "${DOCKER_PORT_res}:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=no-oss,LocalEGA
+      - EGA_EGA_EXTERNAL_URL=
+      - EGA_EGA_CRAM_FASTA_A=
+      - EGA_EGA_CRAM_FASTA_B=
+      - EGA_EBI_FIRE_URL=
+      - EGA_EBI_FIRE_ARCHIVE=
+      - EGA_EBI_FIRE_KEY=
+      - SERVICE_ARCHIVE_CLASS=
+      - EGA_SHAREDPASS_PATH=/etc/ega/pgp/ega.shared.pass
+      - EGA_EBI_AWS_ACCESS_KEY=${S3_ACCESS_KEY}
+      - EGA_EBI_AWS_ACCESS_SECRET=${S3_SECRET_KEY}
+      - EGA_EBI_AWS_ENDPOINT_URL=
+      - EGA_EBI_AWS_ENDPOINT_REGION=
+    volumes:
+      - ./lega/pgp/ega.shared.pass:/etc/ega/pgp/ega.shared.pass:ro
+      - inbox:/ega/inbox
+    restart: on-failure:3
+    networks:
+      - lega
+
   # S3
   s3:
     hostname: s3
@@ -382,7 +413,7 @@ S3_SECRET_KEY             = ${S3_SECRET_KEY}
 DOCKER_PORT_inbox         = ${DOCKER_PORT_inbox}
 DOCKER_PORT_mq            = ${DOCKER_PORT_mq}
 DOCKER_PORT_s3            = ${DOCKER_PORT_s3}
-DOCKER_PORT_kibana        = ${DOCKER_PORT_kibana}
+DOCKER_PORT_res           = ${DOCKER_PORT_res}
 #
 LEGA_PASSWORD             = ${LEGA_PASSWORD}
 KEYS_PASSWORD             = ${KEYS_PASSWORD}
