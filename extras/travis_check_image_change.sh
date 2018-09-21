@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
-# Check if a certain image has changed, in our case either os or openssh.
-# The current commmand should be run in the docker directory.
-# If we detect changes agains origin/dev we build and push new image.
+# Check if a certain image has changed, in our case either OS or OpenSSH.
+# The current command should be run in the docker directory.
+# If we detect changes against origin/dev we build and push new image.
 
 check_image(){
   (git diff --exit-code origin/dev -- images/$1/Dockerfile >/dev/null)
