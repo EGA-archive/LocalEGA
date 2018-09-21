@@ -4,17 +4,16 @@
 # The current command should be run in the docker directory.
 # If we detect changes against origin/dev we build and push new image.
 
-check_image(){
-  (git diff --exit-code origin/dev -- images/$1/Dockerfile >/dev/null)
-  local docker=$?
-  if [[ "$docker" == "1" ]]; then
-    echo "ega-$1 base image changed, building new ega-$1 image." ;
-    make -C images $1 ;
-    echo "pushing new ega-$1 image."
-    docker push nbisweden/ega-$1 ;
+check_image () {
+  if git diff --exit-code origin/dev -- "images/$1/Dockerfile"
+  then
+    printf 'New ega-%s docker image is not required.\n' "$1"
   else
-    echo "New ega-$1 docker image is not required." ;
+    printf 'ega-%s base image changed, building new ega-%s image.\n' "$1" "$1"
+    make -C images "$1"
+    printf 'pushing new ega-%s image.\n' "$1"
+    docker push "nbisweden/ega-$1"
   fi
 }
 
-check_image $1
+check_image "$1"
