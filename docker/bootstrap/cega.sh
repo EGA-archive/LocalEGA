@@ -217,7 +217,7 @@ echomsg "Generating passwords for the Message Broker"
 
 mkdir -p ${PRIVATE}/cega/mq
 cat > ${PRIVATE}/cega/mq/defs.json <<EOF
-{"rabbit_version":"3.6.11",
+{"rabbit_version":"3.6.14",
  "users":[{"name":"lega","password_hash":"$(${PASS_HASH} ${CEGA_MQ_PASSWORD})","hashing_algorithm":"rabbit_password_hashing_sha256","tags":"administrator"}],
  "vhosts":[{"name":"lega"}],
  "permissions":[{"user":"lega", "vhost":"lega", "configure":".*", "write":".*", "read":".*"}],
