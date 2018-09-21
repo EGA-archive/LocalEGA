@@ -15,15 +15,14 @@ registered upstream queue.
 import sys
 import logging
 
-from .conf import CONF
-from .utils import db
+from .utils import db, context
 from .utils.amqp import consume, get_connection
 
 LOG = logging.getLogger(__name__)
 
 
 @db.catch_error
-def work(data):
+def work(ctx, data):
     """Read a message containing the ids and add it to the database."""
     file_id = data['file_id']
     stable_id = data['stable_id']
@@ -40,12 +39,13 @@ def main(args=None):
     if not args:
         args = sys.argv[1:]
 
-    CONF.setup(args)  # re-conf
+    ctx = context.Context()
+    ctx.setup()  # re-conf
 
     broker = get_connection('broker')
 
     # upstream link configured in local broker
-    consume(work, broker, 'stableIDs', None)
+    consume(work, ctx, broker, 'stableIDs', None)
 
 
 if __name__ == '__main__':

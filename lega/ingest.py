@@ -24,8 +24,7 @@ from functools import partial
 
 from legacryptor.crypt4gh import get_header
 
-from .conf import CONF
-from .utils import db, exceptions, sanitize_user_id, storage
+from .utils import db, exceptions, sanitize_user_id, storage, context
 from .utils.amqp import consume, publish, get_connection
 
 LOG = logging.getLogger(__name__)
@@ -33,9 +32,12 @@ LOG = logging.getLogger(__name__)
 
 @db.catch_error
 @db.crypt4gh_to_user_errors
-def work(fs, channel, data):
+def work(fs, channel, ctx, data):
     """Read a message, split the header and send the remainder to the backend store."""
+
+    correlation_id = ctx.correlation_id
     filepath = data['filepath']
+
     LOG.info(f"Processing {filepath}")
 
     # Remove the host part of the user name
@@ -51,7 +53,7 @@ def work(fs, channel, data):
     data['file_id'] = file_id  # must be there: database error uses it
 
     # Find inbox
-    inbox = Path(CONF.get_value('inbox', 'location', raw=True) % user_id)
+    inbox = Path(ctx.conf.get_value('inbox', 'location', raw=True) % user_id)
     LOG.info(f"Inbox area: {inbox}")
 
     # Check if file is in inbox
@@ -98,14 +100,15 @@ def main(args=None):
     if not args:
         args = sys.argv[1:]
 
-    CONF.setup(args)  # re-conf
+    ctx = context.Context()
+    ctx.setup(args) # re-conf
 
-    fs = getattr(storage, CONF.get_value('vault', 'driver', default='FileStorage'))
+    fs = getattr(storage, ctx.conf.get_value('vault', 'driver', default='FileStorage'))
     broker = get_connection('broker')
     do_work = partial(work, fs(), broker.channel())
 
     # upstream link configured in local broker
-    consume(do_work, broker, 'files', 'archived')
+    consume(do_work, ctx, broker, 'files', 'archived')
 
 
 if __name__ == '__main__':

@@ -66,7 +66,7 @@ def publish(message, channel, exchange, routing, correlation_id=None):
                                                           delivery_mode=2))
 
 
-def consume(work, connection, from_queue, to_routing):
+def consume(work, ctx, connection, from_queue, to_routing):
     """Blocking function, registering callback ``work`` to be called.
 
     Args:
@@ -95,8 +95,12 @@ def consume(work, connection, from_queue, to_routing):
         message_id = method_frame.delivery_tag
         LOG.debug(f'Consuming message {message_id} (Correlation ID: {correlation_id})')
 
+        ctx.correlation_id = correlation_id
+
         # Process message in JSON format
-        answer = work(json.loads(body))  # Exceptions should be already caught
+        answer = work(ctx, json.loads(body))  # Exceptions should be already caught
+
+        ctx.correlation_id = None
 
         # Publish the answer
         if answer:

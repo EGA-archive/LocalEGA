@@ -21,8 +21,7 @@ import hashlib
 
 from legacryptor.crypt4gh import get_key_id, header_to_records, body_decrypt
 
-from .conf import CONF
-from .utils import db, exceptions, storage
+from .utils import db, exceptions, storage, context
 from .utils.amqp import consume, get_connection
 
 LOG = logging.getLogger(__name__)
@@ -61,7 +60,7 @@ def get_records(header):
 
 @db.catch_error
 @db.crypt4gh_to_user_errors
-def work(chunk_size, mover, channel, data):
+def work(chunk_size, mover, channel, ctx, data):
     """Verify that the file in the vault can be properly decrypted."""
     LOG.info('Verification | message: %s', data)
 
@@ -106,7 +105,8 @@ def main(args=None):
     if not args:
         args = sys.argv[1:]
 
-    CONF.setup(args)  # re-conf
+    ctx = context.Context()
+    ctx.setup(args)  # re-conf
 
     store = getattr(storage, CONF.get_value('vault', 'driver', default='FileStorage'))
     chunk_size = CONF.get_value('vault', 'chunk_size', conv=int, default=1 << 22)  # 4 MB
@@ -114,7 +114,7 @@ def main(args=None):
     broker = get_connection('broker')
     do_work = partial(work, chunk_size, store(), broker.channel())
 
-    consume(do_work, broker, 'archived', 'completed')
+    consume(do_work, ctx, broker, 'archived', 'completed')
 
 
 if __name__ == '__main__':
