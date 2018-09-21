@@ -44,6 +44,7 @@ jobs:
     - stage: integration tests
       before_script:
         - cd docker
+        - ../extras/travis_push_docker_hub.sh
         - make bootstrap ARGS='--inbox mina --keyserver ega'
         - sudo chown -R travis private
         - docker network create cega
@@ -56,6 +57,7 @@ jobs:
     - stage: integration tests
       before_script:
         - cd docker
+        - ../extras/travis_push_docker_hub.sh
         - make bootstrap ARGS='--inbox mina --keyserver ega'
         - sudo chown -R travis private
         - docker network create cega
@@ -68,6 +70,7 @@ jobs:
     - stage: integration tests
       before_script:
         - cd docker
+        - ../extras/travis_push_docker_hub.sh
         - make bootstrap
         - sudo chown -R travis private
         - docker network create cega
@@ -82,7 +85,9 @@ jobs:
         - sleep 10
         - make -C test check
 
-after_success: ./extra/travis_push_docker_hub.sh
+after_success:
+  - wget https://raw.githubusercontent.com/NBISweden/LocalEGA/extras/${TRAVIS_PULL_REQUEST_SHA}/travis_push_docker_hub.sh
+  - ./travis_push_docker_hub.sh
 
 notifications:
   email: false

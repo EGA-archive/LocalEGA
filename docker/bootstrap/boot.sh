@@ -15,12 +15,6 @@ OPENSSL=openssl
 INBOX=openssh
 KEYSERVER=lega
 
-# Testing Docker Image Tag
-TAG=dev
-if [[ "${TRAVIS_PULL_REQUEST}" != "" ]]; then
-  TAG="test${TRAVIS_PULL_REQUEST}"
-fi
-echo "Testing tag for images: ${TAG}"
 
 function usage {
     echo "Usage: $0 [options]"
@@ -44,9 +38,9 @@ while [[ $# -gt 0 ]]; do
         --verbose|-v) VERBOSE=yes;;
         --polite|-p) FORCE=no;;
         --openssl) OPENSSL=$2; shift;;
-	    --inbox) INBOX=$2; shift;;
-	    --keyserver) KEYSERVER=$2; shift;;
-	    --) shift; break;;
+        --inbox) INBOX=$2; shift;;
+        --keyserver) KEYSERVER=$2; shift;;
+        --) shift; break;;
         *) echo "$0: error - unrecognized option $1" 1>&2; usage; exit 1;;    esac
     shift
 done
