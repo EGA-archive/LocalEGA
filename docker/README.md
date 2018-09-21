@@ -24,11 +24,18 @@ The passwords are in `private/lega/.trace` and the errors (if any) are in `priva
 
 ### Bootstrapping with advanced options
 
-If you want to use the [keyserver from
-ega-data-api](https://github.com/EGA-archive/ega-data-api/tree/master/ega-data-api-key) instead of the [LocalEGA keyserver](https://github.com/NBISweden/LocalEGA/blob/dev/lega/keyserver.py), bootstrap with 
+If one would want to make use of the [keyserver from
+ega-data-api](https://github.com/EGA-archive/ega-data-api/tree/master/ega-data-api-key) instead of the [LocalEGA keyserver](https://github.com/NBISweden/LocalEGA/blob/dev/lega/keyserver.py), bootstrap with:
 
-    make "ARGS=--keyserver ega" bootstrap
+	make "ARGS=--keyserver ega" bootstrap
 
+In order to make use of [Apache Mina Inbox](https://github.com/NBISweden/LocalEGA-inbox) use:
+
+	make bootstrap ARGS='--inbox mina'
+
+Multiple bootstrapping options can be used at the same time:
+
+	make bootstrap ARGS='--inbox mina --keyserver ega'
 
 ## Running
 

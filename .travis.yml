@@ -33,7 +33,9 @@ jobs:
         - cd docker
       script:
         - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin
-        - make -C images all
+        - ../extras/travis.sh os
+        - ../extras/travis.sh openssh
+        - make -C images base inbox
         - docker push nbisweden/ega-base:dev
         - docker push nbisweden/ega-inbox:dev
     - stage: integration tests
