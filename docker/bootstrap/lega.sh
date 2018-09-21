@@ -350,7 +350,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - EGA_SHAREDPASS_PATH=/etc/ega/pgp/ega.shared.pass
       - EGA_EBI_AWS_ACCESS_KEY=${S3_ACCESS_KEY}
       - EGA_EBI_AWS_ACCESS_SECRET=${S3_SECRET_KEY}
-      - EGA_EBI_AWS_ENDPOINT_URL=
+      - EGA_EBI_AWS_ENDPOINT_URL=http://s3:${DOCKER_PORT_s3}
       - EGA_EBI_AWS_ENDPOINT_REGION=
     volumes:
       - ./lega/pgp/ega.shared.pass:/etc/ega/pgp/ega.shared.pass:ro

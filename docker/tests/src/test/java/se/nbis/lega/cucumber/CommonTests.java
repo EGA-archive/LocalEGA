@@ -10,7 +10,8 @@ import org.junit.runner.RunWith;
         features = {
                 "src/test/resources/cucumber/features/authentication.feature",
                 "src/test/resources/cucumber/features/uploading.feature",
-                "src/test/resources/cucumber/features/ingestion.feature"
+                "src/test/resources/cucumber/features/ingestion.feature",
+                "src/test/resources/cucumber/features/outgestion.feature"
         }
 )
 public class CommonTests {
