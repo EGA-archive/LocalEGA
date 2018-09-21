@@ -23,7 +23,7 @@ echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin ;
 
 ## Travis run on dev branch and not a PR (this is after a PR has been approved)
 if [[ "$TRAVIS_BRANCH" == "dev" && "$TRAVIS_PULL_REQUEST" == "false" ]]; then
-    retag_images "latest" "dev"
+    retag_images "dev" "latest"
 fi
 
 if [[ "$TRAVIS_TAG" != "" ]]; then
