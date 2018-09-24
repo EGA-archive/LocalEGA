@@ -9,7 +9,7 @@ retag_image () {
     push=$4
     docker pull "$base:$from"
     docker tag "$base:$from" "$base:$to"
-    if [ -n "$push" ]; then
+    if [ "$push" = true ]; then
       printf 'Pushing LocalEGA image: %s\n' "$base:$to"
       docker push "$base:$to"
     fi
