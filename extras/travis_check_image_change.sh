@@ -5,7 +5,7 @@
 # If we detect changes against origin/dev we build and push new image.
 
 check_image () {
-  if git diff --exit-code origin/dev -- "images/$1/Dockerfile"
+  if git diff --exit-code origin/dev -- "images/$1/Dockerfile" >/dev/null
   then
     printf 'New ega-%s docker image is not required.\n' "$1"
   else
