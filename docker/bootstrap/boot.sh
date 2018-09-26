@@ -15,6 +15,7 @@ OPENSSL=openssl
 INBOX=openssh
 KEYSERVER=lega
 
+
 function usage {
     echo "Usage: $0 [options]"
     echo -e "\nOptions are:"
@@ -37,9 +38,9 @@ while [[ $# -gt 0 ]]; do
         --verbose|-v) VERBOSE=yes;;
         --polite|-p) FORCE=no;;
         --openssl) OPENSSL=$2; shift;;
-	    --inbox) INBOX=$2; shift;;
-	    --keyserver) KEYSERVER=$2; shift;;
-	    --) shift; break;;
+        --inbox) INBOX=$2; shift;;
+        --keyserver) KEYSERVER=$2; shift;;
+        --) shift; break;;
         *) echo "$0: error - unrecognized option $1" 1>&2; usage; exit 1;;    esac
     shift
 done
