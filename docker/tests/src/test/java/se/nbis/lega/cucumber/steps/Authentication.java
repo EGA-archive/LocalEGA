@@ -38,7 +38,7 @@ public class Authentication implements En {
                 File userYML = new File(String.format(cegaUsersFolderPath + "/%s.yml", user));
                 FileUtils.writeLines(userYML, Arrays.asList("---",
                         "username: " + user,
-                        "uid: " + new SecureRandom().nextInt(),
+                        "uid: " + Math.abs(new SecureRandom().nextInt()),
                         "gecos: EGA User " + user,
                         "pubkey: ssh-rsa " + publicKey));
             } catch (IOException e) {
