@@ -335,7 +335,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - keys
     hostname: res
     container_name: res
-    image: ega-data-api/res:v1
+    image: nbisweden/res
     ports:
       - "${DOCKER_PORT_res}:8080"
     environment:
