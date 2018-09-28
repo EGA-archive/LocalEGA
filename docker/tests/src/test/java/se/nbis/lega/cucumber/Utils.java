@@ -13,7 +13,6 @@ import com.rabbitmq.client.ConnectionFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.c02e.jpgpj.HashingAlgorithm;
 import se.nbis.lega.cucumber.publisher.Message;
@@ -26,7 +25,7 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.Properties;
 import java.util.UUID;
 
@@ -110,7 +109,7 @@ public class Utils {
      * @throws InterruptedException In case the query execution is interrupted.
      */
     public String executeDBQuery(String query) throws IOException, InterruptedException {
-        return executeWithinContainer(findContainer(getProperty("images.name.db"), getProperty("container.name.db")),
+        return executeWithinContainer(findContainer(getProperty("container.label.db")),
                 "psql", "-U", readTraceProperty("DB_USER"), "-d", "lega", "-c", query);
     }
 
@@ -134,7 +133,7 @@ public class Utils {
      * @throws InterruptedException In case the query execution is interrupted.
      */
     public void removeUploadedFileFromInbox(String user, String fileName) throws InterruptedException {
-        executeWithinContainer(findContainer(getProperty("images.name.inbox"), getProperty("container.name.inbox")),
+        executeWithinContainer(findContainer(getProperty("container.label.inbox")),
                 String.format("rm %s/%s/%s", getProperty("inbox.folder.path"), user, fileName).split(" "));
     }
 
@@ -159,17 +158,17 @@ public class Utils {
     /**
      * Finds container by image name and container name.
      *
-     * @param imageName     Image name.
-     * @param containerName Container name.
+     * @param label Container lavbel.
      * @return Docker container.
      */
-    public Container findContainer(String imageName, String containerName) {
-        return dockerClient.listContainersCmd().withShowAll(true).exec().
-                stream().
-                filter(c -> c.getImage().equals(imageName)).
-                filter(c -> ArrayUtils.contains(c.getNames(), "/" + containerName)).
-                findAny().
-                orElse(null);
+    public Container findContainer(String label) {
+        return dockerClient
+                .listContainersCmd()
+                .withShowAll(true)
+                .withLabelFilter(Collections.singletonMap("lega_label", label)).exec()
+                .stream()
+                .findAny()
+                .orElseThrow(() -> new RuntimeException(String.format("Container with label %s not found!", label)));
     }
 
     /**
@@ -198,10 +197,8 @@ public class Utils {
      * Restarts all the LocalEGA containers (the ones that starts with `ega-` or `ega-` prefix).
      */
     public void restartAllLocalEGAContainers() {
-        dockerClient.listContainersCmd().withShowAll(true).exec().
+        dockerClient.listContainersCmd().withShowAll(true).withLabelFilter("lega_label").exec().
                 stream().
-                filter(c -> Arrays.stream(c.getNames()).anyMatch(n -> n.startsWith("/" + getProperty("container.name") + "-")
-                        || n.startsWith("/" + getProperty("container.name") + "_"))).
                 peek(this::stopContainer).
                 peek(c -> safeSleep(5000)).
                 peek(this::startContainer).

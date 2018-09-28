@@ -38,23 +38,17 @@ public class Ingestion implements En {
             }
         });
 
-        When("^I turn off the keyserver$", () -> utils.stopContainer(utils.findContainer(utils.getProperty("images.name.keys"),
-                utils.getProperty("container.name.keys"))));
+        When("^I turn off the keyserver$", () -> utils.stopContainer(utils.findContainer(utils.getProperty("container.label.keys"))));
 
-        When("^I turn on the keyserver$", () -> utils.startContainer(utils.findContainer(utils.getProperty("images.name.keys"),
-                utils.getProperty("container.name.keys"))));
+        When("^I turn on the keyserver$", () -> utils.startContainer(utils.findContainer(utils.getProperty("container.label.keys"))));
 
-        When("^I turn off the database", () -> utils.stopContainer(utils.findContainer(utils.getProperty("images.name.db"),
-                utils.getProperty("container.name.db"))));
+        When("^I turn off the database", () -> utils.stopContainer(utils.findContainer(utils.getProperty("container.label.db"))));
 
-        When("^I turn on the database", () -> utils.startContainer(utils.findContainer(utils.getProperty("images.name.db"),
-                utils.getProperty("container.name.db"))));
+        When("^I turn on the database", () -> utils.startContainer(utils.findContainer(utils.getProperty("container.label.db"))));
 
-        When("^I turn off the message broker", () -> utils.stopContainer(utils.findContainer(utils.getProperty("images.name.mq"),
-                utils.getProperty("container.name.mq"))));
+        When("^I turn off the message broker", () -> utils.stopContainer(utils.findContainer(utils.getProperty("container.label.mq"))));
 
-        When("^I turn on the message broker", () -> utils.startContainer(utils.findContainer(utils.getProperty("images.name.mq"),
-                utils.getProperty("container.name.mq"))));
+        When("^I turn on the message broker", () -> utils.startContainer(utils.findContainer(utils.getProperty("container.label.mq"))));
 
         When("^I ingest file from the LocalEGA inbox$", () -> {
 //            HashingAlgorithm hashingAlgorithm = HashingAlgorithm.valueOf(algorithm);
