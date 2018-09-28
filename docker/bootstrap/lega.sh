@@ -258,7 +258,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
   keys:
     hostname: keys
     container_name: keys
-    image: nbisweden/keys
+    image: cscfi/ega-keyserver
     environment:
       - SPRING_PROFILES_ACTIVE=no-oss
       - EGA_KEY_PATH=/etc/ega/pgp/ega.sec,/etc/ega/pgp/ega2.sec
@@ -335,7 +335,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - keys
     hostname: res
     container_name: res
-    image: nbisweden/res
+    image: cscfi/ega-res
     ports:
       - "${DOCKER_PORT_res}:8080"
     environment:
