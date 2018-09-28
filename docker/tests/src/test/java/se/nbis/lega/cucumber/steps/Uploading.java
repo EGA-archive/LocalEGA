@@ -1,10 +1,10 @@
 package se.nbis.lega.cucumber.steps;
 
-import com.sun.org.apache.xml.internal.security.utils.Base64;
 import cucumber.api.java8.En;
 import lombok.extern.slf4j.Slf4j;
 import net.schmizz.sshj.sftp.RemoteResourceInfo;
 import no.ifi.uio.crypt4gh.stream.Crypt4GHOutputStream;
+import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.FileUtils;
 import org.junit.Assert;
@@ -38,8 +38,8 @@ public class Uploading implements En {
                 String key = FileUtils.readFileToString(new File(String.format("%s/%s/pgp/ega.pub", utils.getPrivateFolderPath(), utils.getProperty("instance.name"))), Charset.defaultCharset());
                 FileOutputStream fileOutputStream = new FileOutputStream(encryptedFile);
                 Crypt4GHOutputStream crypt4GHOutputStream = new Crypt4GHOutputStream(fileOutputStream, key, digest);
-                context.setSessionKey(Base64.encode(crypt4GHOutputStream.getSessionKeyBytes()));
-                context.setIv(Base64.encode(crypt4GHOutputStream.getIvBytes()));
+                context.setSessionKey(Hex.encodeHexString(crypt4GHOutputStream.getSessionKeyBytes()));
+                context.setIv(Hex.encodeHexString(crypt4GHOutputStream.getIvBytes()));
                 FileUtils.copyFile(rawFile, crypt4GHOutputStream);
                 crypt4GHOutputStream.close();
                 context.setEncryptedFile(encryptedFile);

@@ -11,14 +11,17 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
+import org.c02e.jpgpj.HashingAlgorithm;
 import se.nbis.lega.cucumber.publisher.Message;
 
 import javax.ws.rs.core.MediaType;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -219,26 +222,26 @@ public class Utils {
         }
     }
 
-//    /**
-//     * Calculates hash of a file.
-//     *
-//     * @param file             File to calculate hash for.
-//     * @param hashingAlgorithm Algorithm to use for hashing.
-//     * @return Hash. Defaults to MD5.
-//     * @throws IOException In case it's not possible ot read the file.
-//     */
-//    public String calculateChecksum(File file, HashingAlgorithm hashingAlgorithm) throws IOException {
-//        try (FileInputStream fileInputStream = new FileInputStream(file)) {
-//            switch (hashingAlgorithm) {
-//                case SHA256:
-//                    return DigestUtils.sha256Hex(fileInputStream);
-//                case MD5:
-//                    return DigestUtils.md5Hex(fileInputStream);
-//                default:
-//                    throw new RuntimeException(hashingAlgorithm + " hashing algorithm is not supported by the test-suite.");
-//            }
-//        }
-//    }
+    /**
+     * Calculates hash of a file.
+     *
+     * @param file             File to calculate hash for.
+     * @param hashingAlgorithm Algorithm to use for hashing.
+     * @return Hash. Defaults to MD5.
+     * @throws IOException In case it's not possible ot read the file.
+     */
+    public String calculateChecksum(File file, HashingAlgorithm hashingAlgorithm) throws IOException {
+        try (FileInputStream fileInputStream = new FileInputStream(file)) {
+            switch (hashingAlgorithm) {
+                case SHA256:
+                    return DigestUtils.sha256Hex(fileInputStream);
+                case MD5:
+                    return DigestUtils.md5Hex(fileInputStream);
+                default:
+                    throw new RuntimeException(hashingAlgorithm + " hashing algorithm is not supported by the test-suite.");
+            }
+        }
+    }
 
     /**
      * Sends a JSON message to a RabbitMQ instance.
