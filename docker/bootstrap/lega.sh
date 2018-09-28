@@ -372,7 +372,6 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - EGA_EBI_AWS_ENDPOINT_REGION=
     volumes:
       - ./lega/pgp/ega.shared.pass:/etc/ega/pgp/ega.shared.pass:ro
-      - inbox:/ega/inbox
     restart: on-failure:3
     networks:
       - lega
