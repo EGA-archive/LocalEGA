@@ -25,6 +25,7 @@ public class Context {
     private File dataFolder;
     private File rawFile;
     private File encryptedFile;
+    private File downloadedFile;
     private String sessionKey;
     private String iv;
     private Map<String, String> ingestionInformation;
