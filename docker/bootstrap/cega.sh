@@ -191,7 +191,9 @@ services:
     networks:
       - cega
     command: ["python3.6", "/cega/server.py"]
-
+EOF
+if [[ $KEYSERVER != 'ega' ]]; then
+cat >> ${PRIVATE}/cega.yml <<EOF
   ############################################
   # Fake Eureka server
   ############################################
@@ -212,6 +214,7 @@ services:
       - cega
     command: ["python3.6", "/cega/eureka.py"]
 EOF
+fi
 
 # Only one instance, called 'lega'
 cat > ${PRIVATE}/cega/env <<EOF
