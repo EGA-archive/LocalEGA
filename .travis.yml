@@ -49,7 +49,19 @@ jobs:
       script:
         - sleep 20
         - cd tests
-        - mvn test -Dtest=CommonTests -B
+        - mvn test -Dtest=IngestionTests -B
+    - stage: integration tests
+      before_script:
+        - cd docker
+        - make bootstrap ARGS='--inbox mina --keyserver ega'
+        - sudo chown -R travis private
+        - docker network create cega
+        - make up
+        - docker-compose ps
+      script:
+        - sleep 60
+        - cd tests
+        - mvn test -Dtest=OutgetsionTests -B
     - stage: integration tests
       before_script:
         - cd docker

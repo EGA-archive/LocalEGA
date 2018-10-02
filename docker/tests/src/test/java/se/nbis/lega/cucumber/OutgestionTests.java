@@ -8,11 +8,8 @@ import org.junit.runner.RunWith;
 @CucumberOptions(
         format = {"pretty", "html:target/cucumber"},
         features = {
-                "src/test/resources/cucumber/features/authentication.feature",
-                "src/test/resources/cucumber/features/uploading.feature",
-                "src/test/resources/cucumber/features/ingestion.feature",
                 "src/test/resources/cucumber/features/outgestion.feature"
         }
 )
-public class CommonTests {
+public class OutgestionTests {
 }
