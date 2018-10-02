@@ -47,7 +47,7 @@ jobs:
         - make up
         - docker-compose ps
       script:
-        - sleep 20
+        - sleep 60
         - cd tests
         - mvn test -Dtest=IngestionTests -B
     - stage: integration tests
@@ -71,7 +71,7 @@ jobs:
         - make up
         - docker-compose ps
       script:
-        - sleep 20
+        - sleep 60
         - cd tests
         - mvn test -Dtest=RobustnessTests -B
     - stage: integration tests
