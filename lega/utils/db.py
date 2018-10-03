@@ -114,7 +114,7 @@ def insert_file(filename, user_id):
     """Insert a new file entry and returns its id."""
     with connect() as conn:
         with conn.cursor() as cur:
-            cur.execute('SELECT insert_file(%(filename)s,%(user_id)s);',
+            cur.execute('SELECT local_ega.insert_file(%(filename)s,%(user_id)s);',
                         {'filename': filename,
                          'user_id': user_id,
                          })
@@ -143,7 +143,7 @@ def set_error(file_id, error, from_user=False):
     hostname = gethostname()
     with connect() as conn:
         with conn.cursor() as cur:
-            cur.execute('SELECT insert_error(%(file_id)s,%(h)s,%(etype)s,%(msg)s,%(from_user)s);',
+            cur.execute('SELECT local_ega.insert_error(%(file_id)s,%(h)s,%(etype)s,%(msg)s,%(from_user)s);',
                         {'h': hostname, 'etype': error.__class__.__name__, 'msg': repr(error), 'file_id': file_id, 'from_user': from_user})
 
 
