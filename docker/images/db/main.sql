@@ -5,6 +5,8 @@
 
 CREATE SCHEMA local_ega; -- includes the main table, some views and errors
 
+SET search_path TO local_ega;
+
 CREATE TYPE checksum_algorithm AS ENUM ('MD5', 'SHA256', 'SHA384', 'SHA512'); -- md5 is bad. Use sha*!
 CREATE TYPE storage AS ENUM ('S3', 'POSIX');
 -- Note: This is an enum, because that's what the "provided" database supports
@@ -95,9 +97,19 @@ CREATE TABLE local_ega.main (
        last_modified_by          NAME DEFAULT CURRENT_USER, --
        created_at                TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT clock_timestamp(),
        last_modified             TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT clock_timestamp()
-)
-WITH (OIDS=FALSE);
+);
 CREATE UNIQUE INDEX file_id_idx ON local_ega.main(id);
+
+-- When there is an updated, remember the timestamp
+CREATE FUNCTION main_updated()
+RETURNS TRIGGER AS $main_updated$
+BEGIN
+     NEW.last_modified = clock_timestamp();
+		 RETURN NEW;
+END;
+$main_updated$ LANGUAGE plpgsql;
+
+CREATE TRIGGER main_updated AFTER UPDATE ON local_ega.main FOR EACH ROW EXECUTE PROCEDURE main_updated();
 
 -- ##################################################
 --                      ERRORS
@@ -111,8 +123,7 @@ CREATE TABLE local_ega.main_errors (
 	msg           TEXT NOT NULL,
 	from_user     BOOLEAN DEFAULT FALSE,
 	occured_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT clock_timestamp()
-)
-WITH (OIDS=FALSE);
+);
 
 -- ##################################################
 --         Data-In View
@@ -195,48 +206,18 @@ CREATE TRIGGER mark_ready
     EXECUTE PROCEDURE mark_ready();
 
 -- ##########################################################################
---           For data-out (used by CRG and/or by EBI)
+--           For data-out
 -- ##########################################################################
 
 -- View on the vault files
 CREATE VIEW local_ega.vault_files AS
-SELECT id                                       AS file_id,
-       stable_id                                AS file_name,
-       vault_file_reference                     AS file_path,
-       vault_file_type                          AS file_type,
-       vault_file_size                          AS file_size,
-       vault_file_checksum                      AS unencrypted_checksum,
-       vault_file_checksum_type                 AS unencrypted_checksum_type,
-       header,
-       created_by,
-       last_modified_by                         AS last_updated_by,
-       created_at                               AS created,
-       last_modified                            AS last_updated
+SELECT id,
+       stable_id,
+       vault_file_reference,
+       vault_file_type,
+       header
 FROM local_ega.main
 WHERE status = 'READY';
-
-
--- Relation File <-> Index File
-CREATE TABLE local_ega.index_files (
-       id       SERIAL, PRIMARY KEY(id), UNIQUE (id),
-
-       file_id  INTEGER NOT NULL REFERENCES local_ega.main (id) ON DELETE CASCADE,
-
-       index_file_reference      TEXT NOT NULL,    -- file path if POSIX, object id if S3
-       index_file_type           storage -- S3 or POSIX file system
-)
-WITH (OIDS=FALSE);
-
--- Relation File EGAF <-> Dataset EGAD
-CREATE TABLE local_ega.file2dataset (
-       id       SERIAL, PRIMARY KEY(id), UNIQUE (id),
-
-       file_id     INTEGER NOT NULL REFERENCES local_ega.main (id) ON DELETE CASCADE, -- not stable_id
-
-       dataset_id  TEXT NOT NULL
-)
-WITH (OIDS=FALSE);
-
 
 -- ##########################################################################
 --                   About the encryption
