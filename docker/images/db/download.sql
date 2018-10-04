@@ -12,10 +12,10 @@ CREATE TABLE local_ega_download.status (
 
 INSERT INTO local_ega_download.status(id,code,description)
 VALUES (10, 'INIT'        , 'Initializing a download request'),
-       (20, 'REENCRYPTING', 'Could not find that stableID in the database'),
-       (30, 'STREAMING'   , 'Streaming vault file'),
-       (40, 'DONE'        , 'Streaming completed'), -- checksums are in the Crypt4GH formatted file
-                                                    -- and validated by the decryptor
+       (20, 'REENCRYPTING', 'Re-Encrypting the header for a given user'),
+       (30, 'STREAMING'   , 'Streaming file from the Vault'),
+       (40, 'DONE'        , 'Download completed'), -- checksums are in the Crypt4GH formatted file
+                                                   -- and validated by the decryptor
        (0, 'ERROR'        , 'An Error occured, check the error table');
 
 
@@ -30,7 +30,7 @@ CREATE TABLE local_ega_download.main (
                       -- DEFAULT 'INIT' ?
    
    -- Stats
-   start_timestamp   TIMESTAMP,
+   start_timestamp   TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT clock_timestamp(),
    end_timestamp     TIMESTAMP,
    bytes             INTEGER DEFAULT 0,
    speed             FLOAT   DEFAULT 0.0, -- bytes per seconds
