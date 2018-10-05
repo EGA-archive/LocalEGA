@@ -4,7 +4,7 @@ pipeline {
     stage('Unit tests') {
       agent {
         docker {
-          image 'painless/tox'
+          image 'patrick91/docker-tox'
         }
 
       }
