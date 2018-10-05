@@ -9,7 +9,7 @@ pipeline {
 
       }
       steps {
-        sh '''pip install tox
+        sh '''sudo pip install tox
 tox'''
       }
     }
