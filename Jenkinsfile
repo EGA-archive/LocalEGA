@@ -4,7 +4,7 @@ pipeline {
     stage('Unit tests') {
       agent any
       steps {
-        dockerNode(dockerHost: '/var/run/docker.sock', image: 'nbisweden/os') {
+        dockerNode(dockerHost: 'unix:///var/run/docker.sock', image: 'nbisweden/os') {
           sh '''pip install tox
 tox'''
         }
