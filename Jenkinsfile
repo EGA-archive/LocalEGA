@@ -4,13 +4,12 @@ pipeline {
     stage('Unit tests') {
       agent {
         docker {
-          image 'python:3.5.1'
+          image 'n42org/tox'
         }
 
       }
       steps {
-        sh '''sudo pip install tox
-tox'''
+        sh 'tox'
       }
     }
   }
