@@ -2,10 +2,14 @@ pipeline {
   agent any
   stages {
     stage('Unit tests') {
-      agent any
+      agent {
+        docker {
+          image 'python:3.5.1'
+        }
+
+      }
       steps {
-        sh '''docker ps
-pip install tox
+        sh '''pip install tox
 tox'''
       }
     }
