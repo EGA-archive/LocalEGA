@@ -6,6 +6,6 @@ fusepy
 sphinx_rtd_theme
 cryptography==2.1.4
 pgpy
-psycopg2==2.7.4
+psycopg2-binary==2.7.5
 aiopg==0.13.0
 PyYaml
