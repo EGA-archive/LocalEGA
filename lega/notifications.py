@@ -75,12 +75,14 @@ class Forwarder(asyncio.Protocol):
             except Exception as e:
                 LOG.error("Error notifying upload: %s", e)
 
-    def send_message(self, username, filename):
+    def send_message(self, username, path):
         """Publish message to message broker that a file was added to inbox."""
         inbox = self.inbox_location % username
-        filepath, filename = (filename, filename[len(inbox):])
+
         if self.isolation:
-            filepath, filename = (os.path.join(inbox, filename.lstrip('/')), filename)
+            filepath, filename = (os.path.join(inbox, path.lstrip('/')), path)
+        else:
+            filepath, filename = (path, path[len(inbox):])
 
         LOG.debug("Filepath %s", filepath)
         msg = {'user': username,
