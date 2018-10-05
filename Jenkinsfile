@@ -9,7 +9,9 @@ pipeline {
 
       }
       steps {
-        sh 'tox'
+        sh '''python --version
+pip --version
+tox'''
       }
     }
   }
