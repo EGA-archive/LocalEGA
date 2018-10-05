@@ -2,15 +2,13 @@ pipeline {
   agent any
   stages {
     stage('Unit tests') {
-      agent {
-        docker {
-          image 'python:3.7'
+      agent any
+      steps {
+        dockerNode(dockerHost: '/var/run/docker.sock', image: 'nbisweden/os') {
+          sh '''pip install tox
+tox'''
         }
 
-      }
-      steps {
-        sh 'pip install tox'
-        sh 'tox'
       }
     }
   }
