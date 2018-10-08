@@ -19,6 +19,8 @@ stages:
     if: type IN (pull_request)
   - name: integration tests
     if: type IN (pull_request)
+  - name: tag image
+    if: type IN (push, pull_request)
 
 jobs:
   include:
@@ -33,50 +35,54 @@ jobs:
         - cd docker
       script:
         - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin
-        - ../extras/travis.sh os
-        - ../extras/travis.sh openssh
+        - ../extras/travis_check_image_change.sh os
+        - ../extras/travis_check_image_change.sh openssh
+        # Pulling image for layer caching
+        - docker pull nbisweden/ega-base
+        - docker pull nbisweden/ega-inbox
         - make -C images base inbox
-        - docker push nbisweden/ega-base:dev
-        - docker push nbisweden/ega-inbox:dev
+        - docker push nbisweden/ega-base:"PR${TRAVIS_PULL_REQUEST}"
+        - docker push nbisweden/ega-inbox:"PR${TRAVIS_PULL_REQUEST}"
     - stage: integration tests
       before_script:
         - cd docker
+        - ../extras/travis_push_docker_hub.sh
         - make bootstrap ARGS='--inbox mina --keyserver ega'
         - sudo chown -R travis private
         - docker network create cega
         - make up
         - docker-compose ps
       script:
-        - sleep 60
         - cd tests
         - mvn test -Dtest=IngestionTests -B
     - stage: integration tests
       before_script:
         - cd docker
+        - ../extras/travis_push_docker_hub.sh
         - make bootstrap ARGS='--inbox mina --keyserver ega'
         - sudo chown -R travis private
         - docker network create cega
         - make up
         - docker-compose ps
       script:
-        - sleep 60
         - cd tests
-        - mvn test -Dtest=OutgetsionTests -B
+        - mvn test -Dtest=OutgestionTests -B
     - stage: integration tests
       before_script:
         - cd docker
+        - ../extras/travis_push_docker_hub.sh
         - make bootstrap ARGS='--inbox mina --keyserver ega'
         - sudo chown -R travis private
         - docker network create cega
         - make up
         - docker-compose ps
       script:
-        - sleep 60
         - cd tests
         - mvn test -Dtest=RobustnessTests -B
     - stage: integration tests
       before_script:
         - cd docker
+        - ../extras/travis_push_docker_hub.sh
         - make bootstrap
         - sudo chown -R travis private
         - docker network create cega
@@ -90,17 +96,8 @@ jobs:
         - make -C test
         - sleep 10
         - make -C test check
-
-after_success:
-  - if [[ "$TRAVIS_BRANCH" == "dev" && "$TRAVIS_PULL_REQUEST" == "false" ]]; then
-      echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin ;
-      docker pull nbisweden/ega-base:dev ;
-      docker pull nbisweden/ega-inbox:dev ;
-      docker tag nbisweden/ega-base:dev nbisweden/ega-base:latest ;
-      docker tag nbisweden/ega-inbox:dev nbisweden/ega-inbox:latest ;
-      docker push nbisweden/ega-base:latest ;
-      docker push nbisweden/ega-inbox:latest ;
-    fi
+    - stage: tag image
+      script: ./extras/travis_push_docker_hub.sh
 
 notifications:
   email: false

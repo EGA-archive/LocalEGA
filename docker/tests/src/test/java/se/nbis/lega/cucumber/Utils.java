@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Properties;
 import java.util.UUID;
@@ -194,10 +195,19 @@ public class Utils {
     }
 
     /**
+     * Gets all LocalEGA Docker containers.
+     *
+     * @return All LocalEGA Docker containers.
+     */
+    public Collection<Container> getAllLocalEGAContainers() {
+        return dockerClient.listContainersCmd().withShowAll(true).withLabelFilter("lega_label").exec();
+    }
+
+    /**
      * Restarts all the LocalEGA containers (the ones that starts with `ega-` or `ega-` prefix).
      */
     public void restartAllLocalEGAContainers() {
-        dockerClient.listContainersCmd().withShowAll(true).withLabelFilter("lega_label").exec().
+        getAllLocalEGAContainers().
                 stream().
                 peek(this::stopContainer).
                 peek(c -> safeSleep(5000)).
