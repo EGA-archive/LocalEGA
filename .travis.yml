@@ -50,7 +50,7 @@ jobs:
         - make bootstrap ARGS='--inbox mina --keyserver ega'
         - sudo chown -R travis private
         - docker network create cega
-        - make up
+        - make up-omit service=res
         - docker-compose ps
       script:
         - cd tests
