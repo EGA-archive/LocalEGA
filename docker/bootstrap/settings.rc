@@ -6,6 +6,7 @@ DOCKER_PORT_mq=15672
 DOCKER_PORT_kibana=5601
 DOCKER_PORT_s3=9000
 DOCKER_PORT_keyserver=8443
+DOCKER_PORT_res=8081
 
 CEGA_MQ_PASSWORD=$(generate_password 16)
 [[ "${DEPLOY_DEV}" = "yes" ]] && CEGA_MQ_PASSWORD=lega # overwrite
