@@ -144,6 +144,8 @@ services:
       - "${DOCKER_PORT_mq}:15672"
     image: rabbitmq:3.6.14-management
     container_name: mq
+    labels:
+        lega_label: "mq"
     restart: on-failure:3
     # Required external link
     external_links:
@@ -168,6 +170,8 @@ services:
       - PGDATA=/ega/data
     hostname: db
     container_name: db
+    labels:
+        lega_label: "db"
     image: postgres:9.6
     volumes:
       - db:/ega/data
@@ -185,6 +189,8 @@ services:
     external_links:
       - cega-users:cega-users
     container_name: inbox
+    labels:
+        lega_label: "inbox"
     restart: on-failure:3
     networks:
       - lega
@@ -224,6 +230,8 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - mq
     image: nbisweden/ega-base:dev
     container_name: id-mapper
+    labels:
+        lega_label: "id-mapper"
     volumes:
        - ./lega/conf.ini:/etc/ega/conf.ini:ro
     restart: on-failure:3
@@ -238,6 +246,8 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - mq
     image: nbisweden/ega-base:dev
     container_name: ingest
+    labels:
+        lega_label: "ingest"
     environment:
       - S3_ACCESS_KEY=${S3_ACCESS_KEY}
       - S3_SECRET_KEY=${S3_SECRET_KEY}
@@ -258,7 +268,9 @@ cat >> ${PRIVATE}/lega.yml <<EOF
   keys:
     hostname: keys
     container_name: keys
-    image: nbisweden/keys
+    labels:
+        lega_label: "keys"
+    image: cscfi/ega-keyserver
     environment:
       - SPRING_PROFILES_ACTIVE=no-oss
       - EGA_KEY_PATH=/etc/ega/pgp/ega.sec,/etc/ega/pgp/ega2.sec
@@ -282,6 +294,8 @@ cat >> ${PRIVATE}/lega.yml <<EOF
   keys:
     hostname: keys
     container_name: keys
+    labels:
+        lega_label: "keys"
     image: nbisweden/ega-base:dev
     expose:
       - "8443"
@@ -314,6 +328,8 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - keys
     hostname: verify
     container_name: verify
+    labels:
+        lega_label: "verify"
     image: nbisweden/ega-base:dev
     environment:
       - LEGA_PASSWORD=${LEGA_PASSWORD}
@@ -328,10 +344,44 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - lega
     entrypoint: ["gosu", "lega", "ega-verify"]
 
+  # Data Out re-encryption service
+  res:
+    depends_on:
+      - s3
+      - keys
+    hostname: res
+    container_name: res
+    labels:
+        lega_label: "res"
+    image: cscfi/ega-res
+    ports:
+      - "${DOCKER_PORT_res}:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=no-oss,LocalEGA
+      - EGA_EGA_EXTERNAL_URL=
+      - EGA_EGA_CRAM_FASTA_A=
+      - EGA_EGA_CRAM_FASTA_B=
+      - EGA_EBI_FIRE_URL=
+      - EGA_EBI_FIRE_ARCHIVE=
+      - EGA_EBI_FIRE_KEY=
+      - SERVICE_ARCHIVE_CLASS=
+      - EGA_SHAREDPASS_PATH=/etc/ega/pgp/ega.shared.pass
+      - EGA_EBI_AWS_ACCESS_KEY=${S3_ACCESS_KEY}
+      - EGA_EBI_AWS_ACCESS_SECRET=${S3_SECRET_KEY}
+      - EGA_EBI_AWS_ENDPOINT_URL=http://s3:${DOCKER_PORT_s3}
+      - EGA_EBI_AWS_ENDPOINT_REGION=
+    volumes:
+      - ./lega/pgp/ega.shared.pass:/etc/ega/pgp/ega.shared.pass:ro
+    restart: on-failure:3
+    networks:
+      - lega
+
   # S3
   s3:
     hostname: s3
     container_name: s3
+    labels:
+        lega_label: "s3"
     image: minio/minio
     environment:
       - MINIO_ACCESS_KEY=${S3_ACCESS_KEY}
@@ -382,7 +432,7 @@ S3_SECRET_KEY             = ${S3_SECRET_KEY}
 DOCKER_PORT_inbox         = ${DOCKER_PORT_inbox}
 DOCKER_PORT_mq            = ${DOCKER_PORT_mq}
 DOCKER_PORT_s3            = ${DOCKER_PORT_s3}
-DOCKER_PORT_kibana        = ${DOCKER_PORT_kibana}
+DOCKER_PORT_res           = ${DOCKER_PORT_res}
 #
 LEGA_PASSWORD             = ${LEGA_PASSWORD}
 KEYS_PASSWORD             = ${KEYS_PASSWORD}
