@@ -162,6 +162,8 @@ services:
       - "5672:5672"
     image: rabbitmq:3.6.14-management
     container_name: cega-mq
+    labels:
+        lega_label: "cega-mq"
     volumes:
        - ./cega/mq/defs.json:/etc/rabbitmq/defs.json:ro
        - ./cega/mq/rabbitmq.config:/etc/rabbitmq/rabbitmq.config:ro
@@ -174,6 +176,8 @@ services:
     image: nbisweden/ega-base:dev
     hostname: cega-users
     container_name: cega-users
+    labels:
+        lega_label: "cega-users"
     #ports:
     #  - "9100:80"
     expose:
@@ -187,7 +191,9 @@ services:
     networks:
       - cega
     command: ["python3.6", "/cega/server.py"]
-
+EOF
+if [[ $KEYSERVER != 'ega' ]]; then
+cat >> ${PRIVATE}/cega.yml <<EOF
   ############################################
   # Fake Eureka server
   ############################################
@@ -199,6 +205,8 @@ services:
       - 8761
     image: nbisweden/ega-base:dev
     container_name: cega-eureka
+    labels:
+        lega_label: "cega-eureka"
     volumes:
       - ../images/cega/eureka.py:/cega/eureka.py
     restart: on-failure:3
@@ -206,6 +214,7 @@ services:
       - cega
     command: ["python3.6", "/cega/eureka.py"]
 EOF
+fi
 
 # Only one instance, called 'lega'
 cat > ${PRIVATE}/cega/env <<EOF
