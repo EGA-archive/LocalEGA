@@ -24,6 +24,10 @@ network:
 up:network private/cega.yml private/lega.yml
 	@docker-compose -f private/cega.yml -f private/lega.yml up -d
 
+# Omiting just one service from the setup, to avoid bootstrap flags
+up-omit:network private/cega.yml private/lega.yml
+	@docker-compose -f private/cega.yml -f private/lega.yml up -d --scale ${service}=0
+
 clean-volumes:
 	docker volume rm lega_db lega_inbox lega_s3
 
