@@ -53,14 +53,11 @@ RETURNS request_type AS $make_request$
 #variable_conflict use_column
 DECLARE
      req  local_ega_download.request_type;
-     vault_rec RECORD;
+     vault_rec local_ega.vault_files%ROWTYPE;
      rid  INTEGER;
 BEGIN
 
-     SELECT id, vault_file_reference, vault_file_type, header
-     INTO vault_rec
-     FROM local_ega.vault_files
-     WHERE stable_id = sid LIMIT 1;
+     SELECT * INTO vault_rec FROM local_ega.vault_files WHERE stable_id = sid LIMIT 1;
 
      IF vault_rec IS NULL THEN
      	RAISE EXCEPTION 'Vault file not found for stable_id: % ', sid;

@@ -34,7 +34,8 @@ VALUES (10, 'INIT'        , 'Initializing a file ingestion'),
        (40, 'COMPLETED'   , 'File verified in Vault'),
        (50, 'READY'       , 'File ingested, ready for download'),
        -- (60, 'IN_INDEXING', 'Currently under index creation'),
-       (0, 'ERROR'        , 'An Error occured, check the error table')
+       (0, 'ERROR'        , 'An Error occured, check the error table'),
+       (1, 'DISABLED'     , 'Used for submissions that are stopped, overwritten, or to be cleaned up')
 ;
 
 -- ##################################################
@@ -140,6 +141,8 @@ SELECT id,
        vault_file_reference                     AS vault_path,
        vault_file_type                          AS vault_type,
        vault_file_size                          AS vault_filesize,
+       vault_file_checksum                      AS unencrypted_checksum,
+       vault_file_checksum_type                 AS unencrypted_checksum_type,
        stable_id,
        header,  -- Crypt4gh specific
        version,
@@ -150,14 +153,21 @@ SELECT id,
 FROM local_ega.main;
 
 -- Insert into main
-CREATE FUNCTION insert_file(inpath local_ega.main.submission_file_path%TYPE,
-			    eid    local_ega.main.submission_user%TYPE)
-    RETURNS local_ega.main.id%TYPE AS $insert_file$
+CREATE FUNCTION insert_file(inpath        local_ega.main.submission_file_path%TYPE,
+			    eid           local_ega.main.submission_user%TYPE)
+RETURNS local_ega.main.id%TYPE AS $insert_file$
     #variable_conflict use_column
     DECLARE
         file_id  local_ega.main.id%TYPE;
         file_ext local_ega.main.submission_file_extension%TYPE;
     BEGIN
+        -- Mark old ones as deprecated
+        UPDATE local_ega.main SET status = 'DISABLED'
+	                      WHERE submission_file_path = inpath AND
+	  	                    submission_user = eid AND
+				    status <> 'ERROR';
+			   	    
+        -- Make a new insertion
         file_ext := substring(inpath from '\.([^\.]*)$'); -- extract extension from filename
 	INSERT INTO local_ega.main (submission_file_path,
 	  	                    submission_user,
@@ -170,6 +180,59 @@ CREATE FUNCTION insert_file(inpath local_ega.main.submission_file_path%TYPE,
     END;
 $insert_file$ LANGUAGE plpgsql;
 
+-- Flag as READY, and mark older ingestion as deprecated (to clean up)
+CREATE FUNCTION finalize_file(inpath        local_ega.files.inbox_path%TYPE,
+			      eid           local_ega.files.elixir_id%TYPE,
+			      checksum      local_ega.files.unencrypted_checksum%TYPE,
+			      checksum_type VARCHAR, -- local_ega.files.unencrypted_checksum_type%TYPE,
+			      sid           local_ega.files.stable_id%TYPE)
+    RETURNS void AS $finalize_file$
+    #variable_conflict use_column
+    BEGIN
+	-- -- Check if in proper state
+	-- IF EXISTS(SELECT id
+	--    	  FROM local_ega.main
+	-- 	  WHERE unencrypted_checksum = checksum AND
+	-- 	  	unencrypted_checksum_type = upper(checksum_type)::local_ega.checksum_algorithm AND
+	-- 		elixir_id = eid AND
+	-- 		inbox_path = inpath AND
+	-- 		status <> 'COMPLETED')
+	-- THEN
+	--    RAISE EXCEPTION 'Vault file not in completed state for stable_id: % ', sid;
+	-- END IF;
+	-- Go ahead and mark _them_ done
+	UPDATE local_ega.files
+	SET status = 'READY',
+	    stable_id = sid
+	WHERE unencrypted_checksum = checksum AND
+	      unencrypted_checksum_type = upper(checksum_type)::local_ega.checksum_algorithm AND
+	      elixir_id = eid AND
+	      inbox_path = inpath AND
+	      status = 'COMPLETED';
+    END;
+$finalize_file$ LANGUAGE plpgsql;
+
+-- If the entry is marked disabled, it says disabled. No data race here.
+CREATE FUNCTION is_disabled(fid local_ega.main.id%TYPE)
+RETURNS boolean AS $is_disabled$
+#variable_conflict use_column
+BEGIN
+   RETURN EXISTS(SELECT 1 FROM local_ega.files WHERE id = fid AND status = 'DISABLED');
+END;
+$is_disabled$ LANGUAGE plpgsql;
+
+-- Returns if the session key checksum is already found in the database
+CREATE FUNCTION check_session_key_checksum(checksum      local_ega.files.session_key_checksum%TYPE,
+       		      			   checksum_type VARCHAR) -- local_ega.files.session_key_checksum_type%TYPE)
+    RETURNS boolean AS $check_session_key_checksum$
+    #variable_conflict use_column
+    BEGIN
+	RETURN EXISTS(SELECT 1 FROM local_ega.files
+		      WHERE session_key_checksum = checksum AND
+		      	    session_key_checksum_type = upper(checksum_type)::local_ega.checksum_algorithm AND
+			    (status <> 'ERROR' OR status <> 'DISABLED'));
+    END;
+$check_session_key_checksum$ LANGUAGE plpgsql;
 
 -- Just showing the current/active errors
 CREATE VIEW local_ega.errors AS
@@ -204,6 +267,9 @@ CREATE TRIGGER mark_ready
                                              -- because "Views cannot have row-level BEFORE or AFTER triggers."
     FOR EACH ROW WHEN (NEW.status = 'READY')
     EXECUTE PROCEDURE mark_ready();
+
+
+
 
 -- ##########################################################################
 --           For data-out
