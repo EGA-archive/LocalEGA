@@ -169,12 +169,12 @@ def _set_status(file_id, status):
 
 def mark_in_progress(file_id):
     """Mark file in progress."""
-    return _set_status(file_id, 'In progress')
+    return _set_status(file_id, 'IN_INGESTION')
 
 
 def mark_completed(file_id):
     """Mark file as completed."""
-    return _set_status(file_id, 'Completed')
+    return _set_status(file_id, 'COMPLETED')
 
 
 def set_stable_id(file_id, stable_id):
@@ -187,7 +187,7 @@ def set_stable_id(file_id, stable_id):
                         'SET status = %(status)s, '
                         '    stable_id = %(stable_id)s '
                         'WHERE id = %(file_id)s;',
-                        {'status': 'Ready',
+                        {'status': 'READY',
                          'file_id': file_id,
                          'stable_id': stable_id})
 
@@ -218,7 +218,7 @@ def set_archived(file_id, vault_path, vault_filesize):
                         '    vault_path = %(vault_path)s, '
                         '    vault_filesize = %(vault_filesize)s '
                         'WHERE id = %(file_id)s;',
-                        {'status': 'Archived',
+                        {'status': 'ARCHIVED',
                          'file_id': file_id,
                          'vault_path': vault_path,
                          'vault_filesize': vault_filesize})
