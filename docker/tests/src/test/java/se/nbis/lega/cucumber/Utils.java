@@ -111,7 +111,8 @@ public class Utils {
      */
     public String executeDBQuery(String query) throws IOException, InterruptedException {
         return executeWithinContainer(findContainer(getProperty("container.label.db")),
-                "psql", "-U", readTraceProperty("DB_LEGA_IN_USER"), "-d", "lega", "-c", query);
+                String.format("PGPASSWORD=%s", readTraceProperty("DB_LEGA_IN_PASSWORD")) ,"psql", "-U",
+                readTraceProperty("DB_LEGA_IN_USER"), "-d", "lega", "-c", query);
     }
 
 //    /**
