@@ -29,7 +29,7 @@ def fetch_args(d):
                'database': d.get_value('postgres', 'database'),
                'host': d.get_value('postgres', 'host'),
                'port': d.get_value('postgres', 'port', conv=int),
-               'sslmode': d.get_value('db', 'sslmode'),
+               'sslmode': d.get_value('postgres', 'sslmode'),
                }
     LOG.info(f"Initializing a connection to: {db_args['host']}:{db_args['port']}/{db_args['database']}")
     return db_args
