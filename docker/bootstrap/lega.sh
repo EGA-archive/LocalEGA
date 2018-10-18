@@ -432,6 +432,8 @@ SSL_SUBJ                  = ${SSL_SUBJ}
 # Database users are 'lega_in' and 'lega_out'
 DB_LEGA_IN_PASSWORD       = ${DB_LEGA_IN_PASSWORD}
 DB_LEGA_OUT_PASSWORD      = ${DB_LEGA_OUT_PASSWORD}
+DB_LEGA_IN_USER           = lega_in
+DB_LEGA_OUT_USER          = lega_out
 #
 CEGA_MQ_USER              = lega
 CEGA_MQ_PASSWORD          = ${CEGA_MQ_PASSWORD}
