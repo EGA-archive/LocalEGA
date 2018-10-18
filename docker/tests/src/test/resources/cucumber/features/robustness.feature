@@ -11,7 +11,7 @@ Feature: Robustness
     And I have CEGA MQ username and password
     And I ingest file from the LocalEGA inbox
     When I retrieve ingestion information
-    Then the ingestion status is "Completed"
+    Then the ingestion status is "COMPLETED"
 
   Scenario: R.1 User ingests big file encrypted with Crypt4GH using a correct key
     Given I have an account at Central EGA
@@ -22,4 +22,4 @@ Feature: Robustness
     And I have CEGA MQ username and password
     And I ingest file from the LocalEGA inbox
     When I retrieve ingestion information
-    Then the ingestion status is "Completed"
+    Then the ingestion status is "COMPLETED"
