@@ -110,9 +110,13 @@ public class Utils {
      * @throws InterruptedException In case the query execution is interrupted.
      */
     public String executeDBQuery(String query) throws IOException, InterruptedException {
-        return executeWithinContainer(findContainer(getProperty("container.label.db")),
-                String.format("PGPASSWORD=%s", readTraceProperty("DB_LEGA_IN_PASSWORD")) ,"psql", "-U",
-                readTraceProperty("DB_LEGA_IN_USER"), "-d", "lega", "-c", query);
+        Container dbContainer = findContainer(getProperty("container.label.db"));
+
+        String connectionString = String.format("postgresql://%s:%s@localhost/lega",
+                readTraceProperty("DB_LEGA_IN_USER"),
+                readTraceProperty("DB_LEGA_IN_PASSWORD"));
+
+        return executeWithinContainer(dbContainer, "psql", connectionString, "-c", query);
     }
 
 //    /**
