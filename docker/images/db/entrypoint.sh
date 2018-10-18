@@ -89,6 +89,7 @@ hostssl  all  	    all       ::1/128        scram-sha-256
 hostssl  all  	    all       all            scram-sha-256
 EOF
 
+pg_ctl reload -D $PGDATA
 
 echo
 echo 'PostgreSQL init process complete; ready for start up.'
