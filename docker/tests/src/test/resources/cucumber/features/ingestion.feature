@@ -10,7 +10,7 @@ Feature: Ingestion
     And I have CEGA MQ username and password
     And I ingest file from the LocalEGA inbox
     When I retrieve ingestion information
-    Then the ingestion status is "Completed"
+    Then the ingestion status is "COMPLETED"
 
   Scenario: I.1 User ingests file encrypted not with Crypt4GH
     Given I have an account at Central EGA
@@ -21,7 +21,7 @@ Feature: Ingestion
     And I have CEGA MQ username and password
     And I ingest file from the LocalEGA inbox
     When I retrieve ingestion information
-    Then the ingestion status is "Error"
+    Then the ingestion status is "ERROR"
 
   Scenario: I.2 User ingests file encrypted with Crypt4GH, but file was not found in the inbox
     Given I have an account at Central EGA
@@ -33,7 +33,7 @@ Feature: Ingestion
     And file is removed from the inbox
     And I ingest file from the LocalEGA inbox
     When I retrieve ingestion information
-    Then the ingestion status is "Error"
+    Then the ingestion status is "ERROR"
 
   Scenario: I.3 User ingests file encrypted with Crypt4GH using a correct key and checksums, but the keyserver doesn't respond
     Given I have an account at Central EGA
@@ -46,7 +46,7 @@ Feature: Ingestion
     And I ingest file from the LocalEGA inbox
     And I turn on the keyserver
     When I retrieve ingestion information
-    Then the ingestion status is "Error"
+    Then the ingestion status is "ERROR"
 
   Scenario: I.4 User ingests file encrypted with Crypt4GH using a correct key and checksums, but the message broker is down
     Given I have an account at Central EGA
