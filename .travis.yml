@@ -36,8 +36,8 @@ jobs:
       script:
         - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin
         - ../extras/travis_check_image_change.sh os
-        - ../extras/travis_check_image_change.sh openssh
         # Pulling image for layer caching
+        - docker pull nbisweden/ega-openssh
         - docker pull nbisweden/ega-base
         - docker pull nbisweden/ega-inbox
         - make -C images base inbox
