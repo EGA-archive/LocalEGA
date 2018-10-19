@@ -20,25 +20,15 @@ routing key :``archived``.
 import sys
 import logging
 from pathlib import Path
-from functools import partial
 
 from legacryptor.crypt4gh import get_header
 
 from .conf import CONF
 from .utils import db, exceptions, sanitize_user_id, storage
 from .utils.amqp import consume, publish, get_connection
+from .utils.worker import Worker
 
 LOG = logging.getLogger(__name__)
-
-
-class Worker(object):
-    def __init__(self):
-        pass
-
-    def worker(self, *args, **kwargs):
-        # TODO Do error logging in THIS function instead of wrapping it like this
-        func = db.catch_error(db.crypt4gh_to_user_errors(self.do_work))
-        return partial(func, *args, **kwargs)
 
 
 class IngestionWorker(Worker):
