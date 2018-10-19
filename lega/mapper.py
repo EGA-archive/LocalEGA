@@ -43,7 +43,7 @@ def main(args=None):
 
     CONF.setup(args)  # re-conf
 
-    worker = MapperWorker()
+    worker = MapperWorker(CONF)
     broker = get_connection('broker')
 
     do_work = worker.worker()

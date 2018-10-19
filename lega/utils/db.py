@@ -8,13 +8,12 @@ from functools import wraps
 import logging
 import psycopg2
 from socket import gethostname
+from contextlib import contextmanager
 from time import sleep
 
 from legacryptor import exceptions as crypt_exc
 
-from ..conf import CONF
 from .exceptions import FromUser, KeyserverError, PGPKeyError
-from .amqp import publish, get_connection
 
 LOG = logging.getLogger(__name__)
 
@@ -35,11 +34,11 @@ class DBConnection():
     def fetch_args(self):
         return { 'user': self.conf.get_value(self.conf_section, 'user'),
                  'password': self.conf.get_value(self.conf_section, 'password'),
-                 'database': self.conf.get_value(self.conf_section, 'database'),
+                 'database': self.conf.get_value(self.conf_section, 'db'),
                  'host': self.conf.get_value(self.conf_section, 'host'),
                  'port': self.conf.get_value(self.conf_section, 'port', conv=int),
                  'connect_timeout': self.conf.get_value(self.conf_section, 'try_interval', conv=int, default=1),
-                 'sslmode': self.conf.get_value(self.conf_section, 'sslmode'),
+                 #'sslmode': self.conf.get_value(self.conf_section, 'sslmode'),
         }
 
 
@@ -121,7 +120,7 @@ class DB(object):
 
     def __init__(self, conf):
         self.conf = conf
-        self.connection = DBConnection(conf)
+        self.connection = DBConnection(conf, conf_section='postgres')
 
 
     def insert_file(self, filename, user_id):
@@ -221,54 +220,6 @@ class DB(object):
 ######################################
 #            Decorator               #
 ######################################
-_channel = None
-
-
-def catch_error(db):  # noqa: C901
-    """Store the raised exception in the database decorator."""
-    def inner(func):
-        @wraps(func)
-        def wrapper(*args):
-            try:
-                return func(*args)
-            except Exception as e:
-                if isinstance(e, AssertionError):
-                    raise e
-
-                exc_type, _, exc_tb = sys.exc_info()
-                g = traceback.walk_tb(exc_tb)
-                frame, lineno = next(g)  # that should be the decorator
-                try:
-                    frame, lineno = next(g)  # that should be where is happened
-                except StopIteration:
-                    pass  # In case the trace is too short
-
-                fname = frame.f_code.co_filename
-                LOG.error(f'Exception: {exc_type} in {fname} on line: {lineno}')
-                from_user = isinstance(e, FromUser)
-                cause = e.__cause__ or e
-                LOG.error(f'{cause!r} (from user: {from_user})')  # repr = Technical
-
-                try:
-                    data = args[-1]  # data is the last argument
-                    file_id = data.get('file_id', None)  # should be there
-                    if file_id:
-                        db.set_error(file_id, cause, from_user)
-                    LOG.debug('Catching error on file id: %s', file_id)
-                    if from_user:  # Send to CentralEGA
-                        org_msg = data.pop('org_msg', None)  # should be there
-                        org_msg['reason'] = str(cause)  # str = Informal
-                        LOG.info(f'Sending user error to local broker: {org_msg}')
-                        global _channel
-                        if _channel is None:
-                            _channel = get_connection('broker').channel()
-                        publish(org_msg, _channel, 'cega', 'files.error')
-                except Exception as e2:
-                    LOG.error(f'While treating "{e}", we caught "{e2!r}"')
-                    print(repr(e), 'caused', repr(e2), file=sys.stderr)
-                return None
-        return wrapper
-    return inner
 
 
 def crypt4gh_to_user_errors(func):
@@ -287,7 +238,7 @@ def crypt4gh_to_user_errors(func):
 
 
 # Testing connection with `python -m lega.utils.db`
-if __name__ == '__main__':
-    CONF.setup(sys.argv)
-    conn = connect()
-    print(conn)
+#if __name__ == '__main__':
+#    CONF.setup(sys.argv)
+#    conn = connect()
+#    print(conn)

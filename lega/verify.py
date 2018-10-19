@@ -72,8 +72,8 @@ class VerifyWorker(Worker):
         """Retrieve Crypt4GH header information (records) from Keyserver."""
         keyid = get_key_id(header)
         LOG.info(f'Key ID {keyid}')
-        keyurl = CONF.get_value('quality_control', 'keyserver_endpoint', raw=True) % keyid
-        verify = CONF.get_value('quality_control', 'verify_certificate', conv=bool)
+        keyurl = self.conf.get_value('quality_control', 'keyserver_endpoint', raw=True) % keyid
+        verify = self.conf.get_value('quality_control', 'verify_certificate', conv=bool)
         LOG.info(f'Retrieving the Private Key from {keyurl} (verify certificate: {verify})')
 
         if verify:
@@ -107,7 +107,7 @@ def main(args=None):
 
     CONF.setup(args)  # re-conf
 
-    worker = VerifyWorker()
+    worker = VerifyWorker(CONF)
 
     store = getattr(storage, CONF.get_value('vault', 'driver', default='FileStorage'))
     chunk_size = CONF.get_value('vault', 'chunk_size', conv=int, default=1 << 22)  # 4 MB

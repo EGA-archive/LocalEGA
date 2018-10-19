@@ -24,7 +24,7 @@ from pathlib import Path
 from legacryptor.crypt4gh import get_header
 
 from .conf import CONF
-from .utils import db, exceptions, sanitize_user_id, storage
+from .utils import exceptions, sanitize_user_id, storage
 from .utils.amqp import consume, publish, get_connection
 from .utils.worker import Worker
 
@@ -47,11 +47,11 @@ class IngestionWorker(Worker):
         data['org_msg'] = org_msg
 
         # Insert in database
-        file_id = db.insert_file(filepath, user_id)
+        file_id = self.db.insert_file(filepath, user_id)
         data['file_id'] = file_id  # must be there: database error uses it
 
         # Find inbox
-        inbox = Path(CONF.get_value('inbox', 'location', raw=True) % user_id)
+        inbox = Path(self.conf.get_value('inbox', 'location', raw=True) % user_id)
         LOG.info(f"Inbox area: {inbox}")
 
         # Check if file is in inbox
@@ -63,7 +63,7 @@ class IngestionWorker(Worker):
         # Ok, we have the file in the inbox
 
         # Record in database
-        db.mark_in_progress(file_id)
+        self.db.mark_in_progress(file_id)
 
         # Sending a progress message to CentralEGA
         org_msg['status'] = 'PROCESSING'
@@ -79,14 +79,14 @@ class IngestionWorker(Worker):
 
             header_hex = (beginning+header).hex()
             data['header'] = header_hex
-            db.store_header(file_id, header_hex)  # header bytes will be .hex()
+            self.db.store_header(file_id, header_hex)  # header bytes will be .hex()
 
             target = fs.location(file_id)
             LOG.info(f'[{fs.__class__.__name__}] Moving the rest of {filepath} to {target}')
             target_size = fs.copy(infile, target)  # It will copy the rest only
 
             LOG.info(f'Vault copying completed. Updating database')
-            db.set_archived(file_id, target, target_size)
+            self.db.set_archived(file_id, target, target_size)
             data['vault_path'] = target
 
         LOG.debug(f"Reply message: {data}")
@@ -100,8 +100,7 @@ def main(args=None):
         args = sys.argv[1:]
 
     CONF.setup(args)  # re-conf
-
-    worker = IngestionWorker()
+    worker = IngestionWorker(CONF)
 
     fs = getattr(storage, CONF.get_value('vault', 'driver', default='FileStorage'))
     broker = get_connection('broker')
