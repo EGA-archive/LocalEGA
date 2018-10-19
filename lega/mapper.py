@@ -18,21 +18,22 @@ import logging
 from .conf import CONF
 from .utils import db
 from .utils.amqp import consume, get_connection
+from .utils.worker import Worker
 
 LOG = logging.getLogger(__name__)
 
 
-@db.catch_error
-def work(data):
-    """Read a message containing the ids and add it to the database."""
-    file_id = data['file_id']
-    stable_id = data['stable_id']
-    LOG.info(f"Mapping {file_id} to stable_id {stable_id}")
+class MapperWorker(Worker):
+    def do_work(data):
+        """Read a message containing the ids and add it to the database."""
+        file_id = data['file_id']
+        stable_id = data['stable_id']
+        LOG.info(f"Mapping {file_id} to stable_id {stable_id}")
 
-    db.set_stable_id(file_id, stable_id)  # That will flag the entry as 'Ready'
+        db.set_stable_id(file_id, stable_id)  # That will flag the entry as 'Ready'
 
-    LOG.info(f"Stable ID {stable_id} mapped to {file_id}")
-    return None
+        LOG.info(f"Stable ID {stable_id} mapped to {file_id}")
+        return None
 
 
 def main(args=None):
@@ -42,10 +43,12 @@ def main(args=None):
 
     CONF.setup(args)  # re-conf
 
+    worker = MapperWorker()
     broker = get_connection('broker')
 
+    do_work = worker.worker()
     # upstream link configured in local broker
-    consume(work, broker, 'stableIDs', None)
+    consume(do_work, broker, 'stableIDs', None)
 
 
 if __name__ == '__main__':
