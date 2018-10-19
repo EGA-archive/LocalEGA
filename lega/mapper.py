@@ -40,7 +40,7 @@ def main(args=None):
         args = sys.argv[1:]
 
     ctx = context.Context()
-    ctx.setup()  # re-conf
+    ctx.setup(args)  # re-conf
 
     broker = get_connection('broker')
 

@@ -12,9 +12,9 @@ import os
 import asyncio
 import uvloop
 
-from .conf import CONF
 from .utils.amqp import get_connection, publish
 from .utils.checksum import calculate
+from .utils import context
 
 
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
@@ -108,10 +108,11 @@ def main(args=None):
     if not args:
         args = sys.argv[1:]
 
-    CONF.setup(args)  # re-conf
+    ctx = context.Context()
+    ctx.setup(args) # re-conf
 
     loop = asyncio.get_event_loop()
-    broker = get_connection('broker')
+    broker = get_connection('broker', ctx.conf)
     server = loop.run_until_complete(loop.create_server(lambda: Forwarder(broker), host, port))
 
     # Serve requests until Ctrl+C is pressed

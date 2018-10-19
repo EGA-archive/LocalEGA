@@ -233,7 +233,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     labels:
         lega_label: "id-mapper"
     volumes:
-       - ./lega/conf.ini:/etc/ega/conf.ini:ro
+      - ./lega/conf.ini:/etc/ega/conf.ini:ro
     restart: on-failure:3
     networks:
       - lega
@@ -254,8 +254,8 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - AWS_ACCESS_KEY_ID=${S3_ACCESS_KEY}
       - AWS_SECRET_ACCESS_KEY=${S3_SECRET_KEY}
     volumes:
-       - inbox:/ega/inbox
-       - ./lega/conf.ini:/etc/ega/conf.ini:ro
+      - inbox:/ega/inbox
+      - ./lega/conf.ini:/etc/ega/conf.ini:ro
     restart: on-failure:3
     networks:
       - lega
@@ -279,11 +279,11 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - EGA_PUBLICKEY_URL=
       - EGA_LEGACY_PATH=
     volumes:
-       - ./lega/pgp/ega.sec:/etc/ega/pgp/ega.sec:ro
-       - ./lega/pgp/ega.sec.pass:/etc/ega/pgp/ega.sec.pass:ro
-       - ./lega/pgp/ega2.sec:/etc/ega/pgp/ega2.sec:ro
-       - ./lega/pgp/ega2.sec.pass:/etc/ega/pgp/ega2.sec.pass:ro
-       - ./lega/pgp/ega.shared.pass:/etc/ega/pgp/ega.shared.pass:ro
+      - ./lega/pgp/ega.sec:/etc/ega/pgp/ega.sec:ro
+      - ./lega/pgp/ega.sec.pass:/etc/ega/pgp/ega.sec.pass:ro
+      - ./lega/pgp/ega2.sec:/etc/ega/pgp/ega2.sec:ro
+      - ./lega/pgp/ega2.sec.pass:/etc/ega/pgp/ega2.sec.pass:ro
+      - ./lega/pgp/ega.shared.pass:/etc/ega/pgp/ega.shared.pass:ro
     restart: on-failure:3
     networks:
       - lega
@@ -303,12 +303,12 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - LEGA_PASSWORD=${LEGA_PASSWORD}
       - KEYS_PASSWORD=${KEYS_PASSWORD}
     volumes:
-       - ./lega/conf.ini:/etc/ega/conf.ini:ro
-       - ./lega/keys.ini.enc:/etc/ega/keys.ini.enc:ro
-       - ./lega/certs/ssl.cert:/etc/ega/ssl.cert:ro
-       - ./lega/certs/ssl.key:/etc/ega/ssl.key:ro
-       - ./lega/pgp/ega.sec:/etc/ega/pgp/ega.sec:ro
-       - ./lega/pgp/ega2.sec:/etc/ega/pgp/ega2.sec:ro
+      - ./lega/conf.ini:/etc/ega/conf.ini:ro
+      - ./lega/keys.ini.enc:/etc/ega/keys.ini.enc:ro
+      - ./lega/certs/ssl.cert:/etc/ega/ssl.cert:ro
+      - ./lega/certs/ssl.key:/etc/ega/ssl.key:ro
+      - ./lega/pgp/ega.sec:/etc/ega/pgp/ega.sec:ro
+      - ./lega/pgp/ega2.sec:/etc/ega/pgp/ega2.sec:ro
     restart: on-failure:3
     external_links:
       - cega-eureka:cega-eureka
@@ -338,7 +338,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - AWS_ACCESS_KEY_ID=${S3_ACCESS_KEY}
       - AWS_SECRET_ACCESS_KEY=${S3_SECRET_KEY}
     volumes:
-       - ./lega/conf.ini:/etc/ega/conf.ini:ro
+      - ./lega/conf.ini:/etc/ega/conf.ini:ro
     restart: on-failure:3
     networks:
       - lega

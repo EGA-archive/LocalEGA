@@ -8,7 +8,6 @@ from contextlib import contextmanager
 import shutil
 from pathlib import Path
 
-from ..conf import CONF
 import io
 
 LOG = logging.getLogger(__name__)
@@ -17,9 +16,9 @@ LOG = logging.getLogger(__name__)
 class FileStorage():
     """Vault storage on disk and related I/O."""
 
-    def __init__(self):
+    def __init__(self, conf):
         """Initialize backend storage to a POSIX file system's path."""
-        self.vault_area = Path(CONF.get_value('vault', 'location'))
+        self.vault_area = Path(conf.get_value('vault', 'location'))
 
     def location(self, file_id):
         """Retrieve file location."""
@@ -206,15 +205,15 @@ class S3FileReader(object):
 class S3Storage():
     """Vault S3 object storage and related I/O."""
 
-    def __init__(self):
+    def __init__(self, conf):
         """Initialize S3 object Storage."""
         import boto3
 
-        endpoint = CONF.get_value('vault', 'url')
-        region = CONF.get_value('vault', 'region')
-        bucket = CONF.get_value('vault', 'bucket', default='lega')
-        # access_key = CONF.get_value('vault', 'access_key')
-        # secret_key = CONF.get_value('vault', 'secret_key')
+        endpoint = conf.get_value('vault', 'url')
+        region = conf.get_value('vault', 'region')
+        bucket = conf.get_value('vault', 'bucket', default='lega')
+        # access_key = conf.get_value('vault', 'access_key')
+        # secret_key = conf.get_value('vault', 'secret_key')
         access_key = os.environ['S3_ACCESS_KEY']
         secret_key = os.environ['S3_SECRET_KEY']
         self.s3 = boto3.client('s3',

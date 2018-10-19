@@ -10,7 +10,7 @@ from ..conf import CONF
 LOG = logging.getLogger(__name__)
 
 
-def get_connection(domain, blocking=True):
+def get_connection(domain, CONF, blocking=True):
     """Return a blocking connection to the Message Broker supporting AMQP(S).
 
     The host, portm virtual_host, username, password and

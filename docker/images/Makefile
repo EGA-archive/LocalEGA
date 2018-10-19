@@ -29,13 +29,13 @@ os:
                      --tag $(TARGET_PREFIX)-$@:latest \
                      $@
 
-openssh:
+openssh: os
 	docker build --build-arg AUTH_BRANCH=cega-ids \
                      --cache-from $(TARGET_PREFIX)-$@:latest \
                      --tag $(TARGET_PREFIX)-$@:latest \
                      $@
 
-base:
+base: os
 	docker build --build-arg checkout=$(CHECKOUT) \
                      --cache-from $(TARGET_PREFIX)-$@:latest \
                      --tag $(TARGET_PREFIX)-$@:$(TAG) \
@@ -43,7 +43,7 @@ base:
                      --tag $(TARGET_PREFIX)-$@:latest \
                      $@
 
-inbox:
+inbox: base openssh
 	docker build --cache-from $(TARGET_PREFIX)-$@:latest \
                     --tag $(TARGET_PREFIX)-$@:$(TAG) \
                     --tag $(TARGET_PREFIX)-$@:dev \

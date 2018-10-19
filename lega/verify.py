@@ -108,11 +108,11 @@ def main(args=None):
     ctx = context.Context()
     ctx.setup(args)  # re-conf
 
-    store = getattr(storage, CONF.get_value('vault', 'driver', default='FileStorage'))
-    chunk_size = CONF.get_value('vault', 'chunk_size', conv=int, default=1 << 22)  # 4 MB
+    store = getattr(storage, ctx.conf.get_value('vault', 'driver', default='FileStorage'))
+    chunk_size = ctx.conf.get_value('vault', 'chunk_size', conv=int, default=1 << 22)  # 4 MB
 
-    broker = get_connection('broker')
-    do_work = partial(work, chunk_size, store(), broker.channel())
+    broker = get_connection('broker', ctx.conf)
+    do_work = partial(work, chunk_size, store(ctx.conf), broker.channel())
 
     consume(do_work, ctx, broker, 'archived', 'completed')
 
