@@ -22,6 +22,99 @@ LOG = logging.getLogger(__name__)
 ######################################
 #          DB connection             #
 ######################################
+class DBConnection():
+    conn = None
+    curr = None
+    args = None
+
+    def __init__(self, conf, conf_section='db', on_failure=None):
+        self.conf = conf
+        self.on_failure = on_failure
+        self.conf_section = conf_section or 'db'
+
+    def fetch_args(self):
+        return { 'user': self.conf.get_value(self.conf_section, 'user'),
+                 'password': self.conf.get_value(self.conf_section, 'password'),
+                 'database': self.conf.get_value(self.conf_section, 'database'),
+                 'host': self.conf.get_value(self.conf_section, 'host'),
+                 'port': self.conf.get_value(self.conf_section, 'port', conv=int),
+                 'connect_timeout': self.conf.get_value(self.conf_section, 'try_interval', conv=int, default=1),
+                 'sslmode': self.conf.get_value(self.conf_section, 'sslmode'),
+        }
+
+
+    def connect(self, force=False):
+        '''Get the database connection (which encapsulates a database session)
+
+        Upon success, the connection is cached.
+
+        Before success, we try to connect ``try`` times every ``try_interval`` seconds (defined in CONF)
+        Executes ``on_failure`` after ``try`` attempts.
+        '''
+
+        if force:
+            self.close()
+
+        if self.conn and self.curr:
+            return
+
+        if not self.args:
+            self.args = self.fetch_args()
+        LOG.info(f"Initializing a connection to: {self.args['host']}:{self.args['port']}/{self.args['database']}")
+
+        nb_try = self.conf.get_value('postgres', 'try', conv=int, default=1)
+        assert nb_try > 0, "The number of reconnection should be >= 1"
+        LOG.debug(f"{nb_try} attempts")
+        count = 0
+        while count < nb_try:
+            try:
+                LOG.debug(f"Connection attempt {count+1}")
+                self.conn = psycopg2.connect(**self.args)
+                #self.conn.set_session(autocommit=True) # default is False.
+                LOG.debug(f"Connection successful")
+                return
+            except psycopg2.OperationalError as e:
+                LOG.debug(f"Database connection error: {e!r}")
+                count += 1
+            except psycopg2.InterfaceError as e:
+                LOG.debug(f"Invalid connection parameters: {e!r}")
+                break
+
+        # fail to connect
+        if self.on_failure:
+            self.on_failure()
+
+    def ping(self):
+        if self.conn is None:
+            self.connect()
+        try:
+            with self.conn:
+                with self.conn.cursor() as cur: # does not commit if error raised
+                    cur.execute('SELECT 1;')
+                    LOG.debug("Ping db successful")
+        except psycopg2.OperationalError as e:
+            LOG.debug('Ping failed: %s', e)
+            self.connect(force=True) # reconnect
+
+    @contextmanager
+    def cursor(self):
+        self.ping()
+        with self.conn:
+            with self.conn.cursor() as cur:
+                yield cur
+                # closes cursor on exit
+            # transaction autocommit, but connection not closed
+
+    def close(self):
+        LOG.debug("Closing the database")
+        if self.curr:
+            self.curr.close()
+            self.curr = None
+        if self.conn:
+            self.conn.close()
+            self.conn = None
+
+
 def fetch_args(d):
     """Fetch arguments for initializing a connection to db."""
     db_args = {'user': d.get_value('postgres', 'user'),
