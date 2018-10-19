@@ -20,9 +20,9 @@ import hashlib
 
 from legacryptor.crypt4gh import get_key_id, header_to_records, body_decrypt
 
-from .conf import CONF
+from .conf import Configuration
 from .utils import db, exceptions, storage
-from .utils.amqp import consume, get_connection
+from .utils.amqp import consume, AMQPConnectionFactory
 from .utils.worker import Worker
 
 LOG = logging.getLogger(__name__)
@@ -105,15 +105,17 @@ def main(args=None):
     if not args:
         args = sys.argv[1:]
 
-    CONF.setup(args)  # re-conf
+    conf = Configuration()
+    conf.setup(args)  # re-conf
 
-    worker = VerifyWorker(CONF)
+    worker = VerifyWorker(conf)
+    amqp_cf = AMQPConnectionFactory(conf)
 
-    store = getattr(storage, CONF.get_value('vault', 'driver', default='FileStorage'))
-    chunk_size = CONF.get_value('vault', 'chunk_size', conv=int, default=1 << 22)  # 4 MB
+    store = getattr(storage, conf.get_value('vault', 'driver', default='FileStorage'))
+    chunk_size = conf.get_value('vault', 'chunk_size', conv=int, default=1 << 22)  # 4 MB
 
-    broker = get_connection('broker')
-    do_work = worker.worker(chunk_size, store(), broker.channel())
+    broker = amqp_cf.get_connection('broker')
+    do_work = worker.worker(chunk_size, store(conf), broker.channel())
 
     consume(do_work, broker, 'archived', 'completed')
 

@@ -5,54 +5,58 @@ import pika
 import json
 import uuid
 
-from ..conf import CONF
-
 LOG = logging.getLogger(__name__)
 
 
-def get_connection(domain, blocking=True):
-    """Return a blocking connection to the Message Broker supporting AMQP(S).
+class AMQPConnectionFactory(object):
+    conf = None
 
-    The host, portm virtual_host, username, password and
-    heartbeat values are read from the CONF argument.
-    So are the SSL options.
-    """
-    assert domain in CONF.sections(), "Section not found in config file"
+    def __init__(self, conf):
+        self.conf = conf
 
-    params = {
-        'host': CONF.get_value(domain, 'host', default='localhost'),
-        'port': CONF.get_value(domain, 'port', conv=int, default=5672),
-        'virtual_host': CONF.get_value(domain, 'vhost', default='/'),
-        'credentials': pika.PlainCredentials(
-            CONF.get_value(domain, 'username', default='guest'),
-            CONF.get_value(domain, 'password', default='guest')
-        ),
-        'connection_attempts': CONF.get_value(domain, 'connection_attempts', conv=int, default=10),
-        'retry_delay': CONF.get_value(domain, 'retry_delay', conv=int, default=10),  # seconds
-    }
-    heartbeat = CONF.get_value(domain, 'heartbeat', conv=int, default=0)
-    if heartbeat is not None:  # can be 0
-        # heartbeat_interval instead of heartbeat like they say in the doc
-        # https://pika.readthedocs.io/en/latest/modules/parameters.html#connectionparameters
-        params['heartbeat_interval'] = heartbeat
-        LOG.debug(f'Setting hearbeat to {heartbeat}')
+    def get_connection(self, domain, blocking=True):
+        """Return a blocking connection to the Message Broker supporting AMQP(S).
 
-    # SSL configuration
-    if CONF.get_value(domain, 'enable_ssl', conv=bool, default=False):
-        params['ssl'] = True
-        params['ssl_options'] = {
-            'ca_certs': CONF.get_value(domain, 'cacert'),
-            'certfile': CONF.get_value(domain, 'cert'),
-            'keyfile': CONF.get_value(domain, 'keyfile'),
-            'cert_reqs': 2,  # ssl.CERT_REQUIRED is actually <VerifyMode.CERT_REQUIRED: 2>
+        The host, portm virtual_host, username, password and
+        heartbeat values are read from the CONF argument.
+        So are the SSL options.
+        """
+        assert domain in self.conf.sections(), "Section not found in config file"
+
+        params = {
+            'host': self.conf.get_value(domain, 'host', default='localhost'),
+            'port': self.conf.get_value(domain, 'port', conv=int, default=5672),
+            'virtual_host': self.conf.get_value(domain, 'vhost', default='/'),
+            'credentials': pika.PlainCredentials(
+                self.conf.get_value(domain, 'username', default='guest'),
+                self.conf.get_value(domain, 'password', default='guest')
+            ),
+            'connection_attempts': self.conf.get_value(domain, 'connection_attempts', conv=int, default=10),
+            'retry_delay': self.conf.get_value(domain, 'retry_delay', conv=int, default=10),  # seconds
         }
+        heartbeat = self.conf.get_value(domain, 'heartbeat', conv=int, default=0)
+        if heartbeat is not None:  # can be 0
+            # heartbeat_interval instead of heartbeat like they say in the doc
+            # https://pika.readthedocs.io/en/latest/modules/parameters.html#connectionparameters
+            params['heartbeat_interval'] = heartbeat
+            LOG.debug(f'Setting hearbeat to {heartbeat}')
 
-    LOG.info(f'Getting a connection to {domain}')
-    LOG.debug(params)
+        # SSL configuration
+        if self.conf.get_value(domain, 'enable_ssl', conv=bool, default=False):
+            params['ssl'] = True
+            params['ssl_options'] = {
+                'ca_certs': self.conf.get_value(domain, 'cacert'),
+                'certfile': self.conf.get_value(domain, 'cert'),
+                'keyfile': self.conf.get_value(domain, 'keyfile'),
+                'cert_reqs': 2,  # ssl.CERT_REQUIRED is actually <VerifyMode.CERT_REQUIRED: 2>
+            }
 
-    if blocking:
-        return pika.BlockingConnection(pika.ConnectionParameters(**params))
-    return pika.SelectConnection(pika.ConnectionParameters(**params))
+        LOG.info(f'Getting a connection to {domain}')
+        LOG.debug(params)
+
+        if blocking:
+            return pika.BlockingConnection(pika.ConnectionParameters(**params))
+        return pika.SelectConnection(pika.ConnectionParameters(**params))
 
 
 def publish(message, channel, exchange, routing, correlation_id=None):

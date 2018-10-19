@@ -18,7 +18,7 @@ import ssl
 from aiohttp import web
 import pgpy
 
-from .conf import CONF, KeysConfiguration
+from .conf import Configuration, KeysConfiguration
 from .utils.eureka import EurekaClient
 
 LOG = logging.getLogger(__name__)
@@ -257,17 +257,18 @@ def main(args=None):
     if not args:
         args = sys.argv[1:]
 
-    CONF.setup(args)
+    conf = Configuration()
+    conf.setup(args)
 
-    host = CONF.get_value('keyserver', 'host')  # fallbacks are in defaults.ini
-    port = CONF.get_value('keyserver', 'port', conv=int)
-    health_check_url = 'http://{}:{}{}'.format(host, port, CONF.get_value('keyserver', 'health_endpoint'))
-    status_check_url = 'http://{}:{}{}'.format(host, port, CONF.get_value('keyserver', 'status_endpoint'))
+    host = conf.get_value('keyserver', 'host')  # fallbacks are in defaults.ini
+    port = conf.get_value('keyserver', 'port', conv=int)
+    health_check_url = 'http://{}:{}{}'.format(host, port, conf.get_value('keyserver', 'health_endpoint'))
+    status_check_url = 'http://{}:{}{}'.format(host, port, conf.get_value('keyserver', 'status_endpoint'))
 
-    eureka_endpoint = CONF.get_value('eureka', 'endpoint')
+    eureka_endpoint = conf.get_value('eureka', 'endpoint')
 
-    ssl_certfile = Path(CONF.get_value('keyserver', 'ssl_certfile')).expanduser()
-    ssl_keyfile = Path(CONF.get_value('keyserver', 'ssl_keyfile')).expanduser()
+    ssl_certfile = Path(conf.get_value('keyserver', 'ssl_certfile')).expanduser()
+    ssl_keyfile = Path(conf.get_value('keyserver', 'ssl_keyfile')).expanduser()
     LOG.debug(f'Certfile: {ssl_certfile}')
     LOG.debug(f'Keyfile: {ssl_keyfile}')
     sslcontext = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
@@ -281,7 +282,7 @@ def main(args=None):
 
     # Adding the keystore to the server
     keyserver['store'] = KeysConfiguration(args)
-    keyserver['interval'] = CONF.get_value('eureka', 'try_interval', conv=int, default=20)
+    keyserver['interval'] = conf.get_value('eureka', 'try_interval', conv=int, default=20)
     keyserver['eureka'] = EurekaClient("keyserver", port=port, ip_addr=host,
                                        eureka_url=eureka_endpoint, hostname=host,
                                        health_check_url=health_check_url,

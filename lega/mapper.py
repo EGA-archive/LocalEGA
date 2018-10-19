@@ -15,9 +15,9 @@ registered upstream queue.
 import sys
 import logging
 
-from .conf import CONF
+from .conf import Configuration
 from .utils import db
-from .utils.amqp import consume, get_connection
+from .utils.amqp import consume, AMQPConnectionFactory
 from .utils.worker import Worker
 
 LOG = logging.getLogger(__name__)
@@ -41,10 +41,12 @@ def main(args=None):
     if not args:
         args = sys.argv[1:]
 
-    CONF.setup(args)  # re-conf
+    conf = Configuration()
+    conf.setup(args)  # re-conf
 
-    worker = MapperWorker(CONF)
-    broker = get_connection('broker')
+    worker = MapperWorker(conf)
+    amqp_cf = AMQPConnectionFactory(conf)
+    broker = amqp_cf.get_connection('broker')
 
     do_work = worker.worker()
     # upstream link configured in local broker

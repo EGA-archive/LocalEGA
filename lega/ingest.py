@@ -23,9 +23,9 @@ from pathlib import Path
 
 from legacryptor.crypt4gh import get_header
 
-from .conf import CONF
+from .conf import Configuration
 from .utils import exceptions, sanitize_user_id, storage
-from .utils.amqp import consume, publish, get_connection
+from .utils.amqp import consume, publish, AMQPConnectionFactory
 from .utils.worker import Worker
 
 LOG = logging.getLogger(__name__)
@@ -99,12 +99,14 @@ def main(args=None):
     if not args:
         args = sys.argv[1:]
 
-    CONF.setup(args)  # re-conf
-    worker = IngestionWorker(CONF)
+    conf = Configuration()
+    conf.setup(args)
+    worker = IngestionWorker(conf)
+    amqp_cf = AMQPConnectionFactory(conf)
 
-    fs = getattr(storage, CONF.get_value('vault', 'driver', default='FileStorage'))
-    broker = get_connection('broker')
-    do_work = worker.worker(fs(), broker.channel())
+    fs = getattr(storage, conf.get_value('vault', 'driver', default='FileStorage'))
+    broker = amqp_cf.get_connection('broker')
+    do_work = worker.worker(fs(conf), broker.channel())
 
 
     # upstream link configured in local broker

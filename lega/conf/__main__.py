@@ -4,7 +4,7 @@
 import sys
 import argparse
 
-from . import CONF
+from . import Configuration
 
 
 def main(args=None):
@@ -20,13 +20,14 @@ def main(args=None):
     parser.add_argument('--list', dest='list_content', action='store_true', help='Lists the content of the configuration file')
     pargs = parser.parse_args(args)
 
-    CONF.setup(args)
+    conf = Configuration()
+    conf.setup(args)
 
-    print(repr(CONF))
+    print(repr(conf))
 
     if pargs.list_content:
         print("\nConfiguration values:")
-        CONF.write(sys.stdout)
+        conf.write(sys.stdout)
 
 
 if __name__ == "__main__":

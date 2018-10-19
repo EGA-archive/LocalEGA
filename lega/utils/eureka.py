@@ -11,7 +11,7 @@ import json
 import uuid
 from functools import wraps
 
-from ..conf import CONF
+from ..conf import Configuration
 
 eureka_status = {
     0: 'UP',
@@ -23,6 +23,9 @@ eureka_status = {
 
 LOG = logging.getLogger(__name__)
 
+# Hack, for now
+CONF = Configuration()
+CONF.setup()
 
 def retry_loop(func):
     """Retry decorator, ``try`` times every ``try_interval`` seconds."""

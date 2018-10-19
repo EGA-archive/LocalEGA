@@ -4,7 +4,7 @@ import traceback
 
 from functools import partial, wraps
 from ..utils import db
-from .amqp import publish, get_connection
+from .amqp import publish, AMQPConnectionFactory
 from .exceptions import FromUser
 
 LOG = logging.getLogger(__name__)
@@ -61,7 +61,9 @@ class Worker(object):
                         org_msg['reason'] = str(cause)  # str = Informal
                         LOG.info(f'Sending user error to local broker: {org_msg}')
                         if self._channel is None:
-                            self._channel = get_connection('broker').channel()
+                            # TODO this function knows too much
+                            amqp_cf = AMQPConnectionFactory(self.conf)
+                            self._channel = amqp_cf.get_connection('broker').channel()
                         publish(org_msg, _channel, 'cega', 'files.error')
                 except Exception as e2:
                     LOG.error(f'While treating "{e}", we caught "{e2!r}"')

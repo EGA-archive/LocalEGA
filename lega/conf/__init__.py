@@ -159,7 +159,7 @@ class Configuration(configparser.ConfigParser):
             return conv(value)  # raise error in case we can't convert an empty value
 
 
-CONF = Configuration()
+#CONF = Configuration()
 
 # Based on
 # https://www.pythonsheets.com/notes/python-crypto.html#aes-cbc-mode-decrypt-via-password-using-cryptography

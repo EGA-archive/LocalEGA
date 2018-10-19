@@ -12,8 +12,8 @@ import os
 import asyncio
 import uvloop
 
-from .conf import CONF
-from .utils.amqp import get_connection, publish
+from .conf import Configuration
+from .utils.amqp import AMQPConnectionFactory, publish
 from .utils.checksum import calculate
 
 
@@ -31,12 +31,12 @@ class Forwarder(asyncio.Protocol):
 
     buf = b''
 
-    def __init__(self, broker, *args, **kwargs):
+    def __init__(self, broker, conf, *args, **kwargs):
         """Initialize Forwarder server."""
         super().__init__(*args, **kwargs)
         self.channel = broker.channel()
-        self.inbox_location = CONF.get_value('inbox', 'location', raw=True)
-        self.isolation = CONF.get_value('inbox', 'chroot_sessions', conv=bool)
+        self.inbox_location = conf.get_value('inbox', 'location', raw=True)
+        self.isolation = conf.get_value('inbox', 'chroot_sessions', conv=bool)
         if self.isolation:
             LOG.info('Using chroot isolation')
 
@@ -108,11 +108,14 @@ def main(args=None):
     if not args:
         args = sys.argv[1:]
 
-    CONF.setup(args)  # re-conf
+    conf = Configuration()
+    conf.setup(args)  # re-conf
+
+    amqp_cf = AMQPConnectionFactory(conf)
+    broker = amqp_cf.get_connection('broker')
 
     loop = asyncio.get_event_loop()
-    broker = get_connection('broker')
-    server = loop.run_until_complete(loop.create_server(lambda: Forwarder(broker), host, port))
+    server = loop.run_until_complete(loop.create_server(lambda: Forwarder(broker, conf), host, port))
 
     # Serve requests until Ctrl+C is pressed
     LOG.info('Serving on %s', host)
