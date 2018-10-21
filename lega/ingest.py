@@ -27,6 +27,7 @@ from .conf import Configuration
 from .utils import exceptions, sanitize_user_id, storage
 from .utils.amqp import consume, publish, AMQPConnectionFactory
 from .utils.worker import Worker
+from .utils.db import DB
 
 LOG = logging.getLogger(__name__)
 
@@ -93,7 +94,6 @@ class IngestionWorker(Worker):
         return data
 
 
-
 def main(args=None):
     """Run ingest service."""
     if not args:
@@ -101,6 +101,15 @@ def main(args=None):
 
     conf = Configuration()
     conf.setup(args)
+
+    db = DB( user            = conf.get_value('postgres', 'user'),
+             password        = conf.get_value('postgres', 'password'),
+             database        = conf.get_value('postgres', 'db'),
+             host            = conf.get_value('postgres', 'host'),
+             port            = conf.get_value('postgres', 'port', conv=int),
+             connect_timeout = conf.get_value('postgres', 'try_interval', conv=int, default=1),
+             nb_try          = conf.get_value('postgres', 'try', conv=int, default=1)
+        )
     worker = IngestionWorker(conf)
     amqp_cf = AMQPConnectionFactory(conf)
 

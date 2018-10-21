@@ -14,12 +14,8 @@ class Worker(object):
     db   = None
     _channel = None # TODO remove this in future
 
-    def __init__(self, conf):
-        self.conf = conf
-        self._init_db()
-
-    def _init_db(self):
-        self.db = db.DB(self.conf)
+    def __init__(self, db):
+        self.db = db
 
     def worker(self, *args, **kwargs):
         # TODO Do error logging in THIS function instead of wrapping it like this

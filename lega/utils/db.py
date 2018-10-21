@@ -26,18 +26,26 @@ class DBConnection():
     curr = None
     args = None
 
-    def __init__(self, conf, conf_section='db', on_failure=None):
-        self.conf = conf
+    def __init__(self, user, password, database, host, port, nb_try=1, connect_timeout=1, on_failure=None):
+        self.user = user
+        self.password = password
+        self.database = database
+        self.host = host,
+        self.port = port
+        self.connect_timeout=connect_timeout
         self.on_failure = on_failure
-        self.conf_section = conf_section or 'db'
 
+        assert nb_try > 0, "The number of reconnection should be >= 1"
+        self.nb_try = nb_try
+
+    @property
     def fetch_args(self):
-        return { 'user': self.conf.get_value(self.conf_section, 'user'),
-                 'password': self.conf.get_value(self.conf_section, 'password'),
-                 'database': self.conf.get_value(self.conf_section, 'db'),
-                 'host': self.conf.get_value(self.conf_section, 'host'),
-                 'port': self.conf.get_value(self.conf_section, 'port', conv=int),
-                 'connect_timeout': self.conf.get_value(self.conf_section, 'try_interval', conv=int, default=1),
+        return { 'user': self.user,
+                 'password': self.password,
+                 'database': database,
+                 'host': host,
+                 'port': port,
+                 'connect_timeout': connect_timeout
                  #'sslmode': self.conf.get_value(self.conf_section, 'sslmode'),
         }
 
@@ -57,15 +65,12 @@ class DBConnection():
         if self.conn and self.curr:
             return
 
-        if not self.args:
-            self.args = self.fetch_args()
-        LOG.info(f"Initializing a connection to: {self.args['host']}:{self.args['port']}/{self.args['database']}")
+        args = self.fetch_args
+        LOG.info(f"Initializing a connection to: {args['host']}:{args['port']}/{args['database']}")
 
-        nb_try = self.conf.get_value('postgres', 'try', conv=int, default=1)
-        assert nb_try > 0, "The number of reconnection should be >= 1"
-        LOG.debug(f"{nb_try} attempts")
+        LOG.debug(f"{self.nb_try} attempts")
         count = 0
-        while count < nb_try:
+        while count < self.nb_try:
             try:
                 LOG.debug(f"Connection attempt {count+1}")
                 self.conn = psycopg2.connect(**self.args)
@@ -116,11 +121,9 @@ class DBConnection():
 
 class DB(object):
     connection = None
-    conf = None
 
-    def __init__(self, conf):
-        self.conf = conf
-        self.connection = DBConnection(conf, conf_section='postgres')
+    def __init__(self, user, password, database, host, port, nb_try=1, connect_timeout=1, on_failure=None):
+        self.connection = DBConnection(user, password, database, host, port, nb_try, connect_timeout, on_failure)
 
 
     def insert_file(self, filename, user_id):
