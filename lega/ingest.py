@@ -110,7 +110,7 @@ def main(args=None):
              connect_timeout = conf.get_value('postgres', 'try_interval', conv=int, default=1),
              nb_try          = conf.get_value('postgres', 'try', conv=int, default=1)
         )
-    worker = IngestionWorker(conf)
+    worker = IngestionWorker(db)
     amqp_cf = AMQPConnectionFactory(conf)
 
     fs = getattr(storage, conf.get_value('vault', 'driver', default='FileStorage'))
