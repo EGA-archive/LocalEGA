@@ -23,10 +23,14 @@ The following images are created locally:
 | Repository | Tag      | Role |
 |------------|:--------:|------|
 | `nbisweden/ega-os`   | `latest` | CentOS based image with necessary packages for running LocalEGA. |
-| `nbisweden/ega-openssh`   | `latest` | OpenSSH SFTP server version `7.7p1` on top of `nbisweden/ega-base` patched in order to be used by `nbisweden/ega-inbox` |
 | `nbisweden/ega-inbox`  | `<HEAD commit>`, `latest` or `dev`  | SFTP server on top of `nbisweden/ega-base` and `nbisweden/ega-openssh` |
 | `nbisweden/ega-base`   | `<HEAD commit>`, `latest` or `dev` | Base Image for all services includes `python 3.6` |
 
+`nbisweden/ega-inbox` is dependent on the OpenSSH image that is built in the https://github.com/NBISweden/LocalEGA-auth
+
+| Repository | Tag      | Role |
+|------------|:--------:|------|
+| `nbisweden/ega-openssh`   | `latest` | OpenSSH SFTP server version `7.7p1` on top of `nbisweden/ega-base` patched in order to be used by `nbisweden/ega-inbox` |
 
 We also use 2 stubbing services in order to fake the necessary Central EGA components
 
