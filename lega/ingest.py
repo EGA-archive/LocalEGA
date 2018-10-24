@@ -25,7 +25,7 @@ from legacryptor.crypt4gh import get_header
 
 from .conf import Configuration
 from .utils import exceptions, sanitize_user_id, storage
-from .utils.amqp import consume, publish, AMQPConnectionFactory
+from .utils.amqp import AMQPConnectionFactory
 from .utils.worker import Worker
 from .utils.db import DB
 
@@ -36,10 +36,10 @@ class IngestionWorker(Worker):
     channel = None
     fs = None
 
-    def __init__(self, channel, fs, *args, **kwargs):
-        self.channel = channel
+    def __init__(self, fs, *args, **kwargs):
         self.fs      = fs
         super().__init__(*args, **kwargs)
+        self.channel = self.amqp_connection.channel()
 
     def do_work(self, data):
         """Read a message, split the header and send the remainder to the backend store."""
@@ -56,8 +56,11 @@ class IngestionWorker(Worker):
         data['org_msg'] = org_msg
 
         # Insert in database
+        LOG.debug(f"Inserting {filepath} into database")
         file_id = self.db.insert_file(filepath, user_id)
         data['file_id'] = file_id  # must be there: database error uses it
+
+        LOG.debug(f"File id of {filepath} is {file_id}")
 
         # Find inbox
         inbox = Path(self.conf.get_value('inbox', 'location', raw=True) % user_id)
@@ -75,10 +78,7 @@ class IngestionWorker(Worker):
         self.db.mark_in_progress(file_id)
 
         # Sending a progress message to CentralEGA
-        org_msg['status'] = 'PROCESSING'
-        LOG.debug(f'Sending message to CentralEGA: {data}')
-        publish(org_msg, self.channel, 'cega', 'files.processing')
-        org_msg.pop('status', None)
+        self.report_to_cega({**data, "status": "PROCESSING"}, 'files.processing')
 
         # Strip the header out and copy the rest of the file to the vault
         LOG.debug(f'Opening {inbox_filepath}')
@@ -118,7 +118,7 @@ def main(args=None):
     amqp_cf = AMQPConnectionFactory(conf, 'broker')
     broker = amqp_cf.get_connection()
 
-    worker = IngestionWorker(fs=fs, channel=broker.channel(), db=db, amqp_connection=broker)
+    worker = IngestionWorker(fs=fs, db=db, amqp_connection=broker)
     worker.run('files', 'archived')
 
 

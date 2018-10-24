@@ -73,7 +73,7 @@ class DBConnection():
         while count < self.nb_try:
             try:
                 LOG.debug(f"Connection attempt {count+1}")
-                self.conn = psycopg2.connect(**self.args)
+                self.conn = psycopg2.connect(**self.fetch_args)
                 #self.conn.set_session(autocommit=True) # default is False.
                 LOG.debug(f"Connection successful")
                 return

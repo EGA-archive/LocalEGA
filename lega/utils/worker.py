@@ -13,63 +13,47 @@ LOG = logging.getLogger(__name__)
 class Worker(object):
     db   = None
     amqp_connection = None
-    _channel = None # TODO remove this in future
+    channel = None # TODO remove this in future
 
     def __init__(self, db, amqp_connection):
         assert db is not None, "Database connection is needed"
         assert amqp_connection is not None, "AMQP Connection is needed"
         self.db = db
         self.amqp_connection = amqp_connection
+        self.channel = amqp_connection.channel()
 
-    def worker(self, *args, **kwargs):
+    def worker(self, data):
         # TODO Do error logging in THIS function instead of wrapping it like this
-        func = self._catch_error(db.crypt4gh_to_user_errors(self.do_work))
-        return partial(func, *args, **kwargs)
-
-    def _catch_error(self, func):  # noqa: C901
-        """Store the raised exception in the database decorator."""
-        @wraps(func)
-        def wrapper(*args):
-            try:
-                return func(*args)
-            except Exception as e:
-                if isinstance(e, AssertionError):
-                    raise e
-
-                exc_type, _, exc_tb = sys.exc_info()
-                g = traceback.walk_tb(exc_tb)
-                frame, lineno = next(g)  # that should be the decorator
-                try:
-                    frame, lineno = next(g)  # that should be where is happened
-                except StopIteration:
-                    pass  # In case the trace is too short
-
-                fname = frame.f_code.co_filename
-                LOG.error(f'Exception: {exc_type} in {fname} on line: {lineno}')
-                from_user = isinstance(e, FromUser)
-                cause = e.__cause__ or e
-                LOG.error(f'{cause!r} (from user: {from_user})')  # repr = Technical
-
-                try:
-                    data = args[-1]  # data is the last argument
-                    file_id = data.get('file_id', None)  # should be there
-                    if file_id:
-                        self.db.set_error(file_id, cause, from_user)
-                    LOG.debug('Catching error on file id: %s', file_id)
-                    if from_user:  # Send to CentralEGA
-                        org_msg = data.pop('org_msg', None)  # should be there
-                        org_msg['reason'] = str(cause)  # str = Informal
-                        LOG.info(f'Sending user error to local broker: {org_msg}')
-                        if self._channel is None:
-                            # TODO this function knows too much
-                            amqp_cf = AMQPConnectionFactory(self.conf)
-                            self._channel = amqp_cf.get_connection('broker').channel()
-                        publish(org_msg, _channel, 'cega', 'files.error')
-                except Exception as e2:
-                    LOG.error(f'While treating "{e}", we caught "{e2!r}"')
-                    print(repr(e), 'caused', repr(e2), file=sys.stderr)
+        func = db.crypt4gh_to_user_errors(self.do_work)
+        try:
+            return func(data)
+        except AssertionError as e:
+            raise e
+        except Exception as e:
+            file_id = data.get('file_id', None)
+            cause = e.__cause__ or e
+            if file_id:
+                self.db.set_error(file_id, cause, isinstance(e, FromUser))
+            if not isinstance(e, FromUser):
                 return None
-        return wrapper
+
+            LOG.debug('Catching error on file id: %s', file_id)
+            org_msg = data.pop('org_msg', None)  # should be there
+            org_msg['reason'] = str(cause)  # str = Informal
+
+            LOG.info(f'Sending user error to local broker: {org_msg}')
+
+            ## TODO This is the part where we are supposed to report errors back
+            ## somehow. Would be nice if it could be done smoother.
+            try:
+                self.report_to_cega(org_msg, 'files.error')
+            except Exception as e2:
+                LOG.error(f'While handling "{e}", we caught "{e2!r}"')
+                print(repr(e), 'caused', repr(e2), file=sys.stderr)
+        return None
+
+    def report_to_cega(self, message, queue):
+        publish(message, self.channel, 'cega', queue)
 
     def run(self, from_queue, to_routing):
         """Blocking function, registering callback ``work`` to be called.
@@ -92,15 +76,13 @@ class Worker(object):
         from_channel.basic_qos(prefetch_count=1)  # One job per worker
         to_channel = self.amqp_connection.channel()
 
-        worker = self.worker()
-
         def process_request(channel, method_frame, props, body):
             correlation_id = props.correlation_id
             message_id = method_frame.delivery_tag
             LOG.debug(f'Consuming message {message_id} (Correlation ID: {correlation_id})')
 
             # Process message in JSON format
-            answer = worker(json.loads(body))  # Exceptions should be already caught
+            answer = self.worker(json.loads(body))  # Exceptions should be already caught
 
             # Publish the answer
             if answer:
