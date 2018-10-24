@@ -43,10 +43,10 @@ class IngestionWorker(Worker):
         super().__init__(*args, **kwargs)
         self.channel = self.amqp_connection.channel()
 
-    def do_work(self, data):
+    def do_work(self, data, correlation_id=None):
         """Read a message, split the header and send the remainder to the backend store."""
         filepath = data['filepath']
-        LOG.info(f"Processing {filepath}")
+        LOG.info(f"[correlation_id={correlation_id}] Processing {filepath}")
 
         # Remove the host part of the user name
         user_id = sanitize_user_id(data['user'])
@@ -58,19 +58,19 @@ class IngestionWorker(Worker):
         data['org_msg'] = org_msg
 
         # Insert in database
-        LOG.debug(f"Inserting {filepath} into database")
+        LOG.debug(f"[correlation_id={correlation_id}] Inserting {filepath} into database")
         file_id = self.db.insert_file(filepath, user_id)
         data['file_id'] = file_id  # must be there: database error uses it
 
-        LOG.debug(f"File id of {filepath} is {file_id}")
+        LOG.debug(f"[correlation_id={correlation_id}] File id of {filepath} is {file_id}")
 
         # Find inbox
         inbox = Path(self.inbox % user_id)
-        LOG.info(f"Inbox area: {inbox}")
+        LOG.info(f"[correlation_id={correlation_id}] Inbox area: {inbox}")
 
         # Check if file is in inbox
         inbox_filepath = inbox / filepath.lstrip('/')
-        LOG.info(f"Inbox file path: {inbox_filepath}")
+        LOG.info(f"[correlation_id={correlation_id}] Inbox file path: {inbox_filepath}")
         if not inbox_filepath.exists():
             raise exceptions.NotFoundInInbox(filepath)  # return early
 
@@ -83,24 +83,25 @@ class IngestionWorker(Worker):
         self.report_to_cega({**data, "status": "PROCESSING"}, 'files.processing')
 
         # Strip the header out and copy the rest of the file to the vault
-        LOG.debug(f'Opening {inbox_filepath}')
+        LOG.debug(f'[correlation_id={correlation_id}] Opening {inbox_filepath}')
         with open(inbox_filepath, 'rb') as infile:
-            LOG.debug(f'Reading header | file_id: {file_id}')
+            LOG.debug(f'[correlation_id={correlation_id}] Reading header | file_id: {file_id}')
             beginning, header = get_header(infile)
 
             header_hex = (beginning+header).hex()
             data['header'] = header_hex
             self.db.store_header(file_id, header_hex)  # header bytes will be .hex()
 
+            LOG.info("f[correlation_id={correlation_id}] Getting the location of {file_id}")
             target = self.fs.location(file_id)
-            LOG.info(f'[{self.fs.__class__.__name__}] Moving the rest of {filepath} to {target}')
+            LOG.info(f'[correlation_id={correlation_id}] [{self.fs.__class__.__name__}] Moving the rest of {filepath} to {target}')
             target_size = self.fs.copy(infile, target)  # It will copy the rest only
 
-            LOG.info(f'Vault copying completed. Updating database')
+            LOG.info(f'[correlation_id={correlation_id}] Vault copying completed. Updating database')
             self.db.set_archived(file_id, target, target_size)
             data['vault_path'] = target
 
-        LOG.debug(f"Reply message: {data}")
+        LOG.debug(f"[correlation_id={correlation_id}] Reply message: {data}")
         return data
 
 

@@ -22,11 +22,11 @@ class Worker(object):
         self.amqp_connection = amqp_connection
         self.channel = amqp_connection.channel()
 
-    def worker(self, data):
+    def worker(self, data, correlation_id=None):
         # TODO Do error logging in THIS function instead of wrapping it like this
         func = db.crypt4gh_to_user_errors(self.do_work)
         try:
-            return func(data)
+            return func(data, correlation_id)
         except AssertionError as e:
             raise e
         except Exception as e:
@@ -37,18 +37,18 @@ class Worker(object):
             if not isinstance(e, FromUser):
                 return None
 
-            LOG.debug('Catching error on file id: %s', file_id)
+            LOG.debug(f'[correlation_id={correlation_id}] Catching error on file id: {file_id}')
             org_msg = data.pop('org_msg', None)  # should be there
             org_msg['reason'] = str(cause)  # str = Informal
 
-            LOG.info(f'Sending user error to local broker: {org_msg}')
+            LOG.info(f'[correlation_id={correlation_id}] Sending user error to local broker: {org_msg}')
 
             ## TODO This is the part where we are supposed to report errors back
             ## somehow. Would be nice if it could be done smoother.
             try:
                 self.report_to_cega(org_msg, 'files.error')
             except Exception as e2:
-                LOG.error(f'While handling "{e}", we caught "{e2!r}"')
+                LOG.error(f'[correlation_id={correlation_id}] While handling "{e}", we caught "{e2!r}"')
                 print(repr(e), 'caused', repr(e2), file=sys.stderr)
         return None
 
@@ -82,12 +82,12 @@ class Worker(object):
             LOG.debug(f'Consuming message {message_id} (Correlation ID: {correlation_id})')
 
             # Process message in JSON format
-            answer = self.worker(json.loads(body))  # Exceptions should be already caught
+            answer = self.worker(json.loads(body), correlation_id)  # Exceptions should be already caught
 
             # Publish the answer
             if answer:
-                assert(to_routing)
-                publish(answer, to_channel, 'lega', to_routing, correlation_id=props.correlation_id)
+                assert(to_routing) # TODO Why not at the start of the run function?
+                publish(answer, to_channel, 'lega', to_routing, correlation_id=correlation_id)
 
             # Acknowledgment: Cancel the message resend in case MQ crashes
             LOG.debug(f'Sending ACK for message {message_id} (Correlation ID: {correlation_id})')
