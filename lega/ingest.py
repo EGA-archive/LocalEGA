@@ -102,16 +102,10 @@ def main(args=None):
     conf = Configuration()
     conf.setup(args)
 
-    db = DB( user            = conf.get_value('postgres', 'user'),
-             password        = conf.get_value('postgres', 'password'),
-             database        = conf.get_value('postgres', 'db'),
-             host            = conf.get_value('postgres', 'host'),
-             port            = conf.get_value('postgres', 'port', conv=int),
-             connect_timeout = conf.get_value('postgres', 'try_interval', conv=int, default=1),
-             nb_try          = conf.get_value('postgres', 'try', conv=int, default=1)
-        )
-    worker = IngestionWorker(db)
     amqp_cf = AMQPConnectionFactory(conf)
+    dbargs = conf.get_db_args('postgres')
+    db = DB(**dbargs)
+    worker = IngestionWorker(db)
 
     fs = getattr(storage, conf.get_value('vault', 'driver', default='FileStorage'))
     broker = amqp_cf.get_connection('broker')

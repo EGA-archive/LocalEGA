@@ -30,7 +30,7 @@ class DBConnection():
         self.user = user
         self.password = password
         self.database = database
-        self.host = host,
+        self.host = host
         self.port = port
         self.connect_timeout=connect_timeout
         self.on_failure = on_failure
@@ -42,10 +42,10 @@ class DBConnection():
     def fetch_args(self):
         return { 'user': self.user,
                  'password': self.password,
-                 'database': database,
-                 'host': host,
-                 'port': port,
-                 'connect_timeout': connect_timeout
+                 'database': self.database,
+                 'host': self.host,
+                 'port': self.port,
+                 'connect_timeout': self.connect_timeout
                  #'sslmode': self.conf.get_value(self.conf_section, 'sslmode'),
         }
 

@@ -158,6 +158,20 @@ class Configuration(configparser.ConfigParser):
         else:
             return conv(value)  # raise error in case we can't convert an empty value
 
+    def get_db_args(self, section='postgres'):
+        """Get the arguments for initiating the database object"""
+        # TODO: Figure out the correct place for this method
+
+        return {
+                "user":            self.get_value(section, 'user'),
+                "password":        self.get_value(section, 'password'),
+                "database":        self.get_value(section, 'db'),
+                "host":            self.get_value(section, 'host'),
+                "port":            self.get_value(section, 'port', conv=int),
+                "connect_timeout": self.get_value(section, 'try_interval', conv=int, default=1),
+                "nb_try":          self.get_value(section, 'try', conv=int, default=1)
+        }
+
 
 #CONF = Configuration()
 

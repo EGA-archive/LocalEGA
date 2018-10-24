@@ -21,7 +21,8 @@ import hashlib
 from legacryptor.crypt4gh import get_key_id, header_to_records, body_decrypt
 
 from .conf import Configuration
-from .utils import db, exceptions, storage
+from .utils import exceptions, storage
+from .utils.db import DB
 from .utils.amqp import consume, AMQPConnectionFactory
 from .utils.worker import Worker
 
@@ -58,7 +59,7 @@ class VerifyWorker(Worker):
         LOG.info('Verification completed [sha256: %s]', digest)
 
         # Updating the database
-        db.mark_completed(file_id)
+        self.db.mark_completed(file_id)
 
         # Shape successful message
         org_msg = data['org_msg']
@@ -108,9 +109,12 @@ def main(args=None):
     conf = Configuration()
     conf.setup(args)  # re-conf
 
-    worker = VerifyWorker(conf)
-    amqp_cf = AMQPConnectionFactory(conf)
+    dbargs = conf.get_db_args()
+    db = DB(**dbargs)
 
+    worker = VerifyWorker(db)
+
+    amqp_cf = AMQPConnectionFactory(conf)
     store = getattr(storage, conf.get_value('vault', 'driver', default='FileStorage'))
     chunk_size = conf.get_value('vault', 'chunk_size', conv=int, default=1 << 22)  # 4 MB
 

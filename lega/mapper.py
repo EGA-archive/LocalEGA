@@ -16,7 +16,7 @@ import sys
 import logging
 
 from .conf import Configuration
-from .utils import db
+from .utils.db import DB
 from .utils.amqp import consume, AMQPConnectionFactory
 from .utils.worker import Worker
 
@@ -30,7 +30,7 @@ class MapperWorker(Worker):
         stable_id = data['stable_id']
         LOG.info(f"Mapping {file_id} to stable_id {stable_id}")
 
-        db.set_stable_id(file_id, stable_id)  # That will flag the entry as 'Ready'
+        self.db.set_stable_id(file_id, stable_id)  # That will flag the entry as 'Ready'
 
         LOG.info(f"Stable ID {stable_id} mapped to {file_id}")
         return None
@@ -44,9 +44,12 @@ def main(args=None):
     conf = Configuration()
     conf.setup(args)  # re-conf
 
-    worker = MapperWorker(conf)
     amqp_cf = AMQPConnectionFactory(conf)
     broker = amqp_cf.get_connection('broker')
+    dbargs = conf.get_db_args('postgres')
+    db = DB(**dbargs)
+
+    worker = MapperWorker(db)
 
     do_work = worker.worker()
     # upstream link configured in local broker
