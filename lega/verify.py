@@ -112,13 +112,14 @@ def main(args=None):
     dbargs = conf.get_db_args()
     db = DB(**dbargs)
 
-    worker = VerifyWorker(db)
+    amqp_cf = AMQPConnectionFactory(conf, 'broker')
+    broker = amqp_cf.get_connection()
 
-    amqp_cf = AMQPConnectionFactory(conf)
+    worker = VerifyWorker(db, amqp_connection=broker)
+
     store = getattr(storage, conf.get_value('vault', 'driver', default='FileStorage'))
     chunk_size = conf.get_value('vault', 'chunk_size', conv=int, default=1 << 22)  # 4 MB
 
-    broker = amqp_cf.get_connection('broker')
     do_work = worker.worker(chunk_size, store(conf), broker.channel())
 
     consume(do_work, broker, 'archived', 'completed')

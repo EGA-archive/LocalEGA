@@ -9,32 +9,23 @@ LOG = logging.getLogger(__name__)
 
 
 class AMQPConnectionFactory(object):
-    conf = None
+    params = None
 
-    def __init__(self, conf):
-        self.conf = conf
-
-    def get_connection(self, domain, blocking=True):
-        """Return a blocking connection to the Message Broker supporting AMQP(S).
-
-        The host, portm virtual_host, username, password and
-        heartbeat values are read from the CONF argument.
-        So are the SSL options.
-        """
-        assert domain in self.conf.sections(), "Section not found in config file"
+    def __init__(self, conf, domain):
+        assert domain in conf.sections(), "Section not found in config file"
 
         params = {
-            'host': self.conf.get_value(domain, 'host', default='localhost'),
-            'port': self.conf.get_value(domain, 'port', conv=int, default=5672),
-            'virtual_host': self.conf.get_value(domain, 'vhost', default='/'),
+            'host': conf.get_value(domain, 'host', default='localhost'),
+            'port': conf.get_value(domain, 'port', conv=int, default=5672),
+            'virtual_host': conf.get_value(domain, 'vhost', default='/'),
             'credentials': pika.PlainCredentials(
-                self.conf.get_value(domain, 'username', default='guest'),
-                self.conf.get_value(domain, 'password', default='guest')
+                conf.get_value(domain, 'username', default='guest'),
+                conf.get_value(domain, 'password', default='guest')
             ),
-            'connection_attempts': self.conf.get_value(domain, 'connection_attempts', conv=int, default=10),
-            'retry_delay': self.conf.get_value(domain, 'retry_delay', conv=int, default=10),  # seconds
+            'connection_attempts': conf.get_value(domain, 'connection_attempts', conv=int, default=10),
+            'retry_delay': conf.get_value(domain, 'retry_delay', conv=int, default=10),  # seconds
         }
-        heartbeat = self.conf.get_value(domain, 'heartbeat', conv=int, default=0)
+        heartbeat = conf.get_value(domain, 'heartbeat', conv=int, default=0)
         if heartbeat is not None:  # can be 0
             # heartbeat_interval instead of heartbeat like they say in the doc
             # https://pika.readthedocs.io/en/latest/modules/parameters.html#connectionparameters
@@ -42,21 +33,32 @@ class AMQPConnectionFactory(object):
             LOG.debug(f'Setting hearbeat to {heartbeat}')
 
         # SSL configuration
-        if self.conf.get_value(domain, 'enable_ssl', conv=bool, default=False):
+        if conf.get_value(domain, 'enable_ssl', conv=bool, default=False):
             params['ssl'] = True
             params['ssl_options'] = {
-                'ca_certs': self.conf.get_value(domain, 'cacert'),
-                'certfile': self.conf.get_value(domain, 'cert'),
-                'keyfile': self.conf.get_value(domain, 'keyfile'),
+                'ca_certs': conf.get_value(domain, 'cacert'),
+                'certfile': conf.get_value(domain, 'cert'),
+                'keyfile': conf.get_value(domain, 'keyfile'),
                 'cert_reqs': 2,  # ssl.CERT_REQUIRED is actually <VerifyMode.CERT_REQUIRED: 2>
             }
 
-        LOG.info(f'Getting a connection to {domain}')
-        LOG.debug(params)
+        self.domain = domain
+        self.params = params
+
+    def get_connection(self, blocking=True):
+        """Return a blocking connection to the Message Broker supporting AMQP(S).
+
+        The host, portm virtual_host, username, password and
+        heartbeat values are read from the CONF argument.
+        So are the SSL options.
+        """
+
+        LOG.info(f'Getting a connection to {self.domain}')
+        LOG.debug(self.params)
 
         if blocking:
-            return pika.BlockingConnection(pika.ConnectionParameters(**params))
-        return pika.SelectConnection(pika.ConnectionParameters(**params))
+            return pika.BlockingConnection(pika.ConnectionParameters(**self.params))
+        return pika.SelectConnection(pika.ConnectionParameters(**self.params))
 
 
 def publish(message, channel, exchange, routing, correlation_id=None):

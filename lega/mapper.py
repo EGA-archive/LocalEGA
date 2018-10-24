@@ -44,12 +44,12 @@ def main(args=None):
     conf = Configuration()
     conf.setup(args)  # re-conf
 
-    amqp_cf = AMQPConnectionFactory(conf)
-    broker = amqp_cf.get_connection('broker')
     dbargs = conf.get_db_args('postgres')
     db = DB(**dbargs)
 
     worker = MapperWorker(db)
+    amqp_cf = AMQPConnectionFactory(conf, 'broker')
+    broker = amqp_cf.get_connection()
 
     do_work = worker.worker()
     # upstream link configured in local broker

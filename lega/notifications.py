@@ -111,8 +111,8 @@ def main(args=None):
     conf = Configuration()
     conf.setup(args)  # re-conf
 
-    amqp_cf = AMQPConnectionFactory(conf)
-    broker = amqp_cf.get_connection('broker')
+    amqp_cf = AMQPConnectionFactory(conf, 'broker')
+    broker = amqp_cf.get_connection()
 
     loop = asyncio.get_event_loop()
     server = loop.run_until_complete(loop.create_server(lambda: Forwarder(broker, conf), host, port))

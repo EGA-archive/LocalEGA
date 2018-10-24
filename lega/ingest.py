@@ -33,8 +33,15 @@ LOG = logging.getLogger(__name__)
 
 
 class IngestionWorker(Worker):
+    channel = None
+    fs = None
 
-    def do_work(self, fs, channel, data):
+    def __init__(self, channel, fs, *args, **kwargs):
+        self.channel = channel
+        self.fs      = fs
+        super().__init__(*args, **kwargs)
+
+    def do_work(self, data):
         """Read a message, split the header and send the remainder to the backend store."""
         filepath = data['filepath']
         LOG.info(f"Processing {filepath}")
@@ -42,6 +49,7 @@ class IngestionWorker(Worker):
         # Remove the host part of the user name
         user_id = sanitize_user_id(data['user'])
 
+        # TODO Remove this strangeness once the new code is finished.
         # Keeping data as-is (cuz the decorator is using it)
         # It will be augmented, but we keep the original data first
         org_msg = data.copy()
@@ -69,7 +77,7 @@ class IngestionWorker(Worker):
         # Sending a progress message to CentralEGA
         org_msg['status'] = 'PROCESSING'
         LOG.debug(f'Sending message to CentralEGA: {data}')
-        publish(org_msg, channel, 'cega', 'files.processing')
+        publish(org_msg, self.channel, 'cega', 'files.processing')
         org_msg.pop('status', None)
 
         # Strip the header out and copy the rest of the file to the vault
@@ -82,9 +90,9 @@ class IngestionWorker(Worker):
             data['header'] = header_hex
             self.db.store_header(file_id, header_hex)  # header bytes will be .hex()
 
-            target = fs.location(file_id)
-            LOG.info(f'[{fs.__class__.__name__}] Moving the rest of {filepath} to {target}')
-            target_size = fs.copy(infile, target)  # It will copy the rest only
+            target = self.fs.location(file_id)
+            LOG.info(f'[{self.fs.__class__.__name__}] Moving the rest of {filepath} to {target}')
+            target_size = self.fs.copy(infile, target)  # It will copy the rest only
 
             LOG.info(f'Vault copying completed. Updating database')
             self.db.set_archived(file_id, target, target_size)
@@ -102,18 +110,16 @@ def main(args=None):
     conf = Configuration()
     conf.setup(args)
 
-    amqp_cf = AMQPConnectionFactory(conf)
     dbargs = conf.get_db_args('postgres')
     db = DB(**dbargs)
-    worker = IngestionWorker(db)
 
     fs = getattr(storage, conf.get_value('vault', 'driver', default='FileStorage'))
-    broker = amqp_cf.get_connection('broker')
-    do_work = worker.worker(fs(conf), broker.channel())
 
+    amqp_cf = AMQPConnectionFactory(conf, 'broker')
+    broker = amqp_cf.get_connection()
 
-    # upstream link configured in local broker
-    consume(do_work, broker, 'files', 'archived')
+    worker = IngestionWorker(fs=fs, channel=broker.channel(), db=db, amqp_connection=broker)
+    worker.run('files', 'archived')
 
 
 if __name__ == '__main__':
