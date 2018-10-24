@@ -35,9 +35,11 @@ LOG = logging.getLogger(__name__)
 class IngestionWorker(Worker):
     channel = None
     fs = None
+    inbox = None
 
-    def __init__(self, fs, *args, **kwargs):
-        self.fs      = fs
+    def __init__(self, fs, inbox, *args, **kwargs):
+        self.fs    = fs
+        self.inbox = inbox
         super().__init__(*args, **kwargs)
         self.channel = self.amqp_connection.channel()
 
@@ -63,7 +65,7 @@ class IngestionWorker(Worker):
         LOG.debug(f"File id of {filepath} is {file_id}")
 
         # Find inbox
-        inbox = Path(self.conf.get_value('inbox', 'location', raw=True) % user_id)
+        inbox = Path(self.inbox % user_id)
         LOG.info(f"Inbox area: {inbox}")
 
         # Check if file is in inbox
@@ -109,16 +111,16 @@ def main(args=None):
 
     conf = Configuration()
     conf.setup(args)
-
     dbargs = conf.get_db_args('postgres')
     db = DB(**dbargs)
 
-    fs = getattr(storage, conf.get_value('vault', 'driver', default='FileStorage'))
+    fs = getattr(storage, conf.get_value('vault', 'driver', default='FileStorage'))(conf)
 
     amqp_cf = AMQPConnectionFactory(conf, 'broker')
     broker = amqp_cf.get_connection()
+    inbox = conf.get_value('inbox', 'location', raw=True)
 
-    worker = IngestionWorker(fs=fs, db=db, amqp_connection=broker)
+    worker = IngestionWorker(fs=fs, inbox=inbox, db=db, amqp_connection=broker)
     worker.run('files', 'archived')
 
 
