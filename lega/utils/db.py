@@ -170,11 +170,11 @@ class DB(object):
                          'file_id': file_id})
 
 
-    def mark_in_progress(file_id):
+    def mark_in_progress(self, file_id):
         """Mark file in progress."""
         return self._set_status(file_id, 'In progress')
 
-    def mark_completed(file_id):
+    def mark_completed(self, file_id):
         """Mark file as completed."""
         return self._set_status(file_id, 'Completed')
 
