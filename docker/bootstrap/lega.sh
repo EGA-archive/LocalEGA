@@ -210,7 +210,7 @@ EOF
 if [[ $INBOX == 'mina' ]]; then
 cat >> ${PRIVATE}/lega.yml <<EOF
     environment:
-      - CEGA_ENDPOINT=http://cega-users/user/
+      - CEGA_ENDPOINT=http://cega-users/lega/v1/legas/users/%s?idType=username
       - CEGA_ENDPOINT_CREDS=lega:${CEGA_REST_PASSWORD}
     ports:
       - "${DOCKER_PORT_inbox}:2222"
@@ -221,9 +221,9 @@ EOF
 else
 cat >> ${PRIVATE}/lega.yml <<EOF  # SFTP inbox
     environment:
-      - CEGA_ENDPOINT=http://cega-users
+      - CEGA_ENDPOINT=http://cega-users/lega/v1/legas/users/
       - CEGA_ENDPOINT_CREDS=lega:${CEGA_REST_PASSWORD}
-      - CEGA_ENDPOINT_JSON_PREFIX=
+      - CEGA_ENDPOINT_JSON_PREFIX=response.result
     ports:
       - "${DOCKER_PORT_inbox}:9000"
     image: nbisweden/ega-inbox:dev
