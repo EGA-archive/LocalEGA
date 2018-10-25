@@ -4,6 +4,7 @@ set -e
 
 # Some env must be defined
 [[ -z "${CEGA_ENDPOINT}" ]] && echo 'Environment CEGA_ENDPOINT is empty' 1>&2 && exit 1
+[[ ! -z "${CEGA_USERNAME}" && ! -z "${CEGA_PASSWORD}" ]] && CEGA_ENDPOINT_CREDS="${CEGA_USERNAME}:${CEGA_PASSWORD}"
 [[ -z "${CEGA_ENDPOINT_CREDS}" ]] && echo 'Environment CEGA_ENDPOINT_CREDS is empty' 1>&2 && exit 1
 # Check if set
 [[ -z "${CEGA_ENDPOINT_JSON_PREFIX+x}" ]] && echo 'Environment CEGA_ENDPOINT_JSON_PREFIX must be set' 1>&2 && exit 1
@@ -15,8 +16,8 @@ cat > /etc/ega/auth.conf <<EOF
 # Central EGA
 ##################
 
-cega_endpoint_name = ${CEGA_ENDPOINT}/user/
-cega_endpoint_uid = ${CEGA_ENDPOINT}/id/
+cega_endpoint_username = ${CEGA_ENDPOINT%/}/%s?idType=username
+cega_endpoint_uid = ${CEGA_ENDPOINT%/}/%u?idType=uid
 cega_creds = ${CEGA_ENDPOINT_CREDS}
 cega_json_prefix = ${CEGA_ENDPOINT_JSON_PREFIX}
 
