@@ -87,12 +87,12 @@ $(SSH_KEY):
 ## Checking the results
 ####################################################################
 # We only read the first message from the completed queue
-# If it contains COMPLETED, and it is the right user/filepath/stableID, 
+# If it contains COMPLETED, and it is the right user/filepath/stableID,
 # then we say it's ok
 # That'll do it for the moment
 check: CEGA_MQ_USER=$(shell awk -F= '/CEGA_MQ_USER/ {print $$2}' $(DOCKER_PATH)/private/lega/.trace)
 check: CEGA_MQ_PASSWORD=$(shell awk -F= '/CEGA_MQ_PASSWORD/ {print $$2}' $(DOCKER_PATH)/private/lega/.trace)
-check: MESSAGE=$(shell ./rabbitmqadmin -H localhost -P 15670 -V lega -u lega -p $(CEGA_MQ_PASSWORD) get queue=completed count=1 requeue=true)
+check: MESSAGE=$(shell ./rabbitmqadmin -H localhost -P 15670 -V lega -u lega -p $(CEGA_MQ_PASSWORD) get queue=v1.completed count=1 requeue=true)
 check: $(FILE).c4ga $(FILE).sha256
 	@echo "$(MESSAGE)" | grep 'checksum: {value: $(shell cat $(FILE).sha256), algorithm: sha256}' &>/dev/null
 	@echo "$(MESSAGE)" | grep 'user: $(USER)' &>/dev/null
