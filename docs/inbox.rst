@@ -143,6 +143,8 @@ enabled in the `inbox` entrypoint script.
 The NSS+PAM source code has its own `repository
 <https://github.com/NBISweden/LocalEGA-auth>`_. A makefile is provided
 to compile and install the necessary shared libraries.
+The repository also provides an automated build for a new image:
+``nbisweden/ega-openssh``.
 
 We copied the ``sshd`` into an ``/opt/openshh/sbin/ega`` binary and
 configured the *ega* service by adding a file into the ``/etc/pam.d``

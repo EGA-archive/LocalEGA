@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Check if a certain image has changed, in our case either OS or OpenSSH.
+# Check if a certain image Dockerfile has changed, in our case OS .
 # The current command should be run in the docker directory.
 # If we detect changes against origin/dev we build and push new image.
 
