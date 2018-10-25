@@ -233,17 +233,17 @@ cat > ${PRIVATE}/cega/mq/defs.json <<EOF
  "parameters":[],
  "global_parameters":[{"name":"cluster_name", "value":"rabbit@localhost"}],
  "policies":[],
- "queues":[{"name":"inbox",           "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{}},
-           {"name":"stableIDs",       "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{}},
-	   {"name":"files",           "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{}},
-	   {"name":"completed",       "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{}},
-	   {"name":"errors",          "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{}}],
+ "queues":[{"name":"v1.inbox",           "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{}},
+           {"name":"v1.stableIDs",       "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{}},
+	   {"name":"v1.files",           "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{}},
+	   {"name":"v1.completed",       "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{}},
+	   {"name":"v1.errors",          "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{}}],
  "exchanges":[{"name":"localega.v1", "vhost":"lega", "type":"topic", "durable":true, "auto_delete":false, "internal":false, "arguments":{}}],
- "bindings":[{"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{},"destination":"inbox","routing_key":"files.inbox"},
-	     {"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{},"destination":"stableIDs","routing_key":"files.stableIDs"},
-	     {"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{},"destination":"files","routing_key":"files"},
-	     {"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{},"destination":"completed","routing_key":"files.completed"},
-	     {"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{},"destination":"errors","routing_key":"files.error"}]
+ "bindings":[{"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{},"destination":"v1.inbox","routing_key":"files.inbox"},
+	     {"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{},"destination":"v1.stableIDs","routing_key":"files.stableIDs"},
+	     {"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{},"destination":"v1.files","routing_key":"files"},
+	     {"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{},"destination":"v1.completed","routing_key":"files.completed"},
+	     {"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{},"destination":"v1.errors","routing_key":"files.error"}]
 }
 EOF
 
