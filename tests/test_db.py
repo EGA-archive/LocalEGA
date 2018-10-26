@@ -109,4 +109,9 @@ class DBTest(unittest.TestCase):
         data_object = mock.MagicMock(name='get_value')
         data_object.get_value.return_value = 'value'
         result = fetch_args(data_object)
-        assert {'user': 'value', 'password': 'value', 'database': 'value', 'host': 'value', 'port': 'value'} == result
+        assert {'user': 'value',
+                'password': 'value',
+                'database': 'value',
+                'host': 'value',
+                'port': 'value',
+                'sslmode': 'value'} == result

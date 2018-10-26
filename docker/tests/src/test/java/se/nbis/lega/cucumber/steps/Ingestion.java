@@ -122,7 +122,7 @@ public class Ingestion implements En {
 
         Then("^I retrieve ingestion information", () -> {
             try {
-                String output = utils.executeDBQuery(String.format("select * from files where inbox_path = '%s'", context.getEncryptedFile().getName()));
+                String output = utils.executeDBQuery(String.format("select * from local_ega.files where inbox_path = '%s'", context.getEncryptedFile().getName()));
                 List<String> header = Arrays.stream(output.split(System.getProperty("line.separator"))[0].split(" \\| ")).map(String::trim).collect(Collectors.toList());
                 List<String> fields = Arrays.stream(output.split(System.getProperty("line.separator"))[2].split(" \\| ")).map(String::trim).collect(Collectors.toList());
                 HashMap<String, String> ingestionInformation = new HashMap<>();
@@ -172,7 +172,7 @@ public class Ingestion implements En {
 
     private FileStatus getIngestionStatus(Context context, Utils utils) throws IOException, InterruptedException {
         try {
-            String output = utils.executeDBQuery(String.format("select status from files where inbox_path = '%s'", context.getEncryptedFile().getName()));
+            String output = utils.executeDBQuery(String.format("select status from local_ega.files where inbox_path = '%s'", context.getEncryptedFile().getName()));
             return FileStatus.getValue(output.split(System.getProperty("line.separator"))[2].trim());
         } catch (InternalServerErrorException | ConflictException e) {
             return FileStatus.ERROR;
