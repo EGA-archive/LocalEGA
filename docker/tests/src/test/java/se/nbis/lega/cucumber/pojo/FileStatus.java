@@ -4,11 +4,11 @@ import java.util.Arrays;
 
 public enum FileStatus {
 
-    RECEIVED("Received"),
-    IN_PROGRESS("In progress"),
-    COMPLETED("Completed"),
-    ARCHIVED("Archived"),
-    ERROR("Error"),
+    RECEIVED("READY"),
+    IN_PROGRESS("IN_INGESTION"),
+    COMPLETED("COMPLETED"),
+    ARCHIVED("ARCHIVED"),
+    ERROR("ERROR"),
     UNDEFINED("(0 rows)");
 
 

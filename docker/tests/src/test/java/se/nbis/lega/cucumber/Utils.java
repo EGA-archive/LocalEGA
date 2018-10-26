@@ -110,8 +110,13 @@ public class Utils {
      * @throws InterruptedException In case the query execution is interrupted.
      */
     public String executeDBQuery(String query) throws IOException, InterruptedException {
-        return executeWithinContainer(findContainer(getProperty("container.label.db")),
-                "psql", "-U", readTraceProperty("DB_USER"), "-d", "lega", "-c", query);
+        Container dbContainer = findContainer(getProperty("container.label.db"));
+
+        String connectionString = String.format("postgresql://%s:%s@localhost/lega",
+                readTraceProperty("DB_LEGA_IN_USER"),
+                readTraceProperty("DB_LEGA_IN_PASSWORD"));
+
+        return executeWithinContainer(dbContainer, "psql", connectionString, "-c", query);
     }
 
 //    /**
@@ -204,7 +209,7 @@ public class Utils {
     }
 
     /**
-     * Restarts all the LocalEGA containers (the ones that starts with `ega-` or `ega-` prefix).
+     * Restarts all the LocalEGA containers.
      */
     public void restartAllLocalEGAContainers() {
         getAllLocalEGAContainers().
@@ -213,7 +218,28 @@ public class Utils {
                 peek(c -> safeSleep(5000)).
                 peek(this::startContainer).
                 forEach(c -> safeSleep(5000));
-        safeSleep(10000);
+        waitForInitializationToComplete();
+    }
+
+    /**
+     * Waits for all LocalEGA containers to initialize.
+     */
+    public void waitForInitializationToComplete() {
+        Collection<Container> containers = getAllLocalEGAContainers();
+        long maxTimeout = Long.parseLong(getProperty("initialization.max-timeout"));
+        long timeout = 0;
+        while (containers.isEmpty() || !containers.stream().map(Container::getStatus).allMatch(s -> s.startsWith("Up"))) {
+            if (containers.isEmpty()) {
+                containers = getAllLocalEGAContainers();
+            }
+            safeSleep(1000);
+            timeout += 1000;
+            if (timeout > maxTimeout) {
+                throw new RuntimeException(String.format("The system was not initialized in time: initialization.max-timeout = %s", maxTimeout));
+            }
+        }
+        // Sleep a bit more to let containers not only start up, but finish initialization.
+        safeSleep(Long.parseLong(getProperty("initialization.delay")));
     }
 
     /**
