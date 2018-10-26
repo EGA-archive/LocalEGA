@@ -98,9 +98,12 @@ retry_delay = 10
 
 [postgres]
 host = db
-user = ${DB_USER}
-password = ${DB_PASSWORD}
+port = 5432
+user = lega_in
+password = ${DB_LEGA_IN_PASSWORD}
+database = lega
 try = 30
+sslmode = require
 
 [eureka]
 endpoint = http://cega-eureka:8761
@@ -163,22 +166,30 @@ services:
   # Postgres Database
   db:
     environment:
-      - DB_INSTANCE=db
-      - POSTGRES_USER=${DB_USER}
-      - POSTGRES_PASSWORD=${DB_PASSWORD}
-      - POSTGRES_DB=lega
+      - DB_LEGA_IN_PASSWORD=${DB_LEGA_IN_PASSWORD}
+      - DB_LEGA_OUT_PASSWORD=${DB_LEGA_OUT_PASSWORD}
       - PGDATA=/ega/data
+      - SSL_SUBJ=${SSL_SUBJ}
     hostname: db
     container_name: db
     labels:
         lega_label: "db"
-    image: postgres:9.6
+    image: postgres:10
     volumes:
       - db:/ega/data
-      - ../images/db/db.sql:/docker-entrypoint-initdb.d/ega.sql:ro
+      - ../images/db/postgresql.conf:/etc/ega/pg.conf:ro
+      - ../images/db/main.sql:/docker-entrypoint-initdb.d/main.sql:ro
+      - ../images/db/grants.sql:/docker-entrypoint-initdb.d/grants.sql:ro
+      - ../images/db/audit.sql:/docker-entrypoint-initdb.d/audit.sql:ro
+      - ../images/db/download.sql:/docker-entrypoint-initdb.d/download.sql:ro
+      - ../images/db/ebi.sql:/docker-entrypoint-initdb.d/ebi.sql:ro
+      - ../images/db/qc.sql:/docker-entrypoint-initdb.d/qc.sql:ro
+      - ../images/db/entrypoint.sh:/usr/bin/ega-entrypoint.sh
     restart: on-failure:3
     networks:
       - lega
+    entrypoint: ["/bin/bash", "/usr/bin/ega-entrypoint.sh"]
+
 
   # SFTP inbox
   inbox:
@@ -418,9 +429,11 @@ PGP_NAME                  = ${PGP_NAME}
 PGP_COMMENT               = ${PGP_COMMENT}
 PGP_EMAIL                 = ${PGP_EMAIL}
 SSL_SUBJ                  = ${SSL_SUBJ}
-#
-DB_USER                   = ${DB_USER}
-DB_PASSWORD               = ${DB_PASSWORD}
+# Database users are 'lega_in' and 'lega_out'
+DB_LEGA_IN_PASSWORD       = ${DB_LEGA_IN_PASSWORD}
+DB_LEGA_OUT_PASSWORD      = ${DB_LEGA_OUT_PASSWORD}
+DB_LEGA_IN_USER           = lega_in
+DB_LEGA_OUT_USER          = lega_out
 #
 CEGA_MQ_USER              = lega
 CEGA_MQ_PASSWORD          = ${CEGA_MQ_PASSWORD}

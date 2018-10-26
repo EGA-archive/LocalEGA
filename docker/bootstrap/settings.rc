@@ -9,19 +9,13 @@ DOCKER_PORT_keyserver=8443
 DOCKER_PORT_res=8081
 
 CEGA_MQ_PASSWORD=$(generate_password 16)
-[[ "${DEPLOY_DEV}" = "yes" ]] && CEGA_MQ_PASSWORD=lega # overwrite
-
 CEGA_REST_PASSWORD=$(generate_password 16)
 
 SSL_SUBJ="/C=SE/ST=Sweden/L=Uppsala/O=NBIS/OU=SysDevs/CN=LocalEGA/emailAddress=ega@nbis.se"
 
-DB_USER=lega
-DB_PASSWORD=$(generate_password 16)
-
-# if [ -z "${DB_USER}" -o "${DB_USER}" == "postgres" ]; then
-#     echo "Choose a database user (but not 'postgres')"
-#     exit 4
-# fi
+# Database users are lega_in and lega_out
+DB_LEGA_IN_PASSWORD=$(generate_password 16)
+DB_LEGA_OUT_PASSWORD=$(generate_password 16)
 
 PGP_NAME="LocalEGA"
 PGP_COMMENT="@lega"
