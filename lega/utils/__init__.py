@@ -1,6 +1,10 @@
+"""
+Utility functions used internally.
+"""
+
 import logging
 
-LOG = logging.getLogger('utils')
+LOG = logging.getLogger(__name__)
 
 def get_file_content(f, mode='rb'):
     try:
@@ -17,4 +21,3 @@ def sanitize_user_id(user):
     # [a-z_][a-z0-9_-]*? that ends with a fixed @elixir-europe.org
 
     return user.split('@')[0]
-    

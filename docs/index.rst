@@ -1,7 +1,7 @@
 Throughout this documentation, we can refer to Central EGA as
 ``CEGA``, or ``CentralEGA``, and *any* Local EGA instance as ``LEGA``,
 or ``LocalEGA``.  When two or more Local EGA instances are involved,
-we will use ``LEGA<i>`` for Local EGA instance ``<i>``.
+we will use LEGA :sub:`i` for Local EGA instance *i*.
 
 ================
 Local EGA
@@ -21,7 +21,7 @@ become searchable by the Central EGA's engine.
 
 ----
 
-More concretly, Central EGA contains a database of users. The Central
+More concretely, Central EGA contains a database of users. The Central
 EGA' ID is used to authenticate the user against either their EGA
 password or an RSA key.
 
@@ -34,13 +34,16 @@ properly uploaded.
 
 When a submission is ready, Central EGA triggers an ingestion process
 on the user-chosen Local EGA instance. The uploaded file must be
-encrypted using the OpenPGP protocol and that Local EGA instance
-key. The file is first decrypted by the LocalEGA instance and then
-re-encrypted into its vault. Central EGA's interface is then updated
-with notifications whether the ingestion went right, whether there was
-an error or if the process is still under progress.
+encrypted in the :download:`Crypt4GH file format
+<./static/crypt4gh.pdf>` using that Local EGA's public PGP
+key. Central EGA's interface is updated with progress notifications
+whether the ingestion was successful, or whether there was an error.
 
 |moreabout| More details about the :ref:`ingestion process`.
+
+.. image:: /static/components.png
+   :target: ./_static/components.png
+   :alt: General Architecture and Connected Components
 
 ----
 
@@ -52,6 +55,7 @@ Getting started
    :name: setup
 
    Getting started      <setup>
+   Bootstrap & Deploy   <bootstrap>
 
 Information about the Architecture
 ==================================
@@ -61,32 +65,34 @@ Information about the Architecture
    :name: architecture
 
    Inbox                <inbox>
-   Ingestion            <ingestion/overview.rst>
-   Encryption           <ingestion/encryption.rst>
-   Database             <ingestion/db.rst>
+   Ingestion            <ingestion>
    CEGA from/to LEGA    <connection>
 
-Miscellaneous
-=============
+..
+   Miscellaneous
+   =============
 
-.. toctree::
-   :maxdepth: 1
-   :name: extra
+   .. toctree::
+      :maxdepth: 1
+      :name: extra
 
-   API documentation    <code>
-   Contributing         <CONTRIBUTING>
-   policies
+      Python Modules       <code>
+      Testsuite            <tests>
+      Contributing         <CONTRIBUTING>
 
-|Codacy| | |Travis| | Version |version| | Generated |today|
+| Version |version| | Generated |today|
+
+..
+   |Codacy| | |Travis| | Version |version| | Generated |today|
 
 
-.. |Codacy| image:: https://api.codacy.com/project/badge/Grade/3dd83b28ec2041889bfb13641da76c5b
-	:alt: Codacy Badge
-	:class: inline-baseline
+   .. |Codacy| image:: https://api.codacy.com/project/badge/Grade/3dd83b28ec2041889bfb13641da76c5b
+	   :alt: Codacy Badge
+	   :class: inline-baseline
 
-.. |Travis| image:: https://travis-ci.org/NBISweden/LocalEGA.svg?branch=dev
-	:alt: Build Status
-	:class: inline-baseline
+   .. |Travis| image:: https://travis-ci.org/EGA-archive/LocalEGA.svg?branch=dev
+	   :alt: Build Status
+	   :class: inline-baseline
 
 .. |moreabout| unicode:: U+261E .. right pointing finger
 .. |connect| unicode:: U+21cc .. <-_>

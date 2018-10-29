@@ -1,7 +1,12 @@
 # -*- coding: utf-8 -*-
+'''
+Exceptions
+'''
 
+#############################################################################
+# User Errors
+#############################################################################
 
-# Errors for the users
 class FromUser(Exception):
     def __str__(self): # Informal description
         return 'Incorrect user input'
@@ -30,16 +35,6 @@ class CompanionNotFound(FromUser):
     def __repr__(self):
         return f'Companion file not found for {self.name}'
         
-class GPGDecryption(FromUser):
-    def __init__(self, retcode, errormsg, filename):
-        self.retcode = retcode
-        self.error = errormsg
-        self.filename = filename
-    def __str__(self):
-        return f'Decryption error'
-    def __repr__(self):
-        return f'Decryption error ({self.retcode}): {self.error}'
-
 class Checksum(FromUser):
     def __init__(self, algo, file=None, decrypted=False):
         self.algo = algo
@@ -50,29 +45,28 @@ class Checksum(FromUser):
     def __repr__(self):
         return 'Invalid {} checksum for the {} file: {}'.format(self.algo, 'original' if self.decrypted else 'encrypted', self.file)
 
-# Any other exception is caught by us
-class MessageError(Exception):
+# Is it really a user error?
+class SessionKeyAlreadyUsedError(FromUser):
+    def __init__(self, checksum):
+        self.checksum = checksum
     def __str__(self):
-        return f'Error decoding the message from the queue'
-
-class VaultDecryption(Exception):
-    def __init__(self, filename):
-        self.filename = filename
-    def __str__(self):
-        return f'Decrypting archived file failed'
+        return 'Session key (likely) already used.'
     def __repr__(self):
-        return f'Decrypting {self.filename} from the vault failed'
+        return f'Session key (likely) already used [checksum: {self.checksum}].'
+
+#############################################################################
+# Any other exception is caught by us
+#############################################################################
 
 class AlreadyProcessed(Warning):
-    def __init__(self, filename, enc_checksum_hash, enc_checksum_algorithm, submission_id):
-        #self.file_id = file_id
+    def __init__(self, user, filename, enc_checksum_hash, enc_checksum_algorithm):
+        self.user = user
         self.filename = filename
         self.enc_checksum_hash = enc_checksum_hash
         self.enc_checksum_algorithm = enc_checksum_algorithm
-        self.submission_id = submission_id
     def __repr__(self):
         return (f'Warning: File already processed\n'
-                #f'\t* id: {self.file_id}\n'
+                f'\t* user: {self.user}\n'
                 f'\t* name: {self.filename}\n'
-                f'\t* submission id: {submission_id})\n'
                 f'\t* Encrypted checksum: {enc_checksum_hash} (algorithm: {enc_checksum_algorithm}')
+

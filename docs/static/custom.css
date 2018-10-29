@@ -1,3 +1,5 @@
+body { overflow-x: initial !important; } /* Fix readthedocs bug */
+
 .bolditalic { font-weight: bold; font-style:italic; }
 
 /* footer * { display:none; } */

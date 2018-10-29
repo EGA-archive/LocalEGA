@@ -4,77 +4,127 @@
 '''
 ####################################
 #
-# Decrypting file from the vault, given a stable ID.
+# Checking permissions for a given stable ID.
 #
-# Only used for testing to see if:
-# * the encrypted file can be decrypted
-# * the decrypted content matches the original file (by comparing the checksums)
+# ... and forwarding to the re-encryption streamer
 #
 ####################################
 '''
 
 import sys
 import logging
-from urllib.request import urlopen
-#import tempfile
-import json
+import ssl
+from pathlib import Path
+import asyncio
+import uvloop
+asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
-from .conf import CONF
-from .utils import db, checksum
-from .utils.crypto import decrypt_from_vault
+from aiohttp import web, ClientSession, ClientTimeout
 
-LOG = logging.getLogger('outgestion')
+from .conf import CONF, configure
 
-def get_master_key():
-    keyurl = CONF.get('ingestion','keyserver_endpoint_rsa')
-    LOG.info(f'Retrieving the Master Public Key from {keyurl}')
-    try:
-        # Prepare to contact the Keyserver for the Master key
-        with urlopen(keyurl) as response:
-            return json.loads(response.read().decode())
-    except Exception as e:
-        LOG.error(repr(e))
-        LOG.critical('Problem contacting the Keyserver. Ingestion Worker terminated')
-        sys.exit(1)
+LOG = logging.getLogger(__name__)
 
-def get_info(fileid):
-    # put your dirty hands in the database
-    with db.connect() as conn:
-        with conn.cursor() as cur:
-            query = 'SELECT org_checksum, org_checksum_algo, filepath from files WHERE stable_id = %(file_id)s;'
-            cur.execute(query, { 'file_id': fileid})
-            return cur.fetchone()
+async def outgest(r):
+    # Get token from header
+    auth = r.headers.get('Authorization')
+    if not auth.lower().startswith('bearer '):
+        raise web.HTTPBadRequest(reason='Invalid request')
+    access_token = auth[7:]
+    LOG.debug('Access Token from header: %s', access_token)
+    if not access_token:
+        LOG.error('Invalid Access: Missing access_token')
+        raise web.HTTPBadRequest(reason='Invalid Request')
 
+    # Get POST data and check it
+    data = await r.post()
+    stable_id = data.get('stable_id')
+    if not stable_id:
+        LOG.error('Invalid Request: Missing stable ID')
+        raise web.HTTPBadRequest(reason='Invalid Request')
+    # method = data.get('method')
+    # if not method:
+    #     LOG.error('Invalid Request: Missing reencryption method')
+    #     raise web.HTTPBadRequest(reason='Invalid Request')
+    pubkey = data.get('pubkey')
+    if not pubkey:
+        LOG.error('Invalid Request: Missing public key for reencryption')
+        raise web.HTTPBadRequest(reason='Invalid Request')
 
-def main(args=None):
-    print("====== JUST FOR TESTING =======", file=sys.stderr)
-    if not args:
-        args = sys.argv[1:]
+    # Check now Permissions, for that stable_id. If 200 OK, then granted
+    permissions_url = r.app['permissions_url'] % stable_id
 
-    CONF.setup(args) # re-conf
+    async with ClientSession() as session:
+        LOG.debug('POST Request: %s', permissions_url)
+        async with session.request('GET',
+                                   permissions_url,
+                                   headers={ 'Authorization': auth, # same as above
+                                             'Accept': 'application/json',
+                                             'Cache-Control': 'no-cache' }) as response:
+            if response.status > 200:
+                LOG.error("Invalid permissions for stable_id %s [status: %s]", stable_id, response.status)
+                raise web.HTTPBadRequest(text='Invalid request')
 
-    master_key = get_master_key() # might exit
+    # Valid Permissions: Forward to Re-Encryption
+    LOG.info("Valid Request and Permissions: Forwarding to Re-Encryption Streamer")
+    streamer_url = CONF.get_value('outgestion', 'streamer_endpoint')
+    timeout = ClientTimeout(total=CONF.get_value('outgestion', 'timeout', conv=int, default=300))
+    async with ClientSession(timeout=timeout) as session:
+        LOG.debug('POST Request: %s', streamer_url)
+        async with session.request('POST',
+                                   streamer_url,
+                                   headers={ 'Content-Type': 'application/json' },
+                                   json={ 'stable_id': stable_id,
+                                          'pubkey': pubkey,
+                                          'client_ip': r.remote }) as response:
 
-    LOG.info(f"Master Key ID: {master_key['id']}")
-    LOG.debug(f"Master Key: {master_key}")
+            LOG.debug('Response: %s', response)
+            LOG.debug('Response type: %s', response.headers.get('CONTENT-TYPE'))
+            if response.status > 200:
+                raise web.HTTPBadRequest(reason=f'HTTP status code: {response.status}')
 
-    stable_id = args[-1]
-    LOG.debug(f"Requested stable ID: {stable_id}")
-    org_checksum, org_checksum_algo, filepath = get_info(stable_id)
-    LOG.debug(f"Orginal {org_checksum_algo} checksum: {org_checksum}")
-    LOG.debug(f"Vault path: {filepath}")
+            # Ready to answer
+            resp = web.StreamResponse(status=200, reason='OK', headers={'Content-Type': 'application/octet-stream'})
+            await resp.prepare(r)
+            # Forwarding the content
+            while True:
+                chunk = await response.content.read(1<<22) # 4 MB
+                if not chunk:
+                    break
+                await resp.write(chunk)
+                await resp.drain()
 
-    # Decrypting
-    with open(filepath,'rb') as infile: #tempfile.TemporaryFile() as outfile, 
-        hasher = checksum.instantiate(org_checksum_algo)
-        decrypt_from_vault(infile, master_key, hasher=hasher) # outfile=None
-        
-        # Check integrity of decrypted file
-        if org_checksum != hasher.hexdigest():
-            print("Aiiieeee...bummer.... Invalid checksum")
-            sys.exit(2)
-        else:
-            sys.stdout.buffer.write(b"All good \xF0\x9F\x91\x8D\n")
+            # Finally
+            await resp.write_eof()
+            return resp
+
+@configure
+def main():
+
+    host = CONF.get_value('outgestion', 'host')  # fallbacks are in defaults.ini
+    port = CONF.get_value('outgestion', 'port', conv=int)
+
+    sslcontext = None
+    if CONF.get_value('outgestion', 'enable_ssl', conv=bool, default=True):
+        ssl_certfile = Path(CONF.get_value('outgestion', 'ssl_certfile')).expanduser()
+        ssl_keyfile = Path(CONF.get_value('outgestion', 'ssl_keyfile')).expanduser()
+        LOG.debug(f'Certfile: {ssl_certfile}')
+        LOG.debug(f'Keyfile: {ssl_keyfile}')
+        sslcontext = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+        sslcontext.check_hostname = False
+        sslcontext.load_cert_chain(ssl_certfile, ssl_keyfile)
+
+    #loop = asyncio.get_event_loop()
+    #loop.set_debug(True)
+
+    server = web.Application()
+    server.router.add_post('/', outgest) 
+
+    # Initialization
+    server['permissions_url'] = CONF.get_value('outgestion', 'permissions_endpoint', raw=True)
+
+    LOG.info(f"Start outgest server on {host}:{port}")
+    web.run_app(server, host=host, port=port, shutdown_timeout=0, ssl_context=sslcontext)
 
 
 if __name__ == '__main__':
