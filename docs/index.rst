@@ -47,26 +47,15 @@ whether the ingestion was successful, or whether there was an error.
 
 ----
 
-Getting started
-===============
-
-.. toctree::
-   :maxdepth: 2
-   :name: setup
-
-   Getting started      <setup>
-   Bootstrap & Deploy   <bootstrap>
-
-Information about the Architecture
-==================================
-
 .. toctree::
    :maxdepth: 2
    :name: architecture
 
+   Installation         <setup>
    Inbox                <inbox>
    Ingestion            <ingestion>
    CEGA from/to LEGA    <connection>
+   More on...           <extra>
 
 ..
    Miscellaneous

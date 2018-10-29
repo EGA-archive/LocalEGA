@@ -17,7 +17,7 @@ Users are handled through Central EGA, directly.
 ''',
       packages=['lega', 'lega/utils', 'lega/conf'],
       include_package_data=False,
-      package_data={ 'lega': ['conf/loggers/*.yaml', 'conf/defaults.ini'] },
+      package_data={'lega': ['conf/loggers/*.yaml', 'conf/defaults.ini']},
       zip_safe=False,
       entry_points={
           'console_scripts': [
@@ -30,5 +30,5 @@ Users are handled through Central EGA, directly.
               'ega-cleanup   = lega.cleanup:main',
           ]
       },
-      platforms = 'any',
+      platforms='any',
 )

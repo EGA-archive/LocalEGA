@@ -2,7 +2,7 @@
 import sys
 
 import requests
-import json
+#import json
 
 TOKEN_URL = "https://egatest.crg.eu/idp/token"
 
