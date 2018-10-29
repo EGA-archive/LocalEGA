@@ -1,4 +1,6 @@
-"""Ensures communication with RabbitMQ Message Broker."""
+"""
+Ensures communication with RabbitMQ Message Broker
+"""
 
 import logging
 import pika
@@ -9,14 +11,16 @@ from ..conf import CONF
 
 LOG = logging.getLogger(__name__)
 
+connection = None
 
 def get_connection(domain, blocking=True):
-    """Return a blocking connection to the Message Broker supporting AMQP(S).
+    '''
+    Returns a blocking connection to the Message Broker supporting AMQP(S).
 
     The host, portm virtual_host, username, password and
     heartbeat values are read from the CONF argument.
     So are the SSL options.
-    """
+    '''
     assert domain in CONF.sections(), "Section not found in config file"
 
     params = {
@@ -28,7 +32,7 @@ def get_connection(domain, blocking=True):
             CONF.get_value(domain, 'password', default='guest')
         ),
         'connection_attempts': CONF.get_value(domain, 'connection_attempts', conv=int, default=10),
-        'retry_delay': CONF.get_value(domain, 'retry_delay', conv=int, default=10),  # seconds
+        'retry_delay': CONF.get_value(domain,'retry_delay', conv=int, default=10), # seconds
     }
     heartbeat = CONF.get_value(domain, 'heartbeat', conv=int, default=0)
     if heartbeat is not None:  # can be 0
@@ -43,7 +47,7 @@ def get_connection(domain, blocking=True):
         params['ssl_options'] = {
             'ca_certs': CONF.get_value(domain, 'cacert'),
             'certfile': CONF.get_value(domain, 'cert'),
-            'keyfile': CONF.get_value(domain, 'keyfile'),
+            'keyfile':  CONF.get_value(domain, 'keyfile'),
             'cert_reqs': 2,  # ssl.CERT_REQUIRED is actually <VerifyMode.CERT_REQUIRED: 2>
         }
 
@@ -54,20 +58,40 @@ def get_connection(domain, blocking=True):
         return pika.BlockingConnection(pika.ConnectionParameters(**params))
     return pika.SelectConnection(pika.ConnectionParameters(**params))
 
+def close():
+    global channel
+    global connection
+    if channel and not channel.is_closed and not channel.is_closing:
+        channel.close()
+    channel = None
+    if connection and not connection.is_closed and not connection.is_closing:
+        connection.close()
+    connection = None
 
-def publish(message, channel, exchange, routing, correlation_id=None):
-    """Send a message to the local broker with ``path`` was updated."""
+def open_channel(force_reconnect=False):
+    global channel
+    global connection
+    if connection is None or channel is None:
+        LOG.debug('Opening connection to local broker')
+        connection = get_connection('broker')
+        channel = connection.channel()
+    
+
+def publish(message, exchange, routing, correlation_id=None):
+    '''
+    Sending a message to the local broker with ``path`` was updated
+    '''
+    open_channel()
     LOG.debug(f'Sending {message} to exchange: {exchange} [routing key: {routing}]')
-    channel.basic_publish(exchange=exchange,
-                          routing_key=routing,
-                          body=json.dumps(message),
-                          properties=pika.BasicProperties(correlation_id=correlation_id or str(uuid.uuid4()),
-                                                          content_type='application/json',
-                                                          delivery_mode=2))
+    channel.basic_publish(exchange    = exchange,
+                          routing_key = routing,
+                          body        = json.dumps(message),
+                          properties  = pika.BasicProperties(correlation_id=correlation_id or str(uuid.uuid4()),
+                                                             content_type='application/json',
+                                                             delivery_mode=2))
 
-
-def consume(work, connection, from_queue, to_routing):
-    """Blocking function, registering callback ``work`` to be called.
+def consume(work, from_queue, to_routing, ack_on_error=True):
+    '''Blocking function, registering callback ``work`` to be called.
 
     from_broker must be a pair (from_connection: pika:Connection, from_queue: str)
     to_broker must be a triplet (to_connection: pika:Connection, to_exchange: str, to_routing: str)
@@ -78,37 +102,49 @@ def consume(work, connection, from_queue, to_routing):
     If the function ``work`` returns a non-None message, the latter is
     published to the `lega` exchange with ``to_routing`` as the
     routing key.
-    """
-    assert(from_queue)
+    '''
 
-    LOG.debug(f'Consuming message from {from_queue}')
+    assert( from_queue )
 
-    from_channel = connection.channel()
-    from_channel.basic_qos(prefetch_count=1)  # One job per worker
-    to_channel = connection.channel()
-
-    def process_request(channel, method_frame, props, body):
+    def process_request(_channel, method_frame, props, body):
         correlation_id = props.correlation_id
         message_id = method_frame.delivery_tag
         LOG.debug(f'Consuming message {message_id} (Correlation ID: {correlation_id})')
 
         # Process message in JSON format
-        answer = work(json.loads(body))  # Exceptions should be already caught
+        answer, error = work( json.loads(body) ) # Exceptions should be already caught
 
         # Publish the answer
         if answer:
-            assert(to_routing)
-            publish(answer, to_channel, 'lega', to_routing, correlation_id=props.correlation_id)
+            assert( to_routing )
+            publish(answer, 'lega', to_routing, correlation_id = props.correlation_id)
 
         # Acknowledgment: Cancel the message resend in case MQ crashes
-        LOG.debug(f'Sending ACK for message {message_id} (Correlation ID: {correlation_id})')
-        channel.basic_ack(delivery_tag=method_frame.delivery_tag)
+        if not error or ack_on_error:
+            LOG.debug(f'Sending ACK for message {message_id} (Correlation ID: {correlation_id})')
+            _channel.basic_ack(delivery_tag=method_frame.delivery_tag)
 
     # Let's do this
-    try:
-        from_channel.basic_consume(process_request, queue=from_queue)
-        from_channel.start_consuming()
-    except KeyboardInterrupt:
-        from_channel.stop_consuming()
-    finally:
-        connection.close()
+    LOG.debug(f'Consuming message from {from_queue}')
+    while True:
+        open_channel() # might raise exception
+        try:
+            channel.basic_qos(prefetch_count=1) # One job per worker
+            channel.basic_consume(process_request, queue=from_queue)
+            channel.start_consuming()
+        except KeyboardInterrupt:
+            channel.stop_consuming()
+        except pika.exceptions.ConnectionClosed as e:
+            LOG.debug('Retrying after %s', e)
+            close()
+            continue
+        break
+
+    close()
+
+
+def tell_cega(message, status):
+    message['status'] = status
+    LOG.debug(f'Sending message to CentralEGA: {message}')
+    publish(message, 'cega', 'files.processing')
+    message.pop('status', None)

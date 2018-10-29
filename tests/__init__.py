@@ -1,2 +1,1 @@
 # ---
-"""Testing LocalEGA module."""
