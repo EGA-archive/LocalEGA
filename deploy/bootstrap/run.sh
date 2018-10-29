@@ -172,8 +172,9 @@ version: '3'
 
 # Use the default driver for network creation
 networks:
-  lega:
+  lega-external:
   lega-internal:
+  lega-private:
 
 # Use the default driver for volume creation
 volumes:
@@ -224,7 +225,7 @@ services:
       - ../images/db/grants.sql:/docker-entrypoint-initdb.d/grants.sql:ro
       - ../images/db/entrypoint.sh:/usr/bin/ega-entrypoint.sh
     networks:
-      - lega-internal
+      - lega-private
     entrypoint: ["/bin/bash", "/usr/bin/ega-entrypoint.sh"]
 
   # SFTP inbox
@@ -245,7 +246,8 @@ services:
       - ~/_ega/lega:/home/lega/.local/lib/python3.6/site-packages/lega
       - ~/_auth:/root/_auth
     networks:
-      - lega
+      - lega-external
+      - lega-internal
 #    entrypoint: ["/bin/bash", "/usr/bin/ega-entrypoint.sh"]
 
   # Ingestion Workers
@@ -266,6 +268,7 @@ services:
        - ~/_cryptor/crypt4gh:/home/lega/.local/lib/python3.6/site-packages/crypt4gh
     networks:
       - lega-internal
+      - lega-private
     entrypoint: ["gosu", "lega", "ega-ingest"]
 
   # Checksum validation
@@ -286,6 +289,7 @@ services:
       - ~/_cryptor/crypt4gh:/home/lega/.local/lib/python3.6/site-packages/crypt4gh
     networks:
       - lega-internal
+      - lega-private
     entrypoint: ["gosu", "lega", "ega-verify"]
 
   # Stable ID mapper, and inbox clean up
@@ -299,6 +303,7 @@ services:
       - ~/_ega/lega:/home/lega/.local/lib/python3.6/site-packages/lega
     networks:
       - lega-internal
+      - lega-private
     entrypoint: ["gosu", "lega", "ega-finalize"]
 
   # Here we use S3
@@ -312,7 +317,7 @@ services:
     volumes:
       - vault:/data
     networks:
-      - lega-internal
+      - lega-private
     command: server /data
 
   # HTTP Data-Edge (using OpenID Connect + Permissions Server)
@@ -328,7 +333,7 @@ services:
       - ./outgest.key:/etc/ega/ssl.key
       - ~/_ega/lega:/home/lega/.local/lib/python3.6/site-packages/lega
     networks:
-      - lega
+      - lega-external
       - lega-internal
     entrypoint: ["gosu", "lega", "ega-outgest"]
 
@@ -351,6 +356,7 @@ services:
       - ~/_cryptor/crypt4gh:/home/lega/.local/lib/python3.6/site-packages/crypt4gh
     networks:
       - lega-internal
+      - lega-private
     entrypoint: ["gosu", "lega", "ega-streamer"]
 EOF
 
