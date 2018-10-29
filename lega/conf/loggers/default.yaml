@@ -4,24 +4,11 @@ root:
   handlers: [noHandler]
 
 loggers:
-  openpgp:
+  lega:
     level: INFO
     handlers: [syslog,mainFile]
-  keyserver:
-    level: INFO
-    handlers: [syslog,console]
-  ingestion:
-    level: INFO
-    handlers: [syslog,mainFile]
-  vault:
-    level: INFO
-    handlers: [syslog,mainFile]
-  verify:
-    level: INFO
-    handlers: [syslog,mainFile]
-  inbox:
-    level: INFO
-    handlers: [syslog,mainFile]
+    propagate: true
+    qualname: lega
 
 handlers:
   noHandler:

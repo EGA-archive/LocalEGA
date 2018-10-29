@@ -1,17 +1,23 @@
 # -*- coding: utf-8 -*-
-
+"""
+Computes the checksum.
+"""
 import logging
 import hashlib
 
 from .exceptions import UnsupportedHashAlgorithm, CompanionNotFound
 
-LOG = logging.getLogger('utils-checksum')
+LOG = logging.getLogger(__name__)
 
 # Main map
 _DIGEST = {
     'md5': hashlib.md5,
     'sha256': hashlib.sha256,
 }
+
+def supported_algorithms():
+    """Supported hashing algorithms, currently ``md5`` and ``sha256``."""
+    return tuple(_DIGEST.keys())
 
 def instantiate(algo):
     try:
@@ -21,7 +27,7 @@ def instantiate(algo):
 
 def calculate(filepath, algo, bsize=8192):
     '''
-    Computes the checksum of the file-object `f` using the message digest `m`.
+    Computes the checksum of the file-object ``f`` using the message digest ``m``.
     '''
     try:
         m = instantiate(algo)
@@ -38,7 +44,7 @@ def calculate(filepath, algo, bsize=8192):
 
 
 def is_valid(filepath, digest, hashAlgo = 'md5'):
-    '''Verify the integrity of a file against a hash value'''
+    '''Verify the integrity of a file against a hash value.'''
 
     assert( isinstance(digest,str) )
 

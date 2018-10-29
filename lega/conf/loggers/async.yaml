@@ -1,0 +1,50 @@
+version: 1
+root:
+  level: NOTSET
+  handlers: [noHandler]
+
+loggers:
+  lega:
+    level: DEBUG
+    handlers: [debugFile,console]
+    propagate: True
+    qualname: lega
+  asyncio:
+    level: DEBUG
+    handlers: [console]
+    propagate: True
+    qualname: asyncio
+  aiohttp:
+    level: DEBUG
+    handlers: [console]
+    propagate: True
+    qualname: aiohttp
+  aiopg:
+    level: DEBUG
+    handlers: [console]
+    propagate: True
+    qualname: aiopg
+
+
+handlers:
+  noHandler:
+    class: logging.NullHandler
+    level: NOTSET
+  console:
+    class: logging.StreamHandler
+    formatter: simple
+    stream: ext://sys.stderr
+  debugFile:
+    class: logging.FileHandler
+    formatter: lega
+    filename: '/tmp/ega-debug.log'
+    mode: 'w'
+
+formatters:
+  lega:
+    format: '[{asctime:<20}][{name}][{process:d} {processName:>15}][{levelname}] (L:{lineno}) {funcName}: {message}'
+    style: '{'
+    datefmt: '%Y-%m-%d %H:%M:%S'
+  simple:
+    format: '[{name:^10}][{levelname:^6}] (L{lineno}) {message}'
+    style: '{'

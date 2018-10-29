@@ -1,8 +1,0 @@
-.terraform*
-*.tfstate*
-*.rc
-private
-cega/private
-test/*
-!test/Makefile
-!test/*.png
