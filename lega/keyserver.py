@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 
-"""The Keyserver provides a REST endpoint for retrieving PGP and Re-encryption keys.
+'''\
+The Keyserver provides a REST endpoint for retrieving PGP and Re-encryption keys.
 
-The keyserver also registers with Eureka service discovery.
-"""
+:author: Frédéric Haziza
+:copyright: (c) 2018, EGA System Developers.
+'''
 
 
 import sys
@@ -16,20 +18,19 @@ from pathlib import Path
 import ssl
 
 from aiohttp import web
-import pgpy
+from nacl.public import PublicKey
 
-from .conf import CONF, KeysConfiguration
-from .utils.eureka import EurekaClient
+from .conf import CONF, configure
+from .conf.keys import KeysConfiguration
 
 LOG = logging.getLogger(__name__)
 routes = web.RouteTableDef()
-
 
 class Cache:
     """In memory cache."""
 
     def __init__(self, max_size=10, ttl=None):
-        """Initialize cache."""
+        """Initialise cache."""
         self.store = dict()
         self.max_size = max_size
         self.ttl = ttl
@@ -71,7 +72,7 @@ class Cache:
         return keys
 
     def _time_delta(self, expire):
-        """Convert time left in human readable format."""
+        """"Convert time left in human readable format."""
         # A lot of back and forth transformation
         end_time = datetime.datetime.fromtimestamp(expire).strftime(self.FMT)
         today = datetime.datetime.today().strftime(self.FMT)
@@ -95,19 +96,19 @@ class Cache:
 
     def clear(self):
         """Clear all cache."""
+        #self.store = dict()
         self.store.clear()
 
 
-_cache = None   # key IDs are uppercase
-_active = None  # will be a KeyID (not a key name)
+_cache = None  # key IDs are uppercase
+_active = None # will be a KeyID (not a key name)
 
 ####################################
 # Caching the keys
 ####################################
 
-
 def _unlock_key(name, active=None, path=None, expire=None, passphrase=None, **kwargs):
-    """Unlock a key and loading it in the cache."""
+    """Unlocking a key and loading it in the cache."""
     key, _ = pgpy.PGPKey.from_file(path)
     assert not key.is_public, f"The key {name} should be private"
     with key.unlock(passphrase) as k:
@@ -123,179 +124,77 @@ def _unlock_key(name, active=None, path=None, expire=None, passphrase=None, **kw
 # Retrieve the active keys
 ####################################
 
-
 @routes.get('/active/{key_type}')
 async def retrieve_active_key(request):
-    """Retrieve the active key from the cache and serve it via HTTPS."""
     key_type = request.match_info['key_type'].lower()
     LOG.debug(f'Requesting active ({key_type}) key')
     if key_type not in ('public', 'private'):
-        return web.HTTPForbidden()  # web.HTTPBadRequest()
+        return web.HTTPForbidden() # web.HTTPBadRequest()
     key_format = 'armored' if request.content_type == 'text/plain' else None
     if _active is None:
         return web.HTTPNotFound()
     k = _cache.get(_active, key_type, key_format=key_format)
     if k:
-        return web.Response(body=k)  # web.Response(text=k.hex())
+        return web.Response(body=k) # web.Response(text=k.hex())
     else:
         LOG.warn(f"Requested active ({key_type}) key not found.")
         return web.HTTPNotFound()
 
-
 @routes.get('/retrieve/{requested_id}/{key_type}')
 async def retrieve_key(request):
-    """Retrieve a specific key via keyID or fingerprint from the cache and serve it via HTTPS."""
     LOG.debug('Retrieve key')
     requested_id = request.match_info['requested_id']
     key_type = request.match_info['key_type'].lower()
     if key_type not in ('public', 'private'):
-        return web.HTTPForbidden()  # web.HTTPBadRequest()
+        return web.HTTPForbidden() # web.HTTPBadRequest()
     key_id = requested_id[-16:].upper()
     key_format = 'armored' if request.content_type == 'text/plain' else None
     LOG.debug(f'Requested {key_type.upper()} key with ID {requested_id}')
     k = _cache.get(key_id, key_type, key_format=key_format)
     if k:
-        return web.Response(body=k)  # web.Response(text=value.hex())
+        return web.Response(body=k) # web.Response(text=value.hex())
     else:
         LOG.warn(f"Requested key {requested_id} not found.")
         return web.HTTPNotFound()
 
 
-@routes.post('/admin/unlock')
-async def unlock_key(request):
-    """Unlock a key via a POST request.
-
-    POST request takes the form:
-    {"private": "path/to/file.sec", "passphrase": "pass", "expire": "30/MAR/18 08:00:00"}
-    """
-    key_info = await request.json()
-    LOG.debug(f'Admin unlocking: {key_info}')
-    if all(k in key_info for k in("path", "passphrase", "expire")):
-        _unlock_key('whichname?', **key_info)
-        return web.HTTPAccepted()
-    else:
-        return web.HTTPBadRequest()
-
-
-@routes.get('/health')
-async def healthcheck(request):
-    """Return ok, health endpoint for service discovery.
-
-    It will always return ok.
-    """
-    LOG.debug('Healthcheck called')
-    return web.HTTPOk()
-
-
-# TO BE REMOVED
-@routes.get('/admin/ttl')
-async def check_ttl(request):
-    """Evict from the cache if TTL expired and return the keys that survived."""
-    LOG.debug('Admin TTL')
-    expire = _cache.check_ttl()
-    if expire:
-        return web.json_response(expire)
-    else:
-        return web.HTTPBadRequest()
-
-
-def load_keys_conf(store):
-    """Parse and load keys configuration."""
-    # Cache the active key names
+async def init(app):
+    '''Initialization running before the loop.run_forever'''
+    # Note: will exit on failure
     global _cache
     _cache = Cache()
+    store = app['store']
     # Load all the keys in the store
     for section in store.sections():
-        _unlock_key(section, **dict(store.items(section)))  # includes defaults
+        _unlock_key(section, **dict(store.items(section))) # includes defaults
 
-
-alive = True  # used to set if the keyserver is alive in the shutdown
-
-
-async def renew_lease(eureka, interval):
-    """Renew eureka lease at specific interval."""
-    while alive:
-        await asyncio.sleep(interval)
-        await eureka.renew()
-        LOG.info('Keyserver Eureka lease renewed.')
-
-
-async def init(app):
-    """Initialize run before the loop.run_forever."""
-    app['renew_eureka'] = app.loop.create_task(renew_lease(app['eureka'], app['interval']))
-    # Note: will exit on failure
-    load_keys_conf(app['store'])
-    await app['eureka'].register()
-    LOG.info('Keyserver registered with Eureka.')
-
-
-async def shutdown(app):
-    """Perform shutdown, after a KeyboardInterrupt.
-
-    After that: cleanup.
-    """
-    LOG.info('Shutting down the database engine')
-    global alive
-    await app['eureka'].deregister()
-    alive = False
-
-
-async def cleanup(app):
-    """Perform cleanup, after a KeyboardInterrupt.
-
-    Right after, the loop is closed.
-    """
-    LOG.info('Cancelling all pending tasks')
-    # THIS SPAWNS an error see https://github.com/aio-libs/aiohttp/blob/master/aiohttp/web_runner.py#L178
-    # for more details how the cleanup happens.
-    # for task in asyncio.Task.all_tasks():
-    #     task.cancel()
-
-
-def main(args=None):
-    """Run keyserver with configuration."""
-    if not args:
-        args = sys.argv[1:]
-
-    CONF.setup(args)
+@configure
+def main():
+    """Where the magic happens."""
 
     host = CONF.get_value('keyserver', 'host')  # fallbacks are in defaults.ini
     port = CONF.get_value('keyserver', 'port', conv=int)
-    health_check_url = 'http://{}:{}{}'.format(host, port, CONF.get_value('keyserver', 'health_endpoint'))
-    status_check_url = 'http://{}:{}{}'.format(host, port, CONF.get_value('keyserver', 'status_endpoint'))
-
-    eureka_endpoint = CONF.get_value('eureka', 'endpoint')
 
     ssl_certfile = Path(CONF.get_value('keyserver', 'ssl_certfile')).expanduser()
     ssl_keyfile = Path(CONF.get_value('keyserver', 'ssl_keyfile')).expanduser()
     LOG.debug(f'Certfile: {ssl_certfile}')
     LOG.debug(f'Keyfile: {ssl_keyfile}')
-    sslcontext = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-    sslcontext.check_hostname = False
-    sslcontext.load_cert_chain(ssl_certfile, ssl_keyfile)
 
-    loop = asyncio.get_event_loop()
+    context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    context.load_cert_chain(ssl_certfile, ssl_keyfile)
 
-    keyserver = web.Application(loop=loop)
+    keyserver = web.Application()
     keyserver.router.add_routes(routes)
 
     # Adding the keystore to the server
-    keyserver['store'] = KeysConfiguration(args)
-    keyserver['interval'] = CONF.get_value('eureka', 'try_interval', conv=int, default=20)
-    keyserver['eureka'] = EurekaClient("keyserver", port=port, ip_addr=host,
-                                       eureka_url=eureka_endpoint, hostname=host,
-                                       health_check_url=health_check_url,
-                                       status_check_url=status_check_url,
-                                       loop=loop)
+    keyserver['store'] = KeysConfiguration(sys.argv[1:])
 
     # Registering some initialization and cleanup routines
     LOG.info('Setting up callbacks')
     keyserver.on_startup.append(init)
-    keyserver.on_shutdown.append(shutdown)
-    keyserver.on_cleanup.append(cleanup)
 
     LOG.info(f"Start keyserver on {host}:{port}")
-    web.run_app(keyserver, host=host, port=port, shutdown_timeout=0, ssl_context=sslcontext)
+    web.run_app(keyserver, host=host, port=port, shutdown_timeout=0, ssl_context=context)
 
 
 if __name__ == '__main__':

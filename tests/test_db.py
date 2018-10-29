@@ -1,20 +1,46 @@
 import unittest
-from lega.utils.db import (insert_file,
-                           get_errors, set_error,
-                           get_info,
-                           store_header, set_archived,
-                           mark_in_progress, mark_completed,
-                           set_stable_id,
-                           fetch_args, connect)
+from lega.utils.db import insert_file, get_errors, set_error, get_info, set_info
+from lega.utils.db import set_status, Status, fetch_args, connect
 from unittest import mock
 import asyncio
 
+class TestDBConnection(unittest.TestCase):
+    """DBConnection
+
+    Testing DBConnection."""
+
+    def setUp(self):
+        """Initialise fixtures."""
+        self._db = DBConnection()
+
+    def tearDown(self):
+        """Close DB connection."""
+        self._db.close()
+
+    @mock.patch('lega.utils.db.psycopg2')
+    def test_connect(self, mock_db_connect):
+        """Test that connection is returning a connection."""
+        self._db.connect()
+        mock_db_connect.connect.assert_called()
+
+    @mock.patch('lega.utils.db.psycopg2')
+    def test_cursor(self, mock_db_connect):
+        """Test that cursor is returning a connection."""
+        self._db.cursor()
+        mock_db_connect.connect.assert_called()
+        mock_db_connect.connect().cursor().execute.assert_called()
+
+    @mock.patch('lega.utils.db.psycopg2')
+    def test_close(self, mock_db_connect):
+        """Test that cursor is returning a connection."""
+        self._db.close()
+        self.assertEqual(self._db.connection, None)
+        self.assertEqual(self._db.curr, None)
 
 class DBTest(unittest.TestCase):
-    """Database.
+    """Database
 
-    Testing database actions.
-    """
+    Testing database actions."""
 
     def setUp(self):
         """Initialise fixtures."""
@@ -33,7 +59,7 @@ class DBTest(unittest.TestCase):
     def test_insert(self, mock_connect):
         """DB insert."""
         mock_connect().__enter__().cursor().__enter__().fetchone.return_value = self._query_result
-        result = insert_file('filename', 'user_id')
+        result = insert_file('filename', 'user_id', 'stable_id')
         assert result == ("example", "result")
 
     @mock.patch('lega.utils.db.connect')
@@ -70,48 +96,23 @@ class DBTest(unittest.TestCase):
         mock_connect().__enter__().cursor().__enter__().execute.assert_called()
 
     @mock.patch('lega.utils.db.connect')
-    def test_store_header(self, mock_connect):
+    def test_set_info(self, mock_connect):
         """DB set progress."""
         # Values are not important in this call
-        store_header("file_id", b'header')
+        set_info("file_id", '/ega/vault/000/000/0a1', 1000, b'header')
         mock_connect().__enter__().cursor().__enter__().execute.assert_called()
 
     @mock.patch('lega.utils.db.connect')
-    def test_set_archived(self, mock_connect):
-        """DB set progress."""
+    def test_set_status(self, mock_connect):
+        """DB set encryption."""
         # Values are not important in this call
-        set_archived("file_id", '/ega/vault/000/000/0a1', 1000)
+        set_status('file_id', Status.In_Progress)
         mock_connect().__enter__().cursor().__enter__().execute.assert_called()
 
-    @mock.patch('lega.utils.db.connect')
-    def test_mark_in_progress(self, mock_connect):
-        """DB mark in progress."""
-        # Values are not important in this call
-        mark_in_progress('file_id')
-        mock_connect().__enter__().cursor().__enter__().execute.assert_called()
-
-    @mock.patch('lega.utils.db.connect')
-    def test_mark_completed(self, mock_connect):
-        """DB mark completed."""
-        # Values are not important in this call
-        mark_completed('file_id')
-        mock_connect().__enter__().cursor().__enter__().execute.assert_called()
-
-    @mock.patch('lega.utils.db.connect')
-    def test_set_stable_id(self, mock_connect):
-        """DB mark completed."""
-        # Values are not important in this call
-        set_stable_id("file_id", 'EGAF00001')
-        mock_connect().__enter__().cursor().__enter__().execute.assert_called()
 
     def test_fetch_args(self):
         """Test fetching arguments."""
         data_object = mock.MagicMock(name='get_value')
         data_object.get_value.return_value = 'value'
         result = fetch_args(data_object)
-        assert {'user': 'value',
-                'password': 'value',
-                'database': 'value',
-                'host': 'value',
-                'port': 'value',
-                'sslmode': 'value'} == result
+        assert {'user': 'value', 'password': 'value', 'database': 'value', 'host': 'value', 'port': 'value'} == result

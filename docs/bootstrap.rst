@@ -1,29 +1,24 @@
 .. _bootstrap:
 
-Bootstrap & Deployments
-=======================
+Bootstrap & Deployment
+======================
 
 In order to simplify the setup of LocalEGA's components, we have
-developed a few bootstrap scripts (one for the `Docker`_ deployment
-and one for the `OpenStack cloud`_ deployment).
+developed a bootstrap script, taylored for the `Docker`_ deployment.
 
-Those script create random passwords, configuration files, PGP keys
-and connect the different components together.
+This script creates random passwords, configuration files, necessary
+public/secret keys and connect the different components together.
 
-All interesting settings are found the respective ``private``
-directory of the LocalEGA instance. Look especially at the ``.trace``
-file there.
+All interesting settings are found in the ``private`` directory. Look
+especially at the ``.trace`` file there.
 
-Moreover, we use different deployment strategies for environments
-like Docker Swarm, Kubernetes, Openstack or a local-machine.
-
-
-* locally, using `docker-compose <https://github.com/NBISweden/LocalEGA/tree/dev/docker>`_;
-* on an OpenStack cluster, using `terraform <https://github.com/NBISweden/LocalEGA-deploy-terraform>`_;
-* on a Kubernetes/OpenShift cluster, using `kubernetes <https://github.com/NBISweden/LocalEGA-deploy-k8s>`_;
-* on a Docker Swarm cluster, using `Gradle <https://github.com/NBISweden/LocalEGA-deploy-swarm>`_.
+.. note::
+   You can find different deployment strategies, covered by our
+   partners, for environments like `Docker Swarm`_, `Kubernetes`_, `Openstack`_.
 
 
+.. _Docker: https://github.com/EGA-archive/LocalEGA/tree/master/deploy
 
-.. _Docker: https://github.com/NBISweden/LocalEGA/tree/dev/docker
-.. _OpenStack cloud: https://github.com/NBISweden/LocalEGA-deploy-terraform
+.. _Docker Swarm: https://github.com/NBISweden/LocalEGA-deploy-swarm
+.. _Kubernetes: https://github.com/NBISweden/LocalEGA-deploy-k8s
+.. _Openstack: https://github.com/NBISweden/LocalEGA-deploy-terraform

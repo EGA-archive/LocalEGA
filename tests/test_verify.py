@@ -10,19 +10,14 @@ from lega.utils.exceptions import PGPKeyError, KeyserverError
 
 
 class PatchContextManager:
-    """Patch Context Manger.
-
-    Following: https://stackoverflow.com/a/32127557 example.
-    """
+    """Following: https://stackoverflow.com/a/32127557 example."""
 
     def __init__(self, method, enter_return, exit_return=False):
-        """Init for class."""
         self._patched = mock.patch(method)
         self._enter_return = enter_return
         self._exit_return = exit_return
 
     def __enter__(self):
-        """Define enter function."""
         res = self._patched.__enter__()
         res.context = mock.MagicMock()
         res.context.__enter__.return_value = self._enter_return
@@ -31,16 +26,13 @@ class PatchContextManager:
         return res
 
     def __exit__(self, type, value, tb):
-        """Define exit function."""
         return self._patched.__exit__()
 
 
 class testVerify(unittest.TestCase):
-    """Verify.
+    """Verify
 
-    Testing verify functionalities.
-    """
-
+    Testing verify functionalities."""
     def setUp(self):
         """Initialise fixtures."""
         self.env = EnvironmentVarGuard()
@@ -125,10 +117,12 @@ class testVerify(unittest.TestCase):
     @tempdir()
     @mock.patch('lega.verify.db')
     @mock.patch('lega.verify.body_decrypt')
+    @mock.patch('lega.verify.publish')
     @mock.patch('lega.verify.get_records')
-    def test_work(self, mock_records, mock_decrypt, mock_db, filedir):
+    def test_work(self, mock_records, mock_publish, mock_decrypt, mock_db, filedir):
         """Test verify worker, should send a messge."""
         # Mocking a lot of stuff, ast it is previously tested
+        mock_publish.return_value = mock.MagicMock()
         mock_db.status.return_value = mock.Mock()
         mock_records.return_value = ['data'], 'key_id'
         mock_decrypt.return_value = mock.Mock()
