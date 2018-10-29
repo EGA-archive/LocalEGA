@@ -18,9 +18,9 @@ host = '127.0.0.1'
 port = 8888
 delim = b'$'
 
-from .conf import CONF
+from .conf import CONF, configure
 from .utils.amqp import publish
-from .utils.checksum import calculate, supported_algorithms
+from .utils.checksum import calculate
 
 LOG = logging.getLogger(__name__)
 
@@ -89,11 +89,8 @@ class Forwarder(asyncio.Protocol):
         self.transport.close()
 
 
-def main(args=None):
-    if not args:
-        args = sys.argv[1:]
-
-    CONF.setup(args)  # re-conf
+@configure
+def main():
 
     loop = asyncio.get_event_loop()
     server = loop.run_until_complete(loop.create_server(Forwarder, host, port))
