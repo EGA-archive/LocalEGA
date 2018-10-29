@@ -1,20 +1,23 @@
-"""Utility functions used internally."""
+"""
+Utility functions used internally.
+"""
 
 import logging
 
 LOG = logging.getLogger(__name__)
 
-
 def get_file_content(f, mode='rb'):
-    """Retrieve a file content."""
     try:
-        with open(f, mode) as h:
+        with open( f, mode) as h:
             return h.read()
     except OSError as e:
         LOG.error(f'Error reading {f}: {e!r}')
         return None
 
-
 def sanitize_user_id(user):
-    """Return username without host part of an ID on the form name@something."""
+    '''Removes the elixir_id from data and adds user_id instead'''
+
+    # Elixir id is of the following form:
+    # [a-z_][a-z0-9_-]*? that ends with a fixed @elixir-europe.org
+
     return user.split('@')[0]

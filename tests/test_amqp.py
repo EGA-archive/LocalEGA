@@ -4,10 +4,9 @@ from lega.utils.amqp import get_connection, publish, consume
 
 
 class BrokerTest(unittest.TestCase):
-    """MQ Broker.
+    """MQ Broker
 
-    Test broker connections.
-    """
+    Test broker connections."""
 
     @mock.patch('lega.utils.amqp.CONF')
     @mock.patch('lega.utils.amqp.pika')

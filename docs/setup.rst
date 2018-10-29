@@ -3,29 +3,14 @@ Installation
 
 .. highlight:: shell
 
-The sources for LocalEGA can be downloaded and installed from the `NBIS Github repo`_.
+The sources for LocalEGA can be downloaded and installed from the `EGA-archive Github repo`_.
 
 .. code-block:: console
 
-    $ pip install git+https://github.com/NBISweden/LocalEGA.git
+    $ pip install git+https://github.com/EGA-archive/LocalEGA.git
 
-The recommended method is however to use one of our deployment
-strategy: either on `Docker`_ or on `OpenStack cloud`_.
+Local EGA uses a microservice architecture and we use `Docker`_ to deploy it.
 
-For the LocalEGA FUSE based inboxes:
-
-.. code-block:: console
-
-    $ git clone https://github.com/NBISweden/LocalEGA-auth.git ~/repo
-    $ cd ~repo
-    $ make install
-    $ ldconfig -v
-
-One can also display more output information by compiling with ``make
-debug1``, ``make debug2`` or ``make debug3``, instead of ``make
-install``. The latter does not display any information, ``debug1``
-displays the headlines, ``debug2`` displays even more, while
-``debug3`` is the full verbose output.
 
 Configuration
 =============
@@ -65,12 +50,12 @@ The ``<file>`` argument can either be a file path in ``INI`` or
 ``YAML`` format, or a *keyword*. In the latter case, the logging
 mechanism will search for a log file, using that keyword, in the
 `default loggers
-<https://github.com/NBISweden/LocalEGA/tree/dev/lega/conf/loggers>`_. Currently,
+<https://github.com/EGA-archive/LocalEGA/tree/master/lega/conf/loggers>`_. Currently,
 ``default``, ``debug``, ``console``, ``logstash`` and
 ``logstash-debug`` are available.
 
 Using the `logstash logger
-<https://github.com/NBISweden/LocalEGA/blob/dev/lega/conf/loggers/logstash-debug.yaml>`_,
+<https://github.com/EGA-archive/LocalEGA/blob/master/lega/conf/loggers/logstash-debug.yaml>`_,
 we leverage the famous *ELK* stack, which stands for **E**\
 lasticsearch, **L**\ ogstash and **K**\ ibana. Logstash receives the
 logs. Elasticsearch stores them and make them searchable. Kibana
@@ -82,6 +67,5 @@ interface.
    :alt: Kibana
 
 
-.. _NBIS Github repo: https://github.com/NBISweden/LocalEGA
-.. _Docker: https://github.com/NBISweden/LocalEGA/tree/dev/docker
-.. _OpenStack cloud: https://github.com/NBISweden/LocalEGA-deploy-terraform
+.. _EGA-archive Github repo: https://github.com/EGA-archive/LocalEGA
+.. _Docker: https://github.com/EGA-archive/LocalEGA/tree/master/deploy

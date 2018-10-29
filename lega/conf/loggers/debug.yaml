@@ -9,6 +9,11 @@ loggers:
     handlers: [debugFile,console]
     propagate: True
     qualname: lega
+  crypt4gh:
+    level: DEBUG
+    handlers: [debugFile,console]
+    propagate: True
+    qualname: lega
 
 
 handlers:

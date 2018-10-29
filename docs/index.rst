@@ -1,7 +1,7 @@
 Throughout this documentation, we can refer to Central EGA as
 ``CEGA``, or ``CentralEGA``, and *any* Local EGA instance as ``LEGA``,
 or ``LocalEGA``.  When two or more Local EGA instances are involved,
-we will use ``LEGA<i>`` for Local EGA instance ``<i>``.
+we will use LEGA :sub:`i` for Local EGA instance *i*.
 
 ================
 Local EGA
@@ -41,8 +41,8 @@ whether the ingestion was successful, or whether there was an error.
 
 |moreabout| More details about the :ref:`ingestion process`.
 
-.. image:: /static/components.svg
-   :target: ./_static/components.svg
+.. image:: /static/components.png
+   :target: ./_static/components.png
    :alt: General Architecture and Connected Components
 
 ----
@@ -66,32 +66,33 @@ Information about the Architecture
 
    Inbox                <inbox>
    Ingestion            <ingestion>
-   Encryption           <encryption>
-   Keyserver            <keyserver>
-   Database             <db>
    CEGA from/to LEGA    <connection>
 
-Miscellaneous
-=============
+..
+   Miscellaneous
+   =============
 
-.. toctree::
-   :maxdepth: 1
-   :name: extra
+   .. toctree::
+      :maxdepth: 1
+      :name: extra
 
-   Python Modules       <code>
-   Testsuite            <tests>
-   Contributing         <CONTRIBUTING>
+      Python Modules       <code>
+      Testsuite            <tests>
+      Contributing         <CONTRIBUTING>
 
-|Codacy| | |Travis| | Version |version| | Generated |today|
+| Version |version| | Generated |today|
+
+..
+   |Codacy| | |Travis| | Version |version| | Generated |today|
 
 
-.. |Codacy| image:: https://api.codacy.com/project/badge/Grade/3dd83b28ec2041889bfb13641da76c5b
-	:alt: Codacy Badge
-	:class: inline-baseline
+   .. |Codacy| image:: https://api.codacy.com/project/badge/Grade/3dd83b28ec2041889bfb13641da76c5b
+	   :alt: Codacy Badge
+	   :class: inline-baseline
 
-.. |Travis| image:: https://travis-ci.org/NBISweden/LocalEGA.svg?branch=dev
-	:alt: Build Status
-	:class: inline-baseline
+   .. |Travis| image:: https://travis-ci.org/EGA-archive/LocalEGA.svg?branch=dev
+	   :alt: Build Status
+	   :class: inline-baseline
 
 .. |moreabout| unicode:: U+261E .. right pointing finger
 .. |connect| unicode:: U+21cc .. <-_>

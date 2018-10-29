@@ -1,139 +1,140 @@
 # -*- coding: utf-8 -*-
 
-"""Database Connection."""
+'''
+Database Connection
+'''
 
 import sys
 import traceback
-from functools import wraps
 import logging
 import psycopg2
 from socket import gethostname
-from time import sleep
-
-from legacryptor import exceptions as crypt_exc
+import inspect
+from contextlib import contextmanager
 
 from ..conf import CONF
-from .exceptions import FromUser, KeyserverError, PGPKeyError
-from .amqp import publish, get_connection
 
 LOG = logging.getLogger(__name__)
 
-
 ######################################
-#          DB connection             #
+##         DB connection            ##
 ######################################
-def fetch_args(d):
-    """Fetch arguments for initializing a connection to db."""
-    db_args = {'user': d.get_value('postgres', 'user'),
-               'password': d.get_value('postgres', 'password'),
-               'database': d.get_value('postgres', 'database'),
-               'host': d.get_value('postgres', 'host'),
-               'port': d.get_value('postgres', 'port', conv=int),
-               'sslmode': d.get_value('postgres', 'sslmode'),
-               }
-    LOG.info(f"Initializing a connection to: {db_args['host']}:{db_args['port']}/{db_args['database']}")
-    return db_args
-
-
-def retry_loop(on_failure=None, exception=psycopg2.OperationalError):
-    """Retry function decorator, ``try`` times every ``try_interval`` seconds.
-
-    Run the ``on_failure`` if after ``try`` attempts (configured in CONF).
-    """
-    def decorator(func):
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            """Retry loop."""
-            nb_try = CONF.get_value('postgres', 'try', conv=int, default=1)
-            try_interval = CONF.get_value('postgres', 'try_interval', conv=int, default=1)
-            LOG.debug(f"{nb_try} attempts (every {try_interval} seconds)")
-            count = 0
-            backoff = try_interval
-            while count < nb_try:
-                try:
-                    return func(*args, **kwargs)
-                except exception as e:
-                    LOG.debug(f"Database connection error: {e!r}")
-                    LOG.debug(f"Retrying in {backoff} seconds")
-                    sleep(backoff)
-                    count += 1
-                    backoff = (2 ** (count // 10)) * try_interval
-                    # from  0 to  9, sleep 1 * try_interval secs
-                    # from 10 to 19, sleep 2 * try_interval secs
-                    # from 20 to 29, sleep 4 * try_interval secs ... etc
-
-            # fail to connect
-            if nb_try:
-                LOG.error(f"Database connection fail after {nb_try} attempts ...")
-            else:
-                LOG.error("Database connection attempts was set to 0 ...")
-
-            if on_failure:
-                on_failure()
-        return wrapper
-    return decorator
-
-
 def _do_exit():
-    """Exit on error."""
     LOG.error("Could not connect to the database: Exiting")
     sys.exit(1)
 
+class DBConnection():
+    conn = None
+    curr = None
+    args = None
+
+    def __init__(self, conf_section='db', on_failure=None):
+        self.on_failure = on_failure
+        self.conf_section = conf_section or 'db'
+
+    def fetch_args(self):
+        return { 'user': CONF.get_value(self.conf_section, 'user'),
+                 'password': CONF.get_value(self.conf_section, 'password'),
+                 'database': CONF.get_value(self.conf_section, 'database'),
+                 'host': CONF.get_value(self.conf_section, 'host'),
+                 'port': CONF.get_value(self.conf_section, 'port', conv=int),
+                 'connect_timeout': CONF.get_value(self.conf_section, 'try_interval', conv=int, default=1),
+                 'sslmode': CONF.get_value(self.conf_section, 'sslmode'),
+        }
+
+
+    def connect(self, force=False):
+        '''Get the database connection (which encapsulates a database session)
+
+        Upon success, the connection is cached.
+
+        Before success, we try to connect ``try`` times every ``try_interval`` seconds (defined in CONF)
+        Executes ``on_failure`` after ``try`` attempts.
+        '''
+
+        if force:
+            self.close()
+
+        if self.conn and self.curr:
+            return
+
+        if not self.args:
+            self.args = self.fetch_args()
+        LOG.info(f"Initializing a connection to: {self.args['host']}:{self.args['port']}/{self.args['database']}")
+
+        nb_try = CONF.get_value('postgres', 'try', conv=int, default=1)
+        assert nb_try > 0, "The number of reconnection should be >= 1"
+        LOG.debug(f"{nb_try} attempts")
+        count = 0
+        while count < nb_try:
+            try:
+                LOG.debug(f"Connection attempt {count+1}")
+                self.conn = psycopg2.connect(**self.args)
+                #self.conn.set_session(autocommit=True) # default is False.
+                LOG.debug(f"Connection successful")
+                return
+            except psycopg2.OperationalError as e:
+                LOG.debug(f"Database connection error: {e!r}")
+                count += 1
+            except psycopg2.InterfaceError as e:
+                LOG.debug(f"Invalid connection parameters: {e!r}")
+                break
+
+        # fail to connect
+        if self.on_failure:
+            self.on_failure()
+
+    def ping(self):
+        if self.conn is None:
+            self.connect()
+        try:
+            with self.conn:
+                with self.conn.cursor() as cur: # does not commit if error raised
+                    cur.execute('SELECT 1;')
+                    LOG.debug("Ping db successful")
+        except psycopg2.OperationalError as e:
+            LOG.debug('Ping failed: %s', e)
+            self.connect(force=True) # reconnect
+
+    @contextmanager
+    def cursor(self):
+        self.ping()
+        with self.conn:
+            with self.conn.cursor() as cur:
+                yield cur
+                # closes cursor on exit
+            # transaction autocommit, but connection not closed
+
+    def close(self):
+        LOG.debug("Closing the database")
+        if self.curr:
+            self.curr.close()
+            self.curr = None
+        if self.conn:
+            self.conn.close()
+            self.conn = None
+
+# Note, the code does not close the database connection nor the cursor
+# if everything goes fine.
 
 ######################################
-#          "Classic" code            #
+##         Business logic           ##
 ######################################
-_conn = None
-
-
-def cache_connection(func):
-    """Cache the database connection decorator."""
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        global _conn
-        if _conn is None or _conn.closed:
-            _conn = func(*args, **kwargs)
-        return _conn
-    return wrapper
-
-
-@cache_connection
-@retry_loop(on_failure=_do_exit)
-def connect():
-    """Get the database connection (which encapsulates a database session).
-
-    Upon success, the connection is cached.
-
-    Before success, we try to connect ``try`` times every ``try_interval`` seconds (defined in CONF)
-    """
-    db_args = fetch_args(CONF)
-    return psycopg2.connect(**db_args)
-
+connection = DBConnection()
 
 def insert_file(filename, user_id):
-    """Insert a new file entry and returns its id."""
-    with connect() as conn:
-        with conn.cursor() as cur:
-            cur.execute('SELECT local_ega.insert_file(%(filename)s,%(user_id)s);',
-                        {'filename': filename,
-                         'user_id': user_id,
-                         })
-            file_id = (cur.fetchone())[0]
-            if file_id:
-                LOG.debug(f'Created id {file_id} for {filename}')
-                return file_id
-            else:
-                raise Exception('Database issue with insert_file')
-
-
-def get_errors(from_user=False):
-    """Retrieve error from database."""
-    query = 'SELECT * from local_ega.errors WHERE from_user = true;' if from_user else 'SELECT * from local_ega.errors;'
-    with connect() as conn:
-        with conn.cursor() as cur:
-            cur.execute(query)
-            return cur.fetchall()
-
+    """Insert a new file entry and returns its id"""
+    with connection.cursor() as cur:
+        cur.execute('SELECT local_ega.insert_file(%(filename)s,%(user_id)s);',
+                    { 'filename': filename,
+                      'user_id': user_id,
+                    })
+        file_id = (cur.fetchone())[0]
+        if file_id:
+            LOG.debug(f'Created id {file_id} for {filename}')
+            return file_id
+        else:
+            raise Exception('Database issue with insert_file')
 
 def set_error(file_id, error, from_user=False):
     """Store error related to ``file_id`` in database."""
@@ -141,157 +142,63 @@ def set_error(file_id, error, from_user=False):
     assert error, 'Eh? No error?'
     LOG.debug(f'Setting error for {file_id}: {error!s} | Cause: {error.__cause__}')
     hostname = gethostname()
-    with connect() as conn:
-        with conn.cursor() as cur:
-            cur.execute('SELECT local_ega.insert_error(%(file_id)s,%(h)s,%(etype)s,%(msg)s,%(from_user)s);',
-                        {'h': hostname, 'etype': error.__class__.__name__, 'msg': repr(error), 'file_id': file_id, 'from_user': from_user})
+    with connection.cursor() as cur:
+        cur.execute('SELECT local_ega.insert_error(%(file_id)s,%(h)s,%(etype)s,%(msg)s,%(from_user)s);',
+                    {'h':hostname, 'etype': error.__class__.__name__, 'msg': repr(error), 'file_id': file_id, 'from_user': from_user})
 
-
-def get_info(file_id):
-    """Retrieve information for ``file_id``."""
-    with connect() as conn:
-        with conn.cursor() as cur:
-            query = 'SELECT inbox_path, vault_path, stable_id, header from local_ega.files WHERE id = %(file_id)s;'
-            cur.execute(query, {'file_id': file_id})
-            return cur.fetchone()
-
-
-def _set_status(file_id, status):
-    """Update status for file with id ``file_id``."""
+def update(file_id, kwargs):
+    """Updating information in database for ``file_id``."""
     assert file_id, 'Eh? No file_id?'
-    LOG.debug(f'Updating status file_id {file_id} with "{status}"')
-    with connect() as conn:
-        with conn.cursor() as cur:
-            cur.execute('UPDATE local_ega.files SET status = %(status)s WHERE id = %(file_id)s;',
-                        {'status': status,
-                         'file_id': file_id})
+    LOG.debug(f'Updating status file_id {file_id} with {kwargs}')
+    if not kwargs:
+        return
+    with connection.cursor() as cur:
+        q = ', '.join(f'{k} = %({k})s' for k in kwargs) # keys
+        query = f'UPDATE local_ega.files SET {q} WHERE id = %(file_id)s;'
+        kwargs['file_id'] = file_id
+        cur.execute(query, kwargs)
 
+def finalize(kwargs):
+    """Flag as done and insert stable_id."""
+    LOG.debug('Finalizing %s', kwargs)
+    for k in ('filepath', 'user', 'checksum', 'checksum_type', 'stable_id'):
+        if k not in kwargs:
+            raise ValueError(f'Missing key: {k} in {kwargs}')
+    with connection.cursor() as cur:
+        cur.execute('SELECT local_ega.finalize_file(%(filepath)s,'
+                    '                               %(user)s,'
+                    '                               %(checksum)s,'
+                    '                               %(checksum_type)s,'
+                    '                               %(stable_id)s'
+                    ');', kwargs)
 
-def mark_in_progress(file_id):
-    """Mark file in progress."""
-    return _set_status(file_id, 'IN_INGESTION')
-
-
-def mark_completed(file_id):
-    """Mark file as completed."""
-    return _set_status(file_id, 'COMPLETED')
-
-
-def set_stable_id(file_id, stable_id):
-    """Update File ``file_id`` stable ID."""
+def is_disabled(file_id):
+    """Should we continue handle this file_id?"""
     assert file_id, 'Eh? No file_id?'
-    LOG.debug(f'Updating file_id {file_id} with stable ID "{stable_id}"')
-    with connect() as conn:
-        with conn.cursor() as cur:
-            cur.execute('UPDATE local_ega.files '
-                        'SET status = %(status)s, '
-                        '    stable_id = %(stable_id)s '
-                        'WHERE id = %(file_id)s;',
-                        {'status': 'READY',
-                         'file_id': file_id,
-                         'stable_id': stable_id})
-
-
-def store_header(file_id, header):
-    """Store header for ``file_id``."""
-    assert file_id, 'Eh? No file_id?'
-    assert header, 'Eh? No header?'
-    LOG.debug(f'Store header for file_id {file_id}')
-    with connect() as conn:
-        with conn.cursor() as cur:
-            cur.execute('UPDATE local_ega.files '
-                        'SET header = %(header)s '
-                        'WHERE id = %(file_id)s;',
-                        {'file_id': file_id,
-                         'header': header})
-
-
-def set_archived(file_id, vault_path, vault_filesize):
-    """Archive ``file_id``."""
-    assert file_id, 'Eh? No file_id?'
-    assert vault_path, 'Eh? No vault name?'
-    LOG.debug(f'Setting status to archived for file_id {file_id}')
-    with connect() as conn:
-        with conn.cursor() as cur:
-            cur.execute('UPDATE local_ega.files '
-                        'SET status = %(status)s, '
-                        '    vault_path = %(vault_path)s, '
-                        '    vault_filesize = %(vault_filesize)s '
-                        'WHERE id = %(file_id)s;',
-                        {'status': 'ARCHIVED',
-                         'file_id': file_id,
-                         'vault_path': vault_path,
-                         'vault_filesize': vault_filesize})
-
-
-######################################
-#            Decorator               #
-######################################
-_channel = None
-
-
-def catch_error(func):  # noqa: C901
-    """Store the raised exception in the database decorator."""
-    @wraps(func)
-    def wrapper(*args):
-        try:
-            return func(*args)
-        except Exception as e:
-            if isinstance(e, AssertionError):
-                raise e
-
-            exc_type, _, exc_tb = sys.exc_info()
-            g = traceback.walk_tb(exc_tb)
-            frame, lineno = next(g)  # that should be the decorator
-            try:
-                frame, lineno = next(g)  # that should be where is happened
-            except StopIteration:
-                pass  # In case the trace is too short
-
-            fname = frame.f_code.co_filename
-            LOG.error(f'Exception: {exc_type} in {fname} on line: {lineno}')
-            from_user = isinstance(e, FromUser)
-            cause = e.__cause__ or e
-            LOG.error(f'{cause!r} (from user: {from_user})')  # repr = Technical
-
-            try:
-                data = args[-1]  # data is the last argument
-                file_id = data.get('file_id', None)  # should be there
-                if file_id:
-                    set_error(file_id, cause, from_user)
-                LOG.debug('Catching error on file id: %s', file_id)
-                if from_user:  # Send to CentralEGA
-                    org_msg = data.pop('org_msg', None)  # should be there
-                    org_msg['reason'] = str(cause)  # str = Informal
-                    LOG.info(f'Sending user error to local broker: {org_msg}')
-                    global _channel
-                    if _channel is None:
-                        _channel = get_connection('broker').channel()
-                    publish(org_msg, _channel, 'cega', 'files.error')
-            except Exception as e2:
-                LOG.error(f'While treating "{e}", we caught "{e2!r}"')
-                print(repr(e), 'caused', repr(e2), file=sys.stderr)
-            return None
-    return wrapper
-
-
-def crypt4gh_to_user_errors(func):
-    """Convert Crypt4GH exceptions to User Errors decorator."""
-    @wraps(func)
-    def wrapper(*args):
-        try:
-            return func(*args)
-        except (crypt_exc.InvalidFormatError, crypt_exc.VersionError, crypt_exc.MDCError, PGPKeyError) as e:
-            LOG.error(f'Converting {e!r} to a FromUser error')
-            raise FromUser() from e
-        except KeyserverError as e:
-            LOG.critical(repr(e))
-            raise
-    return wrapper
-
+    LOG.debug('Is disabled %d?', file_id)
+    with connection.cursor() as cur:
+        cur.execute('SELECT * FROM local_ega.is_disabled(%(file_id)s);', { 'file_id': file_id })
+        return (cur.fetchone())[0]
+    
+# Raise exception for the moment.
+def check_session_key_checksum(session_key_checksum, session_key_checksum_type):
+    """Check if this session key is (likely) already used."""
+    assert session_key_checksum, 'Eh? No session_key_checksum?'
+    LOG.debug(f'Check if session key (hash) "{session_key_checksum}" is already used')
+    with connection.cursor() as cur:
+        cur.execute('SELECT * FROM local_ega.check_session_key_checksum(%(sk_checksum)s,'
+                    '                                                   %(sk_checksum_type)s);',
+                    {'sk_checksum': session_key_checksum,
+                     'sk_checksum_type': session_key_checksum_type})
+        found = cur.fetchone()
+        LOG.debug("Check session key: %s", found)
+        return (found and found[0]) # not none and check boolean value
 
 # Testing connection with `python -m lega.utils.db`
 if __name__ == '__main__':
     CONF.setup(sys.argv)
-    conn = connect()
-    print(conn)
+    with connection.cursor() as cur:
+        print(cur)
+    connection.close()
+
+
