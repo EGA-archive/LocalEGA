@@ -11,61 +11,59 @@ The sources for LocalEGA can be downloaded and installed from the `EGA-archive G
 
 Local EGA uses a microservice architecture and we use `Docker`_ to deploy it.
 
+In order to simplify the setup of LocalEGA's components, we have
+developed a bootstrap script, taylored for a local `Docker`_
+deployment. Prior to running the bootstrap script, a settings file
+must be created, defining the following variables: (place them in a
+newly created file ``deploy/bootstrap/settings.rc``).
 
-Configuration
-=============
+.. csv-table::
+   :header: "Key", "Value", "Example","Description"
+   :widths: 2, 2, 1, 2
 
-A few files are required in order to connect the different components.
+   "``DOCKER_PORT_inbox``", "integer", "2222", "Port mapping to access the container from the host or external network"
+   "``DOCKER_PORT_outgest``", "integer", "10443", "Port mapping to access the container from the host or external network"
+   "``CEGA_REST_PASSWORD``", "string", "", "Password to connect to the Central EGA Users ReST endpoint"
+   "``CEGA_CONNECTION``", "string", "amqps://<user>:<password>@hellgate.crg.eu:5271/<vhost>", "CentralEGA [RabbitMQ URI](https://www.rabbitmq.com/uri-spec.html)"
+   "``LEGA_MQ_PASSWORD``", "string", "``$(generate_password 16)``", "Password for the Local MQ broker admin user"
+   "``SSL_SUBJ``", "string", "``/C=ES/ST=Spain/L=Barcelona/O=CRG/OU=SysDevs/CN=LocalEGA/emailAddress=all.ega@crg.eu``", "Used to create the self-signed certificates"
+   "``EC_KEY_COMMENT``", "string", "LocalEGA@CRG", "For the elliptic key, used by Crypt4GH"
+   "``EC_KEY_PASSPHRASE``", "string", "``$(generate_password 16)``", ""
+   "``EC_KEY_COMMENT``", "string", "LocalEGA-signing@CRG", ""
+   "``EC_KEY_PASSPHRASE``", "string", "``$(generate_password 16)``", ""
+   "``DB_LEGA_IN_PASSWORD``", "string", "``$(generate_password 16)``", "Password for the ``lega_in`` database user"
+   "``DB_LEGA_OUT_PASSWORD``", "string", "``$(generate_password 16)``", "Password for the ``lega_out`` database user"
+   "``S3_ACCESS_KEY``", "string", "``$(generate_password 16)``", "Access key for the S3 storage"
+   "``S3_SECRET_KEY``", "string", "``$(generate_password 32)``", "Secret key for the S3 storage"
 
-The main configurations are set by default, and it is possible to
-overwrite any of them. All Python components can indeed be started
-using the ``--conf <file>`` switch to specify the configuration file.
+You are now ready to run the bootstrap script:
 
-The settings are loaded, in order:
+.. code-block:: console
 
-* from environment variables (where the naming convention is uppercase ``section_option`` (as in ``default.ini``), e.g. ``VAULT_DRIVER`` or ``POSTGRES_DB``,
-* from the package's ``defaults.ini``,
-* from the file ``/etc/ega/conf.ini`` (if it exists),
-* and finally from the file specified as the ``--conf`` argument.
+    $ make -C deploy bootstrap
 
-Therefore, there is no need to update the ``defaults.ini``. Instead,
-reset/update any key/value pairs by creating a custom configuration file and pass it
-to ``--conf`` as a command-line argument.
+This script creates random passwords, configuration files, necessary
+public/secret keys and connect the different components together. All
+interesting settings are found in the ``private`` directory. Look
+especially at its ``.trace`` file.
 
-See a `full description of the environment variable settings
-<https://github.com/NBISweden/LocalEGA/wiki/Configuration-Settings-%7C-Environment-Variables>`_.
+Once the bootstrap files are generated, you can spin up the LocalEGA components, using:
 
+.. code-block:: console
 
-Logging
-=======
+    $ make up
 
-A similar mechanism is used to overwrite the default logging settings.
+Use ``make ps`` to see its status.
 
-The ``--log <file>`` argument is used to configuration where the logs
-go.  Without it, we look at the ``DEFAULT/log_conf`` key/value pair
-from the loaded configuration.  If the latter doesn't exist, there is
-no logging capabilities.
-
-The ``<file>`` argument can either be a file path in ``INI`` or
-``YAML`` format, or a *keyword*. In the latter case, the logging
-mechanism will search for a log file, using that keyword, in the
-`default loggers
-<https://github.com/EGA-archive/LocalEGA/tree/master/lega/conf/loggers>`_. Currently,
-``default``, ``debug``, ``console``, ``logstash`` and
-``logstash-debug`` are available.
-
-Using the `logstash logger
-<https://github.com/EGA-archive/LocalEGA/blob/master/lega/conf/loggers/logstash-debug.yaml>`_,
-we leverage the famous *ELK* stack, which stands for **E**\
-lasticsearch, **L**\ ogstash and **K**\ ibana. Logstash receives the
-logs. Elasticsearch stores them and make them searchable. Kibana
-contacts the Elasticsearch service to display the logs in a web
-interface.
-
-.. image:: /static/Kibana.png
-   :target: _static/Kibana.png
-   :alt: Kibana
-
+.. note::
+   You can find different deployment strategies, covered by our
+   partners, for environments like `Docker Swarm`_, `Kubernetes`_, `Openstack`_.
 
 .. _EGA-archive Github repo: https://github.com/EGA-archive/LocalEGA
 .. _Docker: https://github.com/EGA-archive/LocalEGA/tree/master/deploy
+.. _Docker Swarm: https://github.com/NBISweden/LocalEGA-deploy-swarm
+.. _Kubernetes: https://github.com/NBISweden/LocalEGA-deploy-k8s
+.. _Openstack: https://github.com/NBISweden/LocalEGA-deploy-terraform
+
+
+
