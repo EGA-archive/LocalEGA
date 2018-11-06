@@ -269,22 +269,6 @@ CREATE TRIGGER mark_ready
     EXECUTE PROCEDURE mark_ready();
 
 
-
-
--- ##########################################################################
---           For data-out
--- ##########################################################################
-
--- View on the vault files
-CREATE VIEW local_ega.vault_files AS
-SELECT id,
-       stable_id,
-       vault_file_reference,
-       vault_file_type,
-       header
-FROM local_ega.main
-WHERE status = 'READY';
-
 -- ##########################################################################
 --                   About the encryption
 -- ##########################################################################

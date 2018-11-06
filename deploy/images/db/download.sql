@@ -41,23 +41,40 @@ CREATE TABLE local_ega_download.main (
 );
 
 
+-- View on the vault files
+CREATE VIEW local_ega_download.files AS
+SELECT id,
+       stable_id,
+       vault_file_reference,
+       vault_file_type,
+       vault_file_size,
+       header,
+       vault_file_checksum,
+       vault_file_checksum_type
+FROM local_ega.main
+WHERE status = 'READY';
+
+
 -- Insert new request, and return some vault information
-CREATE TYPE request_type AS (req_id     INTEGER, -- local_ega_download.main.id%TYPE,
-                             file_id    INTEGER, -- local_ega.vault_files.id%TYPE,
-			     header     TEXT,    -- local_ega.vault_files.header%TYPE,
-			     vault_path TEXT,    -- local_ega.vault_files.vault_file_reference%TYPE,
-			     vault_type local_ega.storage);--local_ega.vault_files.vault_file_type%TYPE);
+CREATE TYPE request_type AS (req_id                    INTEGER,
+                             header                    TEXT,
+			     vault_path                TEXT,
+			     vault_type                local_ega.storage,
+			     file_size                 INTEGER,
+			     unencrypted_checksum      VARCHAR,
+			     unencrypted_checksum_type local_ega.checksum_algorithm);
+
 
 CREATE FUNCTION make_request(sid local_ega.main.stable_id%TYPE)
 RETURNS request_type AS $make_request$
 #variable_conflict use_column
 DECLARE
      req  local_ega_download.request_type;
-     vault_rec local_ega.vault_files%ROWTYPE;
+     vault_rec local_ega_download.files%ROWTYPE;
      rid  INTEGER;
 BEGIN
 
-     SELECT * INTO vault_rec FROM local_ega.vault_files WHERE stable_id = sid LIMIT 1;
+     SELECT * INTO vault_rec FROM local_ega_download.files WHERE stable_id = sid LIMIT 1;
 
      IF vault_rec IS NULL THEN
      	RAISE EXCEPTION 'Vault file not found for stable_id: % ', sid;
@@ -67,11 +84,13 @@ BEGIN
      VALUES (vault_rec.id, 'INIT')
      RETURNING local_ega_download.main.id INTO rid;
 
-     req.req_id     := rid;
-     req.file_id    := vault_rec.id;
-     req.header     := vault_rec.header;
-     req.vault_path := vault_rec.vault_file_reference;
-     req.vault_type := vault_rec.vault_file_type;
+     req.req_id                    := rid;
+     req.header                    := vault_rec.header;
+     req.vault_path                := vault_rec.vault_file_reference;
+     req.vault_type                := vault_rec.vault_file_type;
+     req.file_size                 := vault_rec.vault_file_size;
+     req.unencrypted_checksum      := vault_rec.vault_file_checksum;
+     req.unencrypted_checksum_type := vault_rec.vault_file_checksum_type;
      RETURN req;
 END;
 $make_request$ LANGUAGE plpgsql;

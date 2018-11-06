@@ -11,25 +11,34 @@ if [ "$(id -u)" = '0' ]; then
     chown -R postgres /var/run/postgresql
     chmod 775 /var/run/postgresql
 
-    # Generating the SSL certificate + key
     mkdir -p /etc/ega
-    openssl req -x509 -newkey rsa:2048 \
-	    -keyout /etc/ega/pg.key -nodes \
-	    -out /etc/ega/pg.cert -sha256 \
-	    -days 1000 -subj ${SSL_SUBJ}
-    chown postgres:postgres /etc/ega/pg.{key,cert}
-    chmod 600 /etc/ega/pg.key
+    chgrp postgres /etc/ega
+    chmod 770 /etc/ega
 
     # Run again as 'postgres'
     exec gosu postgres "$BASH_SOURCE" "$@"
 fi
 
 # If already initiliazed, then run
-[ -s "$PGDATA/PG_VERSION" ] && exec postgres -c config_file=/etc/ega/pg.conf
+if [ -s "$PGDATA/PG_VERSION" ]; then
+    # Remove the secrets
+    #rm -f /run/secrets/db_lega_in
+    #rm -f /run/secrets/db_lega_out
+    # And..... cue music
+    exec postgres -c config_file=/etc/ega/pg.conf
+fi
 
-# Don't init if env vars not defined
-[[ -z "${DB_LEGA_IN_PASSWORD}" ]] && echo 'Environment DB_LEGA_IN_PASSWORD is empty' 1>&2 && exit 1
-[[ -z "${DB_LEGA_OUT_PASSWORD}" ]] && echo 'Environment DB_LEGA_OUT_PASSWORD is empty' 1>&2 && exit 1
+# Don't init if secrets not defined
+[[ ! -s "/run/secrets/db_lega_in" ]] && echo 'DB Lega-IN secret missing' 1>&2 && exit 1
+[[ ! -s "/run/secrets/db_lega_out" ]] && echo 'DB Lega-OUT secret missing' 1>&2 && exit 1
+
+# Generating the SSL certificate + key
+openssl req -x509 -newkey rsa:2048 \
+	    -keyout /etc/ega/pg.key -nodes \
+	    -out /etc/ega/pg.cert -sha256 \
+	    -days 1000 -subj ${SSL_SUBJ}
+chown postgres:postgres /etc/ega/pg.{key,cert}
+chmod 600 /etc/ega/pg.key
 
 # Otherwise, do initilization (as postgres user)
 initdb --username=postgres # no password: no authentication for postgres user
@@ -55,7 +64,6 @@ EOSQL
 DB_FILES=(/docker-entrypoint-initdb.d/main.sql
 	  /docker-entrypoint-initdb.d/download.sql
 	  /docker-entrypoint-initdb.d/qc.sql
-	  /docker-entrypoint-initdb.d/data-out-extensions.sql
 	  /docker-entrypoint-initdb.d/grants.sql)
 
 for f in ${DB_FILES[@]}; do # in order
@@ -66,11 +74,15 @@ for f in ${DB_FILES[@]}; do # in order
 done
 
 # Set password for lega_in and lega_out users
+echo "Password for lega-in:  -----$(</run/secrets/db_lega_in)-----"
+echo "Password for lega-out: -----$(</run/secrets/db_lega_out)-----"
 
+# Set password for lega_in and lega_out users
 psql -v ON_ERROR_STOP=1 --username postgres --no-password --dbname lega <<EOSQL
-     ALTER USER lega_in WITH PASSWORD '${DB_LEGA_IN_PASSWORD}';
-     ALTER USER lega_out WITH PASSWORD '${DB_LEGA_OUT_PASSWORD}';
+     ALTER USER lega_in WITH PASSWORD '$(</run/secrets/db_lega_in)';
+     ALTER USER lega_out WITH PASSWORD '$(</run/secrets/db_lega_out)';
 EOSQL
+
 
 # Stop the server
 pg_ctl -D "$PGDATA" -m fast -w stop
@@ -95,4 +107,8 @@ echo
 echo 'PostgreSQL init process complete; ready for start up.'
 echo
 
+# Remove the secrets
+#rm -f /run/secrets/db_lega_in
+#rm -f /run/secrets/db_lega_out
+# And..... cue music
 exec postgres -c config_file=/etc/ega/pg.conf
