@@ -11,3 +11,4 @@ boto3
 git+https://github.com/EGA-archive/crypt4gh.git
 uvloop
 async_timeout
+async_generator
