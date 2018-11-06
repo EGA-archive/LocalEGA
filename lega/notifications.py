@@ -30,8 +30,8 @@ class Forwarder(asyncio.Protocol):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.inbox_location = CONF.get_value('inbox', 'location', raw=True)
-        self.isolation = CONF.get_value('inbox', 'chroot_sessions', conv=bool)
+        self.inbox_location = CONF.get_value('DEFAULT', 'location', raw=True)
+        self.isolation = CONF.get_value('DEFAULT', 'chroot_sessions', conv=bool)
         if self.isolation:
             LOG.info('Using chroot isolation')
 

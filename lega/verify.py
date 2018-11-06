@@ -44,7 +44,7 @@ def work(mover, data):
     vault_path = data['vault_path']
 
     # Load the LocalEGA private key
-    key_location = CONF.get_value('verify', 'private_key')
+    key_location = CONF.get_value('DEFAULT', 'private_key')
     LOG.info(f'Retrieving the Private Key from {key_location}')
     with open(key_location, 'rb') as k:
         privkey = PrivateKey(k.read(), KeyFormatter)

@@ -2,17 +2,16 @@
 Utility functions used internally.
 """
 
+import os
 import logging
 
 LOG = logging.getLogger(__name__)
 
-def get_file_content(f, mode='rb'):
-    try:
-        with open( f, mode) as h:
-            return h.read()
-    except OSError as e:
-        LOG.error(f'Error reading {f}: {e!r}')
-        return None
+def get_secret(f, mode='rt'):
+    with open(f, mode) as s:
+        return s.read()
+    # Crash if not found
+    #os.remove(f)
 
 def sanitize_user_id(user):
     '''Removes the elixir_id from data and adds user_id instead'''

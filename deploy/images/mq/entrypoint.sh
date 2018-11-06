@@ -3,8 +3,8 @@
 set -e
 set -x
 
-[[ -z "${CEGA_CONNECTION}" ]] && echo 'Environment CEGA_CONNECTION is empty' 1>&2 && exit 1
-[[ -z "${LEGA_MQ_PASSWORD}" ]] && echo 'Environment LEGA_MQ_PASSWORD is empty' 1>&2 && exit 1
+[[ ! -s "/run/secrets/cega_connection" ]] && echo 'CEGA_CONNECTION secret is not present' 1>&2 && exit 1
+[[ ! -s "/run/secrets/lega_mq_password" ]] && echo 'LEGA_MQ_PASSWORD secret is not present' 1>&2 && exit 1
 
 # Initialization
 rabbitmq-plugins enable --offline rabbitmq_federation
@@ -64,7 +64,7 @@ cat > /etc/rabbitmq/defs-cega.json <<EOF
 {"parameters":[{"value": {"src-uri": "amqp://",
 			  "src-exchange": "cega",
 			  "src-exchange-key": "#",
-			  "dest-uri": "${CEGA_CONNECTION}",
+			  "dest-uri": "$(</run/secrets/cega_connection)",
 			  "dest-exchange": "localega.v1",
 			  "add-forward-headers": false,
 			  "ack-mode": "on-confirm",
@@ -84,14 +84,14 @@ cat > /etc/rabbitmq/defs-cega.json <<EOF
 		"vhost": "/",
 		"component": "shovel",
 		"name": "CEGA-completion"},
-	       {"value":{"uri":"${CEGA_CONNECTION}",
+	       {"value":{"uri":"$(</run/secrets/cega_connection)",
 			 "ack-mode":"on-confirm",
 			 "trust-user-id":false,
 			 "queue":"v1.files"},
 		"vhost":"/",
 		"component":"federation-upstream",
 		"name":"CEGA-files"},
-	       {"value":{"uri":"${CEGA_CONNECTION}",
+	       {"value":{"uri":"$(</run/secrets/cega_connection)",
 			 "ack-mode":"on-confirm",
 			 "trust-user-id":false,
 			 "queue":"v1.stableIDs"},
@@ -131,20 +131,23 @@ chown -R rabbitmq /var/lib/rabbitmq
     ((ROUND<0)) && echo "Local EGA broker *_not_* started" 2>&1 && exit 1
 
     # Add the admin user instead of hard-coding it in the defs.json
-    rabbitmqctl add_user admin "$LEGA_MQ_PASSWORD"
+    rabbitmqctl add_user admin "$(</run/secrets/lega_mq_password)"
     rabbitmqctl set_user_tags admin administrator
     rabbitmqctl set_permissions -p / admin ".*" ".*" ".*"
     echo "Local EGA admin user created"
 
     ROUND=30
-    until rabbitmqadmin -u admin -p "${LEGA_MQ_PASSWORD}" import /etc/rabbitmq/defs-cega.json || ((ROUND<0))
+    until rabbitmqadmin -u admin -p "$(</run/secrets/lega_mq_password)" import /etc/rabbitmq/defs-cega.json || ((ROUND<0))
     do
     	sleep 1
     	((ROUND--))
     done
     ((ROUND<0)) && echo "Central EGA connections *_not_* loaded" 2>&1 && exit 1
+
+    #rm -rf /run/secrets/lega_mq_password
     echo "Central EGA connections loaded"
 
 } &
 
+#rm -rf /run/secrets/cega_connection
 exec "$@" # ie CMD rabbitmq-server
