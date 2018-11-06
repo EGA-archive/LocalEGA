@@ -15,7 +15,7 @@ DOCKER_PATH=$(MAIN_REPO)/deploy
 
 INSTANCE_PORT=$(shell awk -F= '/DOCKER_PORT_inbox/ {print $$2}' $(DOCKER_PATH)/bootstrap/settings.rc)
 PUB_KEY=$(DOCKER_PATH)/private/ega.key.pub
-CEGA_MQ_CONNECTION=$(shell awk -F= '/^CEGA_CONNECTION/ {print $$2}' $(DOCKER_PATH)/bootstrap/settings.rc)
+CEGA_MQ_CONNECTION=$(shell cat $(DOCKER_PATH)/private/secrets/cega_connection)
 
 SSH_KEY=$(MAIN_REPO)/tmp/dummy.sec
 
@@ -38,13 +38,13 @@ upload: $(FILE).c4gh
 ## Signing key
 ####################################################################
 signing.key:
-	crypt4gh generate -f $@ --signing
+	crypt4gh generate -o $@ --signing
 
 ####################################################################
 ## User's pub/sec keys
 ####################################################################
 user.key:
-	crypt4gh generate -f $@
+	crypt4gh generate -o $@
 
 ####################################################################
 ## Publish messages
