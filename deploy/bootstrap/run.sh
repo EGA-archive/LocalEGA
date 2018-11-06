@@ -43,12 +43,13 @@ done
 [[ $VERBOSE == 'no' ]] && echo -en "Bootstrapping "
 
 #########################################################################
+# PYTHON=python
 source ${HERE}/defs.sh
 
 [[ -x $(readlink ${OPENSSL}) ]] && echo "${OPENSSL} is not executable. Adjust the setting with --openssl" && exit 3
 
 rm_politely ${PRIVATE}
-mkdir -p ${PRIVATE}
+mkdir -p ${PRIVATE}/{secrets,confs}
 exec 2>${PRIVATE}/.err
 backup ${DOT_ENV}
 cat > ${DOT_ENV} <<EOF
@@ -59,39 +60,55 @@ EOF
 # Don't use ${PRIVATE}, since it's running in a container: wrong path then.
 
 #########################################################################
+echomsg "Generating private data for a LocalEGA instance"
+
+echo "secrets:" > ${PRIVATE}/secrets.yml
+function add_secret {
+    local name=$1
+    local value=$2
+    echomsg "Creating secret for ${name}: ${value}"
+    echo -n ${value} > ${PRIVATE}/secrets/${name}
+    cat >> ${PRIVATE}/secrets.yml <<EOF
+  ${name}:
+    file: ./secrets/${name}
+EOF
+}
+
 source ${HERE}/settings.rc
 
-#########################################################################
-# Generate the configuration for each instance
-echomsg "Generating private data for a LocalEGA instance"
-#########################################################################
+# Special case for development only
+S3_ACCESS_KEY=$(<${PRIVATE}/secrets/s3_access_key)
+S3_SECRET_KEY=$(<${PRIVATE}/secrets/s3_secret_key)
+AWS_ACCESS_KEY_ID=${S3_ACCESS_KEY}
+AWS_SECRET_ACCESS_KEY=${S3_SECRET_KEY}
 
+#########################################################################
 echomsg "\t* the keys"
 
-# Generate the LocalEGA main key
-crypt4gh generate -f ${PRIVATE}/ega.key -P "${EC_KEY_PASSPHRASE}"
+# Generate the LocalEGA main key (Format: PKCS8, SSH2, or None)
+crypt4gh generate -o ${PRIVATE}/ega.key -P "${EC_KEY_PASSPHRASE}" -f PKCS8
 chmod 644 ${PRIVATE}/ega.key.pub
 
-crypt4gh generate -f ${PRIVATE}/ega.signing.key -P "${EC_KEY_PASSPHRASE}" --signing
+crypt4gh generate -o ${PRIVATE}/ega.signing.key -P "${EC_KEY_PASSPHRASE}" --signing -f PKCS8
 chmod 644 ${PRIVATE}/ega.signing.key.pub
 
 # ssh-keygen -t ed25519 \
 # 	   -f ${PRIVATE}/ega.key \
+# 	   -m PKCS8 \
 # 	   -b 256 \
 # 	   -P "${EC_KEY_PASSPHRASE}" \
 # 	   -C "${EC_KEY_COMMENT}"
 
 # ssh-keygen -t ed25519 \
 # 	   -f ${PRIVATE}/ega.sign.key \
+# 	   -m PKCS8 \
 # 	   -b 256 \
 # 	   -P "${EC_SIGN_KEY_PASSPHRASE}" \
 # 	   -C "${EC_SIGN_KEY_COMMENT}"
 
 # 224 ec bits == 2048 rsa bits
 
-
 #########################################################################
-
 echomsg "\t* the SSL certificates"
 ${OPENSSL} req -x509 -newkey rsa:2048 -keyout ${PRIVATE}/outgest.key -nodes \
 	   -out ${PRIVATE}/outgest.cert \
@@ -100,46 +117,122 @@ ${OPENSSL} req -x509 -newkey rsa:2048 -keyout ${PRIVATE}/outgest.key -nodes \
 	   -subj ${SSL_SUBJ}
 
 #########################################################################
+echomsg "\t* the configuration files"
 
-echomsg "\t* conf.ini"
-cat > ${PRIVATE}/conf.ini <<EOF
-[DEFAULT]
-log = debug
-#log = silent
-
+cat > ${PRIVATE}/confs/ingest.ini <<EOF
 [inbox]
 location = /ega/inbox/%s
-chroot_sessions = True
 
 [vault]
+##############################
+# Backed by POSIX file system
+#############################
+# driver = FileStorage
+# location = /ega/vault
+# mode = 2750
+
+###########################
+# Backed by S3
+###########################
 driver = S3Storage
 url = http://vault:9000
-access_key = ${S3_ACCESS_KEY}
-secret_key = ${S3_SECRET_KEY}
-#region = lega
+access_key = /run/secrets/s3_access_key
+secret_key = /run/secrets/s3_secret_key
+region = lega
+bucket = lega
 
 [broker]
 host = mq
+port = 5672
 connection_attempts = 30
 retry_delay = 10
 username = admin
-password = ${LEGA_MQ_PASSWORD}
+password = /run/secrets/lega_mq_password
 vhost = /
-
+enable_ssl = no
+heartbeat = 0
 
 [db]
 host = db
 port = 5432
 user = lega_in
-password = ${DB_LEGA_IN_PASSWORD}
+password = /run/secrets/db_lega_in
 database = lega
 try = 30
+try_interval = 1
 sslmode = require
+EOF
 
-[verify]
+cat > ${PRIVATE}/confs/verify.ini <<EOF
+[DEFAULT]
 private_key = /etc/ega/ega.sec
 
-[outgestion]
+[vault]
+##############################
+# Backed by POSIX file system
+#############################
+# driver = FileStorage
+# location = /ega/vault
+# mode = 2750
+
+###########################
+# Backed by S3
+###########################
+driver = S3Storage
+url = http://vault:9000
+access_key = /run/secrets/s3_access_key
+secret_key = /run/secrets/s3_secret_key
+region = lega
+bucket = lega
+
+[broker]
+host = mq
+port = 5672
+connection_attempts = 30
+retry_delay = 10
+username = admin
+password = /run/secrets/lega_mq_password
+vhost = /
+enable_ssl = no
+heartbeat = 0
+
+[db]
+host = db
+port = 5432
+user = lega_in
+password = /run/secrets/db_lega_in
+database = lega
+try = 30
+try_interval = 1
+sslmode = require
+EOF
+
+cat > ${PRIVATE}/confs/finalize.ini <<EOF
+[broker]
+host = mq
+port = 5672
+connection_attempts = 30
+retry_delay = 10
+username = admin
+password = /run/secrets/lega_mq_password
+vhost = /
+enable_ssl = no
+heartbeat = 0
+
+[db]
+host = db
+port = 5432
+user = lega_in
+password = /run/secrets/db_lega_in
+database = lega
+try = 30
+try_interval = 1
+sslmode = require
+EOF
+
+cat > ${PRIVATE}/confs/outgest.ini <<EOF
+[DEFAULT]
+host = 0.0.0.0
 port = 8443
 enable_ssl = no
 ssl_certfile = /etc/ega/ssl.cert
@@ -148,27 +241,68 @@ ssl_keyfile = /etc/ega/ssl.key
 permissions_endpoint = https://egatest.crg.eu/permissions/files/%s
 streamer_endpoint = http://streamer:8443/
 
-[streamer]
+# Operation timeout in seconds. [Default: 5min]
+timeout = 300
+EOF
+
+cat > ${PRIVATE}/confs/streamer.ini <<EOF
+[DEFAULT]
 host = 0.0.0.0
 port = 8443
 private_key = /etc/ega/ega.sec
 signing_key = /etc/ega/signing.key
 
-[db_out]
+[vault]
+##############################
+# Backed by POSIX file system
+#############################
+# driver = FileStorage
+# location = /ega/vault
+# mode = 2750
+
+###########################
+# Backed by S3
+###########################
+driver = S3Storage
+url = http://vault:9000
+access_key = /run/secrets/s3_access_key
+secret_key = /run/secrets/s3_secret_key
+region = lega
+bucket = lega
+
+[db]
 host = db
 port = 5432
 user = lega_out
-password = ${DB_LEGA_OUT_PASSWORD}
+password = /run/secrets/db_lega_out
 database = lega
 try = 30
+try_interval = 1
 sslmode = require
 EOF
 
+cat > ${PRIVATE}/confs/inbox.ini <<EOF
+[DEFAULT]
+location = /ega/inbox/%s
+chroot_sessions = True
+
+[broker]
+host = mq
+port = 5672
+connection_attempts = 30
+retry_delay = 10
+username = admin
+password = /run/secrets/lega_mq_password
+vhost = /
+enable_ssl = no
+heartbeat = 0
+EOF
+
 #########################################################################
-# Creating the docker-compose file (Version 3.2)
-#########################################################################
+echomsg "Creating the docker-compose file (Version 3.7)"
+
 cat >> ${PRIVATE}/lega.yml <<EOF
-version: '3'
+version: '3.7'
 
 # Use the default driver for network creation
 networks:
@@ -190,9 +324,17 @@ services:
 
   # Local Message broker
   mq:
-    environment:
-      - CEGA_CONNECTION=${CEGA_CONNECTION}
-      - LEGA_MQ_PASSWORD=${LEGA_MQ_PASSWORD}
+    secrets:
+      - source: cega_connection
+        target: cega_connection
+        uid: 'rabbitmq'
+        gid: 'rabbitmq'
+        mode: 0600
+      - source: lega_mq_password
+        target: lega_mq_password
+        uid: 'rabbitmq'
+        gid: 'rabbitmq'
+        mode: 0600
     hostname: mq
     image: rabbitmq:3.7.8-management
     container_name: mq
@@ -207,9 +349,18 @@ services:
 
   # Postgres Database (using default port 5432)
   db:
+    secrets:
+      - source: db_lega_in
+        target: db_lega_in
+        uid: 'postgres'
+        gid: 'postgres'
+        mode: 0600
+      - source: db_lega_out
+        target: db_lega_out
+        uid: 'postgres'
+        gid: 'postgres'
+        mode: 0600
     environment:
-      - DB_LEGA_IN_PASSWORD=${DB_LEGA_IN_PASSWORD}
-      - DB_LEGA_OUT_PASSWORD=${DB_LEGA_OUT_PASSWORD}
       - PGDATA=/ega/data
       - SSL_SUBJ=${SSL_SUBJ}
     hostname: db
@@ -232,15 +383,18 @@ services:
   inbox:
     hostname: ega-inbox
     environment:
-      - CEGA_ENDPOINT=https://egatest.crg.eu/lega/v1/legas/users/
-      - CEGA_ENDPOINT_CREDS=lega1:${CEGA_REST_PASSWORD}
-      - CEGA_ENDPOINT_JSON_PREFIX=response.result
+      - CEGA_USERS_ENDPOINT=https://egatest.crg.eu/lega/v1/legas/users/
+      - CEGA_USERS_JSON_PREFIX=response.result
+      - LEGA_LOG=debug
+    secrets:
+      - cega_users.creds
+      - lega_mq_password
     ports:
       - "${DOCKER_PORT_inbox}:9000"
     container_name: inbox
     image: ${DOCKER_IMAGE_PREFIX:-egarchive/}inbox
     volumes:
-      - ./conf.ini:/etc/ega/conf.ini:ro
+      - ./confs/inbox.ini:/etc/ega/conf.ini:ro
       - inbox:/ega/inbox
       - ../images/inbox/entrypoint.sh:/usr/bin/ega-entrypoint.sh
       - ~/_ega/lega:/home/lega/.local/lib/python3.6/site-packages/lega
@@ -248,22 +402,38 @@ services:
     networks:
       - lega-external
       - lega-internal
-#    entrypoint: ["/bin/bash", "/usr/bin/ega-entrypoint.sh"]
+    entrypoint: ["/bin/bash", "/usr/bin/ega-entrypoint.sh"]
 
   # Ingestion Workers
   ingest:
-    # depends_on:
-    #   - mq
+    environment:
+      - LEGA_LOG=debug
     image: ${DOCKER_IMAGE_PREFIX:-egarchive/}lega
     container_name: ingest
-    environment:
-      - S3_ACCESS_KEY=${S3_ACCESS_KEY}
-      - S3_SECRET_KEY=${S3_SECRET_KEY}
-      - AWS_ACCESS_KEY_ID=${S3_ACCESS_KEY}
-      - AWS_SECRET_ACCESS_KEY=${S3_SECRET_KEY}
+    secrets:
+      - source: db_lega_in
+        target: db_lega_in
+        uid: 'lega'
+        gid: 'lega'
+        mode: 0600
+      - source: s3_access_key
+        target: s3_access_key
+        uid: 'lega'
+        gid: 'lega'
+        mode: 0600
+      - source: s3_secret_key
+        target: s3_secret_key
+        uid: 'lega'
+        gid: 'lega'
+        mode: 0600
+      - source: lega_mq_password
+        target: lega_mq_password
+        uid: 'lega'
+        gid: 'lega'
+        mode: 0600
     volumes:
        - inbox:/ega/inbox
-       - ./conf.ini:/etc/ega/conf.ini:ro
+       - ./confs/ingest.ini:/etc/ega/conf.ini:ro
        - ~/_ega/lega:/home/lega/.local/lib/python3.6/site-packages/lega
        - ~/_cryptor/crypt4gh:/home/lega/.local/lib/python3.6/site-packages/crypt4gh
     networks:
@@ -273,16 +443,34 @@ services:
 
   # Checksum validation
   verify:
+    environment:
+      - LEGA_LOG=debug
     hostname: verify
     container_name: verify
     image: ${DOCKER_IMAGE_PREFIX:-egarchive/}lega
-    environment:
-      - S3_ACCESS_KEY=${S3_ACCESS_KEY}
-      - S3_SECRET_KEY=${S3_SECRET_KEY}
-      - AWS_ACCESS_KEY_ID=${S3_ACCESS_KEY}
-      - AWS_SECRET_ACCESS_KEY=${S3_SECRET_KEY}
+    secrets:
+      - source: db_lega_in
+        target: db_lega_in
+        uid: 'lega'
+        gid: 'lega'
+        mode: 0600
+      - source: s3_access_key
+        target: s3_access_key
+        uid: 'lega'
+        gid: 'lega'
+        mode: 0600
+      - source: s3_secret_key
+        target: s3_secret_key
+        uid: 'lega'
+        gid: 'lega'
+        mode: 0600
+      - source: lega_mq_password
+        target: lega_mq_password
+        uid: 'lega'
+        gid: 'lega'
+        mode: 0600
     volumes:
-      - ./conf.ini:/etc/ega/conf.ini:ro
+      - ./confs/verify.ini:/etc/ega/conf.ini:ro
       - ./ega.key.pub:/etc/ega/ega.pub:ro
       - ./ega.key:/etc/ega/ega.sec:ro
       - ~/_ega/lega:/home/lega/.local/lib/python3.6/site-packages/lega
@@ -294,12 +482,23 @@ services:
 
   # Stable ID mapper, and inbox clean up
   finalize:
-    # depends_on:
-    #   - mq
+    environment:
+      - LEGA_LOG=debug
     image: ${DOCKER_IMAGE_PREFIX:-egarchive/}lega
     container_name: finalize
+    secrets:
+      - source: db_lega_in
+        target: db_lega_in
+        uid: 'lega'
+        gid: 'lega'
+        mode: 0600
+      - source: lega_mq_password
+        target: lega_mq_password
+        uid: 'lega'
+        gid: 'lega'
+        mode: 0600
     volumes:
-      - ./conf.ini:/etc/ega/conf.ini:ro
+      - ./confs/finalize.ini:/etc/ega/conf.ini:ro
       - ~/_ega/lega:/home/lega/.local/lib/python3.6/site-packages/lega
     networks:
       - lega-internal
@@ -322,13 +521,15 @@ services:
 
   # HTTP Data-Edge (using OpenID Connect + Permissions Server)
   outgest:
+    environment:
+      - LEGA_LOG=debug
     hostname: outgest
     container_name: outgest
     image: ${DOCKER_IMAGE_PREFIX:-egarchive/}lega
     ports:
       - "${DOCKER_PORT_outgest}:8443"
     volumes:
-      - ./conf.ini:/etc/ega/conf.ini:ro
+      - ./confs/outgest.ini:/etc/ega/conf.ini:ro
       - ./outgest.cert:/etc/ega/ssl.cert
       - ./outgest.key:/etc/ega/ssl.key
       - ~/_ega/lega:/home/lega/.local/lib/python3.6/site-packages/lega
@@ -339,16 +540,29 @@ services:
 
   # Re-Encryption
   streamer:
+    environment:
+      - LEGA_LOG=debug
     hostname: streamer
     container_name: streamer
     image: ${DOCKER_IMAGE_PREFIX:-egarchive/}lega
-    environment:
-      - S3_ACCESS_KEY=${S3_ACCESS_KEY}
-      - S3_SECRET_KEY=${S3_SECRET_KEY}
-      - AWS_ACCESS_KEY_ID=${S3_ACCESS_KEY}
-      - AWS_SECRET_ACCESS_KEY=${S3_SECRET_KEY}
+    secrets:
+      - source: db_lega_out
+        target: db_lega_out
+        uid: 'lega'
+        gid: 'lega'
+        mode: 0600
+      - source: s3_access_key
+        target: s3_access_key
+        uid: 'lega'
+        gid: 'lega'
+        mode: 0600
+      - source: s3_secret_key
+        target: s3_secret_key
+        uid: 'lega'
+        gid: 'lega'
+        mode: 0600
     volumes:
-      - ./conf.ini:/etc/ega/conf.ini:ro
+      - ./confs/streamer.ini:/etc/ega/conf.ini:ro
       - ./ega.key.pub:/etc/ega/ega.pub:ro
       - ./ega.key:/etc/ega/ega.sec:ro
       - ./ega.signing.key:/etc/ega/signing.key:ro
@@ -360,9 +574,11 @@ services:
     entrypoint: ["gosu", "lega", "ega-streamer"]
 EOF
 
+# Adding the secrets
+cat ${PRIVATE}/secrets.yml >> ${PRIVATE}/lega.yml
+
 #########################################################################
-# Keeping a trace
-#########################################################################
+echomsg "Keeping a trace"
 
 cat >> ${PRIVATE}/.trace <<EOF
 #####################################################################
@@ -372,19 +588,19 @@ cat >> ${PRIVATE}/.trace <<EOF
 #####################################################################
 #
 EC_KEY_COMMENT            = ${EC_KEY_COMMENT}
-EC_KEY_PASSPHRASE         = ${EC_KEY_PASSPHRASE}
+EC_KEY_PASSPHRASE         = $(<${PRIVATE}/secrets/ec_key_passphrase)
 EC_SIGN_KEY_COMMENT       = ${EC_SIGN_KEY_COMMENT}
-EC_SIGN_KEY_PASSPHRASE    = ${EC_SIGN_KEY_PASSPHRASE}
+EC_SIGN_KEY_PASSPHRASE    = $(<${PRIVATE}/secrets/ec_sign_key_passphrase)
 #
 SSL_SUBJ                  = ${SSL_SUBJ}
 #
 # Database users are 'lega_in' and 'lega_out'
-DB_LEGA_IN_PASSWORD       = ${DB_LEGA_IN_PASSWORD}
-DB_LEGA_OUT_PASSWORD      = ${DB_LEGA_OUT_PASSWORD}
+DB_LEGA_IN_PASSWORD       = $(<${PRIVATE}/secrets/db_lega_in)
+DB_LEGA_OUT_PASSWORD      = $(<${PRIVATE}/secrets/db_lega_out)
 #
-CEGA_CONNECTION           = amqps://lega1:A6P32r2KUSY7BPvL@hellgate.crg.eu:5271/lega1
-CEGA_REST_PASSWORD        = ${CEGA_REST_PASSWORD}
-LEGA_MQ_PASSWORD          = ${LEGA_MQ_PASSWORD}
+CEGA_CONNECTION           = $(<${PRIVATE}/secrets/cega_connection)
+CEGA_USERS_CREDS          = $(<${PRIVATE}/secrets/cega_users.creds)
+LEGA_MQ_PASSWORD          = $(<${PRIVATE}/secrets/lega_mq_password)
 #
 S3_ACCESS_KEY             = ${S3_ACCESS_KEY}
 S3_SECRET_KEY             = ${S3_SECRET_KEY}
@@ -393,4 +609,5 @@ DOCKER_PORT_inbox         = ${DOCKER_PORT_inbox}
 DOCKER_PORT_outgest       = ${DOCKER_PORT_outgest}
 EOF
 
+#########################################################################
 task_complete "Bootstrap complete"

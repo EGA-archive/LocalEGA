@@ -19,8 +19,8 @@ LOG = logging.getLogger(__name__)
 ## Async code - Used by data-out
 #############################################################
 
-async def create_pool(conf_section, loop=None):
-    db_args = DBConnection(conf_section).fetch_args()
+async def create_pool(loop=None):
+    db_args = DBConnection('db').fetch_args()
     LOG.info(f"Initializing a connection to: {db_args['user']}@{db_args['host']}:{db_args['port']}/{db_args['database']}")
     return await aiopg.create_pool(**db_args, loop=loop)
 

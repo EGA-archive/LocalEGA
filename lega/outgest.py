@@ -67,8 +67,8 @@ async def outgest(r):
 
     # Valid Permissions: Forward to Re-Encryption
     LOG.info("Valid Request and Permissions: Forwarding to Re-Encryption Streamer")
-    streamer_url = CONF.get_value('outgestion', 'streamer_endpoint')
-    timeout = ClientTimeout(total=CONF.get_value('outgestion', 'timeout', conv=int, default=300))
+    streamer_url = CONF.get_value('DEFAULT', 'streamer_endpoint')
+    timeout = ClientTimeout(total=CONF.get_value('DEFAULT', 'timeout', conv=int, default=300))
     async with ClientSession(timeout=timeout) as session:
         LOG.debug('POST Request: %s', streamer_url)
         async with session.request('POST',
@@ -101,13 +101,13 @@ async def outgest(r):
 @configure
 def main():
 
-    host = CONF.get_value('outgestion', 'host')  # fallbacks are in defaults.ini
-    port = CONF.get_value('outgestion', 'port', conv=int)
+    host = CONF.get_value('DEFAULT', 'host')
+    port = CONF.get_value('DEFAULT', 'port', conv=int)
 
     sslcontext = None
-    if CONF.get_value('outgestion', 'enable_ssl', conv=bool, default=True):
-        ssl_certfile = Path(CONF.get_value('outgestion', 'ssl_certfile')).expanduser()
-        ssl_keyfile = Path(CONF.get_value('outgestion', 'ssl_keyfile')).expanduser()
+    if CONF.get_value('DEFAULT', 'enable_ssl', conv=bool, default=True):
+        ssl_certfile = Path(CONF.get_value('DEFAULT', 'ssl_certfile')).expanduser()
+        ssl_keyfile = Path(CONF.get_value('DEFAULT', 'ssl_keyfile')).expanduser()
         LOG.debug(f'Certfile: {ssl_certfile}')
         LOG.debug(f'Keyfile: {ssl_keyfile}')
         sslcontext = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
@@ -121,7 +121,7 @@ def main():
     server.router.add_post('/', outgest) 
 
     # Initialization
-    server['permissions_url'] = CONF.get_value('outgestion', 'permissions_endpoint', raw=True)
+    server['permissions_url'] = CONF.get_value('DEFAULT', 'permissions_endpoint', raw=True)
 
     LOG.info(f"Start outgest server on {host}:{port}")
     web.run_app(server, host=host, port=port, shutdown_timeout=0, ssl_context=sslcontext)

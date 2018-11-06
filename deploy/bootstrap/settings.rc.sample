@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+set -e
+
+#DOCKER_IMAGE_PREFIX=crg/ega-
+
+# Port mapping
+DOCKER_PORT_inbox=2222
+DOCKER_PORT_outgest=10443
+
+
+# Credentials to connect to CentralEGA
+add_secret 'cega_users.creds' "<username>:<password>" # provided by CentralEGA
+add_secret 'cega_connection' "amqps://<user>:<password>@hellgate.crg.eu:5271/<vhost>"  # provided by CentralEGA
+
+# Local Message Broker 'admin' password
+add_secret 'lega_mq_password' $(generate_password 16)
+
+# For self-signed Certificates
+SSL_SUBJ="/C=ES/ST=Spain/L=Barcelona/O=CRG/OU=SysDevs/CN=LocalEGA/emailAddress=all.ega@crg.eu"
+
+# For the elliptic key, used by Crypt4GH
+EC_KEY_COMMENT="<some-prefered-comment>"
+EC_KEY_COMMENT="<anothter-prefered-comment>"
+add_secret 'ec_key_passphrase' $(generate_password 16)
+add_secret 'ec_sign_key_passphrase' $(generate_password 16)
+
+# Database users are lega_in and lega_out
+add_secret 'db_lega_in' $(generate_password 16)
+add_secret 'db_lega_out' $(generate_password 16)
+
+# For the S3-based vault
+add_secret 's3_access_key' $(generate_password 16)
+add_secret 's3_secret_key' $(generate_password 32)
+

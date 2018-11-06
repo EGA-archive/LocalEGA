@@ -37,21 +37,21 @@ LOG = logging.getLogger(__name__)
 
 async def init(app):
     # Some settings
-    app['db'] = await db.create_pool('db_out', loop=app.loop) # db_out: read-only vault, read-write download logs
+    app['db'] = await db.create_pool(loop=app.loop) # db_out: read-only vault, read-write download logs
     LOG.info('DB Connection pool created')
 
     chunk_size = CONF.get_value('vault', 'chunk_size', conv=int, default=1<<22) # 4 MB
     app['chunk_size'] = chunk_size
 
     # Load the LocalEGA private key
-    key_location = CONF.get_value('streamer', 'private_key')
+    key_location = CONF.get_value('DEFAULT', 'private_key')
     LOG.info(f'Retrieving the Private Key from {key_location}')
     with open(key_location, 'rb') as k:
         privkey = PrivateKey(k.read(), KeyFormatter)
         app['private_key'] = privkey
 
     # Load the LocalEGA header signing key
-    signing_key_location = CONF.get_value('streamer', 'signing_key')
+    signing_key_location = CONF.get_value('DEFAULT', 'signing_key')
     LOG.info(f'Retrieving the Signing Key from {signing_key_location}')
     if signing_key_location:
         with open(signing_key_location, 'rb') as k:
@@ -108,7 +108,7 @@ def request_context(func):
                 raise web.HTTPServiceUnavailable(reason='Unable to process request')
         
             # Request started
-            request_id, file_id, header, vault_path, vault_type = request_info
+            request_id, header, vault_path, vault_type, _, _, _ = request_info
             
             # Set up file transfer type
             LOG.info('Loading the vault handler: %s', vault_type)
@@ -189,8 +189,8 @@ async def outgest(r, set_progress, pubkey, privkey, signing_key, header, vault_p
 @configure
 def main(args=None):
 
-    host = CONF.get_value('streamer', 'host')  # fallbacks are in defaults.ini
-    port = CONF.get_value('streamer', 'port', conv=int)
+    host = CONF.get_value('DEFAULT', 'host')  # fallbacks are in defaults.ini
+    port = CONF.get_value('DEFAULT', 'port', conv=int)
 
     #loop = asyncio.get_event_loop()
     #loop.set_debug(True)
