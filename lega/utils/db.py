@@ -16,13 +16,6 @@ from ..conf import CONF
 
 LOG = logging.getLogger(__name__)
 
-######################################
-##         DB connection            ##
-######################################
-def _do_exit():
-    LOG.error("Could not connect to the database: Exiting")
-    sys.exit(1)
-
 class DBConnection():
     conn = None
     curr = None

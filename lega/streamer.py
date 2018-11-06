@@ -37,8 +37,6 @@ LOG = logging.getLogger(__name__)
 
 async def init(app):
     # Some settings
-    app['db'] = await db.create_pool(loop=app.loop) # db_out: read-only vault, read-write download logs
-    LOG.info('DB Connection pool created')
 
     chunk_size = CONF.get_value('vault', 'chunk_size', conv=int, default=1<<22) # 4 MB
     app['chunk_size'] = chunk_size
@@ -101,8 +99,7 @@ def request_context(func):
         try:
             
             # Fetch information and Create request
-            pool = r.app['db']
-            request_info = await db.make_request(pool, stable_id)
+            request_info = await db.make_request(stable_id)
             if not request_info:
                 LOG.error('Unable to create a request entry')
                 raise web.HTTPServiceUnavailable(reason='Unable to process request')
@@ -121,7 +118,7 @@ def request_context(func):
                 raise web.HTTPUnprocessableEntity(reason='Unsupported storage type')
 
             async def db_update(message):
-                await db.update(pool, request_id, status=message)
+                await db.update(request_id, status=message)
 
             # Do the job
             response, dlsize = await func(r,
@@ -134,7 +131,7 @@ def request_context(func):
                                           mover,
                                           chunk_size=r.app['chunk_size'])
             # Mark as complete
-            await db.download_complete(pool, request_id, dlsize)
+            await db.download_complete(request_id, dlsize)
             return response
         #except web.HTTPError as err:
         except Exception as err:
@@ -143,7 +140,7 @@ def request_context(func):
             cause = err.__cause__ or err
             LOG.error(f'{cause!r}') # repr = Technical
             if request_id:
-                await db.set_error(pool, request_id, cause, client_ip=data.get('client_ip'))
+                await db.set_error(request_id, cause, client_ip=data.get('client_ip'))
             raise web.HTTPServiceUnavailable(reason='Unable to process request')
     return wrapper
 
