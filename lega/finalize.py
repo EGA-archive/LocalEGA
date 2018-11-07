@@ -21,10 +21,10 @@ from .utils.amqp import consume
 LOG = logging.getLogger(__name__)
 
 @errors.catch(ret_on_error=(None,True))
-def work(data):
+def _work(correlation_id, data):
     '''Reads a message containing the ids and add it to the database.'''
 
-    LOG.info("Finalizing Stable ID for %s",data)
+    LOG.info("[%s] Finalizing Stable ID for %s", correlation_id, data)
 
     # Clean up username
     data['user'] = sanitize_user_id(data['user'])
@@ -49,7 +49,7 @@ def work(data):
 @configure
 def main():
     # upstream link configured in local broker
-    consume(work, 'stableIDs', None, ack_on_error=True) # on error, don't retry the message
+    consume(_work, 'stableIDs', None, ack_on_error=True) # on error, don't retry the message
 
 if __name__ == '__main__':
     main()

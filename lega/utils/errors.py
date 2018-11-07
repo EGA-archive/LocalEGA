@@ -31,7 +31,7 @@ def log_trace():
     fname = frame.f_code.co_filename
     LOG.error(f'Exception: {exc_type} in {fname} on line: {lineno}')
 
-def handle_error(e, data):
+def handle_error(e, correlation_id, data):
     try:
         # Re-raise in case of AssertionError
         if isinstance(e,AssertionError):
@@ -49,12 +49,12 @@ def handle_error(e, data):
         file_id = data.get('file_id', None) # should be there
         if file_id:
             set_error(file_id, cause, from_user)
-        LOG.debug('Catching error on file id: %s', file_id)
+        LOG.debug('[%s] Catching error on file id: %s', correlation_id, file_id)
         if from_user: # Send to CentralEGA
             org_msg = data.pop('org_msg', None) # should be there
             org_msg['reason'] = str(cause) # str = Informal
             LOG.info(f'Sending user error to local broker: {org_msg}')
-            publish(org_msg, 'cega', 'files.error')
+            publish(org_msg, 'cega', 'files.error', correlation_id=correlation_id)
     except Exception as e2:
         LOG.error(f'While treating "{e}", we caught "{e2!r}"')
         print(repr(e), 'caused', repr(e2), file=sys.stderr)
