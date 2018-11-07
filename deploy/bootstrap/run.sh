@@ -88,23 +88,22 @@ echomsg "\t* the keys"
 # Generate the LocalEGA main key (Format: PKCS8, SSH2, or None)
 crypt4gh generate -o ${PRIVATE}/ega.key -P "${EC_KEY_PASSPHRASE}" -f PKCS8
 chmod 644 ${PRIVATE}/ega.key.pub
+add_secret 'ega.sec' $(<${PRIVATE}/ega.key)
 
 crypt4gh generate -o ${PRIVATE}/ega.signing.key -P "${EC_KEY_PASSPHRASE}" --signing -f PKCS8
 chmod 644 ${PRIVATE}/ega.signing.key.pub
-
-# ssh-keygen -t ed25519 \
-# 	   -f ${PRIVATE}/ega.key \
-# 	   -m PKCS8 \
-# 	   -b 256 \
-# 	   -P "${EC_KEY_PASSPHRASE}" \
-# 	   -C "${EC_KEY_COMMENT}"
+add_secret 'ega.signing.key' $(<${PRIVATE}/ega.signing.key)
 
 # ssh-keygen -t ed25519 \
 # 	   -f ${PRIVATE}/ega.sign.key \
 # 	   -m PKCS8 \
 # 	   -b 256 \
 # 	   -P "${EC_SIGN_KEY_PASSPHRASE}" \
-# 	   -C "${EC_SIGN_KEY_COMMENT}"
+# 	   -C "LocalEGA-signing@CRG"
+
+# echo -n ${EC_KEY_PASSPHRASE} > ${PRIVATE}/secrets/ec_key_passphrase
+# openssl genpkey -algorithm X25519 -out ${PRIVATE}/ega.key -pass ${PRIVATE}/secrets/ec_key_passphrase
+# rm -f ${PRIVATE}/secrets/ec_key_passphrase
 
 # 224 ec bits == 2048 rsa bits
 
@@ -469,10 +468,13 @@ services:
         uid: 'lega'
         gid: 'lega'
         mode: 0600
+      - source: ega.sec
+        target: /etc/ega/ega.sec
+        uid: 'lega'
+        gid: 'lega'
+        mode: 0400
     volumes:
       - ./confs/verify.ini:/etc/ega/conf.ini:ro
-      - ./ega.key.pub:/etc/ega/ega.pub:ro
-      - ./ega.key:/etc/ega/ega.sec:ro
       - ~/_ega/lega:/home/lega/.local/lib/python3.6/site-packages/lega
       - ~/_cryptor/crypt4gh:/home/lega/.local/lib/python3.6/site-packages/crypt4gh
     networks:
@@ -561,11 +563,18 @@ services:
         uid: 'lega'
         gid: 'lega'
         mode: 0600
+      - source: ega.sec
+        target: /etc/ega/ega.sec
+        uid: 'lega'
+        gid: 'lega'
+        mode: 0400
+      - source: ega.signing.key
+        target: /etc/ega/signing.key
+        uid: 'lega'
+        gid: 'lega'
+        mode: 0400
     volumes:
       - ./confs/streamer.ini:/etc/ega/conf.ini:ro
-      - ./ega.key.pub:/etc/ega/ega.pub:ro
-      - ./ega.key:/etc/ega/ega.sec:ro
-      - ./ega.signing.key:/etc/ega/signing.key:ro
       - ~/_ega/lega:/home/lega/.local/lib/python3.6/site-packages/lega
       - ~/_cryptor/crypt4gh:/home/lega/.local/lib/python3.6/site-packages/crypt4gh
     networks:
@@ -587,10 +596,10 @@ cat >> ${PRIVATE}/.trace <<EOF
 #
 #####################################################################
 #
-EC_KEY_COMMENT            = ${EC_KEY_COMMENT}
 EC_KEY_PASSPHRASE         = $(<${PRIVATE}/secrets/ec_key_passphrase)
-EC_SIGN_KEY_COMMENT       = ${EC_SIGN_KEY_COMMENT}
+EC_KEY_PATH               = ${PRIVATE}/secrets/ega.key{,.pub}
 EC_SIGN_KEY_PASSPHRASE    = $(<${PRIVATE}/secrets/ec_sign_key_passphrase)
+EC_SIGN_KEY_PATH          = ${PRIVATE}/secrets/ega.signing.key{,.pub}
 #
 SSL_SUBJ                  = ${SSL_SUBJ}
 #
