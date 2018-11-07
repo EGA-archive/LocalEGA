@@ -63,6 +63,7 @@ EOSQL
 # Run sql commands (in order!)
 DB_FILES=(/docker-entrypoint-initdb.d/main.sql
 	  /docker-entrypoint-initdb.d/download.sql
+	  /docker-entrypoint-initdb.d/ebi.sql
 	  /docker-entrypoint-initdb.d/qc.sql
 	  /docker-entrypoint-initdb.d/grants.sql)
 
