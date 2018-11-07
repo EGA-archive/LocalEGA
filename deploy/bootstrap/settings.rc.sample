@@ -19,8 +19,6 @@ add_secret 'lega_mq_password' $(generate_password 16)
 SSL_SUBJ="/C=ES/ST=Spain/L=Barcelona/O=CRG/OU=SysDevs/CN=LocalEGA/emailAddress=all.ega@crg.eu"
 
 # For the elliptic key, used by Crypt4GH
-EC_KEY_COMMENT="<some-prefered-comment>"
-EC_KEY_COMMENT="<anothter-prefered-comment>"
 add_secret 'ec_key_passphrase' $(generate_password 16)
 add_secret 'ec_sign_key_passphrase' $(generate_password 16)
 
