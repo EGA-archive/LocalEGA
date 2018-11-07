@@ -54,7 +54,6 @@ SELECT id,
 FROM local_ega.main
 WHERE status = 'READY';
 
-
 -- Insert new request, and return some vault information
 CREATE TYPE request_type AS (req_id                    INTEGER,
                              header                    TEXT,
