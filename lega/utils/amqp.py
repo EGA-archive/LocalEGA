@@ -9,6 +9,7 @@ import json
 import uuid
 from contextlib import contextmanager
 import socket
+from time import sleep
 
 from ..conf import CONF
 
@@ -81,9 +82,10 @@ class AMQPConnection():
 
         connector = pika.BlockingConnection if blocking else pika.SelectConnection
 
-        retry = CONF.get_value('broker', 'retry', conv=int, default=1)
+        retry = CONF.get_value(self.conf_section, 'retry', conv=int, default=1)
+        retry_delay = CONF.get_value(self.conf_section,'retry_delay', conv=int, default=10) # seconds
         assert retry > 0, "The number of reconnection should be >= 1"
-        LOG.debug("%d attempts", retry)
+        LOG.debug("%d attempts [interval: %d]", retry, retry_delay)
         count = 0
         while count < retry:
             count += 1
@@ -95,13 +97,14 @@ class AMQPConnection():
                 return
             except (pika.exceptions.ProbableAccessDeniedError,
                     pika.exceptions.ProbableAuthenticationError,
-                    pika.exceptions.ConnectionClosed) as e:
+                    pika.exceptions.ConnectionClosed,
+                    socket.gaierror) as e:
                 LOG.debug("MQ connection error: %r", e)
-            except socket.gaierror as e:
-                LOG.debug("%s", e)
-            # except Exception as e:
-            #     LOG.debug("Invalid connection: %r", e)
-            #     break
+                LOG.debug("Delay %d seconds", retry_delay)
+                sleep(retry_delay)
+            except Exception as e:
+                LOG.debug("Invalid connection: %r", e)
+                break
 
         # fail to connect
         if self.on_failure:
