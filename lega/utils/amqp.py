@@ -2,80 +2,131 @@
 Ensures communication with RabbitMQ Message Broker
 """
 
+import sys
 import logging
 import pika
 import json
 import uuid
+from contextlib import contextmanager
+import socket
 
 from ..conf import CONF
 
 LOG = logging.getLogger(__name__)
 
-connection = None
+class AMQPConnection():
+    conn = None
+    chann = None
+    args = None
 
-def get_connection(domain, blocking=True):
-    '''
-    Returns a blocking connection to the Message Broker supporting AMQP(S).
+    def __init__(self, conf_section='broker', on_failure=None):
+        self.on_failure = on_failure
+        self.conf_section = conf_section or 'broker'
 
-    The host, portm virtual_host, username, password and
-    heartbeat values are read from the CONF argument.
-    So are the SSL options.
-    '''
-    assert domain in CONF.sections(), "Section not found in config file"
-
-    params = {
-        'host': CONF.get_value(domain, 'host', default='localhost'),
-        'port': CONF.get_value(domain, 'port', conv=int, default=5672),
-        'virtual_host': CONF.get_value(domain, 'vhost', default='/'),
-        'credentials': pika.PlainCredentials(
-            CONF.get_value(domain, 'username', default='guest'),
-            CONF.get_value(domain, 'password', default='guest')
-        ),
-        'connection_attempts': CONF.get_value(domain, 'connection_attempts', conv=int, default=10),
-        'retry_delay': CONF.get_value(domain,'retry_delay', conv=int, default=10), # seconds
-    }
-    heartbeat = CONF.get_value(domain, 'heartbeat', conv=int, default=0)
-    if heartbeat is not None:  # can be 0
-        # heartbeat_interval instead of heartbeat like they say in the doc
-        # https://pika.readthedocs.io/en/latest/modules/parameters.html#connectionparameters
-        params['heartbeat_interval'] = heartbeat
-        LOG.debug(f'Setting hearbeat to {heartbeat}')
-
-    # SSL configuration
-    if CONF.get_value(domain, 'enable_ssl', conv=bool, default=False):
-        params['ssl'] = True
-        params['ssl_options'] = {
-            'ca_certs': CONF.get_value(domain, 'cacert'),
-            'certfile': CONF.get_value(domain, 'cert'),
-            'keyfile':  CONF.get_value(domain, 'keyfile'),
-            'cert_reqs': 2,  # ssl.CERT_REQUIRED is actually <VerifyMode.CERT_REQUIRED: 2>
+    def fetch_args(self):
+        assert self.conf_section in CONF.sections(), "Section not found in config file"
+        LOG.info('Getting a connection to %s', self.conf_section)
+        params = {
+            'host': CONF.get_value(self.conf_section, 'host', default='localhost'),
+            'port': CONF.get_value(self.conf_section, 'port', conv=int, default=5672),
+            'virtual_host': CONF.get_value(self.conf_section, 'vhost', default='/'),
+            'credentials': pika.PlainCredentials(
+                CONF.get_value(self.conf_section, 'username', default='guest'),
+                CONF.get_value(self.conf_section, 'password', default='guest')
+            ),
+            'connection_attempts': CONF.get_value(self.conf_section, 'connection_attempts', conv=int, default=1),
+            'retry_delay': CONF.get_value(self.conf_section,'retry_delay', conv=int, default=10), # seconds
         }
+        heartbeat = CONF.get_value(self.conf_section, 'heartbeat', conv=int, default=0)
+        if heartbeat is not None:  # can be 0
+            # heartbeat_interval instead of heartbeat like they say in the doc
+            # https://pika.readthedocs.io/en/latest/modules/parameters.html#connectionparameters
+            params['heartbeat_interval'] = heartbeat
+            LOG.debug('Setting hearbeat to %s', heartbeat)
 
-    LOG.info(f'Getting a connection to {domain}')
-    LOG.debug(params)
+        # SSL configuration
+        if CONF.get_value(self.conf_section, 'enable_ssl', conv=bool, default=False):
+            params['ssl'] = True
+            params['ssl_options'] = {
+                'ca_certs': CONF.get_value(self.conf_section, 'cacert'),
+                'certfile': CONF.get_value(self.conf_section, 'cert'),
+                'keyfile':  CONF.get_value(self.conf_section, 'keyfile'),
+                'cert_reqs': 2,  # ssl.CERT_REQUIRED is actually <VerifyMode.CERT_REQUIRED: 2>
+            }
+        LOG.debug(params)
+        return params
 
-    if blocking:
-        return pika.BlockingConnection(pika.ConnectionParameters(**params))
-    return pika.SelectConnection(pika.ConnectionParameters(**params))
 
-def close():
-    global channel
-    global connection
-    if channel and not channel.is_closed and not channel.is_closing:
-        channel.close()
-    channel = None
-    if connection and not connection.is_closed and not connection.is_closing:
-        connection.close()
-    connection = None
+    def connect(self, blocking=True, force=False):
+        '''
+        Returns a blocking connection to the Message Broker supporting AMQP(S).
+        
+        The host, portm virtual_host, username, password and
+        heartbeat values are read from the CONF argument.
+        So are the SSL options.
 
-def open_channel(force_reconnect=False):
-    global channel
-    global connection
-    if connection is None or channel is None:
-        LOG.debug('Opening connection to local broker')
-        connection = get_connection('broker')
-        channel = connection.channel()
-    
+        Upon success, the connection is cached.
+
+        Before success, we try to connect ``try`` times every ``try_interval`` seconds (defined in CONF)
+        Executes ``on_failure`` after ``try`` attempts.
+        '''
+        if force:
+            self.close()
+
+        if self.conn and self.chann:
+            return
+
+        if not self.args:
+            self.args = pika.ConnectionParameters(**self.fetch_args())
+
+        connector = pika.BlockingConnection if blocking else pika.SelectConnection
+
+        retry = CONF.get_value('broker', 'retry', conv=int, default=1)
+        assert retry > 0, "The number of reconnection should be >= 1"
+        LOG.debug("%d attempts", retry)
+        count = 0
+        while count < retry:
+            count += 1
+            try:
+                LOG.debug("Connection attempt %d", count)
+                self.conn = connector(self.args)
+                self.chann = self.conn.channel()
+                LOG.debug("Connection successful")
+                return
+            except (pika.exceptions.ProbableAccessDeniedError,
+                    pika.exceptions.ProbableAuthenticationError,
+                    pika.exceptions.ConnectionClosed) as e:
+                LOG.debug("MQ connection error: %r", e)
+            except socket.gaierror as e:
+                LOG.debug("%s", e)
+            # except Exception as e:
+            #     LOG.debug("Invalid connection: %r", e)
+            #     break
+
+        # fail to connect
+        if self.on_failure:
+            self.on_failure()
+        else:
+            LOG.error("Unable to connection to MQ")
+            sys.exit(1)
+
+    @contextmanager
+    def channel(self):
+        if self.conn is None:
+            self.connect()
+        yield self.chann
+
+    def close(self):
+        LOG.debug("Closing the database")
+        if self.chann and not self.chann.is_closed and not self.chann.is_closing:
+            self.chann.close()
+        self.chann = None
+        if self.connection and not self.connection.is_closed and not self.connection.is_closing:
+            self.conn.close()
+        self.conn = None
+
+
+connection = AMQPConnection()
 
 def publish(message, exchange, routing, correlation_id=None):
     '''
@@ -83,14 +134,14 @@ def publish(message, exchange, routing, correlation_id=None):
     If the correlation_id is specified, it is forwarded.
     If not, a new one is generated (as a uuid4 string).
     '''
-    open_channel()
-    LOG.debug('[%s] Sending %s to exchange: %s [routing key: %s]', correlation_id, message, exchange, routing)
-    channel.basic_publish(exchange    = exchange,
-                          routing_key = routing,
-                          body        = json.dumps(message),
-                          properties  = pika.BasicProperties(correlation_id=correlation_id or str(uuid.uuid4()),
-                                                             content_type='application/json',
-                                                             delivery_mode=2))
+    with connection.channel() as channel:
+        LOG.debug('[%s] Sending %s to exchange: %s [routing key: %s]', correlation_id, message, exchange, routing)
+        channel.basic_publish(exchange    = exchange,
+                              routing_key = routing,
+                              body        = json.dumps(message),
+                              properties  = pika.BasicProperties(correlation_id=correlation_id or str(uuid.uuid4()),
+                                                                 content_type='application/json',
+                                                                 delivery_mode=2))
 
 def consume(work, from_queue, to_routing, ack_on_error=True):
     '''Blocking function, registering callback ``work`` to be called.
@@ -127,19 +178,20 @@ def consume(work, from_queue, to_routing, ack_on_error=True):
             _channel.basic_ack(delivery_tag=method_frame.delivery_tag)
 
     # Let's do this
-    LOG.debug(f'Consuming message from {from_queue}')
+    LOG.debug('MQ setup')
     while True:
-        open_channel() # might raise exception
-        try:
-            channel.basic_qos(prefetch_count=1) # One job per worker
-            channel.basic_consume(process_request, queue=from_queue)
-            channel.start_consuming()
-        except KeyboardInterrupt:
-            channel.stop_consuming()
-        except pika.exceptions.ConnectionClosed as e:
-            LOG.debug('Retrying after %s', e)
-            close()
-            continue
-        break
+        with connection.channel() as channel:
+            try:
+                LOG.debug('Consuming message from %s', from_queue)
+                channel.basic_qos(prefetch_count=1) # One job per worker
+                channel.basic_consume(process_request, queue=from_queue)
+                channel.start_consuming()
+            except KeyboardInterrupt:
+                channel.stop_consuming()
+            except Exception as e:
+                LOG.debug('Retrying after %s', e)
+                connection.close()
+                continue
+            break
 
-    close()
+    connection.close()

@@ -24,9 +24,9 @@ SSH_KEY=$(MAIN_REPO)/tmp/dummy.sec
 all: upload submit
 
 $(FILE):
-	dd if=/dev/zero of=$@ count=$(FILESIZE) bs=1048576
+	dd if=/dev/urandom of=$@ count=$(FILESIZE) bs=1048576
+#	dd if=/dev/zero of=$@ count=$(FILESIZE) bs=1048576
 #	for i in {0..100000}; do echo $$i >> $@; done
-#	dd if=/dev/urandom of=$@ count=$(FILESIZE) bs=1048576
 
 $(FILE).c4gh: $(FILE) signing.key
 	crypt4gh encrypt --pk $(PUB_KEY) --signing_key signing.key < $< > $@

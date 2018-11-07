@@ -44,7 +44,7 @@ async def init(app):
     # Load the LocalEGA private key
     key_location = CONF.get_value('DEFAULT', 'private_key')
     LOG.info(f'Retrieving the Private Key from {key_location}')
-    with open(key_location, 'rb') as k:
+    with open(key_location, 'rt') as k: # text file
         privkey = PrivateKey(k.read(), KeyFormatter)
         app['private_key'] = privkey
 
@@ -52,9 +52,10 @@ async def init(app):
     signing_key_location = CONF.get_value('DEFAULT', 'signing_key')
     LOG.info(f'Retrieving the Signing Key from {signing_key_location}')
     if signing_key_location:
-        with open(signing_key_location, 'rb') as k:
-            signing_key = ed25519.SigningKey(k.read())
-            app['signing_key'] = signing_key
+        with open(signing_key_location, 'rt') as k:  # hex file
+            key_content = bytes.fromhex(k.read())
+            print(key_content, len(key_content))
+            app['signing_key'] = ed25519.SigningKey(key_content)
     else:
         app['signing_key'] = None
 

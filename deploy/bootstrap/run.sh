@@ -86,11 +86,11 @@ AWS_SECRET_ACCESS_KEY=${S3_SECRET_KEY}
 echomsg "\t* the keys"
 
 # Generate the LocalEGA main key (Format: PKCS8, SSH2, or None)
-crypt4gh generate -o ${PRIVATE}/ega.key -P "${EC_KEY_PASSPHRASE}" -f PKCS8
+crypt4gh generate -o ${PRIVATE}/ega.key -P "${EC_KEY_PASSPHRASE}" -f none
 chmod 644 ${PRIVATE}/ega.key.pub
 add_secret 'ega.sec' $(<${PRIVATE}/ega.key)
 
-crypt4gh generate -o ${PRIVATE}/ega.signing.key -P "${EC_KEY_PASSPHRASE}" --signing -f PKCS8
+crypt4gh generate -o ${PRIVATE}/ega.signing.key -P "${EC_KEY_PASSPHRASE}" --signing -f none
 chmod 644 ${PRIVATE}/ega.signing.key.pub
 add_secret 'ega.signing.key' $(<${PRIVATE}/ega.signing.key)
 
@@ -144,7 +144,8 @@ bucket = lega
 host = mq
 port = 5672
 connection_attempts = 30
-retry_delay = 10
+retry = 30
+retry_delay = 1
 username = admin
 password = /run/secrets/lega_mq_password
 vhost = /
@@ -211,6 +212,7 @@ cat > ${PRIVATE}/confs/finalize.ini <<EOF
 host = mq
 port = 5672
 connection_attempts = 30
+retry = 30
 retry_delay = 10
 username = admin
 password = /run/secrets/lega_mq_password
@@ -289,6 +291,7 @@ chroot_sessions = True
 host = mq
 port = 5672
 connection_attempts = 30
+retry = 30
 retry_delay = 10
 username = admin
 password = /run/secrets/lega_mq_password
@@ -371,7 +374,7 @@ services:
       - ../images/db/main.sql:/docker-entrypoint-initdb.d/main.sql:ro
       - ../images/db/download.sql:/docker-entrypoint-initdb.d/download.sql:ro
       - ../images/db/qc.sql:/docker-entrypoint-initdb.d/qc.sql:ro
-      - ../images/db/data-out-extensions.sql:/docker-entrypoint-initdb.d/data-out-extensions.sql:ro
+      - ../images/db/ebi.sql:/docker-entrypoint-initdb.d/ebi.sql:ro
       - ../images/db/grants.sql:/docker-entrypoint-initdb.d/grants.sql:ro
       - ../images/db/entrypoint.sh:/usr/bin/ega-entrypoint.sh
     networks:
