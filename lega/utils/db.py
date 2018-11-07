@@ -9,7 +9,6 @@ import traceback
 import logging
 import psycopg2
 from socket import gethostname
-import inspect
 from contextlib import contextmanager
 
 from ..conf import CONF
@@ -60,17 +59,17 @@ class DBConnection():
         LOG.debug(f"{nb_try} attempts")
         count = 0
         while count < nb_try:
+            count += 1
             try:
-                LOG.debug(f"Connection attempt {count+1}")
+                LOG.debug("Connection attempt %d", count)
                 self.conn = psycopg2.connect(**self.args)
                 #self.conn.set_session(autocommit=True) # default is False.
-                LOG.debug(f"Connection successful")
+                LOG.debug("Connection successful")
                 return
             except psycopg2.OperationalError as e:
-                LOG.debug(f"Database connection error: {e!r}")
-                count += 1
+                LOG.debug("Database connection error: %r", e)
             except psycopg2.InterfaceError as e:
-                LOG.debug(f"Invalid connection parameters: {e!r}")
+                LOG.debug("Invalid connection parameters: %r", e)
                 break
 
         # fail to connect

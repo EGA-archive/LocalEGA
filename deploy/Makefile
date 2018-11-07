@@ -27,9 +27,7 @@ private/lega.yml private bootstrap bootstrap-dev:
 		    egarchive/lega --prefix $(PROJECT_NAME) ${ARGS}
 
 up: private/lega.yml
-	@docker-compose --log-level ERROR -f $< up -d db mq vault inbox
-	@sleep 5 # Allow mq to be ready with its users, so other containers can consume from the queues
-	@docker-compose --log-level ERROR -f $< up -d ingest verify finalize outgest streamer
+	@docker-compose --log-level ERROR -f $< up -d
 
 down:
 	-@docker-compose --log-level ERROR down -v

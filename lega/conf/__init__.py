@@ -104,7 +104,9 @@ class Configuration(configparser.ConfigParser):
                 raise ValueError(f"Invalid truth value: {val}")
         if conv == str:
             secrets_path = os.environ.get('secrets_path', '/run/secrets/')
-            return get_secret(value) if value.startswith(secrets_path) else value # removes file if found
+            if value.startswith(secrets_path):
+                return get_secret(value) # removes file if found
+            return value 
         # else
         return conv(value) # raise error in case we can't convert an empty value
 

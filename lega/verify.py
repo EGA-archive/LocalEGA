@@ -90,7 +90,7 @@ def _work(mover, correlation_id, data):
     org_msg.pop('file_id', None)
     org_msg['decrypted_checksums'] = [{ 'type': 'sha256', 'value': checksum },
                                       { 'type': 'md5', 'value': md5_digest }] # for stable id
-    LOG.debug("[%s] Reply message: ",correlation_id, org_msg)
+    LOG.debug("[%s] Reply message: %s", correlation_id, org_msg)
     return (org_msg, False)
 
 @configure
