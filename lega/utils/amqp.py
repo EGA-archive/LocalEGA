@@ -79,10 +79,12 @@ def open_channel(force_reconnect=False):
 
 def publish(message, exchange, routing, correlation_id=None):
     '''
-    Sending a message to the local broker with ``path`` was updated
+    Sending a message to the local broker exchange using the given routing key.
+    If the correlation_id is specified, it is forwarded.
+    If not, a new one is generated (as a uuid4 string).
     '''
     open_channel()
-    LOG.debug(f'Sending {message} to exchange: {exchange} [routing key: {routing}]')
+    LOG.debug('[%s] Sending %s to exchange: %s [routing key: %s]', correlation_id, message, exchange, routing)
     channel.basic_publish(exchange    = exchange,
                           routing_key = routing,
                           body        = json.dumps(message),
@@ -109,19 +111,19 @@ def consume(work, from_queue, to_routing, ack_on_error=True):
     def process_request(_channel, method_frame, props, body):
         correlation_id = props.correlation_id
         message_id = method_frame.delivery_tag
-        LOG.debug(f'Consuming message {message_id} (Correlation ID: {correlation_id})')
+        LOG.debug('[%s] Consuming message %s', correlation_id, message_id)
 
         # Process message in JSON format
-        answer, error = work( json.loads(body) ) # Exceptions should be already caught
+        answer, error = work(correlation_id, json.loads(body) ) # Exceptions should be already caught
 
         # Publish the answer
         if answer:
             assert( to_routing )
-            publish(answer, 'lega', to_routing, correlation_id = props.correlation_id)
+            publish(answer, 'lega', to_routing, correlation_id=correlation_id)
 
         # Acknowledgment: Cancel the message resend in case MQ crashes
         if not error or ack_on_error:
-            LOG.debug(f'Sending ACK for message {message_id} (Correlation ID: {correlation_id})')
+            LOG.debug('[%s] Sending ACK for message', correlation_id, message_id)
             _channel.basic_ack(delivery_tag=method_frame.delivery_tag)
 
     # Let's do this
@@ -141,10 +143,3 @@ def consume(work, from_queue, to_routing, ack_on_error=True):
         break
 
     close()
-
-
-def tell_cega(message, status):
-    message['status'] = status
-    LOG.debug(f'Sending message to CentralEGA: {message}')
-    publish(message, 'cega', 'files.processing')
-    message.pop('status', None)

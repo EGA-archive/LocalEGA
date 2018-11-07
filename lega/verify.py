@@ -29,15 +29,15 @@ from .utils.amqp import consume, publish
 LOG = logging.getLogger(__name__)
 
 @errors.catch(ret_on_error=(None,True))
-def work(mover, data):
+def _work(mover, correlation_id, data):
     '''Verifying that the file in the vault can be properly decrypted.'''
 
-    LOG.info('Verification | message: %s', data)
+    LOG.info('[%s] Verification | message: %s', correlation_id, data)
 
     file_id = data['file_id']
 
     if db.is_disabled(file_id):
-        LOG.info('Operation canceled because database entry marked as DISABLED (for file_id %s)', file_id)
+        LOG.info('[%s] Operation canceled because database entry marked as DISABLED (for file_id %s)', correlation_id, file_id)
         return None, False # do nothing
 
     header = bytes.fromhex(data['header']) # in hex -> bytes
@@ -45,11 +45,11 @@ def work(mover, data):
 
     # Load the LocalEGA private key
     key_location = CONF.get_value('DEFAULT', 'private_key')
-    LOG.info(f'Retrieving the Private Key from {key_location}')
+    LOG.info('[%s] Retrieving the Private Key from %s', correlation_id, key_location)
     with open(key_location, 'rb') as k:
         privkey = PrivateKey(k.read(), KeyFormatter)
 
-    LOG.info('Opening vault file: %s', vault_path)
+    LOG.info('[%s] Opening vault file: %s', correlation_id, vault_path)
     # If you can decrypt... the checksum is valid
 
     header = Header.from_stream(io.BytesIO(header))
@@ -69,9 +69,9 @@ def work(mover, data):
         
     # Convert to hex
     checksum = checksum.hex()
-    LOG.info('Verification completed [sha256: %s]', checksum)
+    LOG.info('[%s] Verification completed [sha256: %s]', correlation_id, checksum)
     md5_digest = md.hexdigest()
-    LOG.info('Verification completed [md5: %s]', md5_digest)
+    LOG.info('[%s] Verification completed [md5: %s]', correlation_id, md5_digest)
 
     # Updating the database
     db.update(file_id, { 'status': 'COMPLETED',
@@ -82,22 +82,22 @@ def work(mover, data):
 
     # Send to QC
     data.pop('status', None)
-    LOG.debug(f'Sending message to QC: {data}')
-    publish(data, 'lega', 'qc') # We keep the org msg in there
+    LOG.debug('[%s] Sending message to QC: ',correlation_id, data)
+    publish(data, 'lega', 'qc', correlation_id=correlation_id) # We keep the org msg in there
 
     # Shape successful message
     org_msg = data['org_msg']
     org_msg.pop('file_id', None)
     org_msg['decrypted_checksums'] = [{ 'type': 'sha256', 'value': checksum },
                                       { 'type': 'md5', 'value': md5_digest }] # for stable id
-    LOG.debug(f"Reply message: {org_msg}")
+    LOG.debug("[%s] Reply message: ",correlation_id, org_msg)
     return (org_msg, False)
 
 @configure
 def main():
 
     fs = getattr(storage, CONF.get_value('vault', 'driver', default='FileStorage'))
-    do_work = partial(work, fs())
+    do_work = partial(_work, fs())
 
     consume(do_work, 'archived', 'completed')
 
