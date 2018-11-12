@@ -53,9 +53,7 @@ async def init(app):
     LOG.info(f'Retrieving the Signing Key from {signing_key_location}')
     if signing_key_location:
         with open(signing_key_location, 'rt') as k:  # hex file
-            key_content = bytes.fromhex(k.read())
-            print(key_content, len(key_content))
-            app['signing_key'] = ed25519.SigningKey(key_content)
+            app['signing_key'] = ed25519.SigningKey(bytes.fromhex(k.read()))
     else:
         app['signing_key'] = None
 
@@ -63,8 +61,7 @@ async def init(app):
 async def shutdown(app):
     '''Function run after a KeyboardInterrupt. After that: cleanup'''
     LOG.info('Shutting down the database engine')
-    app['db'].close()
-    await app['db'].wait_closed()
+    await db.close()
 
 ####################################
 
@@ -100,7 +97,17 @@ def request_context(func):
         try:
             
             # Fetch information and Create request
-            request_info = await db.make_request(stable_id)
+            user_info = ''
+            client_ip = data.get('client_ip') or ''
+            startCoordinate = int(r.query.get('startCoordinate', 0))
+            endCoordinate = r.query.get('endCoordinate', None)
+            endCoordinate = int(endCoordinate) if endCoordinate is not None else None
+            
+            request_info = await db.make_request(stable_id,
+                                                 user_info,
+                                                 client_ip,
+                                                 start_coordinate=startCoordinate,
+                                                 end_coordinate=endCoordinate)
             if not request_info:
                 LOG.error('Unable to create a request entry')
                 raise web.HTTPServiceUnavailable(reason='Unable to process request')
@@ -119,7 +126,7 @@ def request_context(func):
                 raise web.HTTPUnprocessableEntity(reason='Unsupported storage type')
 
             async def db_update(message):
-                await db.update(request_id, status=message)
+                await db.update_status(request_id, message)
 
             # Do the job
             response, dlsize = await func(r,
@@ -141,7 +148,7 @@ def request_context(func):
             cause = err.__cause__ or err
             LOG.error(f'{cause!r}') # repr = Technical
             if request_id:
-                await db.set_error(request_id, cause, client_ip=data.get('client_ip'))
+                await db.set_error(request_id, cause)
             raise web.HTTPServiceUnavailable(reason='Unable to process request')
     return wrapper
 
