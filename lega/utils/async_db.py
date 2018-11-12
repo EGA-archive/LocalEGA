@@ -11,6 +11,7 @@ from socket import gethostname
 #from contextlib import asynccontextmanager
 from async_generator import asynccontextmanager
 
+import psycopg2
 import aiopg
 
 from ..conf import CONF
@@ -110,9 +111,13 @@ class DBConnection():
 #############################################################
 connection = DBConnection()
 
-async def make_request(stable_id):
+async def make_request(stable_id, user_info, client_ip, start_coordinate=0, end_coordinate=None):
     async with connection.cursor() as cur:
-        await cur.execute('SELECT * FROM local_ega_download.make_request(%(stable_id)s);', {'stable_id': stable_id})
+        await cur.execute('SELECT * FROM local_ega_download.make_request(%(stable_id)s,%(user_info)s,%(client_ip)s,%(start_coordinate)s,%(end_coordinate)s);', {'stable_id': stable_id,
+                'user_info': user_info,
+                'client_ip': client_ip,
+                'start_coordinate': start_coordinate,
+                'end_coordinate': end_coordinate})
         return await cur.fetchone()
 
 async def download_complete(req_id, dlsize):
@@ -120,7 +125,7 @@ async def download_complete(req_id, dlsize):
         await cur.execute('SELECT local_ega_download.download_complete(%(req_id)s,%(dlsize)s);',
                           {'req_id': req_id, 'dlsize': dlsize})
 
-async def set_error(req_id, error, client_ip=None):
+async def set_error(req_id, error):
 
     exc_type, _, exc_tb = sys.exc_info()
     g = traceback.walk_tb(exc_tb)
@@ -137,20 +142,16 @@ async def set_error(req_id, error, client_ip=None):
     hostname = gethostname()
 
     async with connection.cursor() as cur:
-        await cur.execute('SELECT local_ega_download.insert_error(%(req_id)s,%(h)s,%(etype)s,%(msg)s,%(client_ip)s);',
+        await cur.execute('SELECT local_ega_download.insert_error(%(req_id)s,%(h)s,%(etype)s,%(msg)s);',
                           {'h':hostname,
                            'etype': error.__class__.__name__,
                            'msg': repr(error),
-                           'req_id': req_id,
-                           'client_ip': client_ip})
-        
+                           'req_id': req_id})
 
-async def update(req_id, **kwargs):
-    """Updating information in database for ``req_id``."""
-    if not kwargs:
-        return
+async def update_status(req_id, status):
     async with connection.cursor() as cur:
-        q = ', '.join(f'{k} = %({k})s' for k in kwargs) # keys
-        query = f'UPDATE local_ega_download.main SET {q} WHERE id = %(req_id)s;'
-        kwargs['req_id'] = req_id
-        await cur.execute(query, kwargs)
+        await cur.execute('SELECT local_ega_download.update_status(%(req_id)s,%(status)s);',
+                          {'req_id': req_id, 'status': status})
+
+async def close():
+    await connection.close()

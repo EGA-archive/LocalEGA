@@ -22,4 +22,6 @@ GRANT USAGE ON SCHEMA local_ega_download TO lega_out;
 GRANT ALL PRIVILEGES ON ALL TABLES    IN SCHEMA local_ega_download TO lega_out; -- Read/Write on local_ega_download.* for lega_out
 GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA local_ega_download TO lega_out; -- Don't forget the sequences
 
-GRANT SELECT ON local_ega.main TO lega_out; -- Read-Only access for lega_out, through the views inside local_ega_download
+-- Read-Only access for lega_out
+GRANT SELECT ON local_ega.main TO lega_out; 
+GRANT USAGE ON SCHEMA local_ega TO lega_out;

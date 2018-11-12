@@ -84,7 +84,7 @@ class DBConnection():
                 with self.conn.cursor() as cur: # does not commit if error raised
                     cur.execute('SELECT 1;')
                     LOG.debug("Ping db successful")
-        except psycopg2.OperationalError as e:
+        except (psycopg2.OperationalError, psycopg2.InterfaceError) as e:
             LOG.debug('Ping failed: %s', e)
             self.connect(force=True) # reconnect
 
