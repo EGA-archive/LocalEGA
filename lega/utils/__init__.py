@@ -3,9 +3,6 @@ Utility functions used internally.
 """
 
 import os
-import logging
-
-LOG = logging.getLogger(__name__)
 
 def get_secret(f, mode='rt'):
     with open(f, mode) as s:

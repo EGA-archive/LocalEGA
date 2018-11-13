@@ -12,19 +12,21 @@ registered upstream queue.
 Note that the upstream is registered via an authenticated mechanism, and uses AMQPS.
 '''
 
-import logging
-
 from .conf import configure
 from .utils import db, errors, sanitize_user_id
 from .utils.amqp import consume
+from .utils.logging import LEGALogger
 
-LOG = logging.getLogger(__name__)
+LOG = LEGALogger(__name__)
 
 @errors.catch(ret_on_error=(None,True))
 def _work(correlation_id, data):
     '''Reads a message containing the ids and add it to the database.'''
 
-    LOG.info("[%s] Finalizing Stable ID for %s", correlation_id, data)
+    # Adding correlation ID to context
+    LOG.add_context(correlation_id)
+
+    LOG.info("Finalizing Stable ID for %s", data)
 
     # Clean up username
     data['user'] = sanitize_user_id(data['user'])

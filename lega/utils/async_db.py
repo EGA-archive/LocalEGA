@@ -15,8 +15,9 @@ import psycopg2
 import aiopg
 
 from ..conf import CONF
+from .logging import LEGALogger
 
-LOG = logging.getLogger(__name__)
+LOG = LEGALogger(__name__)
 
 class DBConnection():
     pool = None

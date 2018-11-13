@@ -5,16 +5,15 @@ File I/O for disk or S3 Object storage
 '''
 
 import os
-import logging
+import io
 from contextlib import contextmanager
 import shutil
 from pathlib import Path
 
 from ..conf import CONF
-import io
+from .logging import LEGALogger
 
-LOG = logging.getLogger(__name__)
-
+LOG = LEGALogger(__name__)
 
 class FileStorage():
     """Vault storage on disk and related I/O."""

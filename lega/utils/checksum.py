@@ -6,8 +6,9 @@ import logging
 import hashlib
 
 from .exceptions import UnsupportedHashAlgorithm, CompanionNotFound
+from .logging import LEGALogger
 
-LOG = logging.getLogger(__name__)
+LOG = LEGALogger(__name__)
 
 # Main map
 _DIGEST = {

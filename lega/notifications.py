@@ -10,6 +10,7 @@ Send message to the local broker when a file is uploaded.
 import sys
 import logging
 import os
+import uuid
 import asyncio
 import uvloop
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
@@ -21,8 +22,9 @@ delim = b'$'
 from .conf import CONF, configure
 from .utils.amqp import publish
 from .utils.checksum import calculate
+from .utils.logging import LEGALogger
 
-LOG = logging.getLogger(__name__)
+LOG = LEGALogger(__name__)
 
 class Forwarder(asyncio.Protocol):
 
@@ -79,8 +81,9 @@ class Forwarder(asyncio.Protocol):
         c = calculate(filepath, 'sha256')
         if c:
             msg['encrypted_checksums'] = [{'type': 'sha256', 'value': c}]
-        # Sending
-        publish(msg, 'cega', 'files.inbox')
+        # Sending (will create a correlation id)
+        correlation_id = str(uuid.uuid4())
+        publish(msg, 'cega', 'files.inbox', correlation_id)
 
     def connection_lost(self, exc):
         if self.buf:

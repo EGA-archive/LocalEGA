@@ -3,10 +3,6 @@
 
 '''Clean up script manually triggered'''
 
-import logging
-
-LOG = logging.getLogger(__name__)
-
 def main():
     raise NotImplementedError()
 

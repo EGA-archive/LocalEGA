@@ -6,14 +6,14 @@ Database Connection
 
 import sys
 import traceback
-import logging
 import psycopg2
 from socket import gethostname
 from contextlib import contextmanager
 
 from ..conf import CONF
+from .logging import LEGALogger
 
-LOG = logging.getLogger(__name__)
+LOG = LEGALogger(__name__)
 
 class DBConnection():
     conn = None
