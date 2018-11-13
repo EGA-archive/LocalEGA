@@ -7,7 +7,7 @@ RUN groupadd -r lega && \
 EXPOSE 9000
 VOLUME /ega/inbox
 
-RUN yum -y install autoconf patch openssl-devel pam-devel libcurl-devel nss-tools readline-devel
+RUN yum -y install autoconf patch openssl-devel pam-devel libcurl-devel nss-tools readline-devel libedit-devel
 #    	   	   nc nmap tcpdump lsof strace bash-completion bash-completion-extras
 
 ##
@@ -36,7 +36,7 @@ RUN ldconfig -v
 ARG OPENSSH_DIR=/opt/openssh
 ARG SSHD_UID=74
 ARG SSHD_GID=74
-ARG OPENSSH_TAG=V_7_7_P1
+ARG OPENSSH_TAG=V_7_8_P1
 
 RUN getent group ssh_keys >/dev/null || groupadd -r ssh_keys || :
 RUN getent group sshd || groupadd -g ${SSHD_GID} -r sshd
@@ -67,7 +67,7 @@ RUN git clone --branch ${OPENSSH_TAG} git://anongit.mindrot.org/openssh.git /roo
         --with-pam \
         --without-selinux \
 	--without-kerberos5 \
-        --without-libedit
+        --with-libedit
 
 COPY notify_cega.patch /root/openssh/notify_cega.patch
 
