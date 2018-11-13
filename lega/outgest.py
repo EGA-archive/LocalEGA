@@ -12,7 +12,6 @@
 '''
 
 import sys
-import logging
 import ssl
 from pathlib import Path
 import asyncio
@@ -22,8 +21,9 @@ asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 from aiohttp import web, ClientSession, ClientTimeout
 
 from .conf import CONF, configure
+from .utils.logging import LEGALogger
 
-LOG = logging.getLogger(__name__)
+LOG = LEGALogger(__name__)
 
 async def outgest(r):
     # Get token from header

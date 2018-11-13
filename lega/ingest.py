@@ -19,7 +19,6 @@ routing key :``archived``.
 '''
 
 import sys
-import logging
 from pathlib import Path
 from functools import partial
 import hashlib
@@ -29,12 +28,16 @@ from crypt4gh.crypt4gh import Header
 from .conf import CONF, configure
 from .utils import db, exceptions, errors, checksum, sanitize_user_id, storage
 from .utils.amqp import consume, publish
+from .utils.logging import LEGALogger
 
-LOG = logging.getLogger(__name__)
+LOG = LEGALogger(__name__)
 
 @errors.catch(ret_on_error=(None,True))
 def _work(fs, correlation_id, data):
     '''Reads a message, splits the header and sends the remainder to the backend store.'''
+
+    # Adding correlation ID to context
+    LOG.add_context(correlation_id)
 
     # Keeping data as-is (cuz the decorator is using it)
     # It will be augmented, but we keep the original data first
@@ -42,7 +45,7 @@ def _work(fs, correlation_id, data):
     data['org_msg'] = org_msg
 
     filepath = data['file_path']
-    LOG.info("[%s] Processing %s", correlation_id, filepath)
+    LOG.info("Processing %s", filepath)
 
     # Use user_id, and not elixir_id
     user_id = sanitize_user_id(data['user'])
@@ -53,11 +56,11 @@ def _work(fs, correlation_id, data):
 
     # Find inbox
     inbox = Path(CONF.get_value('inbox', 'location', raw=True) % user_id)
-    LOG.info("[%s] Inbox area: %s", correlation_id, inbox)
+    LOG.info("Inbox area: %s", inbox)
 
     # Check if file is in inbox
     inbox_filepath = inbox / filepath.lstrip('/')
-    LOG.info("[%s] Inbox file path: %s", correlation_id, inbox_filepath)
+    LOG.info("Inbox file path: %s", inbox_filepath)
 
     # Record in database
     if not inbox_filepath.exists():
@@ -77,28 +80,28 @@ def _work(fs, correlation_id, data):
     # Sending a progress message to CentralEGA
     cega_msg = org_msg.copy()
     cega_msg['status'] = 'PROCESSING'
-    LOG.debug('[%s] Sending message to CentralEGA: %s', correlation_id, cega_msg)
-    publish(cega_msg, 'cega', 'files.processing', correlation_id=correlation_id)
+    LOG.debug('Sending message to CentralEGA: %s', cega_msg)
+    publish(cega_msg, 'cega', 'files.processing', correlation_id)
     
     # Strip the header out and copy the rest of the file to the vault
-    LOG.debug('[%s] Opening %s', correlation_id, inbox_filepath)
+    LOG.debug('Opening %s', inbox_filepath)
     with open(inbox_filepath, 'rb') as infile:
-        LOG.debug('[%s] Reading header | file_id: %s', correlation_id, file_id)
+        LOG.debug('Reading header | file_id: %s', file_id)
         header = Header.from_stream(infile)
 
-        LOG.info('[%s] Parsed HEADER: %s', correlation_id, header)
+        LOG.info('Parsed HEADER: %s', header)
 
-        LOG.info('[%s] Adding header to database', correlation_id)
+        LOG.info('Adding header to database')
         header_hex = bytes(header).hex()
         data['header'] = header_hex
         db.update(file_id, { 'header': header_hex,
                              'version': header.version })
 
         target = fs.location(file_id)
-        LOG.info(f'[%s] [%s] Moving the rest of %s to %s', correlation_id, fs.__class__.__name__, filepath, target)
+        LOG.info(f'[%s] Moving the rest of %s to %s', fs.__class__.__name__, filepath, target)
         target_size = fs.copy(infile, target) # It will copy the rest only
 
-        LOG.info('[%s] Vault copying completed. Updating database', correlation_id)
+        LOG.info('Vault copying completed. Updating database')
         storage_type = None
         if isinstance(fs, storage.S3Storage):
             storage_type = 'S3'
@@ -111,7 +114,7 @@ def _work(fs, correlation_id, data):
         data['vault_path'] = target
         data['vault_type'] = storage_type
 
-    LOG.debug("[%s] Reply message: %s", correlation_id, data)
+    LOG.debug("Reply message: %s", data)
     return (data, False)
 
 @configure

@@ -30,8 +30,9 @@ from aiohttp import web
 from .conf import CONF, configure
 from .utils import storage
 from .utils import async_db as db
+from .utils.logging import LEGALogger
 
-LOG = logging.getLogger(__name__)
+LOG = LEGALogger(__name__)
 
 ####################################
 

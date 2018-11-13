@@ -12,8 +12,9 @@ import socket
 from time import sleep
 
 from ..conf import CONF
+from .logging import LEGALogger
 
-LOG = logging.getLogger(__name__)
+LOG = LEGALogger(__name__)
 
 class AMQPConnection():
     conn = None
@@ -124,25 +125,26 @@ class AMQPConnection():
         if self.chann and not self.chann.is_closed and not self.chann.is_closing:
             self.chann.close()
         self.chann = None
-        if self.connection and not self.connection.is_closed and not self.connection.is_closing:
+        if self.conn and not self.conn.is_closed and not self.conn.is_closing:
             self.conn.close()
         self.conn = None
 
 
 connection = AMQPConnection()
 
-def publish(message, exchange, routing, correlation_id=None):
+def publish(message, exchange, routing, correlation_id):
     '''
     Sending a message to the local broker exchange using the given routing key.
-    If the correlation_id is specified, it is forwarded.
-    If not, a new one is generated (as a uuid4 string).
+    The correlation_id must be specified (and then forwarded).
     '''
+    assert( correlation_id )
+    LOG.add_context(correlation_id)
     with connection.channel() as channel:
-        LOG.debug('[%s] Sending %s to exchange: %s [routing key: %s]', correlation_id, message, exchange, routing)
+        LOG.debug('Sending %s to exchange: %s [routing key: %s]', message, exchange, routing)
         channel.basic_publish(exchange    = exchange,
                               routing_key = routing,
                               body        = json.dumps(message),
-                              properties  = pika.BasicProperties(correlation_id=correlation_id or str(uuid.uuid4()),
+                              properties  = pika.BasicProperties(correlation_id=correlation_id,
                                                                  content_type='application/json',
                                                                  delivery_mode=2))
 
@@ -164,8 +166,12 @@ def consume(work, from_queue, to_routing, ack_on_error=True):
 
     def process_request(_channel, method_frame, props, body):
         correlation_id = props.correlation_id
+
+        # Adding correlation ID to context
+        LOG.add_context(correlation_id)
+
         message_id = method_frame.delivery_tag
-        LOG.debug('[%s] Consuming message %s', correlation_id, message_id)
+        LOG.debug('Consuming message %s', message_id)
 
         # Process message in JSON format
         answer, error = work(correlation_id, json.loads(body) ) # Exceptions should be already caught
@@ -177,7 +183,7 @@ def consume(work, from_queue, to_routing, ack_on_error=True):
 
         # Acknowledgment: Cancel the message resend in case MQ crashes
         if not error or ack_on_error:
-            LOG.debug('[%s] Sending ACK for message', correlation_id, message_id)
+            LOG.debug('Sending ACK for message: %s', message_id)
             _channel.basic_ack(delivery_tag=method_frame.delivery_tag)
 
     # Let's do this

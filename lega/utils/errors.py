@@ -11,13 +11,14 @@ import traceback
 from .db import set_error
 from .exceptions import FromUser
 from .amqp import publish
+from .logging import LEGALogger
 
-LOG = logging.getLogger(__name__)
+LOG = LEGALogger(__name__)
 
 ######################################
 ##         Capture Errors           ##
 ######################################
-def log_trace(correlation_id):
+def log_trace():
     exc_type, _, exc_tb = sys.exc_info()
     #traceback.print_tb(exc_tb)
     g = traceback.walk_tb(exc_tb)
@@ -29,9 +30,9 @@ def log_trace(correlation_id):
 
     #fname = os.path.split(frame.f_code.co_filename)[1]
     fname = frame.f_code.co_filename
-    LOG.error('[%s] Exception: %s in %s on line: %s', correlation_id, exc_type, fname, lineno)
+    LOG.error('Exception: %s in %s on line: %s', exc_type, fname, lineno)
 
-def handle_error(e, correlation_id, data):
+def handle_error(e, data):
     try:
         # Re-raise in case of AssertionError
         if isinstance(e,AssertionError):
@@ -40,23 +41,24 @@ def handle_error(e, correlation_id, data):
         # Is it from the user?
         from_user = isinstance(e,FromUser) or isinstance(e,ValueError)
 
+
         cause = e.__cause__ or e
-        LOG.error('[%s] %r', correlation_id, cause) # repr(cause) = Technical
+        LOG.error('%r', cause) # repr(cause) = Technical
 
         # Locate the error
-        log_trace(correlation_id)
+        log_trace()
         
         file_id = data.get('file_id', None) # should be there
         if file_id:
             set_error(file_id, cause, from_user)
-        LOG.debug('[%s] Catching error on file id: %s', correlation_id, file_id)
+        LOG.debug('Catching error on file id: %s', file_id)
         if from_user: # Send to CentralEGA
             org_msg = data.pop('org_msg', None) # should be there
             org_msg['reason'] = str(cause) # str = Informal
-            LOG.info('[%s] Sending user error to local broker: %s', correlation_id, org_msg)
-            publish(org_msg, 'cega', 'files.error', correlation_id=correlation_id)
+            LOG.info('Sending user error to local broker: %s', org_msg)
+            publish(org_msg, 'cega', 'files.error', correlation_id)
     except Exception as e2:
-        LOG.error('[%s] While treating "%s", we caught "%r"', correlation_id, e, e2)
+        LOG.error('While treating "%s", we caught "%r"', e, e2)
         print(correlation_id, '|', repr(e), 'caused', repr(e2), file=sys.stderr)
 
 
@@ -70,7 +72,11 @@ def catch(ret_on_error=None):
             except Exception as e:
                 correlation_id = args[-2] # correlation_id is the penultimate argument
                 data = args[-1]           # data           is the last        argument
-                handle_error(e, correlation_id, data) 
+
+                # Adding correlation ID to context
+                LOG.add_context(correlation_id)
+
+                handle_error(e, data)
 
                 # Should we also revert back the ownership of the file?
 

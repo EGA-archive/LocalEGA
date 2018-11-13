@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-Logs Formatter
+About Logging in LocalEGA
 """
-from logging import Formatter
+import logging
 from logging.handlers import SocketHandler as handler # or DatagramHandler ?
 import json
 import re
+from functools import partial
 
 class LEGAHandler(handler):
     """
@@ -29,7 +30,7 @@ class LEGAHandler(handler):
         # Especially when the bytes length is prepended.
         return self.format(record).encode('utf-8')
 
-class JSONFormatter(Formatter):
+class JSONFormatter(logging.Formatter):
 
     def __init__(self, *args, **kwargs):
         Formatter.__init__(self, *args, **kwargs)
@@ -57,3 +58,29 @@ class JSONFormatter(Formatter):
             log_record['stack_info'] = self.formatStack(record.stack_info)
 
         return json.dumps(log_record) #, ensure_ascii=False)
+
+
+# class LEGALogger(logging.LoggerAdapter):
+#     correlation_id = None
+
+#     def __init__(self, name):
+#         logger = logging.getLogger(name)
+#         super().__init__(logger, {})
+
+#     def add_context(self, correlation_id):
+#         self.correlation_id = correlation_id
+
+#     def process(self, msg, kwargs):
+#         if self.correlation_id:
+#             return '[%s] %s' % (self.correlation_id, msg), kwargs
+#         return msg, kwargs
+
+class LEGALogger(logging.LoggerAdapter):
+    correlation_id = None
+
+    def __init__(self, name):
+        logger = logging.getLogger(name)
+        super().__init__(logger, { 'correlation_id': None})
+
+    def add_context(self, correlation_id):
+        self.extra['correlation_id'] = correlation_id
