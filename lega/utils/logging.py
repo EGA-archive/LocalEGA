@@ -60,27 +60,12 @@ class JSONFormatter(logging.Formatter):
         return json.dumps(log_record) #, ensure_ascii=False)
 
 
-# class LEGALogger(logging.LoggerAdapter):
-#     correlation_id = None
-
-#     def __init__(self, name):
-#         logger = logging.getLogger(name)
-#         super().__init__(logger, {})
-
-#     def add_context(self, correlation_id):
-#         self.correlation_id = correlation_id
-
-#     def process(self, msg, kwargs):
-#         if self.correlation_id:
-#             return '[%s] %s' % (self.correlation_id, msg), kwargs
-#         return msg, kwargs
-
 class LEGALogger(logging.LoggerAdapter):
     correlation_id = None
 
     def __init__(self, name):
         logger = logging.getLogger(name)
-        super().__init__(logger, { 'correlation_id': None})
+        super().__init__(logger, { 'correlation_id': None })
 
     def add_context(self, correlation_id):
         self.extra['correlation_id'] = correlation_id

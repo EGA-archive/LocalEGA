@@ -13,7 +13,6 @@
 
 import sys
 import os
-import logging
 import io
 import asyncio
 import uvloop
@@ -44,14 +43,14 @@ async def init(app):
 
     # Load the LocalEGA private key
     key_location = CONF.get_value('DEFAULT', 'private_key')
-    LOG.info(f'Retrieving the Private Key from {key_location}')
+    LOG.info('Retrieving the Private Key from %s', key_location)
     with open(key_location, 'rt') as k: # text file
         privkey = PrivateKey(k.read(), KeyFormatter)
         app['private_key'] = privkey
 
     # Load the LocalEGA header signing key
     signing_key_location = CONF.get_value('DEFAULT', 'signing_key')
-    LOG.info(f'Retrieving the Signing Key from {signing_key_location}')
+    LOG.info('Retrieving the Signing Key from %s', signing_key_location)
     if signing_key_location:
         with open(signing_key_location, 'rt') as k:  # hex file
             app['signing_key'] = ed25519.SigningKey(bytes.fromhex(k.read()))
@@ -76,20 +75,25 @@ async def shutdown(app):
 def request_context(func):
     async def wrapper(r):
 
-        LOG.debug('Init Context')
+        correlation_id = r.headers.get('correlation_id')
+        if not correlation_id:
+            LOG.error('No correlation id in the header')
+            #raise web.HTTPBadRequest(reason='Invalid request')
+            
+        LOG.debug('Init Context', extra={'correlation_id': correlation_id})
         
         # Getting post data
         data = await r.json()
-        LOG.debug('Data: %s', data)
+        LOG.debug('Data: %s', data, extra={'correlation_id': correlation_id})
 
         stable_id = data.get('stable_id')
         if not stable_id: # It should be there. Assertion instead?
-            LOG.error('Missing stable ID')
+            LOG.error('Missing stable ID', extra={'correlation_id': correlation_id})
             raise web.HTTPUnprocessableEntity(reason='Missing stable ID')
         
         pubkey = data.get('pubkey')
         if not pubkey: # It should be there. Assertion instead?
-            LOG.error('Missing public key for the re-encryption')
+            LOG.error('Missing public key for the re-encryption', extra={'correlation_id': correlation_id})
             raise web.HTTPUnprocessableEntity(reason='Missing public key')
         # Load it
         pubkey = PublicKey(pubkey, KeyFormatter)
@@ -110,20 +114,20 @@ def request_context(func):
                                                  start_coordinate=startCoordinate,
                                                  end_coordinate=endCoordinate)
             if not request_info:
-                LOG.error('Unable to create a request entry')
+                LOG.error('Unable to create a request entry', extra={'correlation_id': correlation_id})
                 raise web.HTTPServiceUnavailable(reason='Unable to process request')
         
             # Request started
             request_id, header, vault_path, vault_type, _, _, _ = request_info
             
             # Set up file transfer type
-            LOG.info('Loading the vault handler: %s', vault_type)
+            LOG.info('Loading the vault handler: %s', vault_type, extra={'correlation_id': correlation_id})
             if vault_type == 'S3':
                 mover = storage.S3Storage()
             elif vault_type == 'POSIX':
                 mover = storage.FileStorage()
             else:
-                LOG.error('Invalid storage method: %s', vault_type)
+                LOG.error('Invalid storage method: %s', vault_type, extra={'correlation_id': correlation_id})
                 raise web.HTTPUnprocessableEntity(reason='Unsupported storage type')
 
             async def db_update(message):
@@ -131,6 +135,7 @@ def request_context(func):
 
             # Do the job
             response, dlsize = await func(r,
+                                          correlation_id,
                                           db_update,
                                           pubkey,
                                           r.app['private_key'],
@@ -147,7 +152,7 @@ def request_context(func):
             if isinstance(err,AssertionError):
                 raise err
             cause = err.__cause__ or err
-            LOG.error(f'{cause!r}') # repr = Technical
+            LOG.error('%r', cause, extra={'correlation_id': correlation_id}) # repr = Technical
             if request_id:
                 await db.set_error(request_id, cause)
             raise web.HTTPServiceUnavailable(reason='Unable to process request')
@@ -155,20 +160,20 @@ def request_context(func):
 
 
 @request_context
-async def outgest(r, set_progress, pubkey, privkey, signing_key, header, vault_path, mover, chunk_size=1<<22):
+async def outgest(r, correlation_id, set_progress, pubkey, privkey, signing_key, header, vault_path, mover, chunk_size=1<<22):
 
     # Crypt4GH encryption
     await set_progress('REENCRYPTING')
-    LOG.info('Re-encrypting the header') # in hex -> bytes, and take away 16 bytes
+    LOG.info('Re-encrypting the header', extra={'correlation_id': correlation_id}) # in hex -> bytes, and take away 16 bytes
     header_obj = Header.from_stream(io.BytesIO(bytes.fromhex(header)))
     reencrypted_header = header_obj.reencrypt(pubkey, privkey, signing_key=signing_key)
     renc_header = bytes(reencrypted_header)
-    LOG.debug('Org header %s', header)
-    LOG.debug('Reenc header %s', renc_header.hex())
+    LOG.debug('Org header %s', header, extra={'correlation_id': correlation_id})
+    LOG.debug('Reenc header %s', renc_header.hex(), extra={'correlation_id': correlation_id})
 
     # Read the rest from the vault
     await set_progress('STREAMING')
-    LOG.info('Opening vault file: %s', vault_path)
+    LOG.info('Opening vault file: %s', vault_path, extra={'correlation_id': correlation_id})
     with mover.open(vault_path, 'rb') as vfile:
 
         # Ready to answer
