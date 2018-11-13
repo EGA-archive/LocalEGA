@@ -27,7 +27,9 @@ private/lega.yml private bootstrap bootstrap-dev:
 		    egarchive/lega --prefix $(PROJECT_NAME) ${ARGS}
 
 up: private/lega.yml
-	@docker-compose --log-level ERROR -f $< up -d
+	@docker-compose --log-level ERROR -f $< up -d mq db vault
+	@sleep 6
+	@docker-compose --log-level ERROR -f $< up -d inbox ingest verify finalize outgest streamer
 
 down:
 	-@docker-compose --log-level ERROR down -v
