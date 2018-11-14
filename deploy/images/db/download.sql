@@ -24,8 +24,8 @@ CREATE TABLE local_ega_download.main (
 
    -- which files was downloaded
    file_id            INTEGER NOT NULL REFERENCES local_ega.main(id), -- No "ON DELETE CASCADE"
-   start_coordinate   INTEGER DEFAULT 0,
-   end_coordinate     INTEGER NULL, -- might be missing
+   start_coordinate   BIGINT DEFAULT 0,
+   end_coordinate     BIGINT NULL, -- might be missing
 
    -- Status/Progress
    status             VARCHAR NOT NULL REFERENCES local_ega_download.status (code), -- No "ON DELETE CASCADE"
@@ -38,7 +38,7 @@ CREATE TABLE local_ega_download.main (
    -- Stats
    start_timestamp   TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT clock_timestamp(),
    end_timestamp     TIMESTAMP,
-   bytes             INTEGER DEFAULT 0,
+   bytes             BIGINT DEFAULT 0,
    speed             FLOAT   DEFAULT 0.0, -- bytes per seconds
 
    -- table logs
