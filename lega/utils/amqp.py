@@ -6,7 +6,6 @@ import sys
 import logging
 import pika
 import json
-import uuid
 from contextlib import contextmanager
 import socket
 from time import sleep
