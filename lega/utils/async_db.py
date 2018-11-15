@@ -114,17 +114,18 @@ connection = DBConnection()
 
 async def make_request(stable_id, user_info, client_ip, start_coordinate=0, end_coordinate=None):
     async with connection.cursor() as cur:
-        await cur.execute('SELECT * FROM local_ega_download.make_request(%(stable_id)s,%(user_info)s,%(client_ip)s,%(start_coordinate)s,%(end_coordinate)s);', {'stable_id': stable_id,
-                'user_info': user_info,
-                'client_ip': client_ip,
-                'start_coordinate': start_coordinate,
-                'end_coordinate': end_coordinate})
+        await cur.execute('SELECT * FROM local_ega_download.make_request(%(sid)s,%(uinfo)s,%(ip)s,%(scoord)s,%(ecoord)s);',
+                          {'sid': stable_id,
+                           'uinfo': user_info,
+                           'ip': client_ip,
+                           'scoord': start_coordinate,
+                           'ecoord': end_coordinate})
         return await cur.fetchone()
 
-async def download_complete(req_id, dlsize):
+async def download_complete(req_id, dlsize, speed):
     async with connection.cursor() as cur:
-        await cur.execute('SELECT local_ega_download.download_complete(%(req_id)s,%(dlsize)s);',
-                          {'req_id': req_id, 'dlsize': dlsize})
+        await cur.execute('SELECT local_ega_download.download_complete(%(req_id)s,%(dlsize)s,%(speed)s);',
+                          {'req_id': req_id, 'dlsize': dlsize, 'speed': speed})
 
 async def set_error(req_id, error):
 
@@ -148,11 +149,6 @@ async def set_error(req_id, error):
                            'etype': error.__class__.__name__,
                            'msg': repr(error),
                            'req_id': req_id})
-
-async def update_status(req_id, status):
-    async with connection.cursor() as cur:
-        await cur.execute('SELECT local_ega_download.update_status(%(req_id)s,%(status)s);',
-                          {'req_id': req_id, 'status': status})
 
 async def close():
     await connection.close()
