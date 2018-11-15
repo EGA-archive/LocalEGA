@@ -21,13 +21,13 @@ Users are handled through Central EGA, directly.
       zip_safe=False,
       entry_points={
           'console_scripts': [
-              'ega-ingest    = lega.ingest:main',
-              'ega-verify    = lega.verify:main',
-              'ega-finalize  = lega.finalize:main',
-              'ega-notifier  = lega.notifications:main',
-              'ega-outgest   = lega.outgest:main',
-              'ega-streamer  = lega.streamer:main',
-              'ega-cleanup   = lega.cleanup:main',
+              'lega-ingest    = lega.ingest:main',
+              'lega-verify    = lega.verify:main',
+              'lega-finalize  = lega.finalize:main',
+              'lega-notifier  = lega.notifications:main',
+              'lega-outgest   = lega.outgest:main',
+              'lega-streamer  = lega.streamer:main',
+              #'lega-cleanup   = lega.cleanup:main',
           ]
       },
       platforms='any',

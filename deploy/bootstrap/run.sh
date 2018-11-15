@@ -345,8 +345,8 @@ services:
     networks:
       - lega-internal
     volumes:
-      - ../images/mq/entrypoint.sh:/usr/bin/ega-entrypoint.sh
-    entrypoint: ["/bin/bash", "/usr/bin/ega-entrypoint.sh"]
+      - ../images/mq/entrypoint.sh:/usr/bin/lega-entrypoint.sh
+    entrypoint: ["/bin/bash", "/usr/bin/lega-entrypoint.sh"]
     command: ["rabbitmq-server"]
 
   # Postgres Database (using default port 5432)
@@ -375,14 +375,14 @@ services:
       - ../images/db/download.sql:/docker-entrypoint-initdb.d/download.sql:ro
       - ../images/db/qc.sql:/docker-entrypoint-initdb.d/qc.sql:ro
       - ../images/db/grants.sql:/docker-entrypoint-initdb.d/grants.sql:ro
-      - ../images/db/entrypoint.sh:/usr/bin/ega-entrypoint.sh
+      - ../images/db/entrypoint.sh:/usr/bin/lega-entrypoint.sh
     networks:
       - lega-private
-    entrypoint: ["/bin/bash", "/usr/bin/ega-entrypoint.sh"]
+    entrypoint: ["/bin/bash", "/usr/bin/lega-entrypoint.sh"]
 
   # SFTP inbox
   inbox:
-    hostname: ega-inbox
+    hostname: inbox
     environment:
       - CEGA_USERS_ENDPOINT=https://egatest.crg.eu/lega/v1/legas/users/
       - CEGA_USERS_JSON_PREFIX=response.result
@@ -397,13 +397,13 @@ services:
     volumes:
       - ./confs/inbox.ini:/etc/ega/conf.ini:ro
       - inbox:/ega/inbox
-      - ../images/inbox/entrypoint.sh:/usr/bin/ega-entrypoint.sh
+      - ../images/inbox/entrypoint.sh:/usr/bin/lega-entrypoint.sh
       - ~/_ega/lega:/home/lega/.local/lib/python3.6/site-packages/lega
       - ~/_auth:/root/_auth
     networks:
       - lega-external
       - lega-internal
-    entrypoint: ["/bin/bash", "/usr/bin/ega-entrypoint.sh"]
+    entrypoint: ["/bin/bash", "/usr/bin/lega-entrypoint.sh"]
 
   # Ingestion Workers
   ingest:
@@ -440,7 +440,7 @@ services:
     networks:
       - lega-internal
       - lega-private
-    entrypoint: ["gosu", "lega", "ega-ingest"]
+    entrypoint: ["gosu", "lega", "lega-ingest"]
 
   # Checksum validation
   verify:
@@ -482,7 +482,7 @@ services:
     networks:
       - lega-internal
       - lega-private
-    entrypoint: ["gosu", "lega", "ega-verify"]
+    entrypoint: ["gosu", "lega", "lega-verify"]
 
   # Stable ID mapper, and inbox clean up
   finalize:
@@ -507,7 +507,7 @@ services:
     networks:
       - lega-internal
       - lega-private
-    entrypoint: ["gosu", "lega", "ega-finalize"]
+    entrypoint: ["gosu", "lega", "lega-finalize"]
 
   # Here we use S3
   vault:
@@ -540,7 +540,7 @@ services:
     networks:
       - lega-external
       - lega-internal
-    entrypoint: ["gosu", "lega", "ega-outgest"]
+    entrypoint: ["gosu", "lega", "lega-outgest"]
 
   # Re-Encryption
   streamer:
@@ -582,7 +582,7 @@ services:
     networks:
       - lega-internal
       - lega-private
-    entrypoint: ["gosu", "lega", "ega-streamer"]
+    entrypoint: ["gosu", "lega", "lega-streamer"]
 EOF
 
 # Adding the secrets

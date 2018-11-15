@@ -1,12 +1,9 @@
 #!/usr/bin/env bash
 set -e
 
-#DOCKER_IMAGE_PREFIX=crg/ega-
-
 # Port mapping
 DOCKER_PORT_inbox=2222
 DOCKER_PORT_outgest=10443
-
 
 # Credentials to connect to CentralEGA
 add_secret 'cega_users.creds' "<username>:<password>" # provided by CentralEGA

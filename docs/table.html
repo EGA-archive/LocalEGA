@@ -1,4 +1,4 @@
-<table id="ega">
+<table id="lega">
   <thead>
     <tr>
       <th>Service</th>
@@ -10,7 +10,7 @@
     <tr>
       <td>db</td>
       <td>A Postgres database with appropriate schemas</td>
-      <td><i class="fa fa-battery-full ega-stable" title="Stable"></i></td>
+      <td><i class="fa fa-battery-full lega-stable" title="Stable"></i></td>
     </tr>
     <tr>
       <td>mq</td>
@@ -18,44 +18,44 @@
       exchanges, queues and bindings. We use a federated queue to get
       messages from CentralEGA's broker and shovels to send answers
       back.</td>
-      <td><i class="fa fa-battery-full ega-stable" title="Stable"></i></td>
+      <td><i class="fa fa-battery-full lega-stable" title="Stable"></i></td>
     </tr>
     <tr>
       <td>inbox</td>
       <td>SFTP server, acting as a dropbox, where user credentials come from Central EGA</td>
-      <td><i class="fa fa-battery-full ega-stable" title="Stable"></i></td>
+      <td><i class="fa fa-battery-full lega-stable" title="Stable"></i></td>
     </tr>
     <tr>
       <td>ingesters</td>
       <td>Split the Crypt4GH header and move the remainder to the storage backend. No cryptographic task.</td>
-      <td><i class="fa fa-battery-full ega-stable" title="Stable"></i></td>
+      <td><i class="fa fa-battery-full lega-stable" title="Stable"></i></td>
     </tr>
     <tr>
       <td>verifiers</td>
       <td>Decrypt the stored files and checksum them against their embedded checksum.</td>
-      <td><i class="fa fa-battery-full ega-stable" title="Stable"></i></td>
+      <td><i class="fa fa-battery-full lega-stable" title="Stable"></i></td>
     </tr>
     <tr>
       <td>vault</td>
       <td>Storage backend: as a regular file system or as a S3 object store.</td>
-      <td><i class="fa fa-battery-full ega-stable" title="Stable"></i></td>
+      <td><i class="fa fa-battery-full lega-stable" title="Stable"></i></td>
     </tr>
     <tr>
       <td>finalizers</td>
       <td>Receive a so-called Stable ID from Central EGA and flag the ingested file as <em>Ready</em>.</td>
-      <td><i class="fa fa-battery-full ega-stable" title="Stable"></i></td>
+      <td><i class="fa fa-battery-full lega-stable" title="Stable"></i></td>
     </tr>
     <tr>
       <td>outgesters</td>
       <td>Front-facing HTTP server, receiving POST requests to outgest files.
 	It is guarded by an external check regarding the given file access permissions.
 	It is based on standard OAuth authorization.</td>
-      <td><i class="fa fa-battery-half ega-dev" title="Working, but still under development"></i></td>
+      <td><i class="fa fa-battery-half lega-dev" title="Working, but still under development"></i></td>
     </tr>
     <tr>
       <td>streamers</td>
       <td>Fetch the vault file internally and prepare streaming in Crypt4GH format.</td>
-      <td><i class="fa fa-battery-half ega-dev" title="Working, but still under development"></i></td>
+      <td><i class="fa fa-battery-half lega-dev" title="Working, but still under development"></i></td>
     </tr>
   </tbody>
 </table>
