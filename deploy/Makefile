@@ -39,12 +39,3 @@ ps:
 
 clean:
 	rm -rf .env private
-
-# up: private/lega.yml
-# 	@docker stack deploy --compose-file $< lega
-
-# down:
-# 	-@docker stack rm lega
-
-# ps:
-# 	@docker stack services lega
