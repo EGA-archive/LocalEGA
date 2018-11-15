@@ -24,7 +24,7 @@ def _work(correlation_id, data):
     '''Reads a message containing the ids and add it to the database.'''
 
     # Adding correlation ID to context
-    LOG.add_context(correlation_id)
+    LOG.add_correlation_id(correlation_id)
 
     LOG.info("Finalizing Stable ID for %s", data)
 
@@ -45,6 +45,7 @@ def _work(correlation_id, data):
 
     # We should revert back the ownership of the file now
     
+    LOG.remove_correlation_id()
     # Clean up files is left for the cleanup script. Triggered manually
     return None, False # No result, no error
 

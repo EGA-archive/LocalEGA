@@ -37,7 +37,7 @@ def _work(fs, correlation_id, data):
     '''Reads a message, splits the header and sends the remainder to the backend store.'''
 
     # Adding correlation ID to context
-    LOG.add_context(correlation_id)
+    LOG.add_correlation_id(correlation_id)
 
     # Keeping data as-is (cuz the decorator is using it)
     # It will be augmented, but we keep the original data first
@@ -115,6 +115,7 @@ def _work(fs, correlation_id, data):
         data['vault_type'] = storage_type
 
     LOG.debug("Reply message: %s", data)
+    LOG.remove_correlation_id()
     return (data, False)
 
 @configure

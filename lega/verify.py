@@ -33,8 +33,7 @@ LOG = LEGALogger(__name__)
 def _work(mover, correlation_id, data):
     '''Verifying that the file in the vault can be properly decrypted.'''
 
-    # Adding correlation ID to context
-    LOG.add_context(correlation_id)
+    LOG.add_correlation_id(correlation_id)
 
     LOG.info('Verification | message: %s', data)
 
@@ -95,6 +94,7 @@ def _work(mover, correlation_id, data):
     org_msg['decrypted_checksums'] = [{ 'type': 'sha256', 'value': checksum },
                                       { 'type': 'md5', 'value': md5_digest }] # for stable id
     LOG.debug("Reply message: %s", org_msg)
+    LOG.remove_correlation_id()
     return (org_msg, False)
 
 @configure

@@ -33,34 +33,28 @@ def log_trace():
     LOG.error('Exception: %s in %s on line: %s', exc_type, fname, lineno)
 
 def handle_error(e, data):
-    try:
-        # Re-raise in case of AssertionError
-        if isinstance(e,AssertionError):
-            raise e
+    # Re-raise in case of AssertionError
+    if isinstance(e,AssertionError):
+        raise e
 
-        # Is it from the user?
-        from_user = isinstance(e,FromUser) or isinstance(e,ValueError)
+    # Is it from the user?
+    from_user = isinstance(e,FromUser) or isinstance(e,ValueError)
 
+    cause = e.__cause__ or e
+    LOG.error('%r', cause) # repr(cause) = Technical
 
-        cause = e.__cause__ or e
-        LOG.error('%r', cause) # repr(cause) = Technical
-
-        # Locate the error
-        log_trace()
+    # Locate the error
+    log_trace()
         
-        file_id = data.get('file_id', None) # should be there
-        if file_id:
-            set_error(file_id, cause, from_user)
-        LOG.debug('Catching error on file id: %s', file_id)
-        if from_user: # Send to CentralEGA
-            org_msg = data.pop('org_msg', None) # should be there
-            org_msg['reason'] = str(cause) # str = Informal
-            LOG.info('Sending user error to local broker: %s', org_msg)
-            publish(org_msg, 'cega', 'files.error', correlation_id)
-    except Exception as e2:
-        LOG.error('While treating "%s", we caught "%r"', e, e2)
-        print(correlation_id, '|', repr(e), 'caused', repr(e2), file=sys.stderr)
-
+    file_id = data.get('file_id', None) # should be there
+    if file_id:
+        set_error(file_id, cause, from_user)
+    LOG.debug('Catching error on file id: %s', file_id)
+    if from_user: # Send to CentralEGA
+        org_msg = data.pop('org_msg', None) # should be there
+        org_msg['reason'] = str(cause) # str = Informal
+        LOG.info('Sending user error to local broker: %s', org_msg)
+        publish(org_msg, 'cega', 'files.error', correlation_id)
 
 def catch(ret_on_error=None):
     '''Decorator to store the raised exception in the database'''
@@ -74,12 +68,14 @@ def catch(ret_on_error=None):
                 data = args[-1]           # data           is the last        argument
 
                 # Adding correlation ID to context
-                LOG.add_context(correlation_id)
+                LOG.add_correlation_id(correlation_id)
 
                 handle_error(e, data)
+                # Note: let it fail and bail out if handle_error raises an exception itself
 
                 # Should we also revert back the ownership of the file?
 
+                LOG.remove_correlation_id()
             return ret_on_error
         return wrapper
     return catch_error
