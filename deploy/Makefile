@@ -23,13 +23,17 @@ private/lega.yml private bootstrap bootstrap-dev:
                     ${ENVS} \
 		    -v ${PWD}:/ega \
 		    --entrypoint /ega/bootstrap/run.sh \
+		    -v ${PWD}/../extras/rabbitmq_hash.py:/tmp/rabbitmq_hash.py \
 		    -v ~/_cryptor/crypt4gh:/root/.local/lib/python3.6/site-packages/crypt4gh \
 		    egarchive/lega --prefix $(PROJECT_NAME) ${ARGS}
 
 up: private/lega.yml
-	@docker-compose --log-level ERROR -f $< up -d mq db vault
-	@sleep 6
-	@docker-compose --log-level ERROR -f $< up -d inbox ingest verify finalize outgest streamer
+	@docker-compose --log-level ERROR -f $< up -d
+
+# up: private/lega.yml
+# 	@docker-compose --log-level ERROR -f $< up -d mq db vault
+# 	@sleep 6
+# 	@docker-compose --log-level ERROR -f $< up -d inbox ingest verify finalize outgest streamer
 
 down:
 	-@docker-compose --log-level ERROR down -v
