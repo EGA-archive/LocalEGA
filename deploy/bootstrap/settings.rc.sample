@@ -10,6 +10,7 @@ add_secret 'cega_users.creds' "<username>:<password>" # provided by CentralEGA
 add_secret 'cega_connection' "amqps://<user>:<password>@hellgate.crg.eu:5271/<vhost>"  # provided by CentralEGA
 
 # Local Message Broker 'admin' password
+LEGA_MQ_USER=admin
 add_secret 'lega_mq_password' $(generate_password 16)
 
 # For self-signed Certificates
