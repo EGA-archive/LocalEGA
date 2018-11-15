@@ -6,7 +6,7 @@ root:
 loggers:
   lega:
     level: INFO
-    handlers: [syslog,mainFile]
+    handlers: [console]
     propagate: true
     qualname: lega
 
@@ -14,17 +14,10 @@ handlers:
   noHandler:
     class: logging.NullHandler
     level: NOTSET
-  mainFile:
-    class: logging.FileHandler
+  console:
+    class: logging.StreamHandler
     formatter: lega
-    filename: '/tmp/ega.log'
-    mode: 'w'
-  syslog:
-    class: logging.handlers.SysLogHandler
-    address: !!python/tuple ['ega-db', 514]
-    formatter: lega
-    facility: 'local1'
-    # socktype: socket.SOCK_STREAM # for tcp. Defaults to udp
+    stream: ext://sys.stderr
 
 formatters:
   lega:

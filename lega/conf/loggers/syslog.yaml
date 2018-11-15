@@ -40,12 +40,12 @@ handlers:
     level: NOTSET
   syslog:
     class: logging.handlers.SysLogHandler
-    address: !!python/tuple ['ega-monitors', 10514]
+    address: !!python/tuple ['monitors', 10514]
     formatter: lega
     facility: 'local1'
   syslogSimple:
     class: logging.handlers.SysLogHandler
-    address: !!python/tuple ['ega-monitors', 10514]
+    address: !!python/tuple ['monitors', 10514]
     formatter: simple
     facility: 'local1'
 

@@ -45,7 +45,7 @@ chmod 750 /ega/inbox
 chmod g+s /ega/inbox # setgid bit
 
 echo "Starting the FileSystem upload notification server"
-gosu lega ega-notifier &
+gosu lega lega-notifier &
 
 echo "Starting the SFTP server"
 exec /opt/openssh/sbin/ega -D -e -f /etc/ega/sshd_config
