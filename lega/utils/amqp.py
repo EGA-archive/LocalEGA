@@ -137,7 +137,7 @@ def publish(message, exchange, routing, correlation_id):
     The correlation_id must be specified (and then forwarded).
     '''
     assert( correlation_id )
-    LOG.add_context(correlation_id)
+    LOG.add_correlation_id(correlation_id)
     with connection.channel() as channel:
         LOG.debug('Sending %s to exchange: %s [routing key: %s]', message, exchange, routing)
         channel.basic_publish(exchange    = exchange,
@@ -146,6 +146,8 @@ def publish(message, exchange, routing, correlation_id):
                               properties  = pika.BasicProperties(correlation_id=correlation_id,
                                                                  content_type='application/json',
                                                                  delivery_mode=2))
+    LOG.remove_correlation_id()
+
 
 def consume(work, from_queue, to_routing, ack_on_error=True):
     '''Blocking function, registering callback ``work`` to be called.
@@ -165,9 +167,7 @@ def consume(work, from_queue, to_routing, ack_on_error=True):
 
     def process_request(_channel, method_frame, props, body):
         correlation_id = props.correlation_id
-
-        # Adding correlation ID to context
-        LOG.add_context(correlation_id)
+        LOG.add_correlation_id(correlation_id)
 
         message_id = method_frame.delivery_tag
         LOG.debug('Consuming message %s', message_id)
@@ -184,6 +184,7 @@ def consume(work, from_queue, to_routing, ack_on_error=True):
         if not error or ack_on_error:
             LOG.debug('Sending ACK for message: %s', message_id)
             _channel.basic_ack(delivery_tag=method_frame.delivery_tag)
+        LOG.remove_correlation_id()
 
     # Let's do this
     LOG.debug('MQ setup')
@@ -196,10 +197,21 @@ def consume(work, from_queue, to_routing, ack_on_error=True):
                 channel.start_consuming()
             except KeyboardInterrupt:
                 channel.stop_consuming()
-            except Exception as e:
+                connection.close()
+                break
+            except (pika.exceptions.ConnectionClosed,
+                    pika.exceptions.ConsumerCancelled,
+                    pika.exceptions.ChannelClosed,
+                    pika.exceptions.ChannelAlreadyClosing,
+                    pika.exceptions.AMQPChannelError,
+                    pika.exceptions.ChannelError,
+                    pika.exceptions.IncompatibleProtocolError) as e:
                 LOG.debug('Retrying after %s', e)
                 connection.close()
                 continue
-            break
-
-    connection.close()
+            # # Note: Let it raise any other exception and bail out.
+            # except Exception as e:
+            #     LOG.critical('%r', e)
+            #     connection.close()
+            #     break
+            #     #sys.exit(2)

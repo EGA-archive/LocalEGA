@@ -61,11 +61,13 @@ class JSONFormatter(logging.Formatter):
 
 
 class LEGALogger(logging.LoggerAdapter):
-    correlation_id = None
 
     def __init__(self, name):
         logger = logging.getLogger(name)
         super().__init__(logger, { 'correlation_id': None })
 
-    def add_context(self, correlation_id):
+    def add_correlation_id(self, correlation_id):
         self.extra['correlation_id'] = correlation_id
+
+    def remove_correlation_id(self):
+        self.extra['correlation_id'] = None
