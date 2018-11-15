@@ -23,6 +23,7 @@ private/lega.yml private bootstrap bootstrap-dev:
                     ${ENVS} \
 		    -v ${PWD}:/ega \
 		    --entrypoint /ega/bootstrap/run.sh \
+		    -v ${PWD}/../extras/rabbitmq_hash.py:/tmp/rabbitmq_hash.py \
 		    -v ~/_cryptor/crypt4gh:/root/.local/lib/python3.6/site-packages/crypt4gh \
 		    egarchive/lega --prefix $(PROJECT_NAME) ${ARGS}
 
