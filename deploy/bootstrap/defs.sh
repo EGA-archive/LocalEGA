@@ -71,3 +71,25 @@ function generate_hex {
     local size=${1:-16} # defaults to 16 characters
     ${PYTHON:-python3.6} -c "import secrets,string;print(''.join(secrets.choice('abcdefABCDEF' + string.digits) for i in range(${size})))"
 }
+
+##################################################
+## Managing the secrets
+##
+## We now dump them on disk
+## Another solution is to add them using the docker secret command
+## (but we can't do it here since bootstrap runs inside a container)
+##################################################
+
+function add_secret {
+    local name=$1
+    local value=$2
+    echomsg "Creating secret for ${name}: ${value}"
+    echo -n ${value} > ${PRIVATE}/secrets/${name}
+    cat >> ${PRIVATE}/secrets.yml <<EOF
+  ${name}:
+    file: ./secrets/${name}
+EOF
+}
+function get_secret {
+    cat ${PRIVATE}/secrets/$1
+}

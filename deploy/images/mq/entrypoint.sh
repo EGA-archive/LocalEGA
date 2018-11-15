@@ -4,7 +4,6 @@ set -e
 set -x
 
 [[ ! -s "/run/secrets/cega_connection" ]] && echo 'CEGA_CONNECTION secret is not present' 1>&2 && exit 1
-[[ ! -s "/run/secrets/lega_mq_password" ]] && echo 'LEGA_MQ_PASSWORD secret is not present' 1>&2 && exit 1
 
 # Initialization
 rabbitmq-plugins enable --offline rabbitmq_federation
@@ -28,24 +27,6 @@ EOF
 chown rabbitmq:rabbitmq /etc/rabbitmq/rabbitmq.config
 chmod 640 /etc/rabbitmq/rabbitmq.config
 
-cat > /etc/rabbitmq/defs.json <<EOF
-{"rabbit_version":"3.7.8",
- "users":[],
- "vhosts":[{"name":"/"}],
- "permissions":[],
- "parameters":[],
- "global_parameters":[{"name":"cluster_name","value":"rabbit@localhost"}],
- "policies":[],
- "queues":[{"name":"files","vhost":"/","durable":true,"auto_delete":false,"arguments":{}},
-	   {"name":"archived","vhost":"/","durable":true,"auto_delete":false,"arguments":{}},
-	   {"name":"stableIDs","vhost":"/","durable":true,"auto_delete":false,"arguments":{}}],
- "exchanges":[{"name":"lega","vhost":"/","type":"topic","durable":true,"auto_delete":false,"internal":false,"arguments":{}},
-              {"name":"cega","vhost":"/","type":"topic","durable":true,"auto_delete":false,"internal":false,"arguments":{}}],
- "bindings":[{"source":"lega", "vhost":"/", "destination":"archived",  "destination_type":"queue", "routing_key":"archived", "arguments":{}}]
-}
-EOF
-chown rabbitmq:rabbitmq /etc/rabbitmq/defs.json
-chmod 640 /etc/rabbitmq/defs.json
 
 # Problem of loading the plugins and definitions out-of-orders.
 # Explanation: https://github.com/rabbitmq/rabbitmq-shovel/issues/13
@@ -117,37 +98,6 @@ chmod 640 /etc/rabbitmq/defs-cega.json
 
 # And...cue music
 chown -R rabbitmq /var/lib/rabbitmq
-
-{ # Spawn off
-    sleep 5 # Small delay first
-
-    # Wait until the server is ready (because we don't nave netcat we use wait on the pid)
-    ROUND=30
-    until rabbitmqctl wait /var/lib/rabbitmq/mnesia/rabbit@${HOSTNAME}.pid || ((ROUND<0))
-    do
-	sleep 1
-	((ROUND--))
-    done
-    ((ROUND<0)) && echo "Local EGA broker *_not_* started" 2>&1 && exit 1
-
-    # Add the admin user instead of hard-coding it in the defs.json
-    rabbitmqctl add_user admin "$(</run/secrets/lega_mq_password)"
-    rabbitmqctl set_user_tags admin administrator
-    rabbitmqctl set_permissions -p / admin ".*" ".*" ".*"
-    echo "Local EGA admin user created"
-
-    ROUND=30
-    until rabbitmqadmin -u admin -p "$(</run/secrets/lega_mq_password)" import /etc/rabbitmq/defs-cega.json || ((ROUND<0))
-    do
-    	sleep 1
-    	((ROUND--))
-    done
-    ((ROUND<0)) && echo "Central EGA connections *_not_* loaded" 2>&1 && exit 1
-
-    #rm -rf /run/secrets/lega_mq_password
-    echo "Central EGA connections loaded"
-
-} &
 
 #rm -rf /run/secrets/cega_connection
 exec "$@" # ie CMD rabbitmq-server
