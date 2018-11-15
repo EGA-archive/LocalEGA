@@ -14,6 +14,7 @@
 import sys
 import os
 import io
+import time
 import asyncio
 import uvloop
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
@@ -99,6 +100,7 @@ def request_context(func):
         pubkey = PublicKey(pubkey, KeyFormatter)
 
         request_id = None
+        start_time = time.perf_counter()
         try:
             
             # Fetch information and Create request
@@ -130,13 +132,9 @@ def request_context(func):
                 LOG.error('Invalid storage method: %s', vault_type, extra={'correlation_id': correlation_id})
                 raise web.HTTPUnprocessableEntity(reason='Unsupported storage type')
 
-            async def db_update(message):
-                await db.update_status(request_id, message)
-
             # Do the job
             response, dlsize = await func(r,
                                           correlation_id,
-                                          db_update,
                                           pubkey,
                                           r.app['private_key'],
                                           r.app['signing_key'],
@@ -145,7 +143,9 @@ def request_context(func):
                                           mover,
                                           chunk_size=r.app['chunk_size'])
             # Mark as complete
-            await db.download_complete(request_id, dlsize)
+            elapsed_time = round(time.perf_counter() - start_time, 3) # rounded?
+            speed = dlsize / elapsed_time if elapsed_time else 0.0
+            await db.download_complete(request_id, dlsize, speed)
             return response
         #except web.HTTPError as err:
         except Exception as err:
@@ -160,10 +160,9 @@ def request_context(func):
 
 
 @request_context
-async def outgest(r, correlation_id, set_progress, pubkey, privkey, signing_key, header, vault_path, mover, chunk_size=1<<22):
+async def outgest(r, correlation_id, pubkey, privkey, signing_key, header, vault_path, mover, chunk_size=1<<22):
 
     # Crypt4GH encryption
-    await set_progress('REENCRYPTING')
     LOG.info('Re-encrypting the header', extra={'correlation_id': correlation_id}) # in hex -> bytes, and take away 16 bytes
     header_obj = Header.from_stream(io.BytesIO(bytes.fromhex(header)))
     reencrypted_header = header_obj.reencrypt(pubkey, privkey, signing_key=signing_key)
@@ -172,7 +171,6 @@ async def outgest(r, correlation_id, set_progress, pubkey, privkey, signing_key,
     LOG.debug('Reenc header %s', renc_header.hex(), extra={'correlation_id': correlation_id})
 
     # Read the rest from the vault
-    await set_progress('STREAMING')
     LOG.info('Opening vault file: %s', vault_path, extra={'correlation_id': correlation_id})
     with mover.open(vault_path, 'rb') as vfile:
 

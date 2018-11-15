@@ -87,7 +87,7 @@ CREATE TABLE local_ega.main (
        
        -- Encryption/Decryption
        encryption_method         VARCHAR REFERENCES local_ega.vault_encryption (mode), -- ON DELETE CASCADE,
-       version                   INTEGER , -- DEFAULT 1, -- Crypt4GH version
+       version                   INTEGER NULL, -- DEFAULT 1, -- Crypt4GH version
        header                    TEXT,              -- Crypt4GH header
        session_key_checksum      VARCHAR(128) NULL, -- NOT NULL, -- To check if session key already used
        session_key_checksum_type checksum_algorithm,
@@ -268,6 +268,19 @@ CREATE TRIGGER mark_ready
     FOR EACH ROW WHEN (NEW.status = 'READY')
     EXECUTE PROCEDURE mark_ready();
 
+-- View for Data-out
+CREATE VIEW local_ega.vault_files AS
+SELECT id                        AS file_id
+     , stable_id                 AS stable_id
+     , vault_file_reference      AS vault_path
+     , vault_file_type           AS vault_type
+     , vault_file_size           AS vault_filesize
+     , vault_file_checksum       AS unencrypted_checksum
+     , vault_file_checksum_type  AS unencrypted_checksum_type
+     , header                    AS header
+     , version                   AS version
+FROM local_ega.main
+WHERE status = 'READY';
 
 -- ##########################################################################
 --                   About the encryption

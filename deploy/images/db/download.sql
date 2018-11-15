@@ -2,24 +2,9 @@ CREATE SCHEMA local_ega_download;
 
 SET search_path TO local_ega_download;
 
-CREATE TABLE local_ega_download.status (
-        id            INTEGER,
-	code          VARCHAR(32) NOT NULL,
-	description   TEXT,
-	-- contraints
-	PRIMARY KEY(id), UNIQUE (id), UNIQUE (code)
-);
+CREATE TYPE status AS ENUM ('SUCCESS', 'ERROR');
 
-INSERT INTO local_ega_download.status(id,code,description)
-VALUES (10, 'INIT'        , 'Initializing a download request'),
-       (20, 'REENCRYPTING', 'Re-Encrypting the header for a given user'),
-       (30, 'STREAMING'   , 'Streaming file from the Vault'),
-       (40, 'DONE'        , 'Download completed'), -- checksums are in the Crypt4GH formatted file
-                                                   -- and validated by the decryptor
-       (0, 'ERROR'        , 'An Error occured, check the error table');
-
-
-CREATE TABLE local_ega_download.main (
+CREATE TABLE local_ega_download.requests (
    id                 SERIAL, PRIMARY KEY(id), UNIQUE (id),
 
    -- which files was downloaded
@@ -27,25 +12,12 @@ CREATE TABLE local_ega_download.main (
    start_coordinate   BIGINT DEFAULT 0,
    end_coordinate     BIGINT NULL, -- might be missing
 
-   -- Status/Progress
-   status             VARCHAR NOT NULL REFERENCES local_ega_download.status (code), -- No "ON DELETE CASCADE"
-                      -- DEFAULT 'INIT' ?
-
    -- user info
    user_info         TEXT NULL,
    client_ip         TEXT NULL,
    
-   -- Stats
-   start_timestamp   TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT clock_timestamp(),
-   end_timestamp     TIMESTAMP,
-   bytes             BIGINT DEFAULT 0,
-   speed             FLOAT   DEFAULT 0.0, -- bytes per seconds
-
-   -- table logs
-   created_at        TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT clock_timestamp(),
-   last_modified     TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT clock_timestamp()
+   created_at        TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT clock_timestamp()
 );
-
 
 -- Insert new request, and return some vault information
 CREATE TYPE request_type AS (req_id                    INTEGER,
@@ -56,133 +28,113 @@ CREATE TYPE request_type AS (req_id                    INTEGER,
 			     unencrypted_checksum      VARCHAR,
 			     unencrypted_checksum_type local_ega.checksum_algorithm);
 
-
 CREATE FUNCTION make_request(sid    local_ega.main.stable_id%TYPE,
-			     uinfo  local_ega_download.main.user_info%TYPE,
-			     cip    local_ega_download.main.client_ip%TYPE,
-                             scoord local_ega_download.main.start_coordinate%TYPE DEFAULT 0,
-                             ecoord local_ega_download.main.end_coordinate%TYPE DEFAULT NULL)
+			     uinfo  local_ega_download.requests.user_info%TYPE,
+			     cip    local_ega_download.requests.client_ip%TYPE,
+                             scoord local_ega_download.requests.start_coordinate%TYPE DEFAULT 0,
+                             ecoord local_ega_download.requests.end_coordinate%TYPE DEFAULT NULL)
 RETURNS request_type AS $make_request$
 #variable_conflict use_column
 DECLARE
      req  local_ega_download.request_type;
-     vault_rec local_ega.main%ROWTYPE;
+     vault_rec local_ega.vault_files%ROWTYPE;
      rid  INTEGER;
 BEGIN
 
-     -- Reading from main directly
-     SELECT * INTO vault_rec FROM local_ega.main WHERE status = 'READY' AND stable_id = sid LIMIT 1;
+     -- Find the file
+     SELECT * INTO vault_rec FROM local_ega.vault_files WHERE stable_id = sid LIMIT 1;
 
      IF vault_rec IS NULL THEN
      	RAISE EXCEPTION 'Vault file not found for stable_id: % ', sid;
      END IF;
 
-     INSERT INTO local_ega_download.main (file_id, status, user_info, client_ip, start_coordinate, end_coordinate)
-     VALUES (vault_rec.id, 'INIT', uinfo, cip, scoord, ecoord)
-     RETURNING local_ega_download.main.id INTO rid;
-
+     -- New entry, or reuse old entry
+     INSERT INTO local_ega_download.requests (file_id, user_info, client_ip, start_coordinate, end_coordinate)
+     VALUES (vault_rec.file_id, uinfo, cip, scoord, ecoord)
+     ON CONFLICT (id) DO NOTHING
+     RETURNING local_ega_download.requests.id INTO rid;
+     
+     -- result
      req.req_id                    := rid;
      req.header                    := vault_rec.header;
-     req.vault_path                := vault_rec.vault_file_reference;
-     req.vault_type                := vault_rec.vault_file_type;
-     req.file_size                 := vault_rec.vault_file_size;
-     req.unencrypted_checksum      := vault_rec.vault_file_checksum;
-     req.unencrypted_checksum_type := vault_rec.vault_file_checksum_type;
+     req.vault_path                := vault_rec.vault_path;
+     req.vault_type                := vault_rec.vault_type;
+     req.file_size                 := vault_rec.vault_filesize;
+     req.unencrypted_checksum      := vault_rec.unencrypted_checksum;
+     req.unencrypted_checksum_type := vault_rec.unencrypted_checksum_type;
      RETURN req;
 END;
 $make_request$ LANGUAGE plpgsql;
 
 
--- When there is an updated, remember the timestamp
-CREATE FUNCTION download_updated()
-RETURNS TRIGGER AS $download_updated$
-BEGIN
-     NEW.last_modified = clock_timestamp();
-     RETURN NEW;
-END;
-$download_updated$ LANGUAGE plpgsql;
+CREATE TABLE local_ega_download.success (
+   id          SERIAL, PRIMARY KEY(id), UNIQUE (id),
 
-CREATE TRIGGER download_updated AFTER UPDATE ON local_ega_download.main FOR EACH ROW EXECUTE PROCEDURE download_updated();
+   -- which requested file it was
+   req_id      INTEGER NOT NULL REFERENCES local_ega_download.requests(id), -- No "ON DELETE CASCADE"
+
+   -- Stats
+   bytes       BIGINT DEFAULT 0,
+   speed       FLOAT  DEFAULT 0.0, -- bytes per seconds
+
+   -- table logs
+   occured_at  TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT clock_timestamp()
+);
 
 
 -- Mark a download as complete, and calculate the speed
-CREATE FUNCTION download_complete(reqid  local_ega_download.main.id%TYPE,
-				  dlsize local_ega_download.main.bytes%TYPE)
-RETURNS void AS $download_complete$
-DECLARE
-     fid local_ega.main.id%TYPE;
-     curr_timestamp TIMESTAMP;
+CREATE FUNCTION download_complete(rid    local_ega_download.requests.id%TYPE,
+       				  dlsize local_ega_download.success.bytes%TYPE,
+          			  s      local_ega_download.success.speed%TYPE)
+RETURNS void AS $insert_success$
 BEGIN
-     curr_timestamp := clock_timestamp();
-     UPDATE local_ega_download.main
-     SET status = 'DONE',
-         end_timestamp = curr_timestamp,
-         bytes = dlsize,
-	 speed = dlsize / extract( epoch from (curr_timestamp - start_timestamp)) -- extract (epoch for interval) = elapsed seconds
-                                                                                  -- now pray for no div by zero
-     WHERE id = reqid
-     RETURNING file_id INTO fid;
-
-     -- turn off active errors
-     UPDATE local_ega_download.main_errors SET active = FALSE WHERE file_id = fid;
+     INSERT INTO local_ega_download.success(req_id,bytes,speed)
+     VALUES(rid,dlsize,s);
 END;
-$download_complete$ LANGUAGE plpgsql;
-
-
--- Convenience utility. It hides the table name from the programmatic side
-CREATE FUNCTION update_status(reqid local_ega_download.main.id%TYPE,
-			      msg   local_ega_download.main.status%TYPE)
-RETURNS void AS $update_status$
-#variable_conflict use_column
-BEGIN
-     UPDATE local_ega_download.main SET status = msg WHERE id = reqid;
-END;
-$update_status$ LANGUAGE plpgsql;
+$insert_success$ LANGUAGE plpgsql;
 
 
 -- ##################################################
 --                      ERRORS
 -- ##################################################
-CREATE TABLE local_ega_download.main_errors (
-       id          SERIAL, PRIMARY KEY(id), UNIQUE (id),
-       active      BOOLEAN NOT NULL DEFAULT TRUE,
-       file_id     INTEGER NOT NULL REFERENCES local_ega.main(id), -- ON DELETE CASCADE,
-       req_id      INTEGER NOT NULL REFERENCES local_ega_download.main(id), -- ON DELETE CASCADE,
-			
-       code        TEXT NOT NULL,
-       description TEXT NOT NULL,
+CREATE TABLE local_ega_download.errors (
+   id          SERIAL, PRIMARY KEY(id), UNIQUE (id),
+   req_id      INTEGER NOT NULL REFERENCES local_ega_download.requests(id), -- ON DELETE CASCADE,
 
-       hostname    TEXT, -- where it happened
+   code        TEXT NOT NULL,
+   description TEXT NOT NULL,
 
-       -- table logs
-       occured_at  TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT clock_timestamp()
+   -- where it happened
+   hostname    TEXT,
+
+   -- table logs
+   occured_at  TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT clock_timestamp()
 );
 
--- Just showing the current/active errors
-CREATE VIEW local_ega_download.errors AS
-SELECT id, code, description, hostname, occured_at FROM local_ega_download.main_errors
-WHERE active = TRUE;
-
-CREATE FUNCTION insert_error(req_id    local_ega_download.main.id%TYPE,
-                             h         local_ega_download.errors.hostname%TYPE,
-                             etype     local_ega_download.errors.code%TYPE,
-                             msg       local_ega_download.errors.description%TYPE)
-RETURNS void AS $download_error$
-DECLARE
-     fid local_ega_download.main.file_id%TYPE;
+CREATE FUNCTION insert_error(rid    local_ega_download.requests.id%TYPE,
+			     h      local_ega_download.errors.hostname%TYPE,
+                             etype  local_ega_download.errors.code%TYPE,
+                             msg    local_ega_download.errors.description%TYPE)
+RETURNS void AS $insert_error$
 BEGIN
-
-     UPDATE local_ega_download.main
-     SET status = 'ERROR'
-     WHERE id = req_id
-     RETURNING file_id INTO fid;
-		 
-     IF fid IS NULL THEN
-     	RAISE EXCEPTION 'Request id not found: %', req_id;
-     END IF;
-
-     INSERT INTO local_ega_download.main_errors (file_id,req_id,hostname,code,description)
-     VALUES (fid,req_id, h, etype, msg);
-
+     INSERT INTO local_ega_download.errors (req_id,hostname,code,description)
+     VALUES (rid, h, etype, msg);
 END;
-$download_error$ LANGUAGE plpgsql;
+$insert_error$ LANGUAGE plpgsql;
+
+
+-- ##################################################
+--                      EBI views
+-- ##################################################
+
+CREATE VIEW local_ega_download.events AS
+SELECT r.file_id          AS file_id
+     , r.start_coordinate AS start_coordinate
+     , r.end_coordinate   AS end_coordinate
+     , r.user_info        AS email
+     , r.client_ip        AS client_ip
+     , e.code             AS event_type
+     , e.description      AS event
+FROM local_ega_download.errors e
+INNER JOIN local_ega_download.requests r
+ON r.id = e.req_id;
