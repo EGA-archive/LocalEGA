@@ -56,26 +56,18 @@ submit: $(FILE).c4gh
 	'files' \
 	"{ \"user\": \"$(USER)\", \"file_path\": \"/$(FILE).c4gh\"}"
 
-
-# stable_id: STABLE_ID=$(shell uuidgen)
 # stable_id:
-# 	@read -p "File ID:" FILE_ID && \
-# 	python $(MAIN_REPO)/extras/cega_publish.py \
+# 	python $(MAIN_REPO)/extras/publish_stable_id.py \
 # 	--connection $(CEGA_MQ_CONNECTION) \
-# 	'stableIDs' \
-# 	"{\"file_id\": \"$${FILE_ID}\", \"stable_id\": \"EGAF$(STABLE_ID)\"}" && \
-# 	echo "Mapping file reference $${FILE_ID} to EGAF$(STABLE_ID)"
+# 	'v1.files.completed' 'stableIDs' 'EGAF00001398602'
 
-stable_id:
-	python $(MAIN_REPO)/extras/publish_stable_id.py \
-	--connection $(CEGA_MQ_CONNECTION) \
-	'v1.files.completed' 'stableIDs' 'EGAF00001398602'
+stable_id: 
+	cd .. && docker-compose --log-level ERROR -f private/lega.yml exec db psql -U lega_in -d lega -c "update local_ega.main set stable_id = 'EGAF00001398602' where id = 1;"
 
 clean-mq:
 	@python $(MAIN_REPO)/extras/clean_mq.py --connection $(CEGA_MQ_CONNECTION)
 
-
-output.c4gh: user.key
+output.c4gh: user.key 
 	python outgest.py $@ $<.pub
 
 output.txt: output.c4gh user.key
