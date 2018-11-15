@@ -398,8 +398,14 @@ services:
       - ./confs/inbox.ini:/etc/ega/conf.ini:ro
       - inbox:/ega/inbox
       - ../images/inbox/entrypoint.sh:/usr/bin/lega-entrypoint.sh
+EOF
+if [[ "${DEPLOY_DEV}" = "yes" ]]; then
+cat >> ${PRIVATE}/lega.yml <<EOF
       - ~/_ega/lega:/home/lega/.local/lib/python3.6/site-packages/lega
       - ~/_auth:/root/_auth
+EOF
+fi
+cat >> ${PRIVATE}/lega.yml <<EOF
     networks:
       - lega-external
       - lega-internal
@@ -435,8 +441,14 @@ services:
     volumes:
        - inbox:/ega/inbox
        - ./confs/ingest.ini:/etc/ega/conf.ini:ro
+EOF
+if [[ "${DEPLOY_DEV}" = "yes" ]]; then
+cat >> ${PRIVATE}/lega.yml <<EOF
        - ~/_ega/lega:/home/lega/.local/lib/python3.6/site-packages/lega
        - ~/_cryptor/crypt4gh:/home/lega/.local/lib/python3.6/site-packages/crypt4gh
+EOF
+fi
+cat >> ${PRIVATE}/lega.yml <<EOF
     networks:
       - lega-internal
       - lega-private
@@ -477,8 +489,14 @@ services:
         mode: 0400
     volumes:
       - ./confs/verify.ini:/etc/ega/conf.ini:ro
+EOF
+if [[ "${DEPLOY_DEV}" = "yes" ]]; then
+cat >> ${PRIVATE}/lega.yml <<EOF
       - ~/_ega/lega:/home/lega/.local/lib/python3.6/site-packages/lega
       - ~/_cryptor/crypt4gh:/home/lega/.local/lib/python3.6/site-packages/crypt4gh
+EOF
+fi
+cat >> ${PRIVATE}/lega.yml <<EOF
     networks:
       - lega-internal
       - lega-private
@@ -503,7 +521,13 @@ services:
         mode: 0600
     volumes:
       - ./confs/finalize.ini:/etc/ega/conf.ini:ro
+EOF
+if [[ "${DEPLOY_DEV}" = "yes" ]]; then
+cat >> ${PRIVATE}/lega.yml <<EOF
       - ~/_ega/lega:/home/lega/.local/lib/python3.6/site-packages/lega
+EOF
+fi
+cat >> ${PRIVATE}/lega.yml <<EOF
     networks:
       - lega-internal
       - lega-private
@@ -536,7 +560,13 @@ services:
       - ./confs/outgest.ini:/etc/ega/conf.ini:ro
       - ./outgest.cert:/etc/ega/ssl.cert
       - ./outgest.key:/etc/ega/ssl.key
+EOF
+if [[ "${DEPLOY_DEV}" = "yes" ]]; then
+cat >> ${PRIVATE}/lega.yml <<EOF
       - ~/_ega/lega:/home/lega/.local/lib/python3.6/site-packages/lega
+EOF
+fi
+cat >> ${PRIVATE}/lega.yml <<EOF
     networks:
       - lega-external
       - lega-internal
@@ -577,12 +607,19 @@ services:
         mode: 0400
     volumes:
       - ./confs/streamer.ini:/etc/ega/conf.ini:ro
+EOF
+if [[ "${DEPLOY_DEV}" = "yes" ]]; then
+cat >> ${PRIVATE}/lega.yml <<EOF
       - ~/_ega/lega:/home/lega/.local/lib/python3.6/site-packages/lega
       - ~/_cryptor/crypt4gh:/home/lega/.local/lib/python3.6/site-packages/crypt4gh
+EOF
+fi
+cat >> ${PRIVATE}/lega.yml <<EOF
     networks:
       - lega-internal
       - lega-private
     entrypoint: ["gosu", "lega", "lega-streamer"]
+
 EOF
 
 # Adding the secrets
