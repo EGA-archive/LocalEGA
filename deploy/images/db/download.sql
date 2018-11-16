@@ -2,8 +2,6 @@ CREATE SCHEMA local_ega_download;
 
 SET search_path TO local_ega_download;
 
-CREATE TYPE status AS ENUM ('SUCCESS', 'ERROR');
-
 CREATE TABLE local_ega_download.requests (
    id                 SERIAL, PRIMARY KEY(id), UNIQUE (id),
 
