@@ -27,6 +27,7 @@ Users are handled through Central EGA, directly.
               'lega-notifier  = lega.notifications:main',
               'lega-outgest   = lega.outgest:main',
               'lega-streamer  = lega.streamer:main',
+              'lega-index     = lega.index:main',
               #'lega-cleanup   = lega.cleanup:main',
           ]
       },
