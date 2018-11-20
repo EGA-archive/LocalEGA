@@ -289,6 +289,26 @@ enable_ssl = no
 heartbeat = 0
 EOF
 
+cat > ${PRIVATE}/confs/index.ini <<EOF
+[inbox]
+location = /ega/inbox/%s
+
+[index]
+location = /ega/index/%s
+
+[broker]
+host = mq
+port = 5672
+connection_attempts = 30
+retry = 30
+retry_delay = 1
+username = admin
+password = /run/secrets/lega_mq_password
+vhost = /
+enable_ssl = no
+heartbeat = 0
+EOF
+
 #########################################################################
 echomsg "Configuring the local RabbitMQ"
 
@@ -304,6 +324,7 @@ cat > ${PRIVATE}/defs.json <<EOF
  "policies":[],
  "queues":[{"name":"files","vhost":"/","durable":true,"auto_delete":false,"arguments":{}},
 	   {"name":"archived","vhost":"/","durable":true,"auto_delete":false,"arguments":{}},
+	   {"name":"indices","vhost":"/","durable":true,"auto_delete":false,"arguments":{}},
 	   {"name":"stableIDs","vhost":"/","durable":true,"auto_delete":false,"arguments":{}}],
  "exchanges":[{"name":"lega","vhost":"/","type":"topic","durable":true,"auto_delete":false,"internal":false,"arguments":{}},
               {"name":"cega","vhost":"/","type":"topic","durable":true,"auto_delete":false,"internal":false,"arguments":{}}],
@@ -322,12 +343,19 @@ networks:
   lega-external:
   lega-internal:
   lega-private:
+  lega-index:
 
 # Use the default driver for volume creation
 volumes:
   db:
   inbox:
   vault:
+  nfs:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=tf.crg.eu,rw
+      device: ":/ega/index"
 
 services:
 
@@ -632,6 +660,35 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - lega-internal
       - lega-private
     entrypoint: ["gosu", "lega", "lega-streamer"]
+
+  # Index mirroring agent
+  index:
+    environment:
+      - LEGA_LOG=debug
+    hostname: index
+    container_name: index
+    image: ${DOCKER_IMAGE_PREFIX:-egarchive/}lega
+    secrets:
+      - source: lega_mq_password
+        target: lega_mq_password
+        uid: 'lega'
+        gid: 'lega'
+        mode: 0600
+    volumes:
+      - ./confs/index.ini:/etc/ega/conf.ini:ro
+      - nfs:/ega/index
+
+EOF
+if [[ "${DEPLOY_DEV}" = "yes" ]]; then
+cat >> ${PRIVATE}/lega.yml <<EOF
+      - ~/_ega/lega:/home/lega/.local/lib/python3.6/site-packages/lega
+EOF
+fi
+cat >> ${PRIVATE}/lega.yml <<EOF
+    networks:
+      - lega-internal
+      - lega-index
+    entrypoint: ["gosu", "lega", "lega-index"]
 
 EOF
 
