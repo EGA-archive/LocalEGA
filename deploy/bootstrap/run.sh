@@ -350,12 +350,6 @@ volumes:
   db:
   inbox:
   vault:
-  nfs:
-    driver: local
-    driver_opts:
-      type: nfs
-      o: addr=tf.crg.eu,rw
-      device: ":/ega/index"
 
 services:
 
@@ -675,9 +669,9 @@ cat >> ${PRIVATE}/lega.yml <<EOF
         gid: 'lega'
         mode: 0600
     volumes:
+      - inbox:/ega/inbox
       - ./confs/index.ini:/etc/ega/conf.ini:ro
-      - nfs:/ega/index
-
+      - ../nfsshare:/ega/index
 EOF
 if [[ "${DEPLOY_DEV}" = "yes" ]]; then
 cat >> ${PRIVATE}/lega.yml <<EOF

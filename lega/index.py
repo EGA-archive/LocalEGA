@@ -14,6 +14,7 @@ routing key :``index-mirrored``.
 
 import sys
 from pathlib import Path
+import shutil
 
 from .conf import CONF, configure
 from .utils import exceptions, sanitize_user_id
@@ -30,6 +31,7 @@ def _work(correlation_id, data):
 
     # Use user_id, and not elixir_id
     user_id = sanitize_user_id(data['user'])
+    filepath = data['file_path']
 
     # Find storage locations
     inbox = Path(CONF.get_value('inbox', 'location', raw=True) % user_id)
@@ -48,6 +50,7 @@ def _work(correlation_id, data):
     LOG.info("Index file path: %s", index_filepath)
 
     # Copying the file over to NFS
+    index_filepath.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(str(inbox_filepath), str(index_filepath), follow_symlinks=False)
 
     LOG.debug("Reply message: %s", data)
