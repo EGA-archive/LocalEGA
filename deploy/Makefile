@@ -3,7 +3,7 @@ ARGS=
 SHELL := /bin/bash
 TAG=$(shell git rev-parse --short HEAD)
 
-.PHONY: help bootstrap private up down clean ps bootstrap-image bootstrap-dev
+.PHONY: help bootstrap private up down clean ps bootstrap-image bootstrap-dev nfs nfs-down
 
 help:
 	@echo "Usage: make <target>\n"
@@ -43,3 +43,12 @@ ps:
 
 clean:
 	rm -rf .env private
+
+
+nfs:
+	mkdir -p nfsshare
+	if mount | grep -q 130.239.81.131; then : ; else mount -v -t nfs -o vers=4 130.239.81.131:/var/nfsshare $(shell pwd)/nfsshare; fi
+
+nfs-down:
+	-umount $(shell pwd)/nfsshare
+	rmdir nfsshare

@@ -34,6 +34,11 @@ $(FILE).c4gh: $(FILE) signing.key
 upload: $(FILE).c4gh
 	sftp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -P $(INSTANCE_PORT) -i $(SSH_KEY) $(USER)@localhost <<< $$"put $<"
 
+dir1/dir2/$(FILE).idx:
+	mkdir -p $(@D)
+	dd if=/dev/urandom of=$@ count=10 bs=1048576
+	sftp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -P $(INSTANCE_PORT) -i $(SSH_KEY) $(USER)@localhost <<< $$"put $@"
+
 ####################################################################
 ## Signing key
 ####################################################################
@@ -55,6 +60,12 @@ submit: $(FILE).c4gh
 	--connection $(CEGA_MQ_CONNECTION) \
 	'files' \
 	"{ \"user\": \"$(USER)\", \"file_path\": \"/$(FILE).c4gh\"}"
+
+index: dir1/dir2/$(FILE).idx
+	python $(MAIN_REPO)/extras/cega_publish.py \
+	--connection $(CEGA_MQ_CONNECTION) \
+	'indices' \
+	"{ \"user\": \"$(USER)\", \"file_path\": \"/$(FILE).idx\"}"
 
 # stable_id:
 # 	python $(MAIN_REPO)/extras/publish_stable_id.py \
@@ -84,5 +95,6 @@ clean:
 	rm -rf output.{txt,c4gh}
 	rm -f signing.key{,.pub}
 	rm -f user.key{,.pub}
+	rm -rf dir1
 
 cleanall: clean

@@ -4,4 +4,4 @@ private*
 .err
 images/inbox/sftp-server.c*
 bootstrap/settings.rc
-
+nfsshare
