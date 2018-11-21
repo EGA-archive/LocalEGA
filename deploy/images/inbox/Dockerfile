@@ -29,7 +29,8 @@ RUN git clone https://github.com/EGA-archive/EGA-auth.git /root/ega-auth && \
     echo '/usr/local/lib/ega' >> /etc/ld.so.conf.d/ega.conf && \
     echo 'Welcome to Local EGA' > /ega/banner && \
     cp /etc/nsswitch.conf /etc/nsswitch.conf.bak && \
-    sed -i -e 's/^passwd:\(.*\)files/passwd:\1files ega/' /etc/nsswitch.conf
+    sed -i -e 's/^passwd:\(.*\)files/passwd:\1files ega/' /etc/nsswitch.conf && \
+    cd && rm -rf /root/ega-auth
 
 RUN ldconfig -v
 
