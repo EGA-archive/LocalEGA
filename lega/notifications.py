@@ -20,7 +20,7 @@ port = 8888
 delim = b'$'
 
 from .conf import CONF, configure
-from .utils.amqp import publish
+from .utils.amqp import publish, close as amqp_close
 from .utils.checksum import calculate
 from .utils.logging import LEGALogger
 
@@ -104,7 +104,7 @@ def main():
         loop.run_forever()
     except KeyboardInterrupt:
         LOG.info('Server interrupted')
-        amqp.close()
+        amqp_close()
     except Exception as e:
         LOG.critical(f'Error {e}')
 
