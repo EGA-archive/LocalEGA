@@ -119,8 +119,8 @@ def main():
     if CONF.get_value('DEFAULT', 'enable_ssl', conv=bool, default=True):
         ssl_certfile = Path(CONF.get_value('DEFAULT', 'ssl_certfile')).expanduser()
         ssl_keyfile = Path(CONF.get_value('DEFAULT', 'ssl_keyfile')).expanduser()
-        LOG.debug('Certfile: %s', ssl_certfile, extra={'correlation_id': correlation_id})
-        LOG.debug('Keyfile: %s', ssl_keyfile, extra={'correlation_id': correlation_id})
+        LOG.debug('Certfile: %s', ssl_certfile)
+        LOG.debug('Keyfile: %s', ssl_keyfile)
         sslcontext = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
         sslcontext.check_hostname = False
         sslcontext.load_cert_chain(ssl_certfile, ssl_keyfile)
