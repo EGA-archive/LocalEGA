@@ -9,14 +9,15 @@ from lega.utils import get_file_content, sanitize_user_id
 import io
 from testfixtures import tempdir
 from . import pgp_data
-import sys
+# import sys
 from io import StringIO
 
 
 class TestBasicFunctions(unittest.TestCase):
-    """Basic Tests
+    """Basic Tests.
 
-    Suite of basic tests for various functions."""
+    Suite of basic tests for various functions.
+    """
 
     def test_instantiate(self):
         """Instantiate algorithm."""

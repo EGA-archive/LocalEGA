@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -*-
 
-'''
-Database Connection
-'''
+"""Database Connection."""
 
 import sys
-import traceback
+# import traceback
 import psycopg2
 from socket import gethostname
 from contextlib import contextmanager
@@ -15,35 +13,38 @@ from .logging import LEGALogger
 
 LOG = LEGALogger(__name__)
 
+
 class DBConnection():
+    """Databse connection setup."""
+
     conn = None
     curr = None
     args = None
 
     def __init__(self, conf_section='db', on_failure=None):
+        """Initialize config section parameters for DB and failure fallback."""
         self.on_failure = on_failure
         self.conf_section = conf_section or 'db'
 
     def fetch_args(self):
-        return { 'user': CONF.get_value(self.conf_section, 'user'),
-                 'password': CONF.get_value(self.conf_section, 'password'),
-                 'database': CONF.get_value(self.conf_section, 'database'),
-                 'host': CONF.get_value(self.conf_section, 'host'),
-                 'port': CONF.get_value(self.conf_section, 'port', conv=int),
-                 'connect_timeout': CONF.get_value(self.conf_section, 'try_interval', conv=int, default=1),
-                 'sslmode': CONF.get_value(self.conf_section, 'sslmode'),
-        }
-
+        """Fetch arguments for initializing a connection to db."""
+        return {'user': CONF.get_value(self.conf_section, 'user'),
+                'password': CONF.get_value(self.conf_section, 'password'),
+                'database': CONF.get_value(self.conf_section, 'database'),
+                'host': CONF.get_value(self.conf_section, 'host'),
+                'port': CONF.get_value(self.conf_section, 'port', conv=int),
+                'connect_timeout': CONF.get_value(self.conf_section, 'try_interval', conv=int, default=1),
+                'sslmode': CONF.get_value(self.conf_section, 'sslmode'),
+                }
 
     def connect(self, force=False):
-        '''Get the database connection (which encapsulates a database session)
+        """Get the database connection (which encapsulates a database session).
 
         Upon success, the connection is cached.
 
         Before success, we try to connect ``try`` times every ``try_interval`` seconds (defined in CONF)
         Executes ``on_failure`` after ``try`` attempts.
-        '''
-
+        """
         if force:
             self.close()
 
@@ -63,7 +64,7 @@ class DBConnection():
             try:
                 LOG.debug("Connection attempt %d", count)
                 self.conn = psycopg2.connect(**self.args)
-                #self.conn.set_session(autocommit=True) # default is False.
+                # self.conn.set_session(autocommit=True) # default is False.
                 LOG.debug("Connection successful")
                 return
             except psycopg2.OperationalError as e:
@@ -77,19 +78,21 @@ class DBConnection():
             self.on_failure()
 
     def ping(self):
+        """Ping DB connection."""
         if self.conn is None:
             self.connect()
         try:
             with self.conn:
-                with self.conn.cursor() as cur: # does not commit if error raised
+                with self.conn.cursor() as cur:  # does not commit if error raised
                     cur.execute('SELECT 1;')
                     LOG.debug("Ping db successful")
         except (psycopg2.OperationalError, psycopg2.InterfaceError) as e:
             LOG.debug('Ping failed: %s', e)
-            self.connect(force=True) # reconnect
+            self.connect(force=True)  # reconnect
 
     @contextmanager
     def cursor(self):
+        """Return DB Cursor, thus reusing it."""
         self.ping()
         with self.conn:
             with self.conn.cursor() as cur:
@@ -98,6 +101,7 @@ class DBConnection():
             # transaction autocommit, but connection not closed
 
     def close(self):
+        """Close DB Connection."""
         LOG.debug("Closing the database")
         if self.curr:
             self.curr.close()
@@ -109,24 +113,28 @@ class DBConnection():
 # Note, the code does not close the database connection nor the cursor
 # if everything goes fine.
 
+
 ######################################
-##         Business logic           ##
+#           Business logic           #
 ######################################
+
 connection = DBConnection()
 
+
 def insert_file(filename, user_id):
-    """Insert a new file entry and returns its id"""
+    """Insert a new file entry and returns its id."""
     with connection.cursor() as cur:
         cur.execute('SELECT local_ega.insert_file(%(filename)s,%(user_id)s);',
-                    { 'filename': filename,
-                      'user_id': user_id,
-                    })
+                    {'filename': filename,
+                     'user_id': user_id,
+                     })
         file_id = (cur.fetchone())[0]
         if file_id:
             LOG.debug(f'Created id {file_id} for {filename}')
             return file_id
         else:
             raise Exception('Database issue with insert_file')
+
 
 def set_error(file_id, error, from_user=False):
     """Store error related to ``file_id`` in database."""
@@ -136,19 +144,21 @@ def set_error(file_id, error, from_user=False):
     hostname = gethostname()
     with connection.cursor() as cur:
         cur.execute('SELECT local_ega.insert_error(%(file_id)s,%(h)s,%(etype)s,%(msg)s,%(from_user)s);',
-                    {'h':hostname, 'etype': error.__class__.__name__, 'msg': repr(error), 'file_id': file_id, 'from_user': from_user})
+                    {'h': hostname, 'etype': error.__class__.__name__, 'msg': repr(error), 'file_id': file_id, 'from_user': from_user})
+
 
 def update(file_id, kwargs):
-    """Updating information in database for ``file_id``."""
+    """Update information in database for ``file_id``."""
     assert file_id, 'Eh? No file_id?'
     LOG.debug(f'Updating status file_id {file_id} with {kwargs}')
     if not kwargs:
         return
     with connection.cursor() as cur:
-        q = ', '.join(f'{k} = %({k})s' for k in kwargs) # keys
+        q = ', '.join(f'{k} = %({k})s' for k in kwargs)  # keys
         query = f'UPDATE local_ega.files SET {q} WHERE id = %(file_id)s;'
         kwargs['file_id'] = file_id
         cur.execute(query, kwargs)
+
 
 def finalize(kwargs):
     """Flag as done and insert stable_id."""
@@ -164,14 +174,16 @@ def finalize(kwargs):
                     '                               %(stable_id)s'
                     ');', kwargs)
 
+
 def is_disabled(file_id):
-    """Should we continue handle this file_id?"""
+    """Continue handle this file_id?."""  # actual question
     assert file_id, 'Eh? No file_id?'
     LOG.debug('Is disabled %d?', file_id)
     with connection.cursor() as cur:
-        cur.execute('SELECT * FROM local_ega.is_disabled(%(file_id)s);', { 'file_id': file_id })
+        cur.execute('SELECT * FROM local_ega.is_disabled(%(file_id)s);', {'file_id': file_id})
         return (cur.fetchone())[0]
-    
+
+
 # Raise exception for the moment.
 def check_session_key_checksum(session_key_checksum, session_key_checksum_type):
     """Check if this session key is (likely) already used."""
@@ -184,7 +196,8 @@ def check_session_key_checksum(session_key_checksum, session_key_checksum_type):
                      'sk_checksum_type': session_key_checksum_type})
         found = cur.fetchone()
         LOG.debug("Check session key: %s", found)
-        return (found and found[0]) # not none and check boolean value
+        return (found and found[0])  # not none and check boolean value
+
 
 # Testing connection with `python -m lega.utils.db`
 if __name__ == '__main__':
@@ -192,5 +205,3 @@ if __name__ == '__main__':
     with connection.cursor() as cur:
         print(cur)
     connection.close()
-
-

@@ -1,5 +1,5 @@
-"""\
-Configuration Module provides a dictionary-like with configuration settings.
+"""Configuration Module provides a dictionary-like with configuration settings.
+
 It also loads the logging settings when ``setup`` is called.
 
 * The ``LEGA_LOG`` environment variable is used to configure where the logs go.
@@ -16,18 +16,21 @@ It also loads the logging settings when ``setup`` is called.
 import sys
 import os
 import configparser
-import logging
-from logging.config import fileConfig, dictConfig
-import lega.utils.logging
 from pathlib import Path
 import yaml
 from functools import wraps
+
+# These two imports are needed to get the logging config files to work
+import logging  # noqa: F401
+import lega.utils.logging  # noqa: F401
+from logging.config import fileConfig, dictConfig
 
 from ..utils import get_secret
 
 _here = Path(__file__).parent
 LOG_FILE = os.getenv('LEGA_LOG', None)
 CONF_FILE = os.getenv('LEGA_CONF', '/etc/ega/conf.ini')
+
 
 class Configuration(configparser.ConfigParser):
     """Configuration from config_files or environment variables or config server (e.g. Spring Cloud Config)."""
@@ -70,7 +73,7 @@ class Configuration(configparser.ConfigParser):
             print('No configuration found', file=sys.stderr)
             print('Bailing out', file=sys.stderr)
             sys.exit(2)
-            
+
         self.read([CONF_FILE], encoding='utf-8')
         self._load_log()
 
@@ -82,7 +85,7 @@ class Configuration(configparser.ConfigParser):
         return res
 
     def get_value(self, section, option, conv=str, default=None, raw=False):
-        """"Get a specific value for this paramater either as env variable or from config files.
+        """Get a specific value for this paramater either as env variable or from config files.
 
         ``section`` and ``option`` are mandatory while ``conv``, ``default`` (fallback) and ``raw`` are optional.
         """
@@ -105,16 +108,17 @@ class Configuration(configparser.ConfigParser):
         if conv == str:
             secrets_path = os.environ.get('secrets_path', '/run/secrets/')
             if value.startswith(secrets_path):
-                return get_secret(value) # removes file if found
-            return value 
+                return get_secret(value)  # removes file if found
+            return value
         # else
-        return conv(value) # raise error in case we can't convert an empty value
+        return conv(value)  # raise error in case we can't convert an empty value
 
 
 CONF = Configuration()
 
+
 def configure(func):
-    '''Configuration decorator'''
+    """Return configuration decorator."""
     @wraps(func)
     def wrapper(*args, **kwargs):
         CONF.setup()

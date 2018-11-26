@@ -1,30 +1,26 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-'''
-####################################
-#
-# Checking permissions for a given stable ID.
-#
-# ... and forwarding to the re-encryption streamer
-#
-####################################
-'''
+"""Checking permissions for a given stable ID.
 
-import sys
+... and forwarding to the re-encryption streamer
+"""
+
+
+# import sys
 import ssl
 from pathlib import Path
 import uuid
 import asyncio
 import uvloop
-asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
-
 from aiohttp import web, ClientSession, ClientTimeout
-
 from .conf import CONF, configure
 from .utils.logging import LEGALogger
 
+asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+
 LOG = LEGALogger(__name__)
+
 
 async def outgest(r):
 
@@ -62,11 +58,11 @@ async def outgest(r):
         LOG.debug('POST Request: %s', permissions_url, extra={'correlation_id': correlation_id})
         async with session.request('GET',
                                    permissions_url,
-                                   headers={ 'Authorization': auth, # same as above
-                                             'Accept': 'application/json',
-                                             'Cache-Control': 'no-cache',
-                                             'correlation_id': correlation_id
-                                   }) as response:
+                                   headers={'Authorization': auth,  # same as above
+                                            'Accept': 'application/json',
+                                            'Cache-Control': 'no-cache',
+                                            'correlation_id': correlation_id
+                                            }) as response:
             if response.status > 200:
                 LOG.error("Invalid permissions for stable_id %s [status: %s]",
                           stable_id, response.status,
@@ -85,9 +81,9 @@ async def outgest(r):
                                        'Content-Type': 'application/json',
                                        'correlation_id': correlation_id
                                    },
-                                   json={ 'stable_id': stable_id,
-                                          'pubkey': pubkey,
-                                          'client_ip': r.remote }) as response:
+                                   json={'stable_id': stable_id,
+                                         'pubkey': pubkey,
+                                         'client_ip': r.remote}) as response:
 
             LOG.debug('Response: %s', response, extra={'correlation_id': correlation_id})
             LOG.debug('Response type: %s', response.headers.get('CONTENT-TYPE'), extra={'correlation_id': correlation_id})
@@ -99,7 +95,7 @@ async def outgest(r):
             await resp.prepare(r)
             # Forwarding the content
             while True:
-                chunk = await response.content.read(1<<22) # 4 MB
+                chunk = await response.content.read(1 << 22)  # 4 MB
                 if not chunk:
                     break
                 await resp.write(chunk)
@@ -108,6 +104,7 @@ async def outgest(r):
             # Finally
             await resp.write_eof()
             return resp
+
 
 @configure
 def main():
@@ -125,11 +122,11 @@ def main():
         sslcontext.check_hostname = False
         sslcontext.load_cert_chain(ssl_certfile, ssl_keyfile)
 
-    #loop = asyncio.get_event_loop()
-    #loop.set_debug(True)
+    # loop = asyncio.get_event_loop()
+    # loop.set_debug(True)
 
     server = web.Application()
-    server.router.add_post('/', outgest) 
+    server.router.add_post('/', outgest)
 
     # Initialization
     server['permissions_url'] = CONF.get_value('DEFAULT', 'permissions_endpoint', raw=True)
