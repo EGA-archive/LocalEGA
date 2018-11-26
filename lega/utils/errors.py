@@ -32,7 +32,7 @@ def log_trace():
     fname = frame.f_code.co_filename
     LOG.error('Exception: %s in %s on line: %s', exc_type, fname, lineno)
 
-def handle_error(e, data):
+def handle_error(e, correlation_id, data):
     # Re-raise in case of AssertionError
     if isinstance(e,AssertionError):
         raise e
@@ -70,7 +70,7 @@ def catch(ret_on_error=None):
                 # Adding correlation ID to context
                 LOG.add_correlation_id(correlation_id)
 
-                handle_error(e, data)
+                handle_error(e, correlation_id, data)
                 # Note: let it fail and bail out if handle_error raises an exception itself
 
                 # Should we also revert back the ownership of the file?
