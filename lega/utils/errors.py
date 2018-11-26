@@ -1,10 +1,8 @@
 # -*- coding: utf-8 -*-
-'''
-Capture Errors as a decorator and logs them in the database
-'''
+"""Capture Errors as a decorator and logs them in the database."""
 
 import sys
-import logging
+# import logging
 from functools import wraps
 import traceback
 
@@ -16,56 +14,59 @@ from .logging import LEGALogger
 LOG = LEGALogger(__name__)
 
 ######################################
-##         Capture Errors           ##
+#         Capture Errors             #
 ######################################
+
+
 def log_trace():
     exc_type, _, exc_tb = sys.exc_info()
-    #traceback.print_tb(exc_tb)
+    # traceback.print_tb(exc_tb)
     g = traceback.walk_tb(exc_tb)
     try:
-        frame, lineno = next(g) # that should be the decorator
-        frame, lineno = next(g) # that should be where is happened
+        frame, lineno = next(g)  # that should be the decorator
+        frame, lineno = next(g)  # that should be where is happened
     except StopIteration:
-        pass # In case the trace is too short
+        pass  # In case the trace is too short
 
-    #fname = os.path.split(frame.f_code.co_filename)[1]
+    # fname = os.path.split(frame.f_code.co_filename)[1]
     fname = frame.f_code.co_filename
     LOG.error('Exception: %s in %s on line: %s', exc_type, fname, lineno)
 
 def handle_error(e, correlation_id, data):
     # Re-raise in case of AssertionError
-    if isinstance(e,AssertionError):
+    if isinstance(e, AssertionError):
         raise e
 
     # Is it from the user?
-    from_user = isinstance(e,FromUser) or isinstance(e,ValueError)
+    from_user = isinstance(e, FromUser) or isinstance(e, ValueError)
 
     cause = e.__cause__ or e
-    LOG.error('%r', cause) # repr(cause) = Technical
+    LOG.error('%r', cause)  # repr(cause) = Technical
 
     # Locate the error
     log_trace()
-        
-    file_id = data.get('file_id', None) # should be there
+
+    file_id = data.get('file_id', None)  # should be there
     if file_id:
         set_error(file_id, cause, from_user)
     LOG.debug('Catching error on file id: %s', file_id)
-    if from_user: # Send to CentralEGA
-        org_msg = data.pop('org_msg', None) # should be there
-        org_msg['reason'] = str(cause) # str = Informal
+    if from_user:  # Send to CentralEGA
+        org_msg = data.pop('org_msg', None)  # should be there
+        org_msg['reason'] = str(cause)  # str = Informal
         LOG.info('Sending user error to local broker: %s', org_msg)
         publish(org_msg, 'cega', 'files.error', correlation_id)
 
+
 def catch(ret_on_error=None):
-    '''Decorator to store the raised exception in the database'''
+    """Return decorator to store the raised exception in the database."""
     def catch_error(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
             try:
                 return func(*args, **kwargs)
             except Exception as e:
-                correlation_id = args[-2] # correlation_id is the penultimate argument
-                data = args[-1]           # data           is the last        argument
+                correlation_id = args[-2]  # correlation_id is the penultimate argument
+                data = args[-1]  # data is the last argument
 
                 # Adding correlation ID to context
                 LOG.add_correlation_id(correlation_id)

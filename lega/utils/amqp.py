@@ -1,9 +1,6 @@
-"""
-Ensures communication with RabbitMQ Message Broker
-"""
+"""Ensures communication with RabbitMQ Message Broker."""
 
 import sys
-import logging
 import pika
 import json
 from contextlib import contextmanager
@@ -15,16 +12,21 @@ from .logging import LEGALogger
 
 LOG = LEGALogger(__name__)
 
+
 class AMQPConnection():
+    """Initiate AMQP Connection."""
+
     conn = None
     chann = None
     args = None
 
     def __init__(self, conf_section='broker', on_failure=None):
+        """Initialize AMQP class."""
         self.on_failure = on_failure
         self.conf_section = conf_section or 'broker'
 
     def fetch_args(self):
+        """Retrieve AMQP connection parameters."""
         assert self.conf_section in CONF.sections(), "Section not found in config file"
         LOG.info('Getting a connection to %s', self.conf_section)
         params = {
@@ -36,7 +38,7 @@ class AMQPConnection():
                 CONF.get_value(self.conf_section, 'password', default='guest')
             ),
             'connection_attempts': CONF.get_value(self.conf_section, 'connection_attempts', conv=int, default=1),
-            'retry_delay': CONF.get_value(self.conf_section,'retry_delay', conv=int, default=10), # seconds
+            'retry_delay': CONF.get_value(self.conf_section, 'retry_delay', conv=int, default=10),  # seconds
         }
         heartbeat = CONF.get_value(self.conf_section, 'heartbeat', conv=int, default=0)
         if heartbeat is not None:  # can be 0
@@ -51,17 +53,15 @@ class AMQPConnection():
             params['ssl_options'] = {
                 'ca_certs': CONF.get_value(self.conf_section, 'cacert'),
                 'certfile': CONF.get_value(self.conf_section, 'cert'),
-                'keyfile':  CONF.get_value(self.conf_section, 'keyfile'),
+                'keyfile': CONF.get_value(self.conf_section, 'keyfile'),
                 'cert_reqs': 2,  # ssl.CERT_REQUIRED is actually <VerifyMode.CERT_REQUIRED: 2>
             }
         LOG.debug(params)
         return params
 
-
     def connect(self, blocking=True, force=False):
-        '''
-        Returns a blocking connection to the Message Broker supporting AMQP(S).
-        
+        """Return a blocking connection to the Message Broker supporting AMQP(S).
+
         The host, portm virtual_host, username, password and
         heartbeat values are read from the CONF argument.
         So are the SSL options.
@@ -70,7 +70,7 @@ class AMQPConnection():
 
         Before success, we try to connect ``try`` times every ``try_interval`` seconds (defined in CONF)
         Executes ``on_failure`` after ``try`` attempts.
-        '''
+        """
         if force:
             self.close()
 
@@ -83,7 +83,7 @@ class AMQPConnection():
         connector = pika.BlockingConnection if blocking else pika.SelectConnection
 
         retry = CONF.get_value(self.conf_section, 'retry', conv=int, default=1)
-        retry_delay = CONF.get_value(self.conf_section,'retry_delay', conv=int, default=10) # seconds
+        retry_delay = CONF.get_value(self.conf_section, 'retry_delay', conv=int, default=10)  # seconds
         assert retry > 0, "The number of reconnection should be >= 1"
         LOG.debug("%d attempts [interval: %d]", retry, retry_delay)
         count = 0
@@ -115,12 +115,14 @@ class AMQPConnection():
 
     @contextmanager
     def channel(self):
+        """Retrieve connection channel."""
         if self.conn is None:
             self.connect()
         yield self.chann
 
     def close(self):
-        LOG.debug("Closing the database")
+        """Close MQ channel."""
+        LOG.debug("Closing the AMQP connection.")
         if self.chann and not self.chann.is_closed and not self.chann.is_closing:
             self.chann.close()
         self.chann = None
@@ -131,26 +133,24 @@ class AMQPConnection():
 
 connection = AMQPConnection()
 
+
 def publish(message, exchange, routing, correlation_id):
-    '''
-    Sending a message to the local broker exchange using the given routing key.
+    """Send a message to the local broker exchange using the given routing key.
+
     The correlation_id must be specified (and then forwarded).
-    '''
-    assert( correlation_id )
+    """
+    assert(correlation_id)
     LOG.add_correlation_id(correlation_id)
     with connection.channel() as channel:
         LOG.debug('Sending %s to exchange: %s [routing key: %s]', message, exchange, routing)
-        channel.basic_publish(exchange    = exchange,
-                              routing_key = routing,
-                              body        = json.dumps(message),
-                              properties  = pika.BasicProperties(correlation_id=correlation_id,
-                                                                 content_type='application/json',
-                                                                 delivery_mode=2))
+        channel.basic_publish(exchange=exchange, routing_key=routing, body=json.dumps(message),
+                              properties=pika.BasicProperties(correlation_id=correlation_id,
+                                                              content_type='application/json', delivery_mode=2))
     LOG.remove_correlation_id()
 
 
 def consume(work, from_queue, to_routing, ack_on_error=True):
-    '''Blocking function, registering callback ``work`` to be called.
+    """Register callback ``work`` to be called, blocking function.
 
     from_broker must be a pair (from_connection: pika:Connection, from_queue: str)
     to_broker must be a triplet (to_connection: pika:Connection, to_exchange: str, to_routing: str)
@@ -161,9 +161,8 @@ def consume(work, from_queue, to_routing, ack_on_error=True):
     If the function ``work`` returns a non-None message, the latter is
     published to the `lega` exchange with ``to_routing`` as the
     routing key.
-    '''
-
-    assert( from_queue )
+    """
+    assert(from_queue)
 
     def process_request(_channel, method_frame, props, body):
         correlation_id = props.correlation_id
@@ -173,11 +172,11 @@ def consume(work, from_queue, to_routing, ack_on_error=True):
         LOG.debug('Consuming message %s', message_id)
 
         # Process message in JSON format
-        answer, error = work(correlation_id, json.loads(body) ) # Exceptions should be already caught
+        answer, error = work(correlation_id, json.loads(body))  # Exceptions should be already caught
 
         # Publish the answer
         if answer:
-            assert( to_routing )
+            assert(to_routing)
             publish(answer, 'lega', to_routing, correlation_id=correlation_id)
 
         # Acknowledgment: Cancel the message resend in case MQ crashes
@@ -192,7 +191,7 @@ def consume(work, from_queue, to_routing, ack_on_error=True):
         with connection.channel() as channel:
             try:
                 LOG.debug('Consuming message from %s', from_queue)
-                channel.basic_qos(prefetch_count=1) # One job per worker
+                channel.basic_qos(prefetch_count=1)  # One job per worker
                 channel.basic_consume(process_request, queue=from_queue)
                 channel.start_consuming()
             except KeyboardInterrupt:
