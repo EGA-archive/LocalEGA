@@ -6,9 +6,9 @@ TAG=$(shell git rev-parse --short HEAD)
 .PHONY: help bootstrap private up down clean ps bootstrap-image bootstrap-dev nfs nfs-down
 
 help:
-	@echo "Usage: make <target>\n"
-	@echo "where <target> is: 'bootstrap', 'up', 'ps', 'down', 'clean'\n\n"
-	@echo "If you use 'bootstrap-dev', passwords are replaced with the value 'dummy'\n"
+	@echo -e "Usage: make <target>\n"
+	@echo -e "where <target> is: 'bootstrap', 'up', 'ps', 'down', 'clean'\n\n"
+	@echo -e "If you use 'bootstrap-dev', passwords are replaced with the value 'dummy'\n"
 
 bootstrap-image: 
 	@echo "Checking the egarchive/lega image"
