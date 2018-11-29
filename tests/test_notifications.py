@@ -4,9 +4,10 @@ from unittest import mock
 
 
 class testForwarder(unittest.TestCase):
-    """Notifications
+    """Notifications.
 
-    Testing Notifications functionalities."""
+    Testing Notifications functionalities.
+    """
 
     def setUp(self):
         """Initialise fixtures."""
@@ -24,6 +25,7 @@ class testForwarder(unittest.TestCase):
 
     @mock.patch('lega.notifications.LOG')
     def test_connection_close(self, mock_logger):
+        """Test connection close."""
         self._forwarder.transport = mock.Mock()
         self._forwarder.connection_lost('')
         self._forwarder.transport.close.assert_called()

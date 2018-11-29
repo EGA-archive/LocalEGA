@@ -2,7 +2,7 @@
 import sys
 
 import requests
-#import json
+# import json
 
 TOKEN_URL = "https://egatest.crg.eu/idp/token"
 
@@ -18,26 +18,26 @@ PASSWORD = 'zhHSpkdK8KAn'
 # and client credentials as the basic auth header
 # => return access_token
 
-headers = { 'Accept': 'application/json',
-            'Cache-Control': 'no-cache',
-            'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' }
+headers = {'Accept': 'application/json',
+           'Cache-Control': 'no-cache',
+           'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'}
 
-data = { "grant_type"   : "password", 
-         "username"     : USERNAME,
-         "password"     : PASSWORD }
+data = {"grant_type": "password",
+        "username": USERNAME,
+        "password": PASSWORD}
 
 r = requests.post(TOKEN_URL,
                   headers=headers,
                   data=data,
-                  #verify=False,
+                  # verify=False,
                   allow_redirects=False,
                   auth=(CLIENT_ID, CLIENT_SECRET))
 
 if r.status_code > 200:
-    print( '='*30, 'Headers', '='*30 )
-    print( r.headers )
-    print( '='*30, 'Body', '='*30 )
-    print( r.text )
+    print('='*30, 'Headers', '='*3)
+    print(r.headers)
+    print('='*30, 'Body', '='*30)
+    print(r.text)
     sys.exit(2)
 
 reply = r.json()
@@ -60,17 +60,17 @@ with requests.post(OUTGEST_URL,
                    headers={
                        'Authorization': 'bearer ' + oauth_token,
                    },
-                   data = {
+                   data={
                        'stable_id': STABLE_ID,
                        'pubkey': pubkey,
                    },
                    stream=True) as r:
 
     if r.status_code > 200:
-        print( '='*30, 'Headers', '='*30 )
-        print( r.headers )
-        print( '='*30, 'Body', '='*30 )
-        print( r.text )
+        print('='*30, 'Headers', '='*30)
+        print(r.headers)
+        print('='*30, 'Body', '='*30)
+        print(r.text)
         sys.exit(2)
 
     print('Outputing response into output.c4gh')

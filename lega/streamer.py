@@ -32,6 +32,8 @@ LOG = LEGALogger(__name__)
 
 
 async def init(app):
+    # TO DO: this description needs to be updated
+    """."""
     # Some settings
 
     chunk_size = CONF.get_value('vault', 'chunk_size', conv=int, default=1 << 22)  # 4 MB
@@ -55,7 +57,7 @@ async def init(app):
 
 
 async def shutdown(app):
-    '''Function run after a KeyboardInterrupt. After that: cleanup'''
+    """Run after a KeyboardInterrupt. After that: cleanup."""
     LOG.info('Shutting down the database engine')
     await db.close()
 
@@ -70,6 +72,8 @@ async def shutdown(app):
 
 
 def request_context(func):
+    # TO DO: this description needs to be updated
+    """."""
     async def wrapper(r):
 
         correlation_id = r.headers.get('correlation_id')
@@ -157,7 +161,8 @@ def request_context(func):
 
 @request_context
 async def outgest(r, correlation_id, pubkey, privkey, signing_key, header, vault_path, mover, chunk_size=1 << 22):
-
+    # TO DO: this description needs to be updated
+    """."""
     # Crypt4GH encryption
     LOG.info('Re-encrypting the header', extra={'correlation_id': correlation_id})  # in hex -> bytes, and take away 16 bytes
     header_obj = Header.from_stream(io.BytesIO(bytes.fromhex(header)))

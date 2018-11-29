@@ -6,13 +6,14 @@ import os
 from io import UnsupportedOperation, BufferedReader
 from unittest import mock
 import boto3
-import botocore.response as br
+# import botocore.response as br
 
 
 class TestFileStorage(unittest.TestCase):
-    """FileStorage
+    """FileStorage.
 
-    Testing storage on disk."""
+    Testing storage on disk.
+    """
 
     def setUp(self):
         """Initialise fixtures."""
@@ -47,9 +48,10 @@ class TestFileStorage(unittest.TestCase):
 
 
 class TestS3Storage(unittest.TestCase):
-    """S3Storage
+    """S3Storage.
 
-    Testing storage on S3 solution."""
+    Testing storage on S3 solution.
+    """
 
     def setUp(self):
         """Initialise fixtures."""
@@ -102,9 +104,10 @@ class TestS3Storage(unittest.TestCase):
 
 
 class TestS3FileReader(unittest.TestCase):
-    """S3FileReader
+    """S3FileReader.
 
-    Testing S3FileReader."""
+    Testing S3FileReader.
+    """
 
     def setUp(self):
         """Initialise fixtures."""
