@@ -19,6 +19,7 @@ LOG = LEGALogger(__name__)
 
 
 def log_trace():
+    """Locate the error."""
     exc_type, _, exc_tb = sys.exc_info()
     # traceback.print_tb(exc_tb)
     g = traceback.walk_tb(exc_tb)
@@ -32,7 +33,12 @@ def log_trace():
     fname = frame.f_code.co_filename
     LOG.error('Exception: %s in %s on line: %s', exc_type, fname, lineno)
 
+
 def handle_error(e, correlation_id, data):
+    """Log error in the database.
+
+    If error is from user send to CEGA.
+    """
     # Re-raise in case of AssertionError
     if isinstance(e, AssertionError):
         raise e

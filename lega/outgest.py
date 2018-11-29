@@ -23,7 +23,11 @@ LOG = LEGALogger(__name__)
 
 
 async def outgest(r):
+    # TO DO: this description needs to be updated
+    """Check permissions for a given stable ID.
 
+    ... and forwarding to the re-encryption streamer
+    """
     correlation_id = str(uuid.uuid4())
 
     # Get token from header
@@ -108,7 +112,7 @@ async def outgest(r):
 
 @configure
 def main():
-
+    """Run outget service."""
     host = CONF.get_value('DEFAULT', 'host')
     port = CONF.get_value('DEFAULT', 'port', conv=int)
 

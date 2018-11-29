@@ -12,7 +12,7 @@ import uuid
 import asyncio
 import uvloop
 from .conf import CONF, configure
-from .utils.amqp import publish
+from .utils.amqp import publish, connection as amqp_conn
 from .utils.checksum import calculate
 from .utils.logging import LEGALogger
 

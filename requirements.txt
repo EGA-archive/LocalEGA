@@ -12,3 +12,4 @@ git+https://github.com/EGA-archive/crypt4gh.git
 uvloop
 async_timeout
 async_generator
+docopt==0.6.2
