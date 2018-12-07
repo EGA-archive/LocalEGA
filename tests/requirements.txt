@@ -4,3 +4,4 @@ aioresponses
 testfixtures
 coveralls
 git+https://github.com/NBISweden/LocalEGA-cryptor.git
+flake8
