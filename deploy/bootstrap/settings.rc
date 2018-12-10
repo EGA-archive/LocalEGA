@@ -25,6 +25,14 @@ PGP_PASSPHRASE=$(generate_password 16)
 S3_ACCESS_KEY=$(generate_password 16)
 S3_SECRET_KEY=$(generate_password 32)
 
+# Special cases
+# - Access key length should be between minimum 3 characters in length.
+# - Secret key should be in between 8 and 40 characters.
+if [[ "${DEPLOY_DEV}" = "yes" ]]; then
+    S3_ACCESS_KEY="dummyaccesskey"
+    S3_SECRET_KEY="dummysecretkey"
+fi
+
 LOG_LEVEL=DEBUG
 
 LEGA_PASSWORD=$(generate_password 32)
