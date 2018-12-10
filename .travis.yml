@@ -32,7 +32,7 @@ jobs:
       script: tox
     - stage: image build
       before_script:
-        - cd docker
+        - cd deploy
       script:
         - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin
         - ../extras/travis_check_image_change.sh os
@@ -45,7 +45,7 @@ jobs:
         - docker push nbisweden/ega-inbox:"PR${TRAVIS_PULL_REQUEST}"
     - stage: integration tests
       before_script:
-        - cd docker
+        - cd deploy
         - ../extras/travis_push_docker_hub.sh
         - make bootstrap ARGS='--inbox mina --keyserver ega'
         - sudo chown -R travis private
@@ -57,7 +57,7 @@ jobs:
         - mvn test -Dtest=IngestionTests -B
     - stage: integration tests
       before_script:
-        - cd docker
+        - cd deploy
         - ../extras/travis_push_docker_hub.sh
         - make bootstrap ARGS='--inbox mina --keyserver ega'
         - sudo chown -R travis private
@@ -69,7 +69,7 @@ jobs:
         - mvn test -Dtest=OutgestionTests -B
     - stage: integration tests
       before_script:
-        - cd docker
+        - cd deploy
         - ../extras/travis_push_docker_hub.sh
         - make bootstrap ARGS='--inbox mina --keyserver ega'
         - sudo chown -R travis private
@@ -81,7 +81,7 @@ jobs:
         - mvn test -Dtest=RobustnessTests -B
     - stage: integration tests
       before_script:
-        - cd docker
+        - cd deploy
         - ../extras/travis_push_docker_hub.sh
         - make bootstrap
         - sudo chown -R travis private
