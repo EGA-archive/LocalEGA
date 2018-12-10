@@ -7,8 +7,8 @@ help:
 	@echo "where <target> is: 'bootstrap', 'up' 'ps', 'down', 'network' or 'clean'\n"
 
 # If DEPLOY_DEV is yes, we use dummy passwords
-bootstrap: ENVS=--env DEPLOY_DEV=yes
-private/cega.yml private/lega.yml private bootstrap:
+bootstrap-dev: ENVS=--env DEPLOY_DEV=yes
+private/cega.yml private/lega.yml private bootstrap bootstrap-dev:
 	@docker run --rm -it \
 		    -v /dev/urandom:/dev/random \
                     ${ENVS} \
