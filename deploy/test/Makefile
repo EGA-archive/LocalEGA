@@ -19,7 +19,7 @@ get_shasum =                                          \
 
 ##############################
 
-DOCKER_PATH=$(MAIN_REPO)/docker
+DOCKER_PATH=$(MAIN_REPO)/deploy
 CEGA_USERS=$(DOCKER_PATH)/private/cega/users
 
 INSTANCE_PORT=$(shell awk -F= '/DOCKER_PORT_inbox/ {print $$2}' $(DOCKER_PATH)/bootstrap/settings.rc)
