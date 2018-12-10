@@ -79,23 +79,23 @@ jobs:
       script:
         - cd tests
         - mvn test -Dtest=RobustnessTests -B
-    - stage: integration tests
-      before_script:
-        - cd deploy
-        - ../extras/travis_push_docker_hub.sh
-        - make bootstrap
-        - sudo chown -R travis private
-        - docker network create cega
-        - docker-compose up -d #--scale ingest=3 --scale verify=5
-        - docker-compose ps
-      script:
-        - sleep 5
-        - pip install -r https://raw.githubusercontent.com/NBISweden/LocalEGA-cryptor/master/requirements.txt
-        - pip install git+https://github.com/NBISweden/LocalEGA-cryptor.git
-        - pip install pika
-        - make -C test
-        - sleep 10
-        - make -C test check
+    # - stage: integration tests
+    #   before_script:
+    #     - cd deploy
+    #     - ../extras/travis_push_docker_hub.sh
+    #     - make bootstrap
+    #     - sudo chown -R travis private
+    #     - docker network create cega
+    #     - docker-compose up -d #--scale ingest=3 --scale verify=5
+    #     - docker-compose ps
+    #   script:
+    #     - sleep 5
+    #     - pip install -r https://raw.githubusercontent.com/NBISweden/LocalEGA-cryptor/master/requirements.txt
+    #     - pip install git+https://github.com/NBISweden/LocalEGA-cryptor.git
+    #     - pip install pika
+    #     - make -C test
+    #     - sleep 10
+    #     - make -C test check
     - stage: tag image
       script: ./extras/travis_push_docker_hub.sh
 
