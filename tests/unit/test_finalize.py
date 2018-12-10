@@ -1,12 +1,12 @@
 import unittest
-from lega.mapper import main, work
+from lega.finalize import main, work
 from unittest import mock
 
 
-class testMapper(unittest.TestCase):
-    """Mapper.
+class testFinalize(unittest.TestCase):
+    """Finalize.
 
-    Testing mapper functionalities.
+    Testing Finalizer functionalities.
     """
 
     def setUp(self):
@@ -17,18 +17,18 @@ class testMapper(unittest.TestCase):
         """Remove anything that was setup."""
         pass
 
-    @mock.patch('lega.mapper.db')
+    @mock.patch('lega.finalize.db')
     def test_work(self, mock_db):
-        """Test mapper worker, should insert into database."""
+        """Test finalize worker, should insert into database."""
         # mock_db.set_stable_id.return_value = mock.Mock()
         data = {'stable_id': '1', 'file_id': '123'}
         work(data)
         mock_db.set_stable_id.assert_called_with('123', '1')
 
-    @mock.patch('lega.mapper.get_connection')
-    @mock.patch('lega.mapper.consume')
+    @mock.patch('lega.finalize.get_connection')
+    @mock.patch('lega.finalize.consume')
     def test_main(self, mock_consume, mock_connection):
-        """Test main mapper, by mocking cosume call."""
+        """Test main finalize, by mocking cosume call."""
         mock_consume.return_value = mock.MagicMock()
         main()
         mock_consume.assert_called()
