@@ -160,7 +160,7 @@ services:
     ports:
       - "15670:15672"
       - "5672:5672"
-    image: rabbitmq:3.6.14-management
+    image: rabbitmq:3.7.8-management
     container_name: cega-mq
     labels:
         lega_label: "cega-mq"
@@ -226,7 +226,7 @@ echomsg "Generating passwords for the Message Broker"
 
 mkdir -p ${PRIVATE}/cega/mq
 cat > ${PRIVATE}/cega/mq/defs.json <<EOF
-{"rabbit_version":"3.6.14",
+{"rabbit_version":"3.7.8",
  "users":[{"name":"lega","password_hash":"$(${PASS_HASH} ${CEGA_MQ_PASSWORD})","hashing_algorithm":"rabbit_password_hashing_sha256","tags":"administrator"}],
  "vhosts":[{"name":"lega"}],
  "permissions":[{"user":"lega", "vhost":"lega", "configure":".*", "write":".*", "read":".*"}],

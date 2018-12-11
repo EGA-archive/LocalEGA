@@ -35,7 +35,6 @@ base lega inbox:
                      --cache-from $(TARGET_PREFIX)$@:latest \
                      --tag $(TARGET_PREFIX)$@:$(TAG) \
                      --tag $(TARGET_PREFIX)$@:latest \
-                     --tag $(TARGET_PREFIX)$@:dev \
                      $@
 
 remove-%:

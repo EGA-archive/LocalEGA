@@ -145,7 +145,7 @@ services:
     hostname: mq
     ports:
       - "${DOCKER_PORT_mq}:15672"
-    image: rabbitmq:3.6.14-management
+    image: rabbitmq:3.7.8-management
     container_name: mq
     labels:
         lega_label: "mq"
@@ -174,7 +174,7 @@ services:
     container_name: db
     labels:
         lega_label: "db"
-    image: postgres:10
+    image: postgres:11
     volumes:
       - db:/ega/data
       - ../images/db/postgresql.conf:/etc/ega/pg.conf:ro
