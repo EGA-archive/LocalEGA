@@ -206,30 +206,17 @@ services:
     networks:
       - lega
       - cega
-EOF
-if [[ $INBOX == 'mina' ]]; then
-cat >> ${PRIVATE}/lega.yml <<EOF
-    environment:
-      - CEGA_ENDPOINT=http://cega-users/lega/v1/legas/users/%s?idType=username
-      - CEGA_ENDPOINT_CREDS=lega:${CEGA_REST_PASSWORD}
-    ports:
-      - "${DOCKER_PORT_inbox}:2222"
-    image: nbisweden/ega-mina-inbox
-    volumes:
-      - inbox:/ega/inbox
-EOF
-else
-cat >> ${PRIVATE}/lega.yml <<EOF  # SFTP inbox
     environment:
       - CEGA_ENDPOINT=http://cega-users/lega/v1/legas/users/
       - CEGA_ENDPOINT_CREDS=lega:${CEGA_REST_PASSWORD}
       - CEGA_ENDPOINT_JSON_PREFIX=response.result
     ports:
       - "${DOCKER_PORT_inbox}:9000"
-    image: nbisweden/ega-inbox:dev
+    image: egarchive/inbox
     volumes:
       - ./lega/conf.ini:/etc/ega/conf.ini:ro
       - inbox:/ega/inbox
+      - ${LEGA_ROOT}/lega:/home/lega/.local/lib/python3.6/site-packages/lega
 EOF
 fi
 
@@ -239,12 +226,13 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     depends_on:
       - db
       - mq
-    image: nbisweden/ega-base:dev
+    image: egarchive/base
     container_name: finalize
     labels:
         lega_label: "finalize"
     volumes:
-       - ./lega/conf.ini:/etc/ega/conf.ini:ro
+      - ./lega/conf.ini:/etc/ega/conf.ini:ro
+      - ${LEGA_ROOT}/lega:/home/lega/.local/lib/python3.6/site-packages/lega
     restart: on-failure:3
     networks:
       - lega
@@ -255,7 +243,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     depends_on:
       - db
       - mq
-    image: nbisweden/ega-base:dev
+    image: egarchive/base
     container_name: ingest
     labels:
         lega_label: "ingest"
@@ -265,8 +253,9 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - AWS_ACCESS_KEY_ID=${S3_ACCESS_KEY}
       - AWS_SECRET_ACCESS_KEY=${S3_SECRET_KEY}
     volumes:
-       - inbox:/ega/inbox
-       - ./lega/conf.ini:/etc/ega/conf.ini:ro
+      - inbox:/ega/inbox
+      - ./lega/conf.ini:/etc/ega/conf.ini:ro
+      - ${LEGA_ROOT}/lega:/home/lega/.local/lib/python3.6/site-packages/lega
     restart: on-failure:3
     networks:
       - lega
@@ -307,7 +296,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     container_name: keys
     labels:
         lega_label: "keys"
-    image: nbisweden/ega-base:dev
+    image: egarchive/base
     expose:
       - "8443"
     environment:
@@ -341,7 +330,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     container_name: verify
     labels:
         lega_label: "verify"
-    image: nbisweden/ega-base:dev
+    image: egarchive/base
     environment:
       - LEGA_PASSWORD=${LEGA_PASSWORD}
       - S3_ACCESS_KEY=${S3_ACCESS_KEY}
@@ -349,7 +338,8 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - AWS_ACCESS_KEY_ID=${S3_ACCESS_KEY}
       - AWS_SECRET_ACCESS_KEY=${S3_SECRET_KEY}
     volumes:
-       - ./lega/conf.ini:/etc/ega/conf.ini:ro
+      - ./lega/conf.ini:/etc/ega/conf.ini:ro
+      - ${LEGA_ROOT}/lega:/home/lega/.local/lib/python3.6/site-packages/lega
     restart: on-failure:3
     networks:
       - lega
