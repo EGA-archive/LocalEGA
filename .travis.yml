@@ -8,10 +8,6 @@ git:
   depth: false
   quiet: true
 
-services: docker
-
-# command to install dependencies
-
 stages:
   - name: unit tests
     if: type IN (push, pull_request)
@@ -27,6 +23,7 @@ jobs:
       # command to run tests
       script: tox
     - stage: integration tests
+      services: docker
       before_script:
         - cd deploy
         - make bootstrap ARGS='--keyserver ega'
