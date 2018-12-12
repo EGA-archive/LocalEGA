@@ -1,8 +1,8 @@
 language: python
 
 python: 3.6
-install:
-  - echo "No dependencies on Travis"
+# Skip a specific installation phase
+install: true
 
 git:
   depth: false
@@ -10,24 +10,13 @@ git:
 
 services: docker
 
-# command to install dependencies
-
-stages:
-  - name: unit tests
-    if: type IN (push, pull_request)
-  - name: integration tests
-    if: type IN (pull_request)
-
 jobs:
   include:
-    - stage: unit tests
-      python: 3.6
+    - python: 3.6
       before_script:
         - pip install tox-travis
-      # command to run tests
       script: tox
-    - stage: integration tests
-      before_script:
+    - before_script:
         - cd deploy
         - make bootstrap ARGS='--keyserver ega'
         - sudo chown -R travis private

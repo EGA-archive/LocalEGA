@@ -1,6 +1,4 @@
 pytest
-pytest-cov
 aioresponses
 testfixtures
-coveralls
-git+https://github.com/NBISweden/LocalEGA-cryptor.git
+coverage

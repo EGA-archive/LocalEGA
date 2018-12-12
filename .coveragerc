@@ -1,10 +1,7 @@
 # .coveragerc to control coverage.py
 [run]
 omit =
-    # omit anything in a .local directory anywhere
-    */.local/*
-    # omit everything in /usr
-    /usr/*
+    tests/*
     # omit this single file
     lega/conf/__init__.py
     lega/openpgp/constants.py
@@ -14,6 +11,7 @@ omit =
 
     # For now this should not be tested
     lega/outgest.py
+    lega/streamer.py
 
 [report]
 # Regexes for lines to exclude from consideration
