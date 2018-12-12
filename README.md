@@ -1,32 +1,32 @@
-# NBIS repository for the Local EGA project
+# Local EGA main repository
 
-[![Codacy Badge](https://api.codacy.com/project/badge/Grade/3dd83b28ec2041889bfb13641da76c5b)](https://www.codacy.com/app/NBIS/LocalEGA?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=NBISweden/LocalEGA&amp;utm_campaign=Badge_Grade)
-[![Build Status](https://travis-ci.org/NBISweden/LocalEGA.svg?branch=dev)](https://travis-ci.org/NBISweden/LocalEGA)
-[![Coverage Status](https://coveralls.io/repos/github/NBISweden/LocalEGA/badge.svg?branch=dev)](https://coveralls.io/github/NBISweden/LocalEGA?branch=dev)
+[![Build Status](https://travis-ci.org/EGA-archive/LocalEGA.svg?branch=dev)](https://travis-ci.org/EGA-archive/LocalEGA)
+[![Documentation Status](https://readthedocs.org/projects/localega/badge/?version=latest)](https://localega.readthedocs.io/en/latest/?badge=latest)
+[![Coverage Status](https://coveralls.io/repos/github/EGA-archive/LocalEGA/badge.svg?branch=master)](https://coveralls.io/github/EGA-archive/LocalEGA?branch=master)
 
 The [code](lega) is written in Python (3.6+).
 
-You can provision and deploy the different components:
+You can provision and deploy the different components, locally, using [docker-compose](deploy).
 
-* locally, using [docker-compose](deploy);
-* on an OpenStack cluster, using [terraform](https://github.com/NBISweden/LocalEGA-deploy-terraform);
-* on a Kubernetes/OpenShift cluster, using [kubernetes](https://github.com/NBISweden/LocalEGA-deploy-k8s);
-* on a Docker Swarm cluster, using [Gradle](https://github.com/NBISweden/LocalEGA-deploy-swarm).
+Other provisioning methods are provided by our partners:
+
+* on an [OpenStack cluster](https://github.com/NBISweden/LocalEGA-deploy-terraform), using `terraform`;
+* on a [Kubernetes/OpenShift cluster](https://github.com/NBISweden/LocalEGA-deploy-k8s), using `kubernetes`;
+* on a [Docker Swarm cluster](https://github.com/NBISweden/LocalEGA-deploy-swarm), using `gradle`.
 
 # Architecture
 
-LocalEGA is divided into several components, whether as docker
-containers or as virtual machines.
+LocalEGA is divided into several components, as docker containers.
 
 | Components  | Role |
 |-------------|------|
-| db          | A Postgres database with appropriate schema |
-| mq          | A RabbitMQ message broker with appropriate accounts, exchanges, queues and bindings |
-| inbox       | SFTP server, acting as a dropbox, where user credentials come from CentralEGA |
-| keyserver   | Handles the encryption/decryption keys |
-| ingesters   | Split the Crypt4GH header and move the remainder to the storage backend. No cryptographic task, nor connection to the keyserver. |
-| verifiers   | Connect to the keyserver (via SSL) and decrypt the stored files and checksum them against their embedded checksum. |
+| db          | A Postgres database with appropriate schemas and isolations |
+| mq          | A (local) RabbitMQ message broker with appropriate accounts, exchanges, queues and bindings, connected to the CentralEGA counter-part. |
+| inbox       | SFTP server, acting as a dropbox, where user credentials are fetched from CentralEGA |
+| ingesters   | Split the Crypt4GH header and move the remainder to the storage backend. No cryptographic task, nor access to the decryption keys. |
+| verifiers   | Decrypt the stored files and checksum them against their embedded checksum. |
 | vault       | Storage backend: as a regular file system or as a S3 object store. |
-| ID mapper   | Handles the so-called _Stable ID_ filename mappings from CentralEGA. |
+| outgesters  | Front-facing check for download permissions. |
+| streamers   | Fetch the files from the vault and re-encrypt its header for the given requester. |
 
 Find the [LocalEGA documentation](http://localega.readthedocs.io) hosted on [ReadTheDocs.org](https://readthedocs.org/).
