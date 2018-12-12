@@ -8,15 +8,14 @@ git:
   depth: false
   quiet: true
 
-services: docker
-
 jobs:
   include:
     - python: 3.6
       before_script:
         - pip install tox-travis
       script: tox
-    - before_script:
+    - services: docker
+      before_script:
         - cd deploy
         - make bootstrap ARGS='--keyserver ega'
         - sudo chown -R travis private
