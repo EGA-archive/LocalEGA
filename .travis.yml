@@ -2,7 +2,7 @@ language: python
 
 python: 3.6
 install:
-  - echo "Dependencies on Travis? No, thanks"
+  - echo "No dependencies on Travis"
 
 git:
   depth: false
@@ -15,6 +15,8 @@ services: docker
 stages:
   - name: unit tests
     if: type IN (push, pull_request)
+  - name: integration tests
+    if: type IN (pull_request)
 
 jobs:
   include:
@@ -24,3 +26,14 @@ jobs:
         - pip install tox-travis
       # command to run tests
       script: tox
+    - stage: integration tests
+      before_script:
+        - cd deploy
+        - make bootstrap ARGS='--keyserver ega'
+        - sudo chown -R travis private
+        - docker network create cega
+        - make up
+        - make ps
+      script:
+        - cd ../tests
+        - bats integration
