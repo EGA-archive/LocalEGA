@@ -1,8 +1,8 @@
 # .coveragerc to control coverage.py
 [run]
+include = lega/*
 omit =
-    tests/*
-    # omit this single file
+    # omit these single files
     lega/conf/__init__.py
     lega/openpgp/constants.py
     lega/openpgp/__init__.py
