@@ -2,7 +2,7 @@ language: python
 
 python: 3.6
 install:
-  - echo "Dependencies on Travis? No, thanks"
+  - echo "No dependencies on Travis"
 
 git:
   depth: false
@@ -29,52 +29,14 @@ jobs:
     - stage: integration tests
       before_script:
         - cd deploy
-        - make bootstrap ARGS='--inbox mina --keyserver ega'
-        - sudo chown -R travis private
-        - docker network create cega
-        - make up-omit service=res
-        - docker-compose ps
-      script:
-        - cd tests
-        - mvn test -Dtest=IngestionTests -B
-    - stage: integration tests
-      before_script:
-        - cd deploy
-        - make bootstrap ARGS='--inbox mina --keyserver ega'
+        - make bootstrap ARGS='--keyserver ega'
         - sudo chown -R travis private
         - docker network create cega
         - make up
-        - docker-compose ps
+        - make ps
       script:
-        - cd tests
-        - mvn test -Dtest=OutgestionTests -B
-    - stage: integration tests
-      before_script:
-        - cd deploy
-        - make bootstrap ARGS='--inbox mina --keyserver ega'
-        - sudo chown -R travis private
-        - docker network create cega
-        - make up
-        - docker-compose ps
-      script:
-        - cd tests
-        - mvn test -Dtest=RobustnessTests -B
-    - stage: integration tests
-      before_script:
-        - cd deploy
-        - make bootstrap
-        - sudo chown -R travis private
-        - docker network create cega
-        - docker-compose up -d #--scale ingest=3 --scale verify=5
-        - docker-compose ps
-      script:
-        - sleep 5
-        - pip install -r https://raw.githubusercontent.com/NBISweden/LocalEGA-cryptor/master/requirements.txt
-        - pip install git+https://github.com/NBISweden/LocalEGA-cryptor.git
-        - pip install pika
-        - make -C test
-        - sleep 10
-        - make -C test check
+        - cd ../tests
+        - bats integration
 
 notifications:
   email: false
