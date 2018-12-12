@@ -31,9 +31,7 @@ jobs:
         - cd deploy
         - make bootstrap ARGS='--keyserver ega'
         - sudo chown -R travis private
-        - docker network create cega
-        - make up
-        - make ps
+        - make network up ps
       script:
         - cd ../tests
         - bats integration
