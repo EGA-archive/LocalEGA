@@ -248,7 +248,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     restart: on-failure:3
     networks:
       - lega
-    entrypoint: ["gosu", "lega", "ega-finalize"]
+    entrypoint: ["gosu", "lega", "ega-id-mapper"]
 
   # Ingestion Workers
   ingest:
