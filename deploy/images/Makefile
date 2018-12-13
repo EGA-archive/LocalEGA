@@ -41,10 +41,10 @@ erase:
 	@docker images $(TARGET_PREFIX)lega -q | uniq | while read n; do docker rmi -f $$n; done
 	@docker images $(TARGET_PREFIX)base -q | uniq | while read n; do docker rmi -f $$n; done
 
-push:
-	docker push $(TARGET_PREFIX)os:latest
-	docker push $(TARGET_PREFIX)base:latest
-	docker push $(TARGET_PREFIX)inbox:latest
+push pull:
+	docker $@ $(TARGET_PREFIX)os:latest
+	docker $@ $(TARGET_PREFIX)base:latest
+	docker $@ $(TARGET_PREFIX)inbox:latest
 
 os-check: os/Dockerfile
 base-check: base/Dockerfile

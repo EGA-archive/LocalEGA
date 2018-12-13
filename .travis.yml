@@ -24,7 +24,7 @@ jobs:
       services: docker
       before_script:
         - cd deploy
-        - make -C images os-check base-check inbox-check
+        - make -C images pull os-check base-check inbox-check
         - make bootstrap ARGS='--keyserver ega'
         - sudo chown -R travis private
         - make network up ps
