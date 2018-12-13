@@ -38,3 +38,4 @@ clean:
 	-docker network rm cega &>/dev/null
 
 clean-all: clean clean-volumes
+

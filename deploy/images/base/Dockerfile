@@ -1,18 +1,23 @@
-FROM nbisweden/ega-os
+FROM egarchive/os
+LABEL maintainer "EGA System Developers"
 
 #################################################
 ##
-## Install LocalEGA and LocalEGA-cryptor
+## Install LocalEGA stuff
 ##
 #################################################
 
-RUN pip3.6 install --upgrade pip && \
-    pip3.6 install PyYaml
+# ARG cryptor_checkout=master
+# RUN git clone https://github.com/EGA-archive/crypt4gh.git /root/crypt4gh && \
+#     cd /root/crypt4gh && git checkout ${cryptor_checkout} && cd .. && \
+#     pip3.6 install -r /root/crypt4gh/requirements.txt && \
+#     rm -rf /root/crypt4gh
 
-ARG checkout=dev
+ARG checkout=master
+RUN git clone https://github.com/EGA-archive/LocalEGA.git /root/LocalEGA && \
+    cd /root/LocalEGA && \
+    git checkout ${checkout}
 
-RUN pip3.6 install -r https://raw.githubusercontent.com/NBISweden/LocalEGA-cryptor/master/requirements.txt
-RUN pip3.6 install git+https://github.com/NBISweden/LocalEGA-cryptor.git
-
-RUN pip3.6 install -r https://raw.githubusercontent.com/NBISweden/LocalEGA/${checkout}/requirements.txt
-RUN pip3.6 install git+https://github.com/NBISweden/LocalEGA.git@${checkout}
+RUN pip3.6 install -r /root/LocalEGA/requirements.txt && \
+    pip3.6 install /root/LocalEGA && \
+    rm -rf /root/LocalEGA

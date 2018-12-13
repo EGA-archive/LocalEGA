@@ -1,63 +1,53 @@
-
 # Add those packages to the containers, in case DEV is defined
 ifdef DEV
 DEV_PACKAGES=nss-tools nc nmap tcpdump lsof strace bash-completion bash-completion-extras
 endif
 
-ifndef CHECKOUT
 CHECKOUT=$(shell git rev-parse --abbrev-ref HEAD)
-endif
 TAG=$(shell git rev-parse --short HEAD)
-ifdef TRAVIS_COMMIT
-TAG=$(TRAVIS_COMMIT)
-CHECKOUT=$(TAG)
-endif
-ifdef TRAVIS_PULL_REQUEST
-TAG=PR$(TRAVIS_PULL_REQUEST)
-CHECKOUT=$(TRAVIS_PULL_REQUEST_SHA)
-endif
+TARGET_PREFIX=egarchive/
 
-TARGET_PREFIX=nbisweden/ega
+BUILD_ARGS=--build-arg checkout=$(CHECKOUT)
 
-.PHONY: all erase delete clean cleanall base os inbox push
+.PHONY: all erase delete clean cleanall os base inbox
 
 all: os base inbox
 
-os:
-	docker build --build-arg DEV_PACKAGES="$(DEV_PACKAGES)" \
-                     --cache-from $(TARGET_PREFIX)-$@:latest \
-                     --tag $(TARGET_PREFIX)-$@:latest \
+os: BUILD_ARGS+=--build-arg DEV_PACKAGES="$(DEV_PACKAGES)"
+base: os
+inbox: os
+base: BUILD_ARGS+=--build-arg cryptor_checkout=master
+os base inbox:
+	docker build ${BUILD_ARGS} \
+                     --cache-from $(TARGET_PREFIX)$@:latest \
+                     --tag $(TARGET_PREFIX)$@:$(TAG) \
+                     --tag $(TARGET_PREFIX)$@:latest \
                      $@
 
-base:
-	docker build --build-arg checkout=$(CHECKOUT) \
-                     --cache-from $(TARGET_PREFIX)-$@:latest \
-                     --tag $(TARGET_PREFIX)-$@:$(TAG) \
-                     --tag $(TARGET_PREFIX)-$@:dev \
-                     --tag $(TARGET_PREFIX)-$@:latest \
-                     $@
-
-inbox:
-	docker build --cache-from $(TARGET_PREFIX)-$@:latest \
-                    --tag $(TARGET_PREFIX)-$@:$(TAG) \
-                    --tag $(TARGET_PREFIX)-$@:dev \
-                    --tag $(TARGET_PREFIX)-$@:latest \
-                    $@
-
+remove-%:
+	@docker rmi $(TARGET_PREFIX)$(@:remove-%=%):latest
 
 clean:
-	@docker images $(TARGET_PREFIX)-* -f "dangling=true" -q | uniq | while read n; do docker rmi -f $$n; done
+	@docker images $(TARGET_PREFIX)* -f "dangling=true" -q | uniq | while read n; do docker rmi -f $$n; done
 
 cleanall:
 	@docker images -f "dangling=true" -q | uniq | while read n; do docker rmi -f $$n; done
 
 delete:
-	@docker images $(TARGET_PREFIX)-* --format "{{.Repository}} {{.Tag}}" | awk '{ if ($$2 != "$(TAG)" && $$2 != "latest") print $$1":"$$2; }' | uniq | while read n; do docker rmi $$n; done
+	@docker images $(TARGET_PREFIX)* --format "{{.Repository}} {{.Tag}}" | awk '{ if ($$2 != "$(TAG)" && $$2 != "latest") print $$1":"$$2; }' | uniq | while read n; do docker rmi $$n; done
 
-erase: # erasing all including base
-	@docker images $(TARGET_PREFIX)-* -q | uniq | while read n; do docker rmi -f $$n; done
+erase:
+	@docker images $(TARGET_PREFIX)inbox -q | uniq | while read n; do docker rmi -f $$n; done
+	@docker images $(TARGET_PREFIX)lega -q | uniq | while read n; do docker rmi -f $$n; done
+	@docker images $(TARGET_PREFIX)base -q | uniq | while read n; do docker rmi -f $$n; done
 
 push:
-	docker push $(TARGET_PREFIX)-base:latest
-	docker push $(TARGET_PREFIX)-os:latest
-	docker push $(TARGET_PREFIX)-inbox:latest
+	docker push $(TARGET_PREFIX)os:latest
+	docker push $(TARGET_PREFIX)base:latest
+	docker push $(TARGET_PREFIX)inbox:latest
+
+os-check: os/Dockerfile
+base-check: base/Dockerfile
+inbox-check: inbox/Dockerfile
+os-check base-check inbox-check:
+	git diff --exit-code --quiet origin/master -- $< || make $(@:%-check=%)

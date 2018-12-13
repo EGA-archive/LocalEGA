@@ -1,5 +1,5 @@
 FROM centos:7.5.1804
-LABEL maintainer "NBIS System Developers"
+LABEL maintainer "EGA System Developers"
 
 #################################################
 ##
@@ -13,10 +13,14 @@ RUN yum -y install https://centos7.iuscommunity.org/ius-release.rpm && \
     yum -y update && \
     yum -y install git gcc make bzip2 curl ${DEV_PACKAGES} \
                    zlib-devel bzip2-devel unzip \
-		               wget dpkg openssl \
-		               python36u python36u-pip
+		   wget dpkg \
+                   openssl \
+		   python36u python36u-devel python36u-pip
 
 RUN [[ -e /lib64/libpython3.6m.so ]] || ln -s /lib64/libpython3.6m.so.1.0 /lib64/libpython3.6m.so
+
+RUN pip3.6 install --upgrade pip && \
+    pip3.6 install PyYaml
 
 #################################################
 ##
@@ -47,15 +51,11 @@ RUN gosu nobody true && \
 
 #################################################
 # Clean up
-#################################################
 
 RUN yum clean all && rm -rf /var/cache/yum
 
 #################################################
-##
-## Install LocalEGA user
-##
-#################################################
+# Adding the lega user and group to all images
 
 RUN groupadd -r lega && \
     useradd -M -r -g lega lega
