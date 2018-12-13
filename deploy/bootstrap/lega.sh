@@ -226,7 +226,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF  # SFTP inbox
       - CEGA_ENDPOINT_JSON_PREFIX=response.result
     ports:
       - "${DOCKER_PORT_inbox}:9000"
-    image: nbisweden/ega-inbox:dev
+    image: nbisweden/ega-inbox:latest
     volumes:
       - ./lega/conf.ini:/etc/ega/conf.ini:ro
       - inbox:/ega/inbox
@@ -239,7 +239,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     depends_on:
       - db
       - mq
-    image: nbisweden/ega-base:dev
+    image: nbisweden/ega-base:latest
     container_name: finalize
     labels:
         lega_label: "finalize"
@@ -255,7 +255,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     depends_on:
       - db
       - mq
-    image: nbisweden/ega-base:dev
+    image: nbisweden/ega-base:latest
     container_name: ingest
     labels:
         lega_label: "ingest"
@@ -307,7 +307,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     container_name: keys
     labels:
         lega_label: "keys"
-    image: nbisweden/ega-base:dev
+    image: nbisweden/ega-base:latest
     expose:
       - "8443"
     environment:
@@ -341,7 +341,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     container_name: verify
     labels:
         lega_label: "verify"
-    image: nbisweden/ega-base:dev
+    image: nbisweden/ega-base:latest
     environment:
       - LEGA_PASSWORD=${LEGA_PASSWORD}
       - S3_ACCESS_KEY=${S3_ACCESS_KEY}
