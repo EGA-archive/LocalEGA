@@ -3,7 +3,7 @@ package se.nbis.lega.cucumber.steps;
 import cucumber.api.java8.En;
 import lombok.extern.slf4j.Slf4j;
 import net.schmizz.sshj.sftp.RemoteResourceInfo;
-import no.ifi.uio.crypt4gh.stream.Crypt4GHOutputStream;
+import no.uio.ifi.crypt4gh.stream.Crypt4GHOutputStream;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.FileUtils;
