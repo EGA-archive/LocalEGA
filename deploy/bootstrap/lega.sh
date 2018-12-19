@@ -84,7 +84,7 @@ chroot_sessions = True
 
 [vault]
 driver = S3Storage
-url = http://s3:9000
+url = http://vault:9000
 access_key = ${S3_ACCESS_KEY}
 secret_key = ${S3_SECRET_KEY}
 #region = lega
@@ -358,7 +358,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
   # Data Out re-encryption service
   res:
     depends_on:
-      - s3
+      - vault
       - keys
     hostname: res
     container_name: res
@@ -379,7 +379,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - EGA_SHAREDPASS_PATH=/etc/ega/pgp/ega.shared.pass
       - EGA_EBI_AWS_ACCESS_KEY=${S3_ACCESS_KEY}
       - EGA_EBI_AWS_ACCESS_SECRET=${S3_SECRET_KEY}
-      - EGA_EBI_AWS_ENDPOINT_URL=http://s3:${DOCKER_PORT_s3}
+      - EGA_EBI_AWS_ENDPOINT_URL=http://vault:${DOCKER_PORT_s3}
       - EGA_EBI_AWS_ENDPOINT_REGION=
     volumes:
       - ./lega/pgp/ega.shared.pass:/etc/ega/pgp/ega.shared.pass:ro
@@ -388,17 +388,17 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - lega
 
   # Storage backend: S3
-  s3:
-    hostname: s3
-    container_name: s3
+  vault:
+    hostname: vault
+    container_name: vault
     labels:
-        lega_label: "s3"
+        lega_label: "vault"
     image: minio/minio
     environment:
       - MINIO_ACCESS_KEY=${S3_ACCESS_KEY}
       - MINIO_SECRET_KEY=${S3_SECRET_KEY}
     volumes:
-      - s3:/data
+      - vault:/data
     restart: on-failure:3
     networks:
       - lega
@@ -410,7 +410,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
 volumes:
   db:
   inbox:
-  s3:
+  vault:
 EOF
 
 #########################################################################
