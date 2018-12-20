@@ -1,8 +1,7 @@
 language: python
 
 python: 3.6
-install:
-  - echo "No dependencies on Travis"
+install: true
 
 git:
   depth: false
