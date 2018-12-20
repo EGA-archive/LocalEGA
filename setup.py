@@ -5,8 +5,7 @@ setup(name='lega',
       version=__version__,
       url='https://localega.readthedocs.io/',
       license='Apache License 2.0',
-      author='NBIS System Developers',
-      author_email='ega@nbis.se',
+      author='EGA System Developers',
       description='Local EGA',
       long_description='''\
 LocalEGA ingests into its vault, files that are dropped in some inbox.
