@@ -173,7 +173,7 @@ services:
 
   cega-users:
     env_file: cega/env
-    image: nbisweden/ega-base:dev
+    image: nbisweden/ega-base:latest
     hostname: cega-users
     container_name: cega-users
     labels:
@@ -203,7 +203,7 @@ cat >> ${PRIVATE}/cega.yml <<EOF
     #  - "8761:8761"
     expose:
       - 8761
-    image: nbisweden/ega-base:dev
+    image: nbisweden/ega-base:latest
     container_name: cega-eureka
     labels:
         lega_label: "cega-eureka"

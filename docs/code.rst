@@ -14,7 +14,7 @@ Python Modules
     lega.ingest
     lega.verify
     lega.keyserver
-    lega.mapper
+    lega.finalize
 
 *******************
 Inbox notifications
@@ -31,7 +31,7 @@ Ingestion Worker
    :members:
 .. automodule:: lega.verify
    :members:
-.. automodule:: lega.mapper
+.. automodule:: lega.finalize
    :members:
 
 

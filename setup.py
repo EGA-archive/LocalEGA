@@ -26,7 +26,7 @@ Users are handled throught Central EGA, directly.
               'ega-verify = lega.verify:main',
               'ega-keyserver = lega.keyserver:main',
               'ega-notifications = lega.notifications:main',
-              'ega-id-mapper = lega.mapper:main',
+              'ega-finalize = lega.finalize:main',
               'ega-conf = lega.conf.__main__:main',
           ]
       },
