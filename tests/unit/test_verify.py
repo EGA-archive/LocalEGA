@@ -60,7 +60,8 @@ class testVerify(unittest.TestCase):
         infile = filedir.write('infile.in', bytearray.fromhex(pgp_data.ENC_FILE))
         returned_data = io.BytesIO(pgp_data.PGP_PRIVKEY.encode())
         with PatchContextManager('lega.verify.urlopen', returned_data) as mocked:
-            get_records(open(infile, 'rb'))
+            with open(infile, 'rb') as f:
+                get_records(f)
             mocked.assert_called()
         filedir.cleanup()
 
@@ -73,7 +74,8 @@ class testVerify(unittest.TestCase):
         infile = filedir.write('infile.in', bytearray.fromhex(pgp_data.ENC_FILE))
         returned_data = io.BytesIO(pgp_data.PGP_PRIVKEY.encode())
         with PatchContextManager('lega.verify.urlopen', returned_data) as mocked:
-            get_records(open(infile, 'rb'))
+            with open(infile, 'rb') as f:
+                get_records(f)
             mocked.assert_called()
         filedir.cleanup()
 
@@ -86,7 +88,8 @@ class testVerify(unittest.TestCase):
         with mock.patch('lega.verify.urlopen') as urlopen_mock:
             urlopen_mock.side_effect = HTTPError('url', 404, 'msg', None, None)
             with self.assertRaises(PGPKeyError):
-                get_records(open(infile, 'rb'))
+                with open(infile, 'rb') as f:
+                    get_records(f)
         filedir.cleanup()
 
     @tempdir()
@@ -98,7 +101,8 @@ class testVerify(unittest.TestCase):
         with mock.patch('lega.verify.urlopen') as urlopen_mock:
             urlopen_mock.side_effect = HTTPError('url', 400, 'msg', None, None)
             with self.assertRaises(KeyserverError):
-                get_records(open(infile, 'rb'))
+                with open(infile, 'rb') as f:
+                    get_records(f)
         filedir.cleanup()
 
     @tempdir()
@@ -111,7 +115,8 @@ class testVerify(unittest.TestCase):
         with mock.patch('lega.verify.urlopen') as urlopen_mock:
             urlopen_mock.side_effect = Exception
             with self.assertRaises(KeyserverError):
-                get_records(open(infile, 'rb'))
+                with open(infile, 'rb') as f:
+                    get_records(f)
         filedir.cleanup()
 
     @mock.patch('lega.verify.get_connection')
