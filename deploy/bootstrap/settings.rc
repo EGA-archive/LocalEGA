@@ -23,6 +23,11 @@ PGP_PASSPHRASE=$(generate_password 16)
 S3_ACCESS_KEY=$(generate_password 16)
 S3_SECRET_KEY=$(generate_password 32)
 
+if [[ $INBOX == 'mina' ]]; then # S3 backend for inbox
+S3_ACCESS_KEY_INBOX=$(generate_password 16)
+S3_SECRET_KEY_INBOX=$(generate_password 32)
+fi
+
 LOG_LEVEL=DEBUG
 
 LEGA_PASSWORD=$(generate_password 32)

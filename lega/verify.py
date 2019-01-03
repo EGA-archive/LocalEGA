@@ -117,7 +117,7 @@ def main(args=None):
     chunk_size = CONF.get_value('vault', 'chunk_size', conv=int, default=1 << 22)  # 4 MB
 
     broker = get_connection('broker')
-    do_work = partial(work, chunk_size, store(), broker.channel())
+    do_work = partial(work, chunk_size, store('vault', 'lega'), broker.channel())
 
     consume(do_work, broker, 'archived', 'completed')
 

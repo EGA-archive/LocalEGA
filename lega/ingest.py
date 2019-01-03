@@ -33,7 +33,7 @@ LOG = logging.getLogger(__name__)
 
 @db.catch_error
 @db.crypt4gh_to_user_errors
-def work(fs, channel, data):
+def work(fs, inbox_fs, channel, data):
     """Read a message, split the header and send the remainder to the backend store."""
     filepath = data['filepath']
     LOG.info(f"Processing {filepath}")
@@ -50,14 +50,12 @@ def work(fs, channel, data):
     file_id = db.insert_file(filepath, user_id)
     data['file_id'] = file_id  # must be there: database error uses it
 
-    # Find inbox
-    inbox = Path(CONF.get_value('inbox', 'location', raw=True) % user_id)
-    LOG.info(f"Inbox area: {inbox}")
+    # Instantiate the inbox backend
+    inbox = inbox_fs(user_id)
+    LOG.info("Inbox backend: %s", inbox)
 
     # Check if file is in inbox
-    inbox_filepath = inbox / filepath.lstrip('/')
-    LOG.info(f"Inbox file path: {inbox_filepath}")
-    if not inbox_filepath.exists():
+    if not inbox.exists(filepath):
         raise exceptions.NotFoundInInbox(filepath)  # return early
 
     # Ok, we have the file in the inbox
@@ -72,8 +70,8 @@ def work(fs, channel, data):
     org_msg.pop('status', None)
 
     # Strip the header out and copy the rest of the file to the vault
-    LOG.debug(f'Opening {inbox_filepath}')
-    with open(inbox_filepath, 'rb') as infile:
+    LOG.debug('Opening %s', filepath)
+    with inbox.open(filepath, 'rb') as infile:
         LOG.debug(f'Reading header | file_id: {file_id}')
         beginning, header = get_header(infile)
 
@@ -100,9 +98,10 @@ def main(args=None):
 
     CONF.setup(args)  # re-conf
 
+    inbox_fs = getattr(storage, CONF.get_value('inbox', 'driver', default='FileStorage'))
     fs = getattr(storage, CONF.get_value('vault', 'driver', default='FileStorage'))
     broker = get_connection('broker')
-    do_work = partial(work, fs(), broker.channel())
+    do_work = partial(work, fs(), partial(inbox_fs, 'inbox'), broker.channel())
 
     # upstream link configured in local broker
     consume(do_work, broker, 'files', 'archived')
