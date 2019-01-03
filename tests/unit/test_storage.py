@@ -30,7 +30,7 @@ class TestFileStorage(unittest.TestCase):
     def test_location(self):
         """Test file location."""
         result = self._store.location('12')
-        self.assertEqual(os.path.join(self.outputdir, '000/000/000/000/000/000/12'), result)
+        self.assertEqual(os.path.join(self.outputdir, '000', '000', '000', '000', '000', '000', '12'), result)
 
     def test_copy(self):
         """Test copy file."""
