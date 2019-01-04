@@ -3,6 +3,8 @@
 .DS_Store
 tmp/
 private/
+tests/**/output.debug
+tests/**/tmpfiles
 
 # =====================================
 # Byte-compiled / optimized / DLL files
