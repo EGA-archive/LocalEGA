@@ -25,13 +25,12 @@ jobs:
       services: docker
       before_script:
         - cd deploy
-        - make bootstrap ARGS='--keyserver ega'
+        - make bootstrap
         - sudo chown -R travis private
-        - docker network create cega
         - make up
         - make ps
       script:
-        - bats ../tests/integration || cat ../tests/integration/output.debug
+        - bats ../tests/integration || { cat ../tests/integration/output.debug; exit 1; }
 
 notifications:
   email: false
