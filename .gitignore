@@ -5,6 +5,7 @@ tmp/
 private/
 tests/**/output.debug
 tests/**/tmpfiles
+deploy/bootstrap/settings.rc.private
 
 # =====================================
 # Byte-compiled / optimized / DLL files

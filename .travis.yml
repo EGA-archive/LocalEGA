@@ -31,8 +31,7 @@ jobs:
         - make up
         - make ps
       script:
-        - cd ../tests
-        - bats integration
+        - bats ../tests/integration || cat ../tests/integration/output.debug
 
 notifications:
   email: false
