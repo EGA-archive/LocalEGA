@@ -17,11 +17,12 @@ function setup() {
 	rm -rf ${DEBUG_LOG}
 
 	# Check if the Environment Variables exist
-	if [ -z ${TESTUSER_SSHKEY+x} ]; then echo "TESTUSER_SSHKEY is unset"; exit 2; fi
+	if [ -z ${TESTUSER_SSHKEY_PASSWORD+x} ]; then echo "TESTUSER_SSHKEY_PASSWORD is unset"; exit 2; fi
 	if [ -z ${CEGA_CONNECTION+x} ]; then echo "CEGA_CONNECTION is unset"; exit 2; fi
 
 	# We need Connections to Central EGA
 	if ! command -v sftp &>/dev/null; then echo "sftp command not found"; exit 2; fi
+	if ! command -v openssl &>/dev/null; then echo "openssl command not found"; exit 2; fi
 	#if ! command -v awk &>/dev/null; then echo "awk command not found"; exit 2; fi
 	#if ! command -v curl &>/dev/null; then echo "curl command not found"; exit 2; fi
 
@@ -30,7 +31,7 @@ function setup() {
 
 	# Creating a TMP directory
 	mkdir -p "$TESTFILES"
-	echo "${TESTUSER_SSHKEY}" > $TESTFILES/testuser.sshkey
+	openssl enc -aes-256-cbc -d -in $BATS_TEST_DIRNAME/dummy.sec.enc -out $TESTFILES/testuser.sshkey -k ${TESTUSER_SSHKEY_PASSWORD}
 	chmod 400 $TESTFILES/testuser.sshkey
     fi
 
