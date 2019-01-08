@@ -12,6 +12,7 @@ import pika
 # Command-line arguments
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--connection', help="of the form 'amqp://<user>:<password>@<host>:<port>/<vhost>'", default='amqp://localhost:5672/%2F')
+parser.add_argument('--latest_message', action='store_true')
 parser.add_argument('queue', help="Queue to read")
 parser.add_argument('checksum', help="File to search for")
 args = parser.parse_args()
@@ -21,7 +22,7 @@ parameters = pika.URLParameters(args.connection)
 connection = pika.BlockingConnection(parameters)
 channel = connection.channel()
 
-correlation_id = None
+correlation_ids = []
 messages = set()
 
 # First loop, fetch all messages. Yeah, all in memory :(
@@ -34,16 +35,15 @@ while True:
     message_id = method_frame.delivery_tag
     if message_id in messages:  # we looped
         break
-
     messages.add(message_id)
+
     try:
         data = json.loads(body)
         integrity = data.get('encrypted_integrity')
         if integrity:
             checksum = integrity.get('checksum')
             if checksum == args.checksum:
-                correlation_id = props.correlation_id
-                break
+                correlation_ids.append( (props.correlation_id,message_id) )
     except:
         pass
 
@@ -54,7 +54,13 @@ for message_id in messages:
 
 connection.close()
 
-if correlation_id is None:
+if not correlation_ids:
     sys.exit(2)
 
+correlation_id = correlation_ids[0][0]
+if args.latest_message:
+    message_id = -1  # message ids are positive
+    for cid, mid in correlation_ids:
+        if mid > message_id:
+            correlation_id = cid
 print(correlation_id)

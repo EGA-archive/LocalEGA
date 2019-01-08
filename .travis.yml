@@ -1,5 +1,4 @@
 language: python
-
 python: 3.6
 install: true
 
@@ -8,20 +7,21 @@ git:
   quiet: true
 
 stages:
-  - name: unit tests
+  - name: setup
     if: type IN (push, pull_request)
-  - name: integration tests
-    if: type IN (pull_request)
+  - name: tests
+    if: type IN (push, pull_request)
 
 jobs:
   include:
-    - stage: unit tests
+    - stage: setup
       python: 3.6
-      before_script:
-        - pip install tox-travis
-      # command to run tests
+      script: python extras/rabbitmq/purge.py
+    - stage: tests
+      python: 3.6
+      before_script: pip install tox-travis
       script: tox
-    - stage: integration tests
+    - stage: tests
       services: docker
       before_script:
         - cd deploy
@@ -30,7 +30,11 @@ jobs:
         - make up
         - make ps
       script:
-        - bats ../tests/integration || { cat ../tests/integration/output.debug; exit 1; }
+        - cd ../tests
+        - openssl enc -aes-256-cbc -d -in integration/dummy.sec.enc -out integration/dummy.sec -k ${TESTUSER_SSHKEY_PASSWORD}
+        - chmod 400 integration/dummy.sec
+        - rm -f integration/output.debug
+        - bats integration || { cat integration/output.debug; exit 1; }
 
 notifications:
   email: false

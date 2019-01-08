@@ -9,10 +9,6 @@ MAIN_REPO=${HERE}/..
 DOCKER_PATH=${MAIN_REPO}/deploy
 EGA_PUB_KEY=${DOCKER_PATH}/private/pgp/ega.pub
 
-# Find inbox port mapping. Usually 2222:9000
-run docker port inbox 9000
-INSTANCE_PORT=${output##*:}
-
 # Default log file, in case the bats file does not overwrite its location.
 DEBUG_LOG=${HERE}/output.debug
 

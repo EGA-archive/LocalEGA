@@ -2,7 +2,8 @@
 
 load ../helpers
 
-TESTUSER=dummy
+# CEGA_CONNECTION and CEGA_USERS_CREDS should be already set,
+# when this script runs
 
 function setup() {
 
@@ -11,37 +12,27 @@ function setup() {
 
     # Defining the TMP dir
     TESTFILES=$BATS_TEST_DIRNAME/tmpfiles
+    mkdir -p "$TESTFILES"
 
-    # Run only for the first test
-    if [[ "$BATS_TEST_NUMBER" -eq 1 ]]; then
-	rm -rf ${DEBUG_LOG}
+    # Find inbox port mapping. Usually 2222:9000
+    legarun docker port inbox 9000
+    [ "$status" -eq 0 ]
+    LEGA_SFTP="sftp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -P ${output##*:}"
 
-	# Check if the Environment Variables exist
-	if [ -z ${TESTUSER_SSHKEY_PASSWORD+x} ]; then echo "TESTUSER_SSHKEY_PASSWORD is unset"; exit 2; fi
-	if [ -z ${CEGA_CONNECTION+x} ]; then echo "CEGA_CONNECTION is unset"; exit 2; fi
+    # Test user and ssh key file
+    TESTUSER=dummy
+    run curl https://egatest.crg.eu/lega/v1/legas/users/${TESTUSER}?idType=username
+    [ "$status" -eq 0 ]
+    TESTUSER_SSHKEY=$BATS_TEST_DIRNAME/dummy.sec
 
-	# We need Connections to Central EGA
-	if ! command -v sftp &>/dev/null; then echo "sftp command not found"; exit 2; fi
-	if ! command -v openssl &>/dev/null; then echo "openssl command not found"; exit 2; fi
-	#if ! command -v awk &>/dev/null; then echo "awk command not found"; exit 2; fi
-	#if ! command -v curl &>/dev/null; then echo "curl command not found"; exit 2; fi
-
-	# run curl https://egatest.crg.eu/lega/v1/legas/users/${TESTUSER}?idType=username
-	# [ "$status" -eq 0 ]
-
-	# Creating a TMP directory
-	mkdir -p "$TESTFILES"
-	openssl enc -aes-256-cbc -d -in $BATS_TEST_DIRNAME/dummy.sec.enc -out $TESTFILES/testuser.sshkey -k ${TESTUSER_SSHKEY_PASSWORD}
-	chmod 400 $TESTFILES/testuser.sshkey
-    fi
-
+    # Utilities to scan the Message Queues
+    MQ_FIND="python ${MAIN_REPO}/extras/rabbitmq/find.py --connection ${CEGA_CONNECTION}"
+    MQ_GET="python ${MAIN_REPO}/extras/rabbitmq/get.py --connection ${CEGA_CONNECTION}"
+    MQ_PUBLISH="python ${MAIN_REPO}/extras/rabbitmq/publish.py --connection ${CEGA_CONNECTION}"
 }
 
 function teardown() {
-    # Remove after the last test
-    if [[ "$BATS_TEST_NUMBER" -eq "${#BATS_TEST_NAMES[@]}" ]]; then
-	rm -rf "$TESTFILES"
-    fi
+    rm -rf "$TESTFILES"
 }
 
 @test "Ingesting properly a 10MB file" {
@@ -51,57 +42,116 @@ function teardown() {
     [ "$status" -eq 0 ]
 
     # Encrypt it in the Crypt4GH format
-    legarun lega-cryptor encrypt --pk ${EGA_PUB_KEY} -i ${TESTFILES}/${BATS_TEST_NAME} -o ${TESTFILES}/${BATS_TEST_NAME}.c4ga
+    ENC_FILE=${TESTFILES}/${BATS_TEST_NAME}.c4ga
+    legarun lega-cryptor encrypt --pk ${EGA_PUB_KEY} -i ${TESTFILES}/${BATS_TEST_NAME} -o ${ENC_FILE}
     [ "$status" -eq 0 ]
 
     # Upload it
-    legarun sftp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -P ${INSTANCE_PORT} -i ${TESTFILES}/testuser.sshkey ${TESTUSER}@localhost <<< $"put ${TESTFILES}/${BATS_TEST_NAME}.c4ga /${BATS_TEST_NAME}.c4ga"
+    legarun ${LEGA_SFTP} -i ${TESTUSER_SSHKEY} ${TESTUSER}@localhost <<< $"put ${ENC_FILE} /${BATS_TEST_NAME}.c4ga"
     [ "$status" -eq 0 ]
 
-    # Fetch the correlation id for that file (Hint: use the path)
-    legarun get_shasum ${TESTFILES}/${BATS_TEST_NAME}.c4ga
+    # Fetch the correlation id for that file (Hint: use the checksum)
+    legarun get_shasum ${ENC_FILE}
     [ "$status" -eq 0 ]
-    legarun python ${MAIN_REPO}/extras/rabbitmq_get.py --connection ${CEGA_CONNECTION} v1.files.inbox $output
+    legarun ${MQ_GET} v1.files.inbox $output
     [ "$status" -eq 0 ]
     CORRELATION_ID=$output
 
     # Publish the file to simulate a CentralEGA trigger
-    legarun python ${MAIN_REPO}/extras/cega_publish.py --connection ${CEGA_CONNECTION} --correlation_id ${CORRELATION_ID} 'files' "{ \"user\": \"${TESTUSER}\", \"filepath\": \"/${BATS_TEST_NAME}.c4ga\"}" 
+    MESSAGE="{ \"user\": \"${TESTUSER}\", \"filepath\": \"/${BATS_TEST_NAME}.c4ga\"}"
+    legarun ${MQ_PUBLISH} --correlation_id ${CORRELATION_ID} files "$MESSAGE"
     [ "$status" -eq 0 ]
 
-
     # Check that a message with the above correlation id arrived in the completed queue
-    retry_until 0 10 1 python ${MAIN_REPO}/extras/rabbitmq_find.py --connection ${CEGA_CONNECTION} v1.files.completed ${CORRELATION_ID}
+    retry_until 0 10 1 ${MQ_FIND} v1.files.completed ${CORRELATION_ID}
     [ "$status" -eq 0 ]
 }
 
 @test "Ingesting properly a 100MB file" {
 
     # Create a random file of 100 MB
-    legarun dd if=/dev/urandom of=${TESTFILES}/${BATS_TEST_NAME} count=100 bs=1048576
+    legarun dd if=/dev/urandom of=${TESTFILES}/${BATS_TEST_NAME} count=10 bs=1048576
     [ "$status" -eq 0 ]
 
     # Encrypt it in the Crypt4GH format
-    legarun lega-cryptor encrypt --pk ${EGA_PUB_KEY} -i ${TESTFILES}/${BATS_TEST_NAME} -o ${TESTFILES}/${BATS_TEST_NAME}.c4ga
+    ENC_FILE=${TESTFILES}/${BATS_TEST_NAME}.c4ga
+    legarun lega-cryptor encrypt --pk ${EGA_PUB_KEY} -i ${TESTFILES}/${BATS_TEST_NAME} -o ${ENC_FILE}
     [ "$status" -eq 0 ]
 
     # Upload it
-    legarun sftp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -P ${INSTANCE_PORT} -i ${TESTFILES}/testuser.sshkey ${TESTUSER}@localhost <<< $"put ${TESTFILES}/${BATS_TEST_NAME}.c4ga /${BATS_TEST_NAME}.c4ga"
+    legarun ${LEGA_SFTP} -i ${TESTUSER_SSHKEY} ${TESTUSER}@localhost <<< $"put ${ENC_FILE} /${BATS_TEST_NAME}.c4ga"
     [ "$status" -eq 0 ]
 
-    # Fetch the correlation id for that file (Hint: use the path)
-    legarun get_shasum ${TESTFILES}/${BATS_TEST_NAME}.c4ga
+    # Fetch the correlation id for that file (Hint: use the checksum)
+    legarun get_shasum ${ENC_FILE}
     [ "$status" -eq 0 ]
-    legarun python ${MAIN_REPO}/extras/rabbitmq_get.py --connection ${CEGA_CONNECTION} v1.files.inbox $output
+    legarun ${MQ_GET} v1.files.inbox $output
     [ "$status" -eq 0 ]
     CORRELATION_ID=$output
 
     # Publish the file to simulate a CentralEGA trigger
-    legarun python ${MAIN_REPO}/extras/cega_publish.py --connection ${CEGA_CONNECTION} --correlation_id ${CORRELATION_ID} 'files' "{ \"user\": \"${TESTUSER}\", \"filepath\": \"/${BATS_TEST_NAME}.c4ga\"}" 
+    MESSAGE="{ \"user\": \"${TESTUSER}\", \"filepath\": \"/${BATS_TEST_NAME}.c4ga\"}"
+    legarun ${MQ_PUBLISH} --correlation_id ${CORRELATION_ID} files "$MESSAGE"
     [ "$status" -eq 0 ]
 
+    # Check that a message with the above correlation id arrived in the completed queue
+    retry_until 0 10 1 ${MQ_FIND} v1.files.completed ${CORRELATION_ID}
+    [ "$status" -eq 0 ]
+}
+
+
+@test "Ingesting the same file twice" {
+    skip
+
+    # Create a random file of 10 MB
+    legarun dd if=/dev/urandom of=${TESTFILES}/${BATS_TEST_NAME} count=10 bs=1048576
+    [ "$status" -eq 0 ]
+
+    # Encrypt it in the Crypt4GH format
+    ENC_FILE=${TESTFILES}/${BATS_TEST_NAME}.c4ga
+    legarun lega-cryptor encrypt --pk ${EGA_PUB_KEY} -i ${TESTFILES}/${BATS_TEST_NAME} -o ${ENC_FILE}
+    [ "$status" -eq 0 ]
+
+    # Upload it
+    legarun ${LEGA_SFTP} -i ${TESTUSER_SSHKEY} ${TESTUSER}@localhost <<< $"put ${ENC_FILE} /${BATS_TEST_NAME}.c4ga"
+    [ "$status" -eq 0 ]
+
+    # Fetch the correlation id for that file (Hint: use the checksum)
+    legarun get_shasum ${ENC_FILE}
+    [ "$status" -eq 0 ]
+    CHECKSUM=$output
+    legarun ${MQ_GET} v1.files.inbox $CHECKSUM
+    [ "$status" -eq 0 ]
+    CORRELATION_ID=$output
+
+    # Publish the file to simulate a CentralEGA trigger
+    MESSAGE="{ \"user\": \"${TESTUSER}\", \"filepath\": \"/${BATS_TEST_NAME}.c4ga\"}"
+    legarun ${MQ_PUBLISH} --correlation_id ${CORRELATION_ID} files "$MESSAGE"
+    [ "$status" -eq 0 ]
 
     # Check that a message with the above correlation id arrived in the completed queue
-    retry_until 0 10 1 python ${MAIN_REPO}/extras/rabbitmq_find.py --connection ${CEGA_CONNECTION} v1.files.completed ${CORRELATION_ID}
+    retry_until 0 10 1 ${MQ_FIND} v1.files.completed ${CORRELATION_ID}
+    [ "$status" -eq 0 ]
+
+    ############### Second time
+
+    # Upload it
+    legarun ${LEGA_SFTP} -i ${TESTUSER_SSHKEY} ${TESTUSER}@localhost <<< $"put ${ENC_FILE} /${BATS_TEST_NAME}.c4ga.2"
+    [ "$status" -eq 0 ]
+
+    # Fetch the correlation id for that file (Hint: use the checksum)
+    legarun ${MQ_GET} --latest_message v1.files.inbox $CHECKSUM
+    [ "$status" -eq 0 ]
+    CORRELATION_ID2=$output
+
+    [ "$CORRELATION_ID" != "$CORRELATION_ID2" ]
+
+    # Publish the file to simulate a CentralEGA trigger
+    MESSAGE="{ \"user\": \"${TESTUSER}\", \"filepath\": \"/${BATS_TEST_NAME}.c4ga\"}"
+    legarun ${MQ_PUBLISH} --correlation_id ${CORRELATION_ID2} files "$MESSAGE"
+    [ "$status" -eq 0 ]
+
+    # Check that a message with the above correlation id arrived in the error queue
+    retry_until 0 10 1 ${MQ_FIND} v1.files.error ${CORRELATION_ID2}
     [ "$status" -eq 0 ]
 }
