@@ -21,8 +21,6 @@ function setup() {
 
     # Test user and ssh key file
     TESTUSER=dummy
-    run curl https://egatest.crg.eu/lega/v1/legas/users/${TESTUSER}?idType=username
-    [ "$status" -eq 0 ]
     TESTUSER_SSHKEY=$BATS_TEST_DIRNAME/dummy.sec
 
     # Utilities to scan the Message Queues

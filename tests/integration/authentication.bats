@@ -4,16 +4,49 @@ load ../helpers
 
 function setup() {
 
-	if [[ "$BATS_TEST_NUMBER" -eq 1 ]]; then
-		TESTFILES=$BATS_TEST_DIRNAME/tmpfiles_auth
-		echo "Creating Tmp files in $TESTFILES"
-		mkdir -p "$TESTFILES"
+    # Changing the LOG file location
+    DEBUG_LOG=$BATS_TEST_DIRNAME/output.debug
 
-		DOCKER_PATH=$BATS_TEST_DIRNAME/../../deploy
-		EGA_PUB_KEY=${DOCKER_PATH}/private/lega/pgp/ega.pub
-		
-		JANE_PRIV_KEY=${DOCKER_PATH}/private/cega/users/jane.sec
-		SSHFAKEKEY="-----BEGIN OPENSSH PRIVATE KEY-----
+    # Defining the TMP dir
+    TESTFILES=$BATS_TEST_DIRNAME/tmpfiles_auth
+    mkdir -p "$TESTFILES"
+
+    # Find inbox port mapping. Usually 2222:9000
+    legarun docker port inbox 9000
+    [ "$status" -eq 0 ]
+    INSTANCE_PORT=${output##*:}
+    LEGA_SFTP="sftp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -P ${INSTANCE_PORT}"
+}
+
+function teardown() {
+    rm -rf ${TESTFILES}
+}
+
+@test "Ingest a file for a user that does not exist in CentralEGA" {
+
+    legarun ${LEGA_SFTP} -oBatchMode=yes nonexistant@localhost <<< $"ls"
+    # -oBatchMode=yes for not prompting password
+    [ "$status" -eq 255 ]
+    [[ "${lines[2]}" == *"Permission denied"* ]]
+}
+
+@test "Ingest a file using the wrong user password" {
+    skip "We have to see how to pass a password to sftp server, sshpass, expect..."
+
+    TESTUSER=jane
+    USER_PASS=nonsense_password
+
+    legarun lftp -u $TESTUSER,$USER_PASS sftp://localhost:${INSTANCE_PORT} <<< $"ls"
+    #run ${LEGA_SFTP} ${TESTUSER}@localhost
+    [ "$status" -eq 255 ]
+    [[ "${lines[2]}" == *"Permission denied"* ]]
+}
+
+@test "Ingest a file using the wrong user sshkey" {
+
+    TESTUSER=jane
+    cat > $TESTFILES/fake.sshkey <<EOF
+ "-----BEGIN OPENSSH PRIVATE KEY-----
 b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAABFwAAAAdzc2gtcn
 NhAAAAAwEAAQAAAQEAxxEOk25jN2WGg0j21iIwPr05+Ne+yowRYnxBRYg48x5vRW2gDM2R
 WCro9vE3ulThpbp+pvjIozJPlQ7/5Q1EdtZmyf6ReENKzCyVG0OPVDTAl5RUCyuYGoDD/r
@@ -39,56 +72,12 @@ dioW1ND6/9sImiDpTOCLCQ7e64+5Wn/+HRaDywBQbgi0xAs/EAAACBAN71S2M/hhb6w8Kc
 5Z9cbpt4hbacs3BifdQTPwVIGef599C5SYQe7E23REVOlQyTfO6P/AMVwaNMqfhbCWRXI4
 qX0IPhF9IVLQhsFYsYfNdtOtJzFwa00Ty4yBiRKO1MC+sC+qOzECkZSTE5XNnjnWpL5LrW
 CmyAdfQakScJ5qZpAAAAE29tYXJ0aW5lekA0ZjA2ODU4OWgBAgMEBQYH
------END OPENSSH PRIVATE KEY-----"
-		
-		echo "${SSHFAKEKEY}" > $TESTFILES/fake.sshkey
-		chmod 400 $TESTFILES/fake.sshkey
-	fi
-}
+-----END OPENSSH PRIVATE KEY-----
+EOF
+    chmod 400 $TESTFILES/fake.sshkey
 
-function teardown() {
-	if [[ "${#BATS_TEST_NAMES[@]}" -eq "$BATS_TEST_NUMBER" ]]; then
-		rm -rf "$BATS_TEST_DIRNAME/tmpfiles_auth"
-	fi
-}
-
-@test "Ingest a file with a user that does not exist in CentralEGA" {
-	TESTUSER=nonexistant
-    legarun dd if=/dev/urandom of=${TESTFILES}/${BATS_TEST_NAME} count=10 bs=1048576
-    legarun lega-cryptor encrypt --pk ${EGA_PUB_KEY} -i ${TESTFILES}/${BATS_TEST_NAME} -o ${TESTFILES}/${BATS_TEST_NAME}.c4ga
-	#-oBatchMode=yes for not prompting password
-    run sftp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -oBatchMode=yes -P ${INSTANCE_PORT} ${TESTUSER}@localhost
+    legarun ${LEGA_SFTP} -oBatchMode=yes -i $TESTFILES/fake.sshkey ${TESTUSER}@localhost
+    # -oBatchMode=yes for not prompting password
     [ "$status" -eq 255 ]
-	#Remove carriage return
-	line_to_compare=$(echo ${lines[2]} | tr -d '\r')
-	[ "${line_to_compare}" = "${TESTUSER}@localhost: Permission denied (publickey,keyboard-interactive)." ]
-}
-
-@test "Ingest a file with a user in CentralEGA, using the wrong password" {
-	skip "We have to see how to pass a password to sftp server, sshpass, expect..."
-	TESTUSER=jane
-	USER_PASS=nonsense_password
-    legarun dd if=/dev/urandom of=${TESTFILES}/${BATS_TEST_NAME} count=10 bs=1048576
-    legarun lega-cryptor encrypt --pk ${EGA_PUB_KEY} -i ${TESTFILES}/${BATS_TEST_NAME} -o ${TESTFILES}/${BATS_TEST_NAME}.c4ga
-	lftp -u $TESTUSER,$USER_PASS sftp://localhost:${INSTANCE_PORT} << --EOF--
-ls
-quit
---EOF--
-    #run sftp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -P ${INSTANCE_PORT} ${TESTUSER}@localhost
-    [ "$status" -eq 255 ]
-	#Remove carriage return
-	line_to_compare=$(echo ${lines[2]} | tr -d '\r')
-	[ "${line_to_compare}" = "${TESTUSER}@localhost: Permission denied (publickey,keyboard-interactive)." ]
-}
-
-@test "Ingest a file with a user in CentralEGA using the wrong sshkey" {
-	TESTUSER=jane
-    legarun dd if=/dev/urandom of=${TESTFILES}/${BATS_TEST_NAME} count=10 bs=1048576
-    legarun lega-cryptor encrypt --pk ${EGA_PUB_KEY} -i ${TESTFILES}/${BATS_TEST_NAME} -o ${TESTFILES}/${BATS_TEST_NAME}.c4ga
-	#-oBatchMode=yes for not prompting password
-	run sftp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -P ${INSTANCE_PORT} -i {$TESTFILES/fake.sshkey} -oBatchMode=yes ${TESTUSER}@localhost
-    [ "$status" -eq 255 ]
-	#Remove carriage return
-	line_to_compare=$(echo ${lines[3]} | tr -d '\r')
-	[ "${line_to_compare}" = "${TESTUSER}@localhost: Permission denied (publickey,keyboard-interactive)." ]
+    [[ "${lines[2]}" == *"Permission denied"* ]]
 }
