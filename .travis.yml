@@ -7,16 +7,11 @@ git:
   quiet: true
 
 stages:
-  - name: setup
-    if: type IN (push, pull_request)
   - name: tests
     if: type IN (push, pull_request)
 
 jobs:
   include:
-    - stage: setup
-      python: 3.6
-      script: python extras/rabbitmq/purge.py
     - stage: tests
       python: 3.6
       before_script: pip install tox-travis
@@ -24,11 +19,16 @@ jobs:
     - stage: tests
       services: docker
       before_script:
-        - cd deploy
+        - pip install -r requirements.txt
+        - git clone https://github.com/bats-core/bats-core.git
+        - cd bats-core && git checkout v1.1.0
+        - sudo ./install.sh /usr/local
+        - cd ../deploy
         - make bootstrap
         - sudo chown -R travis private
         - make up
         - make ps
+        - pip install pika
       script:
         - cd ../tests
         - openssl enc -aes-256-cbc -d -in integration/dummy.sec.enc -out integration/dummy.sec -k ${TESTUSER_SSHKEY_PASSWORD}
