@@ -7,17 +7,12 @@ help:
 	@echo "where <target> is: 'bootstrap', 'up' 'ps', 'down', 'network' or 'clean'\n"
 
 # If DEPLOY_DEV is yes, we use dummy passwords
-bootstrap-dev: ENVS=--env DEPLOY_DEV=yes
+bootstrap-dev: DEV="DEPLOY_DEV=yes "
 private/lega.yml private bootstrap bootstrap-dev:
 	@:$(if CEGA_CONNECTION,,$(error CEGA_CONNECTION is not set))
 	@:$(if CEGA_USERS_CREDS,,$(error CEGA_USERS_CREDS is not set))
-	@docker run --rm -it \
-		    -v /dev/urandom:/dev/random \
-                    ${ENVS} \
-		    -v ${PWD}:/ega \
-		    -v ${PWD}/../extras/generate_pgp_key.py:/tmp/generate_pgp_key.py \
-		    --entrypoint /ega/bootstrap/boot.sh \
-		    nbisweden/ega-base:latest ${ARGS}
+	@${DEV}bootstrap/boot.sh ${ARGS}
+
 
 up-omit: OMIT=--scale ${service}=0
 up up-omit:private/lega.yml

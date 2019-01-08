@@ -6,7 +6,7 @@ set -e
 HERE=$(dirname ${BASH_SOURCE[0]})
 PRIVATE=${HERE}/../private
 DOT_ENV=${HERE}/../.env
-EXTRAS=${HERE}/../../../extras
+EXTRAS=${HERE}/../../extras
 
 # Defaults
 VERBOSE=no
@@ -15,6 +15,8 @@ OPENSSL=openssl
 INBOX=openssh
 KEYSERVER=lega
 
+GEN_KEY=${EXTRAS}/generate_pgp_key.py
+PYTHONEXEC=python
 
 function usage {
     echo "Usage: $0 [options]"
@@ -22,6 +24,8 @@ function usage {
     echo -e "\t--openssl <value> \tPath to the Openssl executable [Default: ${OPENSSL}]"
     echo -e "\t--inbox <value>   \tSelect inbox \"openssh\" or \"mina\" [Default: ${INBOX}]"
     echo -e "\t--keyserver <value>   \tSelect keyserver \"lega\" or \"ega\" [Default: ${KEYSERVER}]"
+    echo -e "\t--genkey <value>   \tPath to PGP key generator [Default: ${GEN_KEY}]"
+    echo -e "\t--pythonexec <value>   \tPython execute command [Default: ${PYTHONEXEC}]"
     echo ""
     echo -e "\t--verbose, -v     \tShow verbose output"
     echo -e "\t--polite, -p      \tDo not force the re-creation of the subfolders. Ask instead"
@@ -40,6 +44,8 @@ while [[ $# -gt 0 ]]; do
         --openssl) OPENSSL=$2; shift;;
         --inbox) INBOX=$2; shift;;
         --keyserver) KEYSERVER=$2; shift;;
+        --genkey) GEN_KEY=$2; shift;;
+        --pythonexec) PYTHONEXEC=$2; shift;;
         --) shift; break;;
         *) echo "$0: error - unrecognized option $1" 1>&2; usage; exit 1;;    esac
     shift
@@ -58,10 +64,9 @@ backup ${DOT_ENV}
 
 cat > ${DOT_ENV} <<EOF
 COMPOSE_PROJECT_NAME=lega
-COMPOSE_FILE=private/lega.yml
+COMPOSE_FILE=${PRIVATE}/lega.yml
 #COMPOSE_PATH_SEPARATOR=:
 EOF
-# Don't use ${PRIVATE}, since it's running in a container: wrong path then.
 
 source ${HERE}/settings.rc
 
@@ -70,14 +75,10 @@ chmod 700 $PRIVATE/{pgp,certs,logs}
 
 echomsg "\t* the PGP key"
 
-# Running in a container
-GEN_KEY="python3.6 /tmp/generate_pgp_key.py"
-
-# Python 3.6
-${GEN_KEY} "${PGP_NAME}" "${PGP_EMAIL}" "${PGP_COMMENT}" --passphrase "${PGP_PASSPHRASE}" --pub ${PRIVATE}/pgp/ega.pub --priv ${PRIVATE}/pgp/ega.sec --armor
+${PYTHONEXEC} ${GEN_KEY} "${PGP_NAME}" "${PGP_EMAIL}" "${PGP_COMMENT}" --passphrase "${PGP_PASSPHRASE}" --pub ${PRIVATE}/pgp/ega.pub --priv ${PRIVATE}/pgp/ega.sec --armor
 chmod 644 ${PRIVATE}/pgp/ega.pub
 
-${GEN_KEY} "${PGP_NAME}" "${PGP_EMAIL}" "${PGP_COMMENT}" --passphrase "${PGP_PASSPHRASE}" --pub ${PRIVATE}/pgp/ega2.pub --priv ${PRIVATE}/pgp/ega2.sec --armor
+${PYTHONEXEC} ${GEN_KEY} "${PGP_NAME}" "${PGP_EMAIL}" "${PGP_COMMENT}" --passphrase "${PGP_PASSPHRASE}" --pub ${PRIVATE}/pgp/ega2.pub --priv ${PRIVATE}/pgp/ega2.sec --armor
 chmod 644 ${PRIVATE}/pgp/ega2.pub
 
 echo -n ${PGP_PASSPHRASE} > ${PRIVATE}/pgp/ega.sec.pass
