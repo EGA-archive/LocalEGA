@@ -19,22 +19,22 @@ jobs:
     - stage: tests
       services: docker
       before_script:
-        - pip install -r requirements.txt
+        - pip3 install -r requirements.txt
         - git clone https://github.com/bats-core/bats-core.git
-        - cd bats-core && git checkout v1.1.0
-        - sudo ./install.sh /usr/local
-        - cd ../deploy
-        - make bootstrap
+        - pushd bats-core && git checkout v1.1.0 && sudo ./install.sh /usr/local && popd
+        - cd deploy
+        - make bootstrap ARGS="--keyserver ega"
         - sudo chown -R travis private
         - make up
+        - make ensure-system-up
         - make ps
-        - pip install pika
-      script:
+        - docker-compose logs
         - cd ../tests
         - openssl enc -aes-256-cbc -d -in integration/dummy.sec.enc -out integration/dummy.sec -k ${TESTUSER_SSHKEY_PASSWORD}
         - chmod 400 integration/dummy.sec
         - rm -f integration/output.debug
-        - bats integration || { cat integration/output.debug; exit 1; }
+      script:
+        - bats integration || { cat integration/output.debug; sleep 5; exit 1; }
 
 notifications:
   email: false

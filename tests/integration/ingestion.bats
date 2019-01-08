@@ -14,11 +14,6 @@ function setup() {
     TESTFILES=$BATS_TEST_DIRNAME/tmpfiles
     mkdir -p "$TESTFILES"
 
-    # Find inbox port mapping. Usually 2222:9000
-    legarun docker port inbox 9000
-    [ "$status" -eq 0 ]
-    LEGA_SFTP="sftp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -P ${output##*:}"
-
     # Test user and ssh key file
     TESTUSER=dummy
     TESTUSER_SSHKEY=$BATS_TEST_DIRNAME/dummy.sec
@@ -27,6 +22,12 @@ function setup() {
     MQ_FIND="python ${MAIN_REPO}/extras/rabbitmq/find.py --connection ${CEGA_CONNECTION}"
     MQ_GET="python ${MAIN_REPO}/extras/rabbitmq/get.py --connection ${CEGA_CONNECTION}"
     MQ_PUBLISH="python ${MAIN_REPO}/extras/rabbitmq/publish.py --connection ${CEGA_CONNECTION}"
+
+    # Find inbox port mapping. Usually 2222:9000
+    legarun docker port inbox 9000
+    [ "$status" -eq 0 ]
+    INBOX_PORT=${output##*:}
+    LEGA_SFTP="sftp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -P $INBOX_PORT"
 }
 
 function teardown() {
@@ -51,7 +52,7 @@ function teardown() {
     # Fetch the correlation id for that file (Hint: use the checksum)
     legarun get_shasum ${ENC_FILE}
     [ "$status" -eq 0 ]
-    legarun ${MQ_GET} v1.files.inbox $output
+    retry_until 0 100 2 ${MQ_GET} v1.files.inbox $output
     [ "$status" -eq 0 ]
     CORRELATION_ID=$output
 
@@ -68,7 +69,7 @@ function teardown() {
 @test "Ingesting properly a 100MB file" {
 
     # Create a random file of 100 MB
-    legarun dd if=/dev/urandom of=${TESTFILES}/${BATS_TEST_NAME} count=10 bs=1048576
+    legarun dd if=/dev/urandom of=${TESTFILES}/${BATS_TEST_NAME} count=100 bs=1048576
     [ "$status" -eq 0 ]
 
     # Encrypt it in the Crypt4GH format
@@ -83,7 +84,7 @@ function teardown() {
     # Fetch the correlation id for that file (Hint: use the checksum)
     legarun get_shasum ${ENC_FILE}
     [ "$status" -eq 0 ]
-    legarun ${MQ_GET} v1.files.inbox $output
+    retry_until 0 100 2 ${MQ_GET} v1.files.inbox $output
     [ "$status" -eq 0 ]
     CORRELATION_ID=$output
 
@@ -118,7 +119,7 @@ function teardown() {
     legarun get_shasum ${ENC_FILE}
     [ "$status" -eq 0 ]
     CHECKSUM=$output
-    legarun ${MQ_GET} v1.files.inbox $CHECKSUM
+    retry_until 0 100 2 ${MQ_GET} v1.files.inbox $CHECKSUM
     [ "$status" -eq 0 ]
     CORRELATION_ID=$output
 
@@ -138,7 +139,7 @@ function teardown() {
     [ "$status" -eq 0 ]
 
     # Fetch the correlation id for that file (Hint: use the checksum)
-    legarun ${MQ_GET} --latest_message v1.files.inbox $CHECKSUM
+    retry_until 0 100 2 ${MQ_GET} --latest_message v1.files.inbox $CHECKSUM
     [ "$status" -eq 0 ]
     CORRELATION_ID2=$output
 
