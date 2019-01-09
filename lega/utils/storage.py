@@ -206,7 +206,7 @@ class S3Storage():
         try:
             LOG.debug('Creating "%s" bucket', user)
             self.bucket = user
-            self.s3.create_bucket(Bucket=bucket)
+            self.s3.create_bucket(Bucket=self.bucket)
         except self.s3.exceptions.BucketAlreadyOwnedByYou as e:
             LOG.debug(f'Ignoring ({type(e)}): {e}')
         # No need to close anymore?
