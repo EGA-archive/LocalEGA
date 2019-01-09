@@ -23,7 +23,7 @@ jobs:
         - git clone https://github.com/bats-core/bats-core.git
         - pushd bats-core && git checkout v1.1.0 && sudo ./install.sh /usr/local && popd
         - cd deploy
-        - make bootstrap ARGS="--keyserver ega"
+        - make bootstrap ARGS="--keyserver ega" OMIT="--scale res=0"
         - sudo chown -R travis private
         - make up
         - make ensure-system-up

@@ -14,8 +14,7 @@ private/lega.yml private bootstrap bootstrap-dev:
 	@${DEV}bootstrap/boot.sh ${ARGS} || { cat private/.err; exit 1; }
 
 
-up-omit: OMIT=--scale ${service}=0
-up up-omit:private/lega.yml
+up:private/lega.yml
 	@docker-compose -f $< up -d ${OMIT}
 
 clean-volumes:
@@ -39,7 +38,7 @@ purge:
 
 ensure-system-up:
 	@echo "Ensure the system is up"
-	@sleep 60
+	sleep 60
 
 # Note: "sleep 60" will be replaced with a script that checks for open port, mq settings, etc.
 # It might be a good idea to run it in the same network as the containers.
