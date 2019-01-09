@@ -38,9 +38,9 @@ purge:
 
 ensure-system-up:
 	@echo "Ensure the system is up"
-	sleep 60
+	sleep 120
 
-# Note: "sleep 60" will be replaced with a script that checks for open port, mq settings, etc.
+# Note: "sleep 100" will be replaced with a script that checks for open port, mq settings, etc.
 # It might be a good idea to run it in the same network as the containers.
 # docker run --rm -it --network=lega_lega \
 #        -v ${PWD}/integration/ensure_system_up.sh:/ensure_system_up.sh \
@@ -49,4 +49,4 @@ ensure-system-up:
 # For the moment, we simply do sleep 60, because we need
 # - the inbox notification server up
 # - the rabbitmq shovel to CentralEGA (the federated queue can be late, it doesn't hurt)
-# - the key server (the java spring needs the 60 seconds, other 10 is enough)
+# - the key server (the java spring needs 97 seconds, 10 are enough for the other)

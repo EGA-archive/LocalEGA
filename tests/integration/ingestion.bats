@@ -34,9 +34,10 @@ function teardown() {
     rm -rf "$TESTFILES"
 }
 
-# BATS_TEST_NAME will be set later
+# Utility to ingest successfully a file
 function lega_ingest {
     local size=${1:-10}
+    # Note: BATS_TEST_NAME is set when the function is called
 
     # Create a random file of {size} MB
     legarun dd if=/dev/urandom of=${TESTFILES}/${BATS_TEST_NAME} count=$size bs=1048576
@@ -51,11 +52,8 @@ function lega_ingest {
     legarun ${LEGA_SFTP} -i ${TESTUSER_SSHKEY} ${TESTUSER}@localhost <<< $"put ${ENC_FILE} /${BATS_TEST_NAME}.c4ga"
     [ "$status" -eq 0 ]
 
-    # Fetch the correlation id for that file (Hint: use the checksum)
-    legarun get_shasum ${ENC_FILE}
-    [ "$status" -eq 0 ]
-    CHECKSUM=$output
-    retry_until 0 100 2 ${MQ_GET} v1.files.inbox $CHECKSUM
+    # Fetch the correlation id for that file (Hint: with user/filepath combination)
+    retry_until 0 100 2 ${MQ_GET} v1.files.inbox "${TESTUSER}" "/${BATS_TEST_NAME}.c4ga"
     [ "$status" -eq 0 ]
     CORRELATION_ID=$output
 
@@ -69,38 +67,54 @@ function lega_ingest {
     [ "$status" -eq 0 ]
 }
 
+# Ingesting a 10MB file
+# ----------------------
+# A message should be found in the completed queue
+
 @test "Ingesting properly a 10MB file" {
     lega_ingest 10
 }
+
+# Ingesting a "big" file
+# ----------------------
+# A message should be found in the completed queue
+# Change the 100MB to a bigger number if necessary
 
 @test "Ingesting properly a 100MB file" {
     lega_ingest 100
 }
 
+# Upload 2 files encrypted with same session key
+# ----------------------------------------------
+# This is done by uploading the same file twice.
+#
+# The first upload should end up in the completed queue
+# while the second one should be in the error queue
 
 @test "Ingesting the same file twice" {
     skip
+    # We skip it for the moment since the codebase is old
+    # and does not support this functionality
     
     # First time
-    lega_ingest 10
+    lega_ingest 1
 
     # Second time
     legarun ${LEGA_SFTP} -i ${TESTUSER_SSHKEY} ${TESTUSER}@localhost <<< $"put ${ENC_FILE} /${BATS_TEST_NAME}.c4ga.2"
     [ "$status" -eq 0 ]
 
-    # Fetch the correlation id for that file (Hint: use the checksum)
-    retry_until 0 100 2 ${MQ_GET} --latest_message v1.files.inbox $CHECKSUM
+    # Fetch the correlation id for that file (Hint: with user/filepath combination)
+    retry_until 0 100 2 ${MQ_GET} v1.files.inbox "${TESTUSER}" "/${BATS_TEST_NAME}.c4ga.2"
     [ "$status" -eq 0 ]
     CORRELATION_ID2=$output
-
     [ "$CORRELATION_ID" != "$CORRELATION_ID2" ]
 
     # Publish the file to simulate a CentralEGA trigger
-    MESSAGE="{ \"user\": \"${TESTUSER}\", \"filepath\": \"/${BATS_TEST_NAME}.c4ga\"}"
-    legarun ${MQ_PUBLISH} --correlation_id ${CORRELATION_ID2} files "$MESSAGE"
+    MESSAGE2="{ \"user\": \"${TESTUSER}\", \"filepath\": \"/${BATS_TEST_NAME}.c4ga.2\"}"
+    legarun ${MQ_PUBLISH} --correlation_id ${CORRELATION_ID2} files "$MESSAGE2"
     [ "$status" -eq 0 ]
 
-    # Check that a message with the above correlation id arrived in the error queue
+    # Check that a message with the above correlation id arrived in the completed queue
     retry_until 0 10 1 ${MQ_FIND} v1.files.error ${CORRELATION_ID2}
     [ "$status" -eq 0 ]
 }

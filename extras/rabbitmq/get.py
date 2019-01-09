@@ -14,7 +14,8 @@ parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--connection', help="of the form 'amqp://<user>:<password>@<host>:<port>/<vhost>'", default='amqp://localhost:5672/%2F')
 parser.add_argument('--latest_message', action='store_true')
 parser.add_argument('queue', help="Queue to read")
-parser.add_argument('checksum', help="File to search for")
+parser.add_argument('user')
+parser.add_argument('filepath')
 args = parser.parse_args()
 
 # MQ Connection
@@ -39,11 +40,11 @@ while True:
 
     try:
         data = json.loads(body)
-        integrity = data.get('encrypted_integrity')
-        if integrity:
-            checksum = integrity.get('checksum')
-            if checksum == args.checksum:
-                correlation_ids.append( (props.correlation_id,message_id) )
+        user = data.get('user')
+        filepath = data.get('filepath')
+        assert( user and filepath ) 
+        if user == args.user and filepath == args.filepath:
+            correlation_ids.append( (props.correlation_id,message_id) )
     except:
         pass
 
