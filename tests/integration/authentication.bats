@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 
-load ../helpers
+load ../_common/helpers
 
 function setup() {
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 
-load ../helpers
+load ../_common/helpers
 
 # CEGA_CONNECTION and CEGA_USERS_CREDS should be already set,
 # when this script runs
@@ -14,9 +14,8 @@ function setup() {
     TESTFILES=$BATS_TEST_DIRNAME/tmpfiles
     mkdir -p "$TESTFILES"
 
-    # Test user and ssh key file
+    # Test user
     TESTUSER=dummy
-    TESTUSER_SSHKEY=$BATS_TEST_DIRNAME/dummy.sec
 
     # Utilities to scan the Message Queues
     MQ_FIND="python ${MAIN_REPO}/extras/rabbitmq/find.py --connection ${CEGA_CONNECTION}"
@@ -49,7 +48,7 @@ function lega_ingest {
     [ "$status" -eq 0 ]
 
     # Upload it
-    legarun ${LEGA_SFTP} -i ${TESTUSER_SSHKEY} ${TESTUSER}@localhost <<< $"put ${ENC_FILE} /${BATS_TEST_NAME}.c4ga"
+    legarun ${LEGA_SFTP} -i ${TESTDATA_DIR}/${TESTUSER}.sec ${TESTUSER}@localhost <<< $"put ${ENC_FILE} /${BATS_TEST_NAME}.c4ga"
     [ "$status" -eq 0 ]
 
     # Fetch the correlation id for that file (Hint: with user/filepath combination)
@@ -100,7 +99,7 @@ function lega_ingest {
     lega_ingest 1
 
     # Second time
-    legarun ${LEGA_SFTP} -i ${TESTUSER_SSHKEY} ${TESTUSER}@localhost <<< $"put ${ENC_FILE} /${BATS_TEST_NAME}.c4ga.2"
+    legarun ${LEGA_SFTP} -i ${TESTDATA_DIR}/${TESTUSER}.sec ${TESTUSER}@localhost <<< $"put ${ENC_FILE} /${BATS_TEST_NAME}.c4ga.2"
     [ "$status" -eq 0 ]
 
     # Fetch the correlation id for that file (Hint: with user/filepath combination)

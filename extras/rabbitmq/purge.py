@@ -13,7 +13,6 @@ hellgate_queues = [ 'v1.files',
                     'v1.files.inbox',
                     'v1.files.processing',
                     'v1.stableIDs',
-                    'v1.indices',
 ]
 
 parser = argparse.ArgumentParser(description=__doc__)

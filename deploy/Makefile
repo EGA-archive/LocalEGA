@@ -36,11 +36,11 @@ purge:
 	@python ../extras/rabbitmq/purge.py --connection ${CEGA_CONNECTION}
 
 
-ensure-system-up:
+preflight-check:
 	@echo "Ensure the system is up"
 	sleep 120
 
-# Note: "sleep 100" will be replaced with a script that checks for open port, mq settings, etc.
+# Note: "sleep 120" will be replaced with a script that checks for open port, mq settings, etc.
 # It might be a good idea to run it in the same network as the containers.
 # docker run --rm -it --network=lega_lega \
 #        -v ${PWD}/integration/ensure_system_up.sh:/ensure_system_up.sh \

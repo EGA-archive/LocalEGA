@@ -6,7 +6,7 @@ private/
 tests/**/output.debug
 tests/**/tmpfiles
 deploy/bootstrap/settings.rc.private
-tests/integration/dummy.sec
+tests/**/*.sec
 
 # =====================================
 # Byte-compiled / optimized / DLL files

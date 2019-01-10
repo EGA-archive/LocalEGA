@@ -3,7 +3,7 @@
 [ ${BASH_VERSINFO[0]} -lt 4 ] && echo 'Bash 4 (or higher) is required' 1>&2 && exit 1
 
 HERE=$(dirname ${BASH_SOURCE[0]})
-MAIN_REPO=${HERE}/..
+MAIN_REPO=${HERE}/../..
 
 # Some variables for these tests
 DOCKER_PATH=${MAIN_REPO}/deploy
@@ -11,6 +11,9 @@ EGA_PUB_KEY=${DOCKER_PATH}/private/pgp/ega.pub
 
 # Default log file, in case the bats file does not overwrite its location.
 DEBUG_LOG=${HERE}/output.debug
+
+# Data directory
+TESTDATA_DIR=$HERE
 
 # Convenience function to capture _all_ outputs
 function legarun {
