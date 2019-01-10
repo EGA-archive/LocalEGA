@@ -5,6 +5,8 @@ The other tests use BATS.
 
 ## Integration Tests
 
+These tests treat the system as a black box, only checking the expected output for a given input.
+
 * Ingesting a 10MB file<br/>
   Expected outcome: Message in the CentralEGA completed queue
   
@@ -44,10 +46,14 @@ The other tests use BATS.
 * Outgesting a C4GH-formatted file<br/>
   Expected outcome: Decrypt and match the original input file
 
+## Robustness Tests
+
+These tests will not treat the system as a black box.
+
+They require some knowledge on how the components are interconnected.
+
 * Check Vault+DB consistency<br/>
   Expected outcome: Re-checksums the files after several ingestions
-
-## Robustness Tests
 
 * DB restarted after *n* seconds<br/>
   Expected outcome: Combining an ingestion before and one after, the latest one should still "work"
@@ -66,6 +72,8 @@ The other tests use BATS.
 
 ## Stress
 
+These tests treat the system as a black box and "measure" performance
+
 * Multiple ingestions by the same user<br/>
   Expected outcome: 
 
@@ -76,6 +84,10 @@ The other tests use BATS.
   Expected outcome: 
   
 ## Security
+
+These tests will not treat the system as a black box.
+
+They require some knowledge on how the components are interconnected.
 
 * Network access forbidden from some selected components<br/>
   Expected outcome: 
