@@ -398,6 +398,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - AWS_SECRET_ACCESS_KEY=${S3_SECRET_KEY}
     volumes:
        - ./conf.ini:/etc/ega/conf.ini:ro
+       - ./../../lega:/home/lega/.local/lib/python3.6/site-packages/lega
     restart: on-failure:3
     networks:
       - lega
