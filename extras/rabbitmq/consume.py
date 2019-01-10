@@ -14,7 +14,7 @@ parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--connection', help="of the form 'amqp://<user>:<password>@<host>:<port>/<vhost>'", default='amqp://localhost:5672/%2F')
 parser.add_argument('queue', help="Queue to read")
 parser.add_argument('user')
-parser.add_argument('filepath')
+parser.add_argument('filepaths', metavar='filepath', nargs='+')
 args = parser.parse_args()
 
 # MQ Connection
@@ -22,8 +22,15 @@ parameters = pika.URLParameters(args.connection)
 connection = pika.BlockingConnection(parameters)
 channel = connection.channel()
 
-correlation_id = None
+correlation_ids = []
+
 messages = set()
+consume_messages = set()
+reject_messages = set()
+
+filepaths = set()
+for fp in args.filepaths:
+    filepaths.add(fp)
 
 # First loop, fetch all messages. Yeah, all in memory :(
 while True:
@@ -42,21 +49,27 @@ while True:
         user = data.get('user')
         filepath = data.get('filepath')
         assert( user and filepath ) 
-        if user == args.user and filepath == args.filepath:
-            correlation_id = props.correlation_id
-            channel.basic_ack(delivery_tag=message_id)
-            messages.remove(message_id)
-            break
+        if user == args.user and filepath in filepaths:
+            correlation_ids.append(props.correlation_id)
+            consume_messages.add(message_id)
+        else:
+            reject_messages.add(message_id)
     except:
-        pass
+        reject_messages.add(message_id)
 
-# Second loop, nack the remaining messages
-for message_id in messages:
+assert( len(messages) == len(consume_messages) + len(reject_messages) )
+
+# Second loop
+for message_id in consume_messages:  # Consuming
+    channel.basic_ack(delivery_tag=message_id)
+for message_id in reject_messages:  # Rejecting
     channel.basic_nack(delivery_tag=message_id)
 
 connection.close()
 
-if correlation_id is None:
+print(len(correlation_ids), '!=', len(args.filepaths), file=sys.stderr)
+
+if len(correlation_ids) != len(args.filepaths):
     sys.exit(2)
 
-print(correlation_id)
+print(','.join(correlation_ids))

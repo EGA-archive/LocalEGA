@@ -9,7 +9,7 @@ function setup() {
 
     # Defining the TMP dir
     TESTFILES=${BATS_TEST_FILENAME}_tmpfiles
-    mkdir -p "$TESTFILES"
+    mkdir -p $TESTFILES
 
     # Test user
     TESTUSER=dummy
@@ -24,9 +24,9 @@ function setup() {
     LEGA_SFTP="sftp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -P $INBOX_PORT"
 }
 
-function teardown() {
-    rm -rf ${TESTFILES}
-}
+# function teardown() {
+#     rm -rf ${TESTFILES}
+# }
 
 # Upload a batch of files
 # -----------------------
@@ -53,9 +53,6 @@ function teardown() {
     [ "$status" -eq 0 ]
 
     # Find inbox messages for each file
-    for t in ${TESTFILES_NAMES[@]}
-    do
-	retry_until 0 100 1 ${MQ_CONSUME} v1.files.inbox $TESTUSER $t
-	[ "$status" -eq 0 ]
-    done
+    retry_until 0 100 1 ${MQ_CONSUME} v1.files.inbox ${TESTUSER} "${TESTFILES_NAMES[@]}"
+    [ "$status" -eq 0 ]
 }
