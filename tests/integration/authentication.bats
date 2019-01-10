@@ -4,11 +4,8 @@ load ../_common/helpers
 
 function setup() {
 
-    # Changing the LOG file location
-    DEBUG_LOG=$BATS_TEST_DIRNAME/output.debug
-
     # Defining the TMP dir
-    TESTFILES=$BATS_TEST_DIRNAME/tmpfiles_auth
+    TESTFILES=${BATS_TEST_FILENAME}_tmpfiles
     mkdir -p "$TESTFILES"
 
     # Find inbox port mapping. Usually 2222:9000

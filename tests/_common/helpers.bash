@@ -10,7 +10,8 @@ DOCKER_PATH=${MAIN_REPO}/deploy
 EGA_PUB_KEY=${DOCKER_PATH}/private/pgp/ega.pub
 
 # Default log file, in case the bats file does not overwrite its location.
-DEBUG_LOG=${HERE}/output.debug
+#DEBUG_LOG=${HERE}/output.debug
+DEBUG_LOG=${BATS_TEST_FILENAME}.debug
 
 # Data directory
 TESTDATA_DIR=$HERE

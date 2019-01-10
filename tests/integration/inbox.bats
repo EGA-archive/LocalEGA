@@ -7,11 +7,8 @@ load ../_common/helpers
 
 function setup() {
 
-    # Changing the LOG file location
-    DEBUG_LOG=$BATS_TEST_DIRNAME/output.debug
-
     # Defining the TMP dir
-    TESTFILES=$BATS_TEST_DIRNAME/tmpfiles_inbox
+    TESTFILES=${BATS_TEST_FILENAME}_tmpfiles
     mkdir -p "$TESTFILES"
 
     # Test user
@@ -28,7 +25,7 @@ function setup() {
 }
 
 function teardown() {
-    rm -rf "$TESTFILES"
+    rm -rf ${TESTFILES}
 }
 
 # Upload a batch of files

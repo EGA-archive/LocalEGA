@@ -3,10 +3,11 @@
 .DS_Store
 tmp/
 private/
-tests/**/output.debug
 tests/**/tmpfiles
 deploy/bootstrap/settings.rc.private
 tests/**/*.sec
+tests/**/*.debug
+tests/**/*_tmpfiles
 
 # =====================================
 # Byte-compiled / optimized / DLL files
