@@ -31,7 +31,7 @@ jobs:
         - for n in {dummy,john,jane}; do openssl enc -aes-256-cbc -d -in _common/${n}.sec.enc -out _common/${n}.sec -k ${TESTUSER_SSHKEY_PASSWORD}; chmod 400 _common/${n}.sec; done
         - find . -type f -iname '*.debug' -exec rm -f {} +
       script:
-        - bats integration || { cat integration/output.debug; cd ../deploy; docker-compose logs; sleep 5; exit 1; }
+        - bats integration || { cat integration/*.debug; cd ../deploy; docker-compose logs ingest verify; sleep 10; exit 1; }
 
 notifications:
   email: false
