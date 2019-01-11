@@ -46,7 +46,7 @@ def get_records(header):
 
     try:
         with urlopen(keyurl, context=ctx) as response:
-            assert( response.status == 200 )
+            assert(response.status == 200)
             privkey = response.read()
             if not privkey:  # Correcting a bug in the EGA keyserver
                 # When key not found, it returns a 200 and an empty payload.
