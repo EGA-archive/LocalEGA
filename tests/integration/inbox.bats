@@ -24,9 +24,9 @@ function setup() {
     LEGA_SFTP="sftp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -P $INBOX_PORT"
 }
 
-# function teardown() {
-#     rm -rf ${TESTFILES}
-# }
+function teardown() {
+    rm -rf ${TESTFILES}
+}
 
 # Upload a batch of files
 # -----------------------

@@ -1,3 +1,5 @@
+SHELL := /bin/bash
+
 ARGS=
 
 .PHONY: help bootstrap private network up down clean ps clean-volumes clean-all

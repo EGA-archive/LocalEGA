@@ -58,8 +58,9 @@ function lega_ingest {
     legarun ${MQ_PUBLISH} --correlation_id ${CORRELATION_ID} files "$MESSAGE"
     [ "$status" -eq 0 ]
 
-    # Check that a message with the above correlation id arrived in the completed queue
-    retry_until 0 100 1 ${MQ_GET} $queue "${TESTUSER}" "/${TESTFILE}.c4ga"
+    # Check that a message with the above correlation id arrived in the expected queue
+    # Waiting 20 seconds.
+    retry_until 0 10 2 ${MQ_GET} $queue "${TESTUSER}" "/${TESTFILE}.c4ga"
     [ "$status" -eq 0 ]
 }
 
