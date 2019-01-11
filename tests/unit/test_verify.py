@@ -35,6 +35,23 @@ class PatchContextManager:
         return self._patched.__exit__()
 
 
+class KeyServerResponse:
+    """Mock keyserver Reponse."""
+
+    def __init__(self, status, response):
+        """Init for class."""
+        self.status = status
+        self.response = response
+
+    def status(self):
+        """Return response status."""
+        return self.status
+
+    def read(self):
+        """Return response data."""
+        return self.response
+
+
 class testVerify(unittest.TestCase):
     """Verify.
 
@@ -58,8 +75,9 @@ class testVerify(unittest.TestCase):
     def test_get_records(self, mock_key, mock_records, filedir):
         """Should call the url in order to provide the records."""
         infile = filedir.write('infile.in', bytearray.fromhex(pgp_data.ENC_FILE))
-        returned_data = io.BytesIO(pgp_data.PGP_PRIVKEY.encode())
+        returned_data = KeyServerResponse(200, io.BytesIO(pgp_data.PGP_PRIVKEY.encode()))
         with PatchContextManager('lega.verify.urlopen', returned_data) as mocked:
+            print(returned_data.status)
             with open(infile, 'rb') as f:
                 get_records(f)
             mocked.assert_called()
@@ -72,7 +90,7 @@ class testVerify(unittest.TestCase):
         """Should call the url in order to provide the records even without a verify turned off."""
         self.env.set('QUALITY_CONTROL_VERIFY_CERTIFICATE', 'False')
         infile = filedir.write('infile.in', bytearray.fromhex(pgp_data.ENC_FILE))
-        returned_data = io.BytesIO(pgp_data.PGP_PRIVKEY.encode())
+        returned_data = KeyServerResponse(200, io.BytesIO(pgp_data.PGP_PRIVKEY.encode()))
         with PatchContextManager('lega.verify.urlopen', returned_data) as mocked:
             with open(infile, 'rb') as f:
                 get_records(f)
