@@ -33,9 +33,7 @@ clean:
 clean-all: clean clean-volumes
 
 purge:
-	@:$(if CEGA_CONNECTION,,$(error CEGA_CONNECTION is not set))
-	@python ../extras/rabbitmq/purge.py --connection ${CEGA_CONNECTION}
-
+	python ../extras/rabbitmq/purge.py --connection amqp://legatest:legatest@localhost:5670/lega
 
 preflight-check:
 	@echo "Ensure the system is up"
