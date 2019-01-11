@@ -16,6 +16,13 @@ DEBUG_LOG=${BATS_TEST_FILENAME}.debug
 # Data directory
 TESTDATA_DIR=$HERE
 
+# If the CEGA_CONNECTION is not against hellgate (ie Central EGA)
+# then it is against the fake one, which is deployed on the same network
+# as LocalEGA components, and accessible from the localhost via a port mapping
+if [[ "${CEGA_CONNECTION}" != *hellgate* ]]; then
+    export CEGA_CONNECTION="amqp://legatest:legatest@localhost:5670/lega"
+fi
+
 # Convenience function to capture _all_ outputs
 function legarun {
     echo -e "+++ $@" >> $DEBUG_LOG

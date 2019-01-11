@@ -4,6 +4,7 @@
 '''Consumes messages from the specified broker. Effectively reseting the queues.'''
 
 import argparse
+import os
 
 import pika
 
@@ -18,8 +19,7 @@ hellgate_queues = [ 'v1.files',
 parser = argparse.ArgumentParser(description=__doc__)
 
 parser.add_argument('--connection',
-                    help="of the form 'amqp://<user>:<password>@<host>:<port>/<vhost>'",
-                    default='amqp://localhost:5672/%2F')
+                    help="of the form 'amqp://<user>:<password>@<host>:<port>/<vhost>'")
 
 parser.add_argument('--queues', 
                     help='Comma-separated list of queues to consume from',
@@ -27,7 +27,8 @@ parser.add_argument('--queues',
 
 args = parser.parse_args()
 
-parameters = pika.URLParameters(args.connection)
+mq_connection = args.connection if args.connection else os.getenv('CEGA_CONNECTION', default="amqp://localhost:5672/%2F")
+parameters = pika.URLParameters(mq_connection)
 connection = pika.BlockingConnection(parameters)
 channel = connection.channel()
 

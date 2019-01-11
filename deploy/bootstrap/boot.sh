@@ -14,6 +14,7 @@ FORCE=yes
 OPENSSL=openssl
 INBOX=openssh
 KEYSERVER=lega
+FAKECEGA=no
 
 GEN_KEY=${EXTRAS}/generate_pgp_key.py
 PYTHONEXEC=python
@@ -21,11 +22,12 @@ PYTHONEXEC=python
 function usage {
     echo "Usage: $0 [options]"
     echo -e "\nOptions are:"
-    echo -e "\t--openssl <value> \tPath to the Openssl executable [Default: ${OPENSSL}]"
-    echo -e "\t--inbox <value>   \tSelect inbox \"openssh\" or \"mina\" [Default: ${INBOX}]"
+    echo -e "\t--openssl <value>     \tPath to the Openssl executable [Default: ${OPENSSL}]"
+    echo -e "\t--inbox <value>       \tSelect inbox \"openssh\" or \"mina\" [Default: ${INBOX}]"
     echo -e "\t--keyserver <value>   \tSelect keyserver \"lega\" or \"ega\" [Default: ${KEYSERVER}]"
-    echo -e "\t--genkey <value>   \tPath to PGP key generator [Default: ${GEN_KEY}]"
-    echo -e "\t--pythonexec <value>   \tPython execute command [Default: ${PYTHONEXEC}]"
+    echo -e "\t--genkey <value>      \tPath to PGP key generator [Default: ${GEN_KEY}]"
+    echo -e "\t--pythonexec <value>  \tPython execute command [Default: ${PYTHONEXEC}]"
+    echo -e "\t--use-fake-cega-mq    \tInclude a fake Central EGA Message broker"
     echo ""
     echo -e "\t--verbose, -v     \tShow verbose output"
     echo -e "\t--polite, -p      \tDo not force the re-creation of the subfolders. Ask instead"
@@ -46,6 +48,7 @@ while [[ $# -gt 0 ]]; do
         --keyserver) KEYSERVER=$2; shift;;
         --genkey) GEN_KEY=$2; shift;;
         --pythonexec) PYTHONEXEC=$2; shift;;
+        --use-fake-cega-mq) FAKECEGA=yes;;
         --) shift; break;;
         *) echo "$0: error - unrecognized option $1" 1>&2; usage; exit 1;;    esac
     shift
@@ -170,15 +173,13 @@ password = ${DB_LEGA_IN_PASSWORD}
 database = lega
 try = 30
 sslmode = require
-
-[eureka]
-endpoint = http://cega-eureka:8761
 EOF
 
 #########################################################################
 # Creating the docker-compose file
 #########################################################################
-cat >> ${PRIVATE}/lega.yml <<EOF
+
+cat > ${PRIVATE}/lega.yml <<EOF
 version: '3.2'
 
 networks:
@@ -187,7 +188,85 @@ networks:
     # default is bridge
     driver: bridge
 
+# Use the default driver for volume creation
+volumes:
+  db:
+  inbox:
+  vault:
+
 services:
+EOF
+
+#########################################################################
+# Specifying a fake Central EGA broker if requested
+#########################################################################
+
+if [[ $FAKECEGA == 'yes' ]]; then
+
+    # Reset the CEGA_CONNECTION here
+    CEGA_CONNECTION=$'amqp://legatest:legatest@cega-mq:5672/lega'
+
+    cat >> ${PRIVATE}/lega.yml <<EOF
+  ############################################
+  # Faking Central EGA MQ 
+  # on the lega network, for simplicity
+  ############################################
+  cega-mq:
+    hostname: cega-mq
+    ports:
+      - "15670:15672"
+      - "5670:5672"
+    image: rabbitmq:3.6.14-management
+    container_name: cega-mq
+    labels:
+        lega_label: "cega-mq"
+    volumes:
+       - ./cega-mq-defs.json:/etc/rabbitmq/defs.json:ro
+       - ./cega-mq-rabbitmq.config:/etc/rabbitmq/rabbitmq.config:ro
+    restart: on-failure:3
+    networks:
+      - lega
+EOF
+
+    # The user/password is legatest:legatest
+    cat > ${PRIVATE}/cega-mq-defs.json <<EOF
+{"rabbit_version":"3.6.14",
+ "users":[{"name":"legatest","password_hash":"P9snZluoiHj2JeGqrDYmUHGLu637Qo7Fjgn5wakpk4jCyvcO","hashing_algorithm":"rabbit_password_hashing_sha256","tags":"administrator"}],
+ "vhosts":[{"name":"lega"}],
+ "permissions":[{"user":"legatest", "vhost":"lega", "configure":".*", "write":".*", "read":".*"}],
+ "parameters":[],
+ "global_parameters":[{"name":"cluster_name", "value":"rabbit@localhost"}],
+ "policies":[],
+ "queues":[{"name":"v1.files",            "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{}},
+	   {"name":"v1.files.inbox",      "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{}},
+           {"name":"v1.stableIDs",        "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{}},
+	   {"name":"v1.files.completed",  "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{}},
+	   {"name":"v1.files.processing", "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{}},
+	   {"name":"v1.files.error",      "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{}}],
+ "exchanges":[{"name":"localega.v1", "vhost":"lega", "type":"topic", "durable":true, "auto_delete":false, "internal":false, "arguments":{}}],
+ "bindings":[{"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{},"destination":"v1.stableIDs"       ,"routing_key":"stableIDs"},
+	     {"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{},"destination":"v1.files"           ,"routing_key":"files"},
+	     {"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{},"destination":"v1.files.inbox"     ,"routing_key":"files.inbox"},
+	     {"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{},"destination":"v1.files.error"     ,"routing_key":"files.error"},
+	     {"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{},"destination":"v1.files.processing","routing_key":"files.processing"},
+	     {"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{},"destination":"v1.files.completed" ,"routing_key":"files.completed"}]
+}
+EOF
+
+    cat > ${PRIVATE}/cega-mq-rabbitmq.config <<EOF
+%% -*- mode: erlang -*-
+%%
+[{rabbit,[{loopback_users, [ ] },
+	  {disk_free_limit, "1GB"}]},
+ {rabbitmq_management, [ {load_definitions, "/etc/rabbitmq/defs.json"} ]}
+].
+EOF
+fi
+
+#########################################################################
+# Specifying the LocalEGA component
+#########################################################################
+cat >> ${PRIVATE}/lega.yml <<EOF
 
   ############################################
   # Local EGA instance
@@ -240,7 +319,6 @@ services:
     networks:
       - lega
     entrypoint: ["/bin/bash", "/usr/bin/ega-entrypoint.sh"]
-
 
   # SFTP inbox
   inbox:
@@ -370,8 +448,6 @@ cat >> ${PRIVATE}/lega.yml <<EOF
        - ./pgp/ega.sec:/etc/ega/pgp/ega.sec:ro
        - ./pgp/ega2.sec:/etc/ega/pgp/ega2.sec:ro
     restart: on-failure:3
-    external_links:
-      - cega-eureka:cega-eureka
     networks:
       - lega
     entrypoint: ["gosu","lega","ega-keyserver","--keys","/etc/ega/keys.ini.enc"]
@@ -455,11 +531,6 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     #   - "${DOCKER_PORT_s3}:9000"
     command: server /data
 
-# Use the default driver for volume creation
-volumes:
-  db:
-  inbox:
-  vault:
 EOF
 
 #########################################################################
@@ -469,7 +540,7 @@ EOF
 cat >> ${PRIVATE}/.trace <<EOF
 #####################################################################
 #
-# Generated by bootstrap/instance.sh for INSTANCE lega
+# Generated by bootstrap/boot.sh
 #
 #####################################################################
 #
@@ -499,4 +570,11 @@ LEGA_PASSWORD             = ${LEGA_PASSWORD}
 KEYS_PASSWORD             = ${KEYS_PASSWORD}
 EOF
 
+if [[ $FAKECEGA == 'yes' ]]; then
+cat >> ${PRIVATE}/.trace <<EOF
+#
+FAKE CEGA USER            = legatest
+FAKE CEGA PASSWORD        = legatest
+EOF
+fi
 task_complete "Bootstrap complete"

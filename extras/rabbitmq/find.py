@@ -7,18 +7,20 @@ correlation id to stdout, if found"""
 import sys
 import json
 import argparse
+import os
 
 import pika
 
 # Command-line arguments
 parser = argparse.ArgumentParser(description=__doc__)
-parser.add_argument('--connection', help="of the form 'amqp://<user>:<password>@<host>:<port>/<vhost>'", default='amqp://localhost:5672/%2F')
+parser.add_argument('--connection', help="of the form 'amqp://<user>:<password>@<host>:<port>/<vhost>'")
 parser.add_argument('queue', help='The queue to listen to')
 parser.add_argument('correlation_id', help="Fetch a given correlation id")
 args = parser.parse_args()
 
 # MQ Connection
-parameters = pika.URLParameters(args.connection)
+mq_connection = args.connection if args.connection else os.getenv('CEGA_CONNECTION', default="amqp://localhost:5672/%2F")
+parameters = pika.URLParameters(mq_connection)
 connection = pika.BlockingConnection(parameters)
 channel = connection.channel()
 

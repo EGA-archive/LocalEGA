@@ -8,7 +8,7 @@ load ../_common/helpers
 function setup() {
 
     # Defining the TMP dir
-    TESTFILES=${BATS_TEST_FILENAME}_tmpfiles
+    TESTFILES=${BATS_TEST_FILENAME}.d
     mkdir -p "$TESTFILES"
 
     # Test user

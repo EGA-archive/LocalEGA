@@ -11,7 +11,6 @@ help:
 # If DEPLOY_DEV is yes, we use dummy passwords
 bootstrap-dev: DEV="DEPLOY_DEV=yes "
 private/lega.yml private bootstrap bootstrap-dev:
-	@:$(if CEGA_CONNECTION,,$(error CEGA_CONNECTION is not set))
 	@:$(if CEGA_USERS_CREDS,,$(error CEGA_USERS_CREDS is not set))
 	@${DEV}bootstrap/boot.sh ${ARGS} || { cat private/.err; exit 1; }
 
