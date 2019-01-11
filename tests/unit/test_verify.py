@@ -127,12 +127,12 @@ class testVerify(unittest.TestCase):
     @mock.patch('lega.verify.header_to_records')
     @mock.patch('lega.verify.get_key_id')
     def test_get_records_error(self, mock_key, mock_records, filedir):
-        """Some general error occured, should raise KeyserverError error."""
+        """Some general error occured, should raise Exception error."""
         self.env.set('QUALITY_CONTROL_VERIFY_CERTIFICATE', 'False')
         infile = filedir.write('infile.in', bytearray.fromhex(pgp_data.ENC_FILE))
         with mock.patch('lega.verify.urlopen') as urlopen_mock:
             urlopen_mock.side_effect = Exception
-            with self.assertRaises(KeyserverError):
+            with self.assertRaises(Exception):
                 with open(infile, 'rb') as f:
                     get_records(f)
         filedir.cleanup()
