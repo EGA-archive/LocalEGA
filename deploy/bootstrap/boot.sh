@@ -54,6 +54,9 @@ while [[ $# -gt 0 ]]; do
     shift
 done
 
+#########################################################################
+
+
 [[ $VERBOSE == 'no' ]] && echo -en "Bootstrapping "
 
 source ${HERE}/defs.sh
@@ -63,8 +66,23 @@ source ${HERE}/defs.sh
 rm_politely ${PRIVATE}
 mkdir -p ${PRIVATE}
 exec 2>${PRIVATE}/.err
-backup ${DOT_ENV}
 
+#########################################################################
+
+[[ -z "${CEGA_USERS_CREDS}" ]] && echo 'Environment CEGA_USERS_CREDS is empty' 1>&2 && exit 1
+
+if [[ $FAKECEGA != 'yes' ]]; then
+
+    [[ -z "${CEGA_ENDPOINT}" ]] && echo 'Environment CEGA_ENDPOINT is empty' 1>&2 && exit 1
+
+else
+    # Reset the CEGA_CONNECTION here
+    CEGA_CONNECTION=$'amqp://legatest:legatest@cega-mq:5672/lega'
+fi
+
+#########################################################################
+
+backup ${DOT_ENV}
 cat > ${DOT_ENV} <<EOF
 COMPOSE_PROJECT_NAME=lega
 COMPOSE_FILE=${PRIVATE}/lega.yml
@@ -72,6 +90,8 @@ COMPOSE_FILE=${PRIVATE}/lega.yml
 EOF
 
 source ${HERE}/settings.rc
+
+#########################################################################
 
 mkdir -p $PRIVATE/{pgp,certs,logs}
 chmod 700 $PRIVATE/{pgp,certs,logs}
@@ -202,9 +222,6 @@ EOF
 #########################################################################
 
 if [[ $FAKECEGA == 'yes' ]]; then
-
-    # Reset the CEGA_CONNECTION here
-    CEGA_CONNECTION=$'amqp://legatest:legatest@cega-mq:5672/lega'
 
     cat >> ${PRIVATE}/lega.yml <<EOF
   ############################################
