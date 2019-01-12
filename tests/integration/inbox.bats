@@ -74,7 +74,7 @@ function teardown() {
     TESTFILE=$(uuidgen)
 
     # Create a random file of {size} MB
-    legarun dd if=/dev/urandom of=${TESTFILES}/${TESTFILE} count=1 bs=1048576
+    legarun dd if=/dev/zero of=${TESTFILES}/${TESTFILE} count=1 bs=1048576
     [ "$status" -eq 0 ]
 
     # Encrypt it in the Crypt4GH format
