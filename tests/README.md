@@ -1,7 +1,7 @@
 # LocalEGA testsuite
 
 Unit Tests are run with pytest, coverage and tox.
-The other tests use BATS.
+The other tests use [BATS](https://github.com/bats-core/bats-core).
 
 ## Integration Tests
 
@@ -10,7 +10,7 @@ These tests treat the system as a black box, only checking the expected output f
 * Ingesting a 10MB file<br/>
   Expected outcome: Message in the CentralEGA completed queue
   
-* Ingesting a "big" file<br/>
+* Ingesting a ["big" file](integration/ingestion.bats#L73-L76)<br/>
   Expected outcome: Message in the CentralEGA completed queue
 
 * Ingesting a directory with multiple files and/or subdirectories<br/>
