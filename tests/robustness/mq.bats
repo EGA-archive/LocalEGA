@@ -66,7 +66,7 @@ function teardown() {
     [ "$status" -eq 0 ]
 
     # Restart the local broker
-    legarun docker restart mq
+    legarun docker start mq
     legarun sleep 20
 
     # Check that a message with the above correlation id arrived in the expected queue
@@ -83,6 +83,7 @@ function teardown() {
 
 @test "MQ delivery mode" {
     skip "Used after the update for MQ connection retries"
+
     TESTFILE=$(uuidgen)
 
     # Stop the verify component, so only ingest works
@@ -113,7 +114,7 @@ function teardown() {
 
     # Restart database
     legarun docker stop mq
-    legarun docker restart mq
+    legarun docker start mq
     legarun sleep 15
 
     # Check now that the delivery mode is still 2

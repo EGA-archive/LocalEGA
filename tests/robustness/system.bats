@@ -69,13 +69,13 @@ function lega_ingest {
 # Ingest a file, restart every component, ingest another file
 
 @test "Whole system restart" {
-    skip "It's weekend now"
+    skip "Used after the update for notification connection retries"
 
     lega_ingest $(uuidgen) 1 v1.files.completed
 
     pushd ../deploy
     legarun docker-compose restart
-    legarun sleep 120
+    legarun make preflight-check
     popd
 
     lega_ingest $(uuidgen) 2 v1.files.completed

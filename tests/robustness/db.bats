@@ -73,7 +73,7 @@ function lega_ingest {
 
     lega_ingest $(uuidgen) 1 v1.files.completed
     legarun docker stop db
-    legarun docker restart db
+    legarun docker start db
     legarun sleep 15
     lega_ingest $(uuidgen) 1 v1.files.completed
 
@@ -115,7 +115,7 @@ function lega_ingest {
 
     # Restart database
     legarun docker stop db
-    legarun docker restart db
+    legarun docker start db
     legarun sleep 15
 
     # Restart verify
