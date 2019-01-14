@@ -48,11 +48,12 @@ jobs:
         - make up OMIT="--scale res=0"
         - make preflight-check
         - cd ../tests
-        - for n in {dummy,john,jane}; do openssl enc -aes-256-cbc -d -in _common/${n}.sec.enc -out _common/${n}.sec -k ${TESTUSER_SSHKEY_PASSWORD}; chmod 400 _common/${n}.sec; done
+        - openssl enc -aes-256-cbc -d -in _common/dummy.sec.enc -out _common/dummy.sec -k ${TESTUSER_SSHKEY_PASSWORD}
+        - chmod 400 _common/dummy.sec
       script:
         - bats robustness
     - stage: tests
-      name: "Stree Tests"
+      name: "Stress Tests"
       services: docker
       script: echo "Stress Tests.... hmm... later"
     - stage: tests

@@ -68,7 +68,7 @@ function lega_ingest {
 # ----------------------
 # A message should be found in the completed queue
 
-@test "Ingesting properly a 10MB file" {
+@test "Ingest properly a 10MB file" {
     lega_ingest $(uuidgen) 10 v1.files.completed
 }
 
@@ -77,7 +77,7 @@ function lega_ingest {
 # A message should be found in the completed queue
 # Change the 100MB to a bigger number if necessary
 
-@test "Ingesting properly a 100MB file" {
+@test "Ingest properly a 100MB file" {
     lega_ingest $(uuidgen) 100 v1.files.completed
 }
 
@@ -88,7 +88,7 @@ function lega_ingest {
 # The first upload should end up in the completed queue
 # while the second one should be in the error queue
 
-@test "Ingesting the same file twice" {
+@test "Do not ingest the same file twice" {
     skip
     # We skip it for the moment since the codebase is old
     # and does not support this functionality
@@ -124,7 +124,7 @@ function lega_ingest {
 # We encrypt a testfile with AES and ingest it.
 # A message should be found in the error queue
 
-@test "Ingesting a file not in Crypt4GH format" {
+@test "Do not ingest a file not in Crypt4GH format" {
 
     TESTFILE=$(uuidgen)
 
@@ -159,7 +159,7 @@ function lega_ingest {
 # ------------------------------------
 # A message should be found in the completed queue.
 
-@test "Ingesting a file from a subdirectory" {
+@test "Ingest a file from a subdirectory" {
 
     mkdir -p ${TESTFILES}/dir1/dir2/dir3
     # SFTP requires that the remote directory be existing.
@@ -181,7 +181,7 @@ function lega_ingest {
 #
 # A message should be found in the error queue, because it is a user error
 
-@test "Ingest file destined for another LocalEGA" {
+@test "Do not ingest file destined for another LocalEGA" {
 
     # Create another PGP key
     python ${MAIN_REPO}/extras/generate_pgp_key.py \
