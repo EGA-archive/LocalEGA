@@ -14,11 +14,6 @@ function setup() {
     # Test user
     TESTUSER=dummy
 
-    # Utilities to scan the Message Queues
-    MQ_FIND="python ${MAIN_REPO}/extras/rabbitmq/find.py --connection ${CEGA_CONNECTION}"
-    MQ_GET="python ${MAIN_REPO}/extras/rabbitmq/get.py --connection ${CEGA_CONNECTION}"
-    MQ_PUBLISH="python ${MAIN_REPO}/extras/rabbitmq/publish.py --connection ${CEGA_CONNECTION}"
-
     # Find inbox port mapping. Usually 2222:9000
     legarun docker port inbox 9000
     [ "$status" -eq 0 ]

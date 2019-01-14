@@ -23,6 +23,12 @@ if [[ "${CEGA_CONNECTION}" != *hellgate* ]]; then
     export CEGA_CONNECTION="amqp://legatest:legatest@localhost:5670/lega"
 fi
 
+# Utilities to scan the Message Queues
+MQ_CONSUME="python ${HERE}/mq/consume.py --connection ${CEGA_CONNECTION}"
+MQ_FIND="python ${HERE}/mq/find.py --connection ${CEGA_CONNECTION}"
+MQ_GET="python ${HERE}/mq/get.py --connection ${CEGA_CONNECTION}"
+MQ_PUBLISH="python ${HERE}/mq/publish.py --connection ${CEGA_CONNECTION}"
+
 # Convenience function to capture _all_ outputs
 function legarun {
     echo -e "+++ $@" >> $DEBUG_LOG
