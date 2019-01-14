@@ -7,7 +7,7 @@ tests/**/tmpfiles
 deploy/bootstrap/settings.rc.private
 tests/**/*.sec
 tests/**/*.debug
-tests/**/*_tmpfiles
+tests/**/*.d
 
 # =====================================
 # Byte-compiled / optimized / DLL files

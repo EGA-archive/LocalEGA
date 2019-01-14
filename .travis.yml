@@ -9,14 +9,18 @@ git:
 stages:
   - name: tests
     if: type IN (push, pull_request)
+  - name: images
+    if: type = pull_request AND branch = master
 
 jobs:
   include:
     - stage: tests
+      name: "Unit Tests"
       python: 3.6
       before_script: pip install tox-travis
       script: tox
     - stage: tests
+      name: "Integration Tests"
       services: docker
       before_script:
         - pip3 install -r requirements.txt
@@ -31,6 +35,33 @@ jobs:
         - for n in {dummy,john,jane}; do openssl enc -aes-256-cbc -d -in _common/${n}.sec.enc -out _common/${n}.sec -k ${TESTUSER_SSHKEY_PASSWORD}; chmod 400 _common/${n}.sec; done
       script:
         - bats integration
+    - stage: tests
+      name: "Robustness Tests"
+      services: docker
+      before_script:
+        - pip3 install -r requirements.txt
+        - git clone https://github.com/bats-core/bats-core.git
+        - pushd bats-core && git checkout v1.1.0 && sudo ./install.sh /usr/local && popd
+        - cd deploy
+        - make bootstrap ARGS="--keyserver ega --use-fake-cega-mq"
+        - sudo chown -R travis private
+        - make up OMIT="--scale res=0"
+        - make preflight-check
+        - cd ../tests
+        - for n in {dummy,john,jane}; do openssl enc -aes-256-cbc -d -in _common/${n}.sec.enc -out _common/${n}.sec -k ${TESTUSER_SSHKEY_PASSWORD}; chmod 400 _common/${n}.sec; done
+      script:
+        - bats robustness
+    - stage: tests
+      name: "Stree Tests"
+      services: docker
+      script: echo "Stress Tests.... hmm... later"
+    - stage: tests
+      name: "Security Tests"
+      services: docker
+      script: echo "Security Tests.... hmm... later"
+    - stage: images
+      name: "Images Build"
+      script: echo 'Next PR'
 
 notifications:
   email: false
