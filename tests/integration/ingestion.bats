@@ -1,6 +1,7 @@
 #!/usr/bin/env bats
 
 load ../_common/helpers
+load ../_common/c4gh_generate
 
 # CEGA_CONNECTION and CEGA_USERS_CREDS should be already set,
 # when this script runs
@@ -35,17 +36,15 @@ function lega_ingest {
     local TESTFILE=$1
     local size=$2
     local queue=$3
+    local inputsource=${4:-/dev/urandom}
 
-    # Create a random file of {size} MB
-    legarun dd if=/dev/urandom of=${TESTFILES}/${TESTFILE} count=$size bs=1048576
-    [ "$status" -eq 0 ]
-
-    # Encrypt it in the Crypt4GH format
-    legarun lega-cryptor encrypt --pk ${EGA_PUB_KEY} -i ${TESTFILES}/${TESTFILE} -o ${TESTFILES}/${TESTFILE}.c4ga
+    # Generate a random file
+    legarun c4gh_generate $size $inputsource ${TESTFILES}/${TESTFILE}
     [ "$status" -eq 0 ]
 
     # Upload it
-    legarun ${LEGA_SFTP} -i ${TESTDATA_DIR}/${TESTUSER}.sec ${TESTUSER}@localhost <<< $"put ${TESTFILES}/${TESTFILE}.c4ga /${TESTFILE}.c4ga"
+    UPLOAD_CMD="put ${TESTFILES}/${TESTFILE}.c4ga /${TESTFILE}.c4ga"
+    legarun ${LEGA_SFTP} -i ${TESTDATA_DIR}/${TESTUSER}.sec ${TESTUSER}@localhost <<< ${UPLOAD_CMD}
     [ "$status" -eq 0 ]
 
     # Fetch the correlation id for that file (Hint: with user/filepath combination)
@@ -60,7 +59,7 @@ function lega_ingest {
 
     # Check that a message with the above correlation id arrived in the expected queue
     # Waiting 20 seconds.
-    retry_until 0 10 2 ${MQ_GET} $queue "${TESTUSER}" "/${TESTFILE}.c4ga"
+    retry_until 0 10 10 ${MQ_GET} $queue "${TESTUSER}" "/${TESTFILE}.c4ga"
     [ "$status" -eq 0 ]
 }
 
@@ -75,10 +74,14 @@ function lega_ingest {
 # Ingesting a "big" file
 # ----------------------
 # A message should be found in the completed queue
-# Change the 100MB to a bigger number if necessary
+#
+# Note: We have tested with a 10 GB file by hand,
+# and we are here 'only' ingesting a 1 GB file (for speed)
+# Moreover, we are depleting the random pool,
+# so we're using the /dev/zero for that particular test
 
-@test "Ingest properly a 100MB file" {
-    lega_ingest $(uuidgen) 100 v1.files.completed
+@test "Ingest properly a 1GB file" {
+    lega_ingest $(uuidgen) 1000 v1.files.completed /dev/zero
 }
 
 # Upload 2 files encrypted with same session key

@@ -36,16 +36,13 @@ function lega_ingest {
     local size=$2
     local queue=$3
 
-    # Create a random file of {size} MB
-    legarun dd if=/dev/urandom of=${TESTFILES}/${TESTFILE} count=$size bs=1048576
-    [ "$status" -eq 0 ]
-
-    # Encrypt it in the Crypt4GH format
-    legarun lega-cryptor encrypt --pk ${EGA_PUB_KEY} -i ${TESTFILES}/${TESTFILE} -o ${TESTFILES}/${TESTFILE}.c4ga
+    # Create a random file Crypt4GH file of 1 MB
+    legarun c4gh_generate 1 /dev/urandom ${TESTFILES}/${TESTFILE}
     [ "$status" -eq 0 ]
 
     # Upload it
-    legarun ${LEGA_SFTP} -i ${TESTDATA_DIR}/${TESTUSER}.sec ${TESTUSER}@localhost <<< $"put ${TESTFILES}/${TESTFILE}.c4ga /${TESTFILE}.c4ga"
+    UPLOAD_CMD="put ${TESTFILES}/${TESTFILE}.c4ga /${TESTFILE}.c4ga"
+    legarun ${LEGA_SFTP} -i ${TESTDATA_DIR}/${TESTUSER}.sec ${TESTUSER}@localhost <<< ${UPLOAD_CMD}
     [ "$status" -eq 0 ]
 
     # Fetch the correlation id for that file (Hint: with user/filepath combination)
@@ -90,16 +87,13 @@ function lega_ingest {
     # Stop the verify component, so only ingest works
     legarun docker stop verify
 
-    # Create a random file of {size} MB
-    legarun dd if=/dev/urandom of=${TESTFILES}/${TESTFILE} count=1 bs=1048576
-    [ "$status" -eq 0 ]
-
-    # Encrypt it in the Crypt4GH format
-    legarun lega-cryptor encrypt --pk ${EGA_PUB_KEY} -i ${TESTFILES}/${TESTFILE} -o ${TESTFILES}/${TESTFILE}.c4ga
+    # Create a random file Crypt4GH file of 1 MB
+    legarun c4gh_generate 1 /dev/urandom ${TESTFILES}/${TESTFILE}
     [ "$status" -eq 0 ]
 
     # Upload it
-    legarun ${LEGA_SFTP} -i ${TESTDATA_DIR}/${TESTUSER}.sec ${TESTUSER}@localhost <<< $"put ${TESTFILES}/${TESTFILE}.c4ga /${TESTFILE}.c4ga"
+    UPLOAD_CMD="put ${TESTFILES}/${TESTFILE}.c4ga /${TESTFILE}.c4ga"
+    legarun ${LEGA_SFTP} -i ${TESTDATA_DIR}/${TESTUSER}.sec ${TESTUSER}@localhost <<< ${UPLOAD_CMD}
     [ "$status" -eq 0 ]
 
     # Fetch the correlation id for that file (Hint: with user/filepath combination)
