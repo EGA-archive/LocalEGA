@@ -2,14 +2,18 @@ import unittest
 from aiohttp.test_utils import AioHTTPTestCase, unittest_run_loop
 from aiohttp import web
 from test.support import EnvironmentVarGuard
-from lega.keyserver import routes, Cache, _unlock_key, main, load_keys_conf
+from lega.keyserver import (
+    routes,
+    Cache,
+    # main,
+    _unlock_key)
 import datetime
 from . import pgp_data
 import pgpy
 from unittest import mock
 from testfixtures import tempdir
 import os
-from hashlib import md5
+# from hashlib import md5
 
 from cryptography.hazmat.primitives import padding
 from cryptography.hazmat.backends import default_backend
@@ -205,71 +209,64 @@ class TestBasicFunctionsKeyserver(unittest.TestCase):
         mock_cache.set.assert_called()
         filedir.cleanup()
 
-    @mock.patch('lega.keyserver._unlock_key')
-    def test_load_keys_conf(self, mock_unlock):
-        """Testing loading keys configuration."""
-        data = mock.MagicMock(name='sections')
-        data.sections.return_value = ['Section']
-        load_keys_conf(data)
-        mock_unlock.assert_called()
+    # @tempdir()
+    # @mock.patch('lega.keyserver.ssl')
+    # @mock.patch('lega.keyserver.web')
+    # @mock.patch('lega.keyserver.asyncio')
+    # def test_load_args_unenc_file(self, mock_async, mock_webapp, mock_ssl, filedir):
+    #     """Should start the webapp, with a configuration and fake key list from unencrypted file."""
+    #     fake_config = """[DEFAULT]
+    #     active : key.1
 
-    @tempdir()
-    @mock.patch('lega.keyserver.ssl')
-    @mock.patch('lega.keyserver.web')
-    @mock.patch('lega.keyserver.asyncio')
-    def test_load_args_unec_file(self, mock_async, mock_webapp, mock_ssl, filedir):
-        """Should start the webapp, with a configuration and fake key list from unecrypted file."""
-        fake_config = """[DEFAULT]
-        active : key.1
+    #     [key.1]
+    #     path : /etc/ega/pgp/ega.sec
+    #     passphrase : smth
+    #     expire: 30/MAR/19 08:00:00"""
+    #     conf_file = filedir.write('list.smth', fake_config.encode('utf-8'))
+    #     main(['--keys', conf_file])
+    #     mock_webapp.run_app.assert_called()
+    #     filedir.cleanup()
 
-        [key.1]
-        path : /etc/ega/pgp/ega.sec
-        passphrase : smth
-        expire: 30/MAR/19 08:00:00"""
-        conf_file = filedir.write('list.smth', fake_config.encode('utf-8'))
-        main(['--keys', conf_file])
-        mock_webapp.run_app.assert_called()
-        filedir.cleanup()
+    # @mock.patch('lega.keyserver.ssl')
+    # @mock.patch('lega.keyserver.web')
+    # @mock.patch('lega.keyserver.asyncio')
+    # def test_file_not_found(self, mock_async, mock_webapp, mock_ssl):
+    #     """Should raise file not found, unencrypted file."""
+    #     with self.assertRaises(FileNotFoundError):
+    #         main(['--keys', '/keys/somefile.smth'])
 
-    @mock.patch('lega.keyserver.ssl')
-    @mock.patch('lega.keyserver.web')
-    @mock.patch('lega.keyserver.asyncio')
-    def test_file_not_found(self, mock_async, mock_webapp, mock_ssl):
-        """Should raise file not found, unecrypted file."""
-        with self.assertRaises(FileNotFoundError):
-            main(['--keys', '/keys/somefile.smth'])
+    # # TO DO Use to encrypt
+    # # https://www.pythonsheets.com/notes/python-crypto.html#aes-cbc-mode-encrypt-via-password-using-cryptography
 
-    # TO DO Use to encrypthttps://www.pythonsheets.com/notes/python-crypto.html#aes-cbc-mode-encrypt-via-password-using-cryptography
+    # @tempdir()
+    # @mock.patch('lega.keyserver.ssl')
+    # @mock.patch('lega.keyserver.web')
+    # @mock.patch('lega.keyserver.asyncio')
+    # def test_load_args_enc_file(self, mock_async, mock_webapp, mock_ssl, filedir):
+    #     """Should start the webapp, with a configuration and fake key list encrypted config file."""
+    #     # We are not encrypting this but it is faked
+    #     # to make things accuratw we should encrypt it
+    #     fake_config = """[DEFAULT]
+    #     active : key.1
 
-    @tempdir()
-    @mock.patch('lega.keyserver.ssl')
-    @mock.patch('lega.keyserver.web')
-    @mock.patch('lega.keyserver.asyncio')
-    def test_load_args_enc_file(self, mock_async, mock_webapp, mock_ssl, filedir):
-        """Should start the webapp, with a configuration and fake key list encrypted config file."""
-        # We are not encrypting this but it is faked
-        # to make things accuratw we should encrypt it
-        fake_config = """[DEFAULT]
-        active : key.1
+    #     [key.1]
+    #     path : /etc/ega/pgp/ega.sec
+    #     passphrase : smth
+    #     expire: 30/MAR/19 08:00:00"""
+    #     result = aes_encrypt(b'value', fake_config.encode('utf-8'), md5)
+    #     conf_file = filedir.write('list.enc', result)
+    #     with self.env:
+    #         main(['--keys', conf_file])
+    #         mock_webapp.run_app.assert_called()
+    #     filedir.cleanup()
 
-        [key.1]
-        path : /etc/ega/pgp/ega.sec
-        passphrase : smth
-        expire: 30/MAR/19 08:00:00"""
-        result = aes_encrypt(b'value', fake_config.encode('utf-8'), md5)
-        conf_file = filedir.write('list.enc', result)
-        with self.env:
-            main(['--keys', conf_file])
-            mock_webapp.run_app.assert_called()
-        filedir.cleanup()
-
-    @mock.patch('lega.keyserver.ssl')
-    @mock.patch('lega.keyserver.web')
-    @mock.patch('lega.keyserver.asyncio')
-    def test_file_not_found_enc(self, mock_async, mock_webapp, mock_ssl):
-        """Should raise file not found, even if suffix is different than *.enc."""
-        with self.assertRaises(FileNotFoundError):
-            main(['--keys', '/keys/somefile.enc'])
+    # @mock.patch('lega.keyserver.ssl')
+    # @mock.patch('lega.keyserver.web')
+    # @mock.patch('lega.keyserver.asyncio')
+    # def test_file_not_found_enc(self, mock_async, mock_webapp, mock_ssl):
+    #     """Should raise file not found, even if suffix is different than *.enc."""
+    #     with self.assertRaises(FileNotFoundError):
+    #         main(['--keys', '/keys/somefile.enc'])
 
 
 if __name__ == '__main__':

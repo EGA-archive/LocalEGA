@@ -204,10 +204,9 @@ def main(args=None):
 
     host = CONF.get_value('keyserver', 'host')  # fallbacks are in defaults.ini
     port = CONF.get_value('keyserver', 'port', conv=int)
-    health_check_url = 'http://{}:{}{}'.format(host, port, CONF.get_value('keyserver', 'health_endpoint'))
-    status_check_url = 'http://{}:{}{}'.format(host, port, CONF.get_value('keyserver', 'status_endpoint'))
 
-    eureka_endpoint = CONF.get_value('eureka', 'endpoint')
+    # health_check_url = 'http://{}:{}{}'.format(host, port, CONF.get_value('keyserver', 'health_endpoint'))
+    # status_check_url = 'http://{}:{}{}'.format(host, port, CONF.get_value('keyserver', 'status_endpoint'))
 
     ssl_certfile = Path(CONF.get_value('keyserver', 'ssl_certfile')).expanduser()
     ssl_keyfile = Path(CONF.get_value('keyserver', 'ssl_keyfile')).expanduser()
@@ -230,10 +229,6 @@ def main(args=None):
     for section in store.sections():
         _unlock_key(section, **dict(store.items(section)))  # includes defaults
     keyserver['store'] = store
-
-    # Registering some initialization and cleanup routines
-    LOG.info('Setting up callbacks')
-    keyserver.on_startup.append(init)
 
     LOG.info(f"Start keyserver on {host}:{port}")
     web.run_app(keyserver, host=host, port=port, shutdown_timeout=0, ssl_context=sslcontext)
