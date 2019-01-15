@@ -32,9 +32,6 @@ clean:
 
 clean-all: clean clean-volumes
 
-purge:
-	python ../extras/rabbitmq/purge.py --connection amqp://legatest:legatest@localhost:5670/lega
-
 preflight-check:
 	@echo "Ensure the system is up"
 	sleep 120
