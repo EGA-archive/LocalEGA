@@ -28,7 +28,7 @@ jobs:
         - pushd bats-core && git checkout v1.1.0 && sudo ./install.sh /usr/local && popd
         - cd deploy
         - make prepare
-        - make bootstrap ARGS="--keyserver ega --use-fake-cega"
+        - make bootstrap ARGS="--keyserver ega --with-fake-cega"
         - sudo chown -R travis private
         - make up OMIT="--scale res=0"
         - make preflight-check
@@ -44,7 +44,7 @@ jobs:
         - pushd bats-core && git checkout v1.1.0 && sudo ./install.sh /usr/local && popd
         - cd deploy
         - make prepare
-        - make bootstrap ARGS="--keyserver ega --use-fake-cega"
+        - make bootstrap ARGS="--keyserver ega --with-fake-cega"
         - sudo chown -R travis private
         - make up OMIT="--scale res=0"
         - make preflight-check

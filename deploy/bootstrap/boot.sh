@@ -27,7 +27,7 @@ function usage {
     echo -e "\t--keyserver <value>   \tSelect keyserver \"lega\" or \"ega\" [Default: ${KEYSERVER}]"
     echo -e "\t--genkey <value>      \tPath to PGP key generator [Default: ${GEN_KEY}]"
     echo -e "\t--pythonexec <value>  \tPython execute command [Default: ${PYTHONEXEC}]"
-    echo -e "\t--use-fake-cega       \tInclude a fake Central EGA Message broker and Authentication Service"
+    echo -e "\t--with-fake-cega      \tInclude a fake Central EGA Message broker and Authentication Service"
     echo ""
     echo -e "\t--verbose, -v     \tShow verbose output"
     echo -e "\t--polite, -p      \tDo not force the re-creation of the subfolders. Ask instead"
@@ -48,7 +48,7 @@ while [[ $# -gt 0 ]]; do
         --keyserver) KEYSERVER=$2; shift;;
         --genkey) GEN_KEY=$2; shift;;
         --pythonexec) PYTHONEXEC=$2; shift;;
-        --use-fake-cega) FAKECEGA=yes;;
+        --with-fake-cega) FAKECEGA=yes;;
         --) shift; break;;
         *) echo "$0: error - unrecognized option $1" 1>&2; usage; exit 1;;    esac
     shift
