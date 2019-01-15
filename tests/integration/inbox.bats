@@ -15,10 +15,11 @@ function setup() {
     TESTUSER=dummy
 
     # Find inbox port mapping. Usually 2222:9000
-    legarun docker port inbox 9000
-    [ "$status" -eq 0 ]
-    INBOX_PORT=${output##*:}
-    LEGA_SFTP="sftp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -P $INBOX_PORT"
+    INBOX_PORT="2222"
+    # legarun docker port inbox 9000
+    # [ "$status" -eq 0 ]
+    # INBOX_PORT=${output##*:}
+    LEGA_SFTP="sftp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -P ${INBOX_PORT}"
 }
 
 function teardown() {

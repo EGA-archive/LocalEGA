@@ -9,10 +9,11 @@ function setup() {
     mkdir -p "$TESTFILES"
 
     # Find inbox port mapping. Usually 2222:9000
-    legarun docker port inbox 9000
-    [ "$status" -eq 0 ]
-    INSTANCE_PORT=${output##*:}
-    LEGA_SFTP="sftp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -P ${INSTANCE_PORT}"
+    INBOX_PORT="2222"
+    # legarun docker port inbox 9000
+    # [ "$status" -eq 0 ]
+    # INBOX_PORT=${output##*:}
+    LEGA_SFTP="sftp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -P ${INBOX_PORT}"
 }
 
 function teardown() {
@@ -24,7 +25,8 @@ function teardown() {
     legarun ${LEGA_SFTP} -oBatchMode=yes nonexistant@localhost <<< $"ls"
     # -oBatchMode=yes for not prompting password
     [ "$status" -eq 255 ]
-    [[ "${lines[2]}" == *"Permission denied"* ]]
+    #[[ "${lines[2]}" == *"Permission denied"* ]]
+    [[ "${output}" == *"Permission denied"* ]]
 }
 
 @test "Ingest a file using the wrong user password" {
@@ -33,10 +35,11 @@ function teardown() {
     TESTUSER=jane
     USER_PASS=nonsense_password
 
-    legarun lftp -u $TESTUSER,$USER_PASS sftp://localhost:${INSTANCE_PORT} <<< $"ls"
+    legarun lftp -u $TESTUSER,$USER_PASS sftp://localhost:${INBOX_PORT} <<< $"ls"
     #run ${LEGA_SFTP} ${TESTUSER}@localhost
     [ "$status" -eq 255 ]
-    [[ "${lines[2]}" == *"Permission denied"* ]]
+    #[[ "${lines[2]}" == *"Permission denied"* ]]
+    [[ "${output}" == *"Permission denied"* ]]
 }
 
 @test "Ingest a file using the wrong user sshkey" {
@@ -76,5 +79,6 @@ EOF
     legarun ${LEGA_SFTP} -oBatchMode=yes -i $TESTFILES/fake.sshkey ${TESTUSER}@localhost
     # -oBatchMode=yes for not prompting password
     [ "$status" -eq 255 ]
-    [[ "${lines[2]}" == *"Permission denied"* ]]
+    #[[ "${lines[2]}" == *"Permission denied"* ]]
+    [[ "${output}" == *"Permission denied"* ]]
 }
