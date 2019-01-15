@@ -57,6 +57,7 @@ prepare: ../tests/_common/dummy.sec ../tests/_common/john.sec ../tests/_common/j
 
 %.sec: %.sec.enc
 	openssl enc -aes-256-cbc -d -in $< -out $@ -k ${REPO_PASSWORD}
+	chmod 400 $@
 
 %.json: %.json.enc
 	openssl enc -aes-256-cbc -d -in $< -out $@ -k ${REPO_PASSWORD}
