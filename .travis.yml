@@ -58,7 +58,19 @@ jobs:
     - stage: tests
       name: "Security Tests"
       services: docker
-      script: echo "Security Tests.... hmm... later"
+      before_script:
+        - pip3 install -r requirements.txt
+        - git clone https://github.com/bats-core/bats-core.git
+        - pushd bats-core && git checkout v1.1.0 && sudo ./install.sh /usr/local && popd
+        - cd deploy
+        - make prepare
+        - make bootstrap ARGS="--keyserver ega --with-fake-cega"
+        - sudo chown -R travis private
+        - make up OMIT="--scale res=0"
+        - make preflight-check
+      script:
+        - cd ../tests
+        - bats security
     - stage: images
       name: "Images Build"
       script: echo 'Next PR'
