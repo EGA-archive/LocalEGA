@@ -2,7 +2,7 @@ SHELL := /bin/bash
 
 ARGS=
 
-.PHONY: help bootstrap private network up down clean ps clean-volumes clean-all
+.PHONY: help bootstrap private network up down clean ps clean-volumes clean-all prepare
 
 help:
 	@echo "Usage: make <target>\n"
@@ -49,3 +49,15 @@ preflight-check:
 # - the inbox notification server up
 # - the rabbitmq shovel to CentralEGA (the federated queue can be late, it doesn't hurt)
 # - the key server (the java spring needs 97 seconds, 10 are enough for the other)
+
+
+# Decrypt the encoded data from the repository
+# That is, some users private ssh keys and the database of fake CentralEGA Users
+prepare: ../tests/_common/dummy.sec ../tests/_common/john.sec ../tests/_common/jane.sec ../tests/_common/users.json
+
+%.sec: %.sec.enc
+	openssl enc -aes-256-cbc -d -in $< -out $@ -k ${REPO_PASSWORD}
+
+%.json: %.json.enc
+	openssl enc -aes-256-cbc -d -in $< -out $@ -k ${REPO_PASSWORD}
+

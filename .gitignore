@@ -9,6 +9,7 @@ tests/**/*.sec
 tests/**/*.debug
 tests/**/*.d
 tests/_common/users.json
+tests/_common/backup
 
 # =====================================
 # Byte-compiled / optimized / DLL files
