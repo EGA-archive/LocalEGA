@@ -8,6 +8,7 @@ deploy/bootstrap/settings.rc.private
 tests/**/*.sec
 tests/**/*.debug
 tests/**/*.d
+tests/_common/users.json
 
 # =====================================
 # Byte-compiled / optimized / DLL files

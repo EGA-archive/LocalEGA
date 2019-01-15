@@ -27,7 +27,7 @@ function usage {
     echo -e "\t--keyserver <value>   \tSelect keyserver \"lega\" or \"ega\" [Default: ${KEYSERVER}]"
     echo -e "\t--genkey <value>      \tPath to PGP key generator [Default: ${GEN_KEY}]"
     echo -e "\t--pythonexec <value>  \tPython execute command [Default: ${PYTHONEXEC}]"
-    echo -e "\t--use-fake-cega-mq    \tInclude a fake Central EGA Message broker"
+    echo -e "\t--use-fake-cega       \tInclude a fake Central EGA Message broker and Authentication Service"
     echo ""
     echo -e "\t--verbose, -v     \tShow verbose output"
     echo -e "\t--polite, -p      \tDo not force the re-creation of the subfolders. Ask instead"
@@ -48,7 +48,7 @@ while [[ $# -gt 0 ]]; do
         --keyserver) KEYSERVER=$2; shift;;
         --genkey) GEN_KEY=$2; shift;;
         --pythonexec) PYTHONEXEC=$2; shift;;
-        --use-fake-cega-mq) FAKECEGA=yes;;
+        --use-fake-cega) FAKECEGA=yes;;
         --) shift; break;;
         *) echo "$0: error - unrecognized option $1" 1>&2; usage; exit 1;;    esac
     shift
@@ -69,16 +69,17 @@ exec 2>${PRIVATE}/.err
 
 #########################################################################
 
-[[ -z "${CEGA_USERS_CREDS}" ]] && echo 'Environment CEGA_USERS_CREDS is empty' 1>&2 && exit 1
-
-if [[ $FAKECEGA != 'yes' ]]; then
-
-    [[ -z "${CEGA_ENDPOINT}" ]] && echo 'Environment CEGA_ENDPOINT is empty' 1>&2 && exit 1
-
-else
-    # Reset the CEGA_CONNECTION here
+if [[ $FAKECEGA == 'yes' ]]; then
+    # Reset the variables here
     CEGA_CONNECTION=$'amqp://legatest:legatest@cega-mq:5672/lega'
+    CEGA_USERS_ENDPOINT=$'http://cega-users/lega/v1/legas/users'
+    CEGA_USERS_CREDS=$'legatest:legatest'
 fi
+
+# Make sure the variables are set
+[[ -z "${CEGA_USERS_ENDPOINT}" ]] && echo 'Environment CEGA_USERS_ENDPOINT is empty' 1>&2 && exit 1
+[[ -z "${CEGA_USERS_CREDS}" ]] && echo 'Environment CEGA_USERS_CREDS is empty' 1>&2 && exit 1
+[[ -z "${CEGA_CONNECTION}" ]] && echo 'Environment CEGA_CONNECTION is empty' 1>&2 && exit 1
 
 #########################################################################
 
@@ -225,7 +226,7 @@ if [[ $FAKECEGA == 'yes' ]]; then
 
     cat >> ${PRIVATE}/lega.yml <<EOF
   ############################################
-  # Faking Central EGA MQ 
+  # Faking Central EGA MQ and Users 
   # on the lega network, for simplicity
   ############################################
   cega-mq:
@@ -243,6 +244,21 @@ if [[ $FAKECEGA == 'yes' ]]; then
     restart: on-failure:3
     networks:
       - lega
+
+  cega-users:
+    hostname: cega-users
+    ports:
+      - "15671:80"
+    image: nbisweden/ega-base:latest
+    container_name: cega-users
+    labels:
+        lega_label: "cega-users"
+    volumes:
+       - ../../tests/_common/users.py:/cega/users.py
+       - ../../tests/_common/users.json:/cega/users.json
+    networks:
+      - lega
+    entrypoint: ["python3.6", "/cega/users.py", "0.0.0.0", "80", "/cega/users.json"]
 EOF
 
     # The user/password is legatest:legatest
@@ -353,7 +369,7 @@ EOF
 if [[ $INBOX == 'mina' ]]; then
 cat >> ${PRIVATE}/lega.yml <<EOF
     environment:
-      - CEGA_ENDPOINT=https://egatest.crg.eu/lega/v1/legas/users/%s?idType=username
+      - CEGA_ENDPOINT=${CEGA_USERS_ENDPOINT%/}/%s?idType=username
       - CEGA_ENDPOINT_CREDS=${CEGA_USERS_CREDS}
     ports:
       - "${DOCKER_PORT_inbox}:2222"
@@ -364,7 +380,7 @@ EOF
 else
 cat >> ${PRIVATE}/lega.yml <<EOF  # SFTP inbox
     environment:
-      - CEGA_ENDPOINT=https://egatest.crg.eu/lega/v1/legas/users
+      - CEGA_ENDPOINT=${CEGA_USERS_ENDPOINT}
       - CEGA_ENDPOINT_CREDS=${CEGA_USERS_CREDS}
       - CEGA_ENDPOINT_JSON_PREFIX=response.result
     ports:

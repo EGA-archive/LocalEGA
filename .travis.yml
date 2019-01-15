@@ -27,12 +27,13 @@ jobs:
         - git clone https://github.com/bats-core/bats-core.git
         - pushd bats-core && git checkout v1.1.0 && sudo ./install.sh /usr/local && popd
         - cd deploy
-        - make bootstrap ARGS="--keyserver ega --use-fake-cega-mq"
+        - make bootstrap ARGS="--keyserver ega --use-fake-cega"
         - sudo chown -R travis private
         - make up OMIT="--scale res=0"
         - make preflight-check
         - cd ../tests
-        - for n in {dummy,john,jane}; do openssl enc -aes-256-cbc -d -in _common/${n}.sec.enc -out _common/${n}.sec -k ${TESTUSER_SSHKEY_PASSWORD}; chmod 400 _common/${n}.sec; done
+        - for n in {dummy,john,jane}; do openssl enc -aes-256-cbc -d -in _common/${n}.sec.enc -out _common/${n}.sec -k ${REPO_PASSWORD}; chmod 400 _common/${n}.sec; done
+        - openssl enc -aes-256-cbc -d -in _common/users.json.enc -out _common/users.json -k ${REPO_PASSWORD}
       script:
         - bats integration
     - stage: tests
@@ -43,13 +44,14 @@ jobs:
         - git clone https://github.com/bats-core/bats-core.git
         - pushd bats-core && git checkout v1.1.0 && sudo ./install.sh /usr/local && popd
         - cd deploy
-        - make bootstrap ARGS="--keyserver ega --use-fake-cega-mq"
+        - make bootstrap ARGS="--keyserver ega --use-fake-cega"
         - sudo chown -R travis private
         - make up OMIT="--scale res=0"
         - make preflight-check
         - cd ../tests
-        - openssl enc -aes-256-cbc -d -in _common/dummy.sec.enc -out _common/dummy.sec -k ${TESTUSER_SSHKEY_PASSWORD}
+        - openssl enc -aes-256-cbc -d -in _common/dummy.sec.enc -out _common/dummy.sec -k ${REPO_PASSWORD}
         - chmod 400 _common/dummy.sec
+        - openssl enc -aes-256-cbc -d -in _common/users.json.enc -out _common/users.json -k ${REPO_PASSWORD}
       script:
         - bats robustness
     - stage: tests
