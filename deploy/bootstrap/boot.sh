@@ -84,11 +84,19 @@ fi
 #########################################################################
 
 backup ${DOT_ENV}
-cat > ${DOT_ENV} <<EOF
+
+if [[ $FAKECEGA == 'yes' ]]; then
+    cat > ${DOT_ENV} <<EOF
+COMPOSE_PROJECT_NAME=lega
+COMPOSE_FILE=${PRIVATE}/lega.yml:${PRIVATE}/cega.yml
+COMPOSE_PATH_SEPARATOR=:
+EOF
+else
+    cat > ${DOT_ENV} <<EOF
 COMPOSE_PROJECT_NAME=lega
 COMPOSE_FILE=${PRIVATE}/lega.yml
-#COMPOSE_PATH_SEPARATOR=:
 EOF
+fi
 
 source ${HERE}/settings.rc
 
@@ -197,9 +205,8 @@ sslmode = require
 EOF
 
 #########################################################################
-# Creating the docker-compose file
+# Specifying the LocalEGA components in the docke-compose file
 #########################################################################
-
 cat > ${PRIVATE}/lega.yml <<EOF
 version: '3.2'
 
@@ -216,90 +223,6 @@ volumes:
   vault:
 
 services:
-EOF
-
-#########################################################################
-# Specifying a fake Central EGA broker if requested
-#########################################################################
-
-if [[ $FAKECEGA == 'yes' ]]; then
-
-    cat >> ${PRIVATE}/lega.yml <<EOF
-  ############################################
-  # Faking Central EGA MQ and Users 
-  # on the lega network, for simplicity
-  ############################################
-  cega-mq:
-    hostname: cega-mq
-    ports:
-      - "15670:15672"
-      - "5670:5672"
-    image: rabbitmq:3.6.14-management
-    container_name: cega-mq
-    labels:
-        lega_label: "cega-mq"
-    volumes:
-       - ./cega-mq-defs.json:/etc/rabbitmq/defs.json:ro
-       - ./cega-mq-rabbitmq.config:/etc/rabbitmq/rabbitmq.config:ro
-    restart: on-failure:3
-    networks:
-      - lega
-
-  cega-users:
-    hostname: cega-users
-    ports:
-      - "15671:80"
-    image: nbisweden/ega-base:latest
-    container_name: cega-users
-    labels:
-        lega_label: "cega-users"
-    volumes:
-       - ../../tests/_common/users.py:/cega/users.py
-       - ../../tests/_common/users.json:/cega/users.json
-    networks:
-      - lega
-    entrypoint: ["python3.6", "/cega/users.py", "0.0.0.0", "80", "/cega/users.json"]
-EOF
-
-    # The user/password is legatest:legatest
-    cat > ${PRIVATE}/cega-mq-defs.json <<EOF
-{"rabbit_version":"3.6.14",
- "users":[{"name":"legatest","password_hash":"P9snZluoiHj2JeGqrDYmUHGLu637Qo7Fjgn5wakpk4jCyvcO","hashing_algorithm":"rabbit_password_hashing_sha256","tags":"administrator"}],
- "vhosts":[{"name":"lega"}],
- "permissions":[{"user":"legatest", "vhost":"lega", "configure":".*", "write":".*", "read":".*"}],
- "parameters":[],
- "global_parameters":[{"name":"cluster_name", "value":"rabbit@localhost"}],
- "policies":[],
- "queues":[{"name":"v1.files",            "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{}},
-	   {"name":"v1.files.inbox",      "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{}},
-           {"name":"v1.stableIDs",        "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{}},
-	   {"name":"v1.files.completed",  "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{}},
-	   {"name":"v1.files.processing", "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{}},
-	   {"name":"v1.files.error",      "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{}}],
- "exchanges":[{"name":"localega.v1", "vhost":"lega", "type":"topic", "durable":true, "auto_delete":false, "internal":false, "arguments":{}}],
- "bindings":[{"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{},"destination":"v1.stableIDs"       ,"routing_key":"stableIDs"},
-	     {"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{},"destination":"v1.files"           ,"routing_key":"files"},
-	     {"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{},"destination":"v1.files.inbox"     ,"routing_key":"files.inbox"},
-	     {"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{},"destination":"v1.files.error"     ,"routing_key":"files.error"},
-	     {"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{},"destination":"v1.files.processing","routing_key":"files.processing"},
-	     {"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{},"destination":"v1.files.completed" ,"routing_key":"files.completed"}]
-}
-EOF
-
-    cat > ${PRIVATE}/cega-mq-rabbitmq.config <<EOF
-%% -*- mode: erlang -*-
-%%
-[{rabbit,[{loopback_users, [ ] },
-	  {disk_free_limit, "1GB"}]},
- {rabbitmq_management, [ {load_definitions, "/etc/rabbitmq/defs.json"} ]}
-].
-EOF
-fi
-
-#########################################################################
-# Specifying the LocalEGA component
-#########################################################################
-cat >> ${PRIVATE}/lega.yml <<EOF
 
   ############################################
   # Local EGA instance
@@ -566,6 +489,89 @@ cat >> ${PRIVATE}/lega.yml <<EOF
 
 EOF
 
+
+if [[ $FAKECEGA == 'yes' ]]; then
+
+    #########################################################################
+    # Specifying a fake Central EGA broker if requested
+    #########################################################################
+    cat > ${PRIVATE}/cega.yml <<EOF
+############################################
+# Faking Central EGA MQ and Users 
+# on the lega network, for simplicity
+############################################
+
+version: '3.2'
+
+services:
+  cega-mq:
+    hostname: cega-mq
+    ports:
+      - "15670:15672"
+      - "5670:5672"
+    image: rabbitmq:3.6.14-management
+    container_name: cega-mq
+    labels:
+        lega_label: "cega-mq"
+    volumes:
+       - ./cega-mq-defs.json:/etc/rabbitmq/defs.json:ro
+       - ./cega-mq-rabbitmq.config:/etc/rabbitmq/rabbitmq.config:ro
+    restart: on-failure:3
+    networks:
+      - lega
+
+  cega-users:
+    hostname: cega-users
+    ports:
+      - "15671:80"
+    image: nbisweden/ega-base:latest
+    container_name: cega-users
+    labels:
+        lega_label: "cega-users"
+    volumes:
+       - ../../tests/_common/users.py:/cega/users.py
+       - ../../tests/_common/users.json:/cega/users.json
+    networks:
+      - lega
+    entrypoint: ["python3.6", "/cega/users.py", "0.0.0.0", "80", "/cega/users.json"]
+EOF
+
+    # The user/password is legatest:legatest
+    cat > ${PRIVATE}/cega-mq-defs.json <<EOF
+{"rabbit_version":"3.6.14",
+ "users":[{"name":"legatest","password_hash":"P9snZluoiHj2JeGqrDYmUHGLu637Qo7Fjgn5wakpk4jCyvcO","hashing_algorithm":"rabbit_password_hashing_sha256","tags":"administrator"}],
+ "vhosts":[{"name":"lega"}],
+ "permissions":[{"user":"legatest", "vhost":"lega", "configure":".*", "write":".*", "read":".*"}],
+ "parameters":[],
+ "global_parameters":[{"name":"cluster_name", "value":"rabbit@localhost"}],
+ "policies":[],
+ "queues":[{"name":"v1.files",            "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{}},
+	   {"name":"v1.files.inbox",      "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{}},
+           {"name":"v1.stableIDs",        "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{}},
+	   {"name":"v1.files.completed",  "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{}},
+	   {"name":"v1.files.processing", "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{}},
+	   {"name":"v1.files.error",      "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{}}],
+ "exchanges":[{"name":"localega.v1", "vhost":"lega", "type":"topic", "durable":true, "auto_delete":false, "internal":false, "arguments":{}}],
+ "bindings":[{"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{},"destination":"v1.stableIDs"       ,"routing_key":"stableIDs"},
+	     {"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{},"destination":"v1.files"           ,"routing_key":"files"},
+	     {"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{},"destination":"v1.files.inbox"     ,"routing_key":"files.inbox"},
+	     {"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{},"destination":"v1.files.error"     ,"routing_key":"files.error"},
+	     {"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{},"destination":"v1.files.processing","routing_key":"files.processing"},
+	     {"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{},"destination":"v1.files.completed" ,"routing_key":"files.completed"}]
+}
+EOF
+
+    cat > ${PRIVATE}/cega-mq-rabbitmq.config <<EOF
+%% -*- mode: erlang -*-
+%%
+[{rabbit,[{loopback_users, [ ] },
+	  {disk_free_limit, "1GB"}]},
+ {rabbitmq_management, [ {load_definitions, "/etc/rabbitmq/defs.json"} ]}
+].
+EOF
+fi
+
+
 #########################################################################
 # Keeping a trace of if
 #########################################################################
@@ -603,11 +609,4 @@ LEGA_PASSWORD             = ${LEGA_PASSWORD}
 KEYS_PASSWORD             = ${KEYS_PASSWORD}
 EOF
 
-if [[ $FAKECEGA == 'yes' ]]; then
-cat >> ${PRIVATE}/.trace <<EOF
-#
-FAKE CEGA USER            = legatest
-FAKE CEGA PASSWORD        = legatest
-EOF
-fi
 task_complete "Bootstrap complete"
