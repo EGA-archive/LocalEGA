@@ -19,7 +19,6 @@ routing key :``archived``.
 
 import sys
 import logging
-from pathlib import Path
 from functools import partial
 
 from legacryptor.crypt4gh import get_header
@@ -101,7 +100,7 @@ def main(args=None):
     inbox_fs = getattr(storage, CONF.get_value('inbox', 'driver', default='FileStorage'))
     fs = getattr(storage, CONF.get_value('vault', 'driver', default='FileStorage'))
     broker = get_connection('broker')
-    do_work = partial(work, fs('vault','lega'), partial(inbox_fs, 'inbox'), broker.channel())
+    do_work = partial(work, fs('vault', 'lega'), partial(inbox_fs, 'inbox'), broker.channel())
 
     # upstream link configured in local broker
     consume(do_work, broker, 'files', 'archived')

@@ -44,11 +44,12 @@ class FileStorage():
         f.close()
 
     def exists(self, filepath):
-        """Returns if the path exists."""
+        """Return true if the path exists."""
         fp = self.prefix / filepath.lstrip('/')
         return fp.exists()
 
     def __str__(self):
+        """Return inbox prefix."""
         return self.prefix
 
 
@@ -229,9 +230,10 @@ class S3Storage():
         f.close()
 
     def exists(self, path):
-        """Returns if the path exists."""
+        """Return true if the path exists."""
         resp = self.s3.head_object(Bucket=self.bucket, Key=path)
         return bool(resp['ContentLength'])
 
     def __str__(self):
+        """Return endpoint/bucket."""
         return self.endpoint + '/' + self.bucket
