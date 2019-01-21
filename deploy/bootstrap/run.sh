@@ -359,8 +359,8 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     labels:
         lega_label: "finalize"
     volumes:
-       - ./conf.ini:/etc/ega/conf.ini:ro
-       - ./../../lega:/home/lega/.local/lib/python3.6/site-packages/lega
+      - ./conf.ini:/etc/ega/conf.ini:ro
+      - ../../lega:/home/lega/.local/lib/python3.6/site-packages/lega
     restart: on-failure:3
     networks:
       - lega
@@ -381,9 +381,9 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - AWS_ACCESS_KEY_ID=${S3_ACCESS_KEY}
       - AWS_SECRET_ACCESS_KEY=${S3_SECRET_KEY}
     volumes:
-       - inbox:/ega/inbox
-       - ./conf.ini:/etc/ega/conf.ini:ro
-       - ./../../lega:/home/lega/.local/lib/python3.6/site-packages/lega
+      - inbox:/ega/inbox
+      - ./conf.ini:/etc/ega/conf.ini:ro
+      - ../../lega:/home/lega/.local/lib/python3.6/site-packages/lega
     restart: on-failure:3
     networks:
       - lega
@@ -437,7 +437,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
        - ./certs/ssl.key:/etc/ega/ssl.key:ro
        - ./pgp/ega.sec:/etc/ega/pgp/ega.sec:ro
        - ./pgp/ega2.sec:/etc/ega/pgp/ega2.sec:ro
-       - ./../../lega:/home/lega/.local/lib/python3.6/site-packages/lega
+       - ../../lega:/home/lega/.local/lib/python3.6/site-packages/lega
     restart: on-failure:3
     networks:
       - lega
@@ -465,6 +465,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - AWS_SECRET_ACCESS_KEY=${S3_SECRET_KEY}
     volumes:
       - ./conf.ini:/etc/ega/conf.ini:ro
+      - ../../lega:/home/lega/.local/lib/python3.6/site-packages/lega
     restart: on-failure:3
     networks:
       - lega
@@ -540,8 +541,8 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     restart: on-failure:3
     networks:
       - lega
-    # ports:
-    #  - "${DOCKER_PORT_s3_inbox}:9000"
+    ports:
+      - "${DOCKER_PORT_s3_inbox}:9000"
     command: server /data
 EOF
 fi
