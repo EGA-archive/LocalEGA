@@ -80,7 +80,8 @@ class Forwarder(asyncio.Protocol):
         inbox = self.inbox_location % username
 
         if self.isolation:
-            filepath, filename = (os.path.join(inbox, path.lstrip('/')), path)
+            p = path.lstrip('/')
+            filepath, filename = (os.path.join(inbox, p), p)
         else:
             filepath, filename = (path, path[len(inbox):])
 
