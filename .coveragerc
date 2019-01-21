@@ -1,6 +1,9 @@
 # .coveragerc to control coverage.py
 [run]
 omit =
+    .tox/*
+    tests/*
+    */distutils/*
     # omit anything in a .local directory anywhere
     */.local/*
     # omit everything in /usr

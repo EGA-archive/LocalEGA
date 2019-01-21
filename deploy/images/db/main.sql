@@ -75,13 +75,13 @@ CREATE TABLE local_ega.main (
        submission_file_calculated_checksum      VARCHAR(128),
        submission_file_calculated_checksum_type checksum_algorithm,
 
-       submission_file_size                     INTEGER NULL,
+       submission_file_size                     BIGINT NULL,
        submission_user                          TEXT NOT NULL, -- Elixir ID, or internal user
  
        -- Vault information
        vault_file_reference      TEXT,    -- file path if POSIX, object id if S3
        vault_file_type           storage, -- S3 or POSIX file system
-       vault_file_size           INTEGER,
+       vault_file_size           BIGINT,
        vault_file_checksum       VARCHAR(128) NULL, -- NOT NULL,
        vault_file_checksum_type  checksum_algorithm,
        

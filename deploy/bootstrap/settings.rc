@@ -8,8 +8,6 @@ DOCKER_PORT_s3=9000
 DOCKER_PORT_keyserver=8443
 DOCKER_PORT_res=8081
 
-CEGA_MQ_PASSWORD=$(generate_password 16)
-CEGA_REST_PASSWORD=$(generate_password 16)
 
 SSL_SUBJ="/C=SE/ST=Sweden/L=Uppsala/O=NBIS/OU=SysDevs/CN=LocalEGA/emailAddress=ega@nbis.se"
 
@@ -29,3 +27,10 @@ LOG_LEVEL=DEBUG
 
 LEGA_PASSWORD=$(generate_password 32)
 KEYS_PASSWORD=$(generate_password 32)
+
+## Central EGA connections
+# Must be defined in environment variables
+# Otherwise use the local non git-tracked file
+if [[ -z ${CEGA_CONNECTION+x} ]] && [[ -z ${CEGA_USERS_CREDS+x} ]]; then
+    source ${HERE}/settings.rc.private
+fi

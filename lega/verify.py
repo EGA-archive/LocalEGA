@@ -46,7 +46,12 @@ def get_records(header):
 
     try:
         with urlopen(keyurl, context=ctx) as response:
+            assert(response.status == 200)
             privkey = response.read()
+            if not privkey:  # Correcting a bug in the EGA keyserver
+                # When key not found, it returns a 200 and an empty payload.
+                # It should probably be changed to a 404
+                raise exceptions.PGPKeyError('No PGP key found')
             return header_to_records(privkey, header, os.environ['LEGA_PASSWORD']), keyid
     except HTTPError as e:
         LOG.error(e)
@@ -55,8 +60,8 @@ def get_records(header):
             raise exceptions.PGPKeyError(msg)
         # Otherwise
         raise exceptions.KeyserverError(msg)
-    except Exception as e:
-        raise exceptions.KeyserverError(str(e))
+    # except Exception as e:
+    #     raise exceptions.KeyserverError(str(e))
 
 
 @db.catch_error

@@ -35,6 +35,23 @@ class PatchContextManager:
         return self._patched.__exit__()
 
 
+class KeyServerResponse:
+    """Mock keyserver Reponse."""
+
+    def __init__(self, status, response):
+        """Init for class."""
+        self.status = status
+        self.response = response
+
+    def status(self):
+        """Return response status."""
+        return self.status
+
+    def read(self):
+        """Return response data."""
+        return self.response
+
+
 class testVerify(unittest.TestCase):
     """Verify.
 
@@ -58,9 +75,11 @@ class testVerify(unittest.TestCase):
     def test_get_records(self, mock_key, mock_records, filedir):
         """Should call the url in order to provide the records."""
         infile = filedir.write('infile.in', bytearray.fromhex(pgp_data.ENC_FILE))
-        returned_data = io.BytesIO(pgp_data.PGP_PRIVKEY.encode())
+        returned_data = KeyServerResponse(200, io.BytesIO(pgp_data.PGP_PRIVKEY.encode()))
         with PatchContextManager('lega.verify.urlopen', returned_data) as mocked:
-            get_records(open(infile, 'rb'))
+            print(returned_data.status)
+            with open(infile, 'rb') as f:
+                get_records(f)
             mocked.assert_called()
         filedir.cleanup()
 
@@ -71,9 +90,10 @@ class testVerify(unittest.TestCase):
         """Should call the url in order to provide the records even without a verify turned off."""
         self.env.set('QUALITY_CONTROL_VERIFY_CERTIFICATE', 'False')
         infile = filedir.write('infile.in', bytearray.fromhex(pgp_data.ENC_FILE))
-        returned_data = io.BytesIO(pgp_data.PGP_PRIVKEY.encode())
+        returned_data = KeyServerResponse(200, io.BytesIO(pgp_data.PGP_PRIVKEY.encode()))
         with PatchContextManager('lega.verify.urlopen', returned_data) as mocked:
-            get_records(open(infile, 'rb'))
+            with open(infile, 'rb') as f:
+                get_records(f)
             mocked.assert_called()
         filedir.cleanup()
 
@@ -86,7 +106,8 @@ class testVerify(unittest.TestCase):
         with mock.patch('lega.verify.urlopen') as urlopen_mock:
             urlopen_mock.side_effect = HTTPError('url', 404, 'msg', None, None)
             with self.assertRaises(PGPKeyError):
-                get_records(open(infile, 'rb'))
+                with open(infile, 'rb') as f:
+                    get_records(f)
         filedir.cleanup()
 
     @tempdir()
@@ -98,20 +119,22 @@ class testVerify(unittest.TestCase):
         with mock.patch('lega.verify.urlopen') as urlopen_mock:
             urlopen_mock.side_effect = HTTPError('url', 400, 'msg', None, None)
             with self.assertRaises(KeyserverError):
-                get_records(open(infile, 'rb'))
+                with open(infile, 'rb') as f:
+                    get_records(f)
         filedir.cleanup()
 
     @tempdir()
     @mock.patch('lega.verify.header_to_records')
     @mock.patch('lega.verify.get_key_id')
     def test_get_records_error(self, mock_key, mock_records, filedir):
-        """Some general error occured, should raise KeyserverError error."""
+        """Some general error occured, should raise Exception error."""
         self.env.set('QUALITY_CONTROL_VERIFY_CERTIFICATE', 'False')
         infile = filedir.write('infile.in', bytearray.fromhex(pgp_data.ENC_FILE))
         with mock.patch('lega.verify.urlopen') as urlopen_mock:
             urlopen_mock.side_effect = Exception
-            with self.assertRaises(KeyserverError):
-                get_records(open(infile, 'rb'))
+            with self.assertRaises(Exception):
+                with open(infile, 'rb') as f:
+                    get_records(f)
         filedir.cleanup()
 
     @mock.patch('lega.verify.get_connection')

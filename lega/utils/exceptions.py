@@ -87,7 +87,7 @@ class Checksum(FromUser):
 # PGP Key Error. Not all are from the user
 #############################################################################
 
-class PGPKeyError(Exception):
+class PGPKeyError(FromUser):
     """Raised Exception related to PGP keys."""
 
     def __init__(self, msg):

@@ -1,9 +1,6 @@
 #!/usr/bin/env python3
 
-"""The Keyserver provides a REST endpoint for retrieving PGP and Re-encryption keys.
-
-The keyserver also registers with Eureka service discovery.
-"""
+"""The Keyserver provides a REST endpoint for retrieving PGP and Re-encryption keys."""
 
 
 import sys
@@ -19,7 +16,6 @@ from aiohttp import web
 import pgpy
 
 from .conf import CONF, KeysConfiguration
-from .utils.eureka import EurekaClient
 
 LOG = logging.getLogger(__name__)
 routes = web.RouteTableDef()
@@ -199,59 +195,6 @@ async def check_ttl(request):
         return web.HTTPBadRequest()
 
 
-def load_keys_conf(store):
-    """Parse and load keys configuration."""
-    # Cache the active key names
-    global _cache
-    _cache = Cache()
-    # Load all the keys in the store
-    for section in store.sections():
-        _unlock_key(section, **dict(store.items(section)))  # includes defaults
-
-
-alive = True  # used to set if the keyserver is alive in the shutdown
-
-
-async def renew_lease(eureka, interval):
-    """Renew eureka lease at specific interval."""
-    while alive:
-        await asyncio.sleep(interval)
-        await eureka.renew()
-        LOG.info('Keyserver Eureka lease renewed.')
-
-
-async def init(app):
-    """Initialize run before the loop.run_forever."""
-    app['renew_eureka'] = app.loop.create_task(renew_lease(app['eureka'], app['interval']))
-    # Note: will exit on failure
-    load_keys_conf(app['store'])
-    await app['eureka'].register()
-    LOG.info('Keyserver registered with Eureka.')
-
-
-async def shutdown(app):
-    """Perform shutdown, after a KeyboardInterrupt.
-
-    After that: cleanup.
-    """
-    LOG.info('Shutting down the database engine')
-    global alive
-    await app['eureka'].deregister()
-    alive = False
-
-
-async def cleanup(app):
-    """Perform cleanup, after a KeyboardInterrupt.
-
-    Right after, the loop is closed.
-    """
-    LOG.info('Cancelling all pending tasks')
-    # THIS SPAWNS an error see https://github.com/aio-libs/aiohttp/blob/master/aiohttp/web_runner.py#L178
-    # for more details how the cleanup happens.
-    # for task in asyncio.Task.all_tasks():
-    #     task.cancel()
-
-
 def main(args=None):
     """Run keyserver with configuration."""
     if not args:
@@ -261,10 +204,9 @@ def main(args=None):
 
     host = CONF.get_value('keyserver', 'host')  # fallbacks are in defaults.ini
     port = CONF.get_value('keyserver', 'port', conv=int)
-    health_check_url = 'http://{}:{}{}'.format(host, port, CONF.get_value('keyserver', 'health_endpoint'))
-    status_check_url = 'http://{}:{}{}'.format(host, port, CONF.get_value('keyserver', 'status_endpoint'))
 
-    eureka_endpoint = CONF.get_value('eureka', 'endpoint')
+    # health_check_url = 'http://{}:{}{}'.format(host, port, CONF.get_value('keyserver', 'health_endpoint'))
+    # status_check_url = 'http://{}:{}{}'.format(host, port, CONF.get_value('keyserver', 'status_endpoint'))
 
     ssl_certfile = Path(CONF.get_value('keyserver', 'ssl_certfile')).expanduser()
     ssl_keyfile = Path(CONF.get_value('keyserver', 'ssl_keyfile')).expanduser()
@@ -279,20 +221,14 @@ def main(args=None):
     keyserver = web.Application(loop=loop)
     keyserver.router.add_routes(routes)
 
-    # Adding the keystore to the server
-    keyserver['store'] = KeysConfiguration(args)
-    keyserver['interval'] = CONF.get_value('eureka', 'try_interval', conv=int, default=20)
-    keyserver['eureka'] = EurekaClient("keyserver", port=port, ip_addr=host,
-                                       eureka_url=eureka_endpoint, hostname=host,
-                                       health_check_url=health_check_url,
-                                       status_check_url=status_check_url,
-                                       loop=loop)
-
-    # Registering some initialization and cleanup routines
-    LOG.info('Setting up callbacks')
-    keyserver.on_startup.append(init)
-    keyserver.on_shutdown.append(shutdown)
-    keyserver.on_cleanup.append(cleanup)
+    # Keystore
+    store = KeysConfiguration(args)
+    global _cache
+    _cache = Cache()
+    # Load all the keys in the store
+    for section in store.sections():
+        _unlock_key(section, **dict(store.items(section)))  # includes defaults
+    keyserver['store'] = store
 
     LOG.info(f"Start keyserver on {host}:{port}")
     web.run_app(keyserver, host=host, port=port, shutdown_timeout=0, ssl_context=sslcontext)
