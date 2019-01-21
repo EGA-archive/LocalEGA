@@ -28,7 +28,7 @@ jobs:
         - pushd bats-core && git checkout v1.1.0 && sudo ./install.sh /usr/local && popd
         - cd deploy
         - make prepare
-        - make bootstrap ARGS="--keyserver ega --with-fake-cega"
+        - make bootstrap ARGS="--keyserver ega"
         - sudo chown -R travis private
         - make up OMIT="--scale res=0"
         - make preflight-check
@@ -44,7 +44,7 @@ jobs:
         - pushd bats-core && git checkout v1.1.0 && sudo ./install.sh /usr/local && popd
         - cd deploy
         - make prepare
-        - make bootstrap ARGS="--keyserver ega --with-fake-cega"
+        - make bootstrap ARGS="--keyserver ega"
         - sudo chown -R travis private
         - make up OMIT="--scale res=0"
         - make preflight-check
@@ -64,7 +64,7 @@ jobs:
         - pushd bats-core && git checkout v1.1.0 && sudo ./install.sh /usr/local && popd
         - cd deploy
         - make prepare
-        - make bootstrap ARGS="--keyserver ega --with-fake-cega"
+        - make bootstrap ARGS="--keyserver ega"
         - sudo chown -R travis private
         - make up OMIT="--scale res=0"
         - make preflight-check
@@ -83,7 +83,7 @@ jobs:
         - pip3 install -r requirements.txt
         - cd deploy
         - make prepare
-        - make bootstrap ARGS='--inbox mina --keyserver ega --with-fake-cega'
+        - make bootstrap ARGS='--inbox mina --keyserver ega'
         - sudo chown -R travis private
         - make up
         - docker-compose ps

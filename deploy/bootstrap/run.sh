@@ -14,7 +14,7 @@ FORCE=yes
 OPENSSL=openssl
 INBOX=openssh
 KEYSERVER=lega
-FAKECEGA=no
+REAL_CEGA=no
 
 GEN_KEY=${EXTRAS}/generate_pgp_key.py
 PYTHONEXEC=python
@@ -27,7 +27,7 @@ function usage {
     echo -e "\t--keyserver <value>   \tSelect keyserver \"lega\" or \"ega\" [Default: ${KEYSERVER}]"
     echo -e "\t--genkey <value>      \tPath to PGP key generator [Default: ${GEN_KEY}]"
     echo -e "\t--pythonexec <value>  \tPython execute command [Default: ${PYTHONEXEC}]"
-    echo -e "\t--with-fake-cega      \tInclude a fake Central EGA Message broker and Authentication Service"
+    echo -e "\t--with-real-cega      \tUse the real Central EGA Message broker and Authentication Service"
     echo ""
     echo -e "\t--verbose, -v     \tShow verbose output"
     echo -e "\t--polite, -p      \tDo not force the re-creation of the subfolders. Ask instead"
@@ -48,7 +48,7 @@ while [[ $# -gt 0 ]]; do
         --keyserver) KEYSERVER=$2; shift;;
         --genkey) GEN_KEY=$2; shift;;
         --pythonexec) PYTHONEXEC=$2; shift;;
-        --with-fake-cega) FAKECEGA=yes;;
+        --with-real-cega) REAL_CEGA=yes;;
         --) shift; break;;
         *) echo "$0: error - unrecognized option $1" 1>&2; usage; exit 1;;    esac
     shift
@@ -69,7 +69,7 @@ exec 2>${PRIVATE}/.err
 
 #########################################################################
 
-if [[ $FAKECEGA == 'yes' ]]; then
+if [[ ${REAL_CEGA} != 'yes' ]]; then
     # Reset the variables here
     CEGA_CONNECTION=$'amqp://legatest:legatest@cega-mq:5672/lega'
     CEGA_USERS_ENDPOINT=$'http://cega-users/lega/v1/legas/users'
@@ -85,16 +85,16 @@ fi
 
 backup ${DOT_ENV}
 
-if [[ $FAKECEGA == 'yes' ]]; then
+if [[ {REAL_CEGA} == 'yes' ]]; then
     cat > ${DOT_ENV} <<EOF
 COMPOSE_PROJECT_NAME=lega
-COMPOSE_FILE=${PRIVATE}/lega.yml:${PRIVATE}/cega.yml
-COMPOSE_PATH_SEPARATOR=:
+COMPOSE_FILE=${PRIVATE}/lega.yml
 EOF
 else
     cat > ${DOT_ENV} <<EOF
 COMPOSE_PROJECT_NAME=lega
-COMPOSE_FILE=${PRIVATE}/lega.yml
+COMPOSE_FILE=${PRIVATE}/lega.yml:${PRIVATE}/cega.yml
+COMPOSE_PATH_SEPARATOR=:
 EOF
 fi
 
@@ -490,7 +490,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
 EOF
 
 
-if [[ $FAKECEGA == 'yes' ]]; then
+if [[ ${REAL_CEGA} != 'yes' ]]; then
 
     #########################################################################
     # Specifying a fake Central EGA broker if requested
