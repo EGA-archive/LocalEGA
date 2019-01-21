@@ -13,6 +13,7 @@ VERBOSE=no
 FORCE=yes
 OPENSSL=openssl
 INBOX=openssh
+INBOX_BACKEND=posix
 KEYSERVER=lega
 REAL_CEGA=no
 
@@ -25,6 +26,7 @@ function usage {
     echo -e "\t--openssl <value>     \tPath to the Openssl executable [Default: ${OPENSSL}]"
     echo -e "\t--inbox <value>       \tSelect inbox \"openssh\" or \"mina\" [Default: ${INBOX}]"
     echo -e "\t--keyserver <value>   \tSelect keyserver \"lega\" or \"ega\" [Default: ${KEYSERVER}]"
+    echo -e "\t--inbox-backend <value>   \tSelect the inbox backend: S3 or POSIX [Default: ${INBOX_BACKEND}]"
     echo -e "\t--genkey <value>      \tPath to PGP key generator [Default: ${GEN_KEY}]"
     echo -e "\t--pythonexec <value>  \tPython execute command [Default: ${PYTHONEXEC}]"
     echo -e "\t--with-real-cega      \tUse the real Central EGA Message broker and Authentication Service"
@@ -44,8 +46,9 @@ while [[ $# -gt 0 ]]; do
         --verbose|-v) VERBOSE=yes;;
         --polite|-p) FORCE=no;;
         --openssl) OPENSSL=$2; shift;;
-        --inbox) INBOX=$2; shift;;
-        --keyserver) KEYSERVER=$2; shift;;
+        --inbox) INBOX=${2,,}; shift;;
+        --inbox-backend) INBOX_BACKEND=${2,,}; shift;;
+        --keyserver) KEYSERVER=${2,,}; shift;;
         --genkey) GEN_KEY=$2; shift;;
         --pythonexec) PYTHONEXEC=$2; shift;;
         --with-real-cega) REAL_CEGA=yes;;
@@ -174,18 +177,8 @@ keyserver_endpoint = https://keys:8443/retrieve/%s/private
 keyserver_endpoint = https://keys:8443/retrieve/%s/private
 EOF
 fi
+
 cat >> ${PRIVATE}/conf.ini <<EOF
-
-[inbox]
-location = /ega/inbox/%s
-chroot_sessions = True
-
-[vault]
-driver = S3Storage
-url = http://vault:9000
-access_key = ${S3_ACCESS_KEY}
-secret_key = ${S3_SECRET_KEY}
-#region = lega
 
 ## Connecting to Local EGA
 [broker]
@@ -202,7 +195,33 @@ password = ${DB_LEGA_IN_PASSWORD}
 database = lega
 try = 30
 sslmode = require
+
+[vault]
+driver = S3Storage
+url = http://vault:9000
+access_key = ${S3_ACCESS_KEY}
+secret_key = ${S3_SECRET_KEY}
+#region = lega
+
 EOF
+
+if [[ ${INBOX_BACKEND} == 's3' ]]; then
+    cat >> ${PRIVATE}/conf.ini <<EOF
+[inbox]
+driver = S3Storage
+url = http://inbox-s3-backend:9000
+access_key = ${S3_ACCESS_KEY_INBOX}
+secret_key = ${S3_SECRET_KEY_INBOX}
+#region = lega
+EOF
+else
+    # Default: POSIX file system
+    cat >> ${PRIVATE}/conf.ini <<EOF
+[inbox]
+location = /ega/inbox/%s/
+chroot_sessions = True
+EOF
+fi
 
 #########################################################################
 # Specifying the LocalEGA components in the docke-compose file
@@ -221,6 +240,15 @@ volumes:
   db:
   inbox:
   vault:
+EOF
+
+if [[ ${INBOX_BACKEND} == 's3' ]]; then
+cat >> ${PRIVATE}/lega.yml <<EOF
+  inbox-s3:
+EOF
+fi
+
+cat >> ${PRIVATE}/lega.yml <<EOF
 
 services:
 
@@ -294,6 +322,10 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     environment:
       - CEGA_ENDPOINT=${CEGA_USERS_ENDPOINT%/}/%s?idType=username
       - CEGA_ENDPOINT_CREDS=${CEGA_USERS_CREDS}
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY_INBOX}
+      - S3_SECRET_KEY=${S3_SECRET_KEY_INBOX}
+      - S3_ENDPOINT=inbox-s3-backend:9000
+      - USE_SSL=false
     ports:
       - "${DOCKER_PORT_inbox}:2222"
     image: nbisweden/ega-mina-inbox
@@ -432,8 +464,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - AWS_ACCESS_KEY_ID=${S3_ACCESS_KEY}
       - AWS_SECRET_ACCESS_KEY=${S3_SECRET_KEY}
     volumes:
-       - ./conf.ini:/etc/ega/conf.ini:ro
-       - ./../../lega:/home/lega/.local/lib/python3.6/site-packages/lega
+      - ./conf.ini:/etc/ega/conf.ini:ro
     restart: on-failure:3
     networks:
       - lega
@@ -492,6 +523,28 @@ cat >> ${PRIVATE}/lega.yml <<EOF
 
 EOF
 
+if [[ ${INBOX_BACKEND} == 's3' ]]; then
+cat >> ${PRIVATE}/lega.yml <<EOF
+  # Inbox S3 Backend Storage
+  inbox-s3-backend:
+    hostname: inbox-s3-backend
+    container_name: inbox-s3-backend
+    labels:
+        lega_label: "inbox-s3-backend"
+    image: minio/minio
+    environment:
+      - MINIO_ACCESS_KEY=${S3_ACCESS_KEY_INBOX}
+      - MINIO_SECRET_KEY=${S3_SECRET_KEY_INBOX}
+    volumes:
+      - inbox-s3:/data
+    restart: on-failure:3
+    networks:
+      - lega
+    ports:
+      - "${DOCKER_PORT_s3_inbox}:9000"
+    command: server /data
+EOF
+fi
 
 if [[ ${REAL_CEGA} != 'yes' ]]; then
 
@@ -611,5 +664,15 @@ DOCKER_PORT_res           = ${DOCKER_PORT_res}
 LEGA_PASSWORD             = ${LEGA_PASSWORD}
 KEYS_PASSWORD             = ${KEYS_PASSWORD}
 EOF
+
+if [[ ${INBOX_BACKEND} == 's3' ]]; then
+cat >> ${PRIVATE}/.trace <<EOF
+#
+# Inbox S3 backend
+DOCKER_PORT_s3_inbox      = ${DOCKER_PORT_s3_inbox}
+S3_ACCESS_KEY_INBOX       = ${S3_ACCESS_KEY_INBOX}
+S3_SECRET_KEY_INBOX       = ${S3_SECRET_KEY_INBOX}
+EOF
+fi
 
 task_complete "Bootstrap complete"
