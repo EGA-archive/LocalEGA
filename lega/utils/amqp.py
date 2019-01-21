@@ -57,7 +57,7 @@ def get_connection(domain, blocking=True):
 
 def publish(message, channel, exchange, routing, correlation_id=None):
     """Send a message to the local broker with ``path`` was updated."""
-    LOG.debug(f'Sending {message} to exchange: {exchange} [routing key: {routing}]')
+    LOG.debug(f'Sending to exchange: {exchange} [routing key: {routing}]')
     channel.basic_publish(exchange=exchange,
                           routing_key=routing,
                           body=json.dumps(message),

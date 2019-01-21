@@ -9,9 +9,9 @@ help:
 	@echo "where <target> is: 'bootstrap', 'up' 'ps', 'down', 'network' or 'clean'\n"
 
 # If DEPLOY_DEV is yes, we use dummy passwords
-bootstrap-dev: DEV="DEPLOY_DEV=yes "
+bootstrap-dev: DEPLOY_DEV=yes
 .env private/lega.yml private bootstrap bootstrap-dev:
-	@${DEV}bootstrap/run.sh ${ARGS} || { cat private/.err; exit 1; }
+	@bootstrap/run.sh ${ARGS} || { cat private/.err; exit 1; }
 
 
 up: .env private/lega.yml
@@ -19,12 +19,13 @@ up: .env private/lega.yml
 
 clean-volumes:
 	docker volume rm lega_db lega_inbox lega_s3
+	-docker volume rm lega_inbox-s3
 
 ps:
 	@docker-compose ps
 
 down: #.env
-	@[[ -f private/lega.yml ]] && docker-compose down -v || echo "No recipe to bring containers down\nHave you bootstrapped? (ie make bootstrap)"
+	@[[ -f private/lega.yml ]] && docker-compose down -v || echo -e "No recipe to bring containers down\nHave you bootstrapped? (ie make bootstrap)"
 
 clean:
 	rm -rf .env private
