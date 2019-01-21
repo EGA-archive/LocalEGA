@@ -150,8 +150,8 @@ class S3FileReader(object):
 
     def readinto(self, b):
         """Read bytes into a pre-allocated object b and return the number of bytes read."""
-        data = self.read()
-        datalen = len(data)
+        datalen = len(b)
+        data = self.read(datalen)
         b[:datalen] = data
         return datalen
 
