@@ -23,13 +23,10 @@ class testIngest(unittest.TestCase):
 
     @tempdir()
     @mock.patch('lega.ingest.get_header')
-    @mock.patch('lega.ingest.Path')
     @mock.patch('lega.ingest.db')
-    def test_work(self, mock_db, mock_path, mock_header, filedir):
+    def test_work(self, mock_db, mock_header, filedir):
         """Test ingest worker, should send a messge."""
         # Mocking a lot of stuff, as it is previously tested
-        mock_path = mock.Mock(spec=PosixPath)
-        mock_path.return_value = ''
         mock_header.return_value = b'beginning', b'header'
         mock_db.insert_file.return_value = 32
         store = mock.MagicMock()
@@ -50,13 +47,10 @@ class testIngest(unittest.TestCase):
 
     @tempdir()
     @mock.patch('lega.ingest.get_header')
-    @mock.patch('lega.ingest.Path')
     @mock.patch('lega.ingest.db')
-    def test_db_fail(self, mock_db, mock_path, mock_header, filedir):
+    def test_db_fail(self, mock_db, mock_header, filedir):
         """Test ingest worker, insert_file fails."""
         # Mocking a lot of stuff, as it is previously tested
-        mock_path = mock.Mock(spec=PosixPath)
-        mock_path.return_value = ''
         mock_header.return_value = b'beginning', b'header'
         mock_db.insert_file.side_effect = Exception("Some strange exception")
 
@@ -74,14 +68,11 @@ class testIngest(unittest.TestCase):
 
     @tempdir()
     @mock.patch('lega.ingest.get_header')
-    @mock.patch('lega.ingest.Path')
     @mock.patch('lega.ingest.db')
     @mock.patch('lega.utils.db.set_error')
-    def test_mark_in_progress_fail(self, mock_set_error, mock_db, mock_path, mock_header, filedir):
+    def test_mark_in_progress_fail(self, mock_set_error, mock_db, mock_header, filedir):
         """Test ingest worker, mark_in_progress fails."""
         # Mocking a lot of stuff, as it is previously tested
-        mock_path = mock.Mock(spec=PosixPath)
-        mock_path.return_value = ''
         mock_header.return_value = b'beginning', b'header'
         mock_db.mark_in_progress.side_effect = Exception("Some strange exception")
 
@@ -100,16 +91,13 @@ class testIngest(unittest.TestCase):
 
     @tempdir()
     @mock.patch('lega.ingest.get_header')
-    @mock.patch('lega.ingest.Path')
     @mock.patch('lega.ingest.db')
     @mock.patch('lega.utils.db.set_error')
     @mock.patch('lega.utils.db.get_connection')
     @mock.patch('lega.utils.db.publish')
-    def test_mark_in_progress_fail_with_from_user_error(self, mock_publish, mock_get_connection, mock_set_error, mock_db, mock_path, mock_header, filedir):
+    def test_mark_in_progress_fail_with_from_user_error(self, mock_publish, mock_get_connection, mock_set_error, mock_db, mock_header, filedir):
         """Test ingest worker, mark_in_progress fails."""
         # Mocking a lot of stuff, as it is previously tested
-        mock_path = mock.Mock(spec=PosixPath)
-        mock_path.return_value = ''
         mock_header.return_value = b'beginning', b'header'
         mock_db.mark_in_progress.side_effect = FromUser()
 
