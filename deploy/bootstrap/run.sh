@@ -344,6 +344,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF  # SFTP inbox
     volumes:
       - ./conf.ini:/etc/ega/conf.ini:ro
       - ../images/inbox/entrypoint.sh:/usr/local/bin/entrypoint.sh
+      - ../../lega:/home/lega/.local/lib/python3.6/site-packages/lega
       - inbox:/ega/inbox
 EOF
 fi
