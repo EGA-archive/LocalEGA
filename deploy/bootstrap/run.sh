@@ -540,8 +540,8 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     restart: on-failure:3
     networks:
       - lega
-    ports:
-      - "${DOCKER_PORT_s3_inbox}:9000"
+    # ports:
+    #  - "${DOCKER_PORT_s3_inbox}:9000"
     command: server /data
 EOF
 fi
