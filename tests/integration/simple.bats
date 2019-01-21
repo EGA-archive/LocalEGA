@@ -23,9 +23,9 @@ function setup() {
     LEGA_SFTP="sftp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -P ${INBOX_PORT}"
 }
 
-# function teardown() {
-#     rm -rf ${TESTFILES}
-# }
+function teardown() {
+    rm -rf ${TESTFILES}
+}
 
 # Ingesting a 10MB file
 # ----------------------
