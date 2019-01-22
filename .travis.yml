@@ -7,18 +7,32 @@ git:
   quiet: true
 
 stages:
+  - name: preflight
+    if: type = pull_request
   - name: tests
-    if: type IN (push, pull_request)
+    if: type = pull_request
   - name: images
     if: type = pull_request AND branch = master
 
 jobs:
   include:
-    - stage: tests
+    - stage: preflight
       name: "Unit Tests"
       python: 3.6
       before_script: pip install tox-travis
       script: tox
+    - stage: preflight
+      services: docker
+      name: "Pre-images"
+      before_script:
+        - cd docker/images
+        - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin
+        # Pulling image for layer caching
+        - make pull
+        - make check
+      script:
+        - make
+        - make push-tag
     - stage: tests
       name: "Integration Tests"
       services: docker
@@ -27,8 +41,9 @@ jobs:
         - git clone https://github.com/bats-core/bats-core.git
         - pushd bats-core && git checkout v1.1.0 && sudo ./install.sh /usr/local && popd
         - cd deploy
+        - make -C images pull-tag
         - make prepare
-        - make bootstrap ARGS="--keyserver ega"
+        - make bootstrap ARGS="--keyserver ega --image-tag PR${TRAVIS_PULL_REQUEST}"
         - sudo chown -R travis private
         - make up OMIT="--scale res=0"
         - make preflight-check
@@ -44,7 +59,7 @@ jobs:
         - pushd bats-core && git checkout v1.1.0 && sudo ./install.sh /usr/local && popd
         - cd deploy
         - make prepare
-        - make bootstrap ARGS="--keyserver ega"
+        - make bootstrap ARGS="--keyserver ega --image-tag PR${TRAVIS_PULL_REQUEST}"
         - sudo chown -R travis private
         - make up OMIT="--scale res=0"
         - make preflight-check
@@ -64,34 +79,42 @@ jobs:
         - pushd bats-core && git checkout v1.1.0 && sudo ./install.sh /usr/local && popd
         - cd deploy
         - make prepare
-        - make bootstrap ARGS="--keyserver ega"
+        - make bootstrap ARGS="--keyserver ega --image-tag PR${TRAVIS_PULL_REQUEST}"
         - sudo chown -R travis private
         - make up OMIT="--scale res=0"
         - make preflight-check
       script:
         - cd ../tests
         - bats security
+    # Retagging the images
     - stage: images
       name: "Images Build"
-      script: echo 'Next PR'
-    #
-    # Old tests. Make them succeed with "|| :"
-    #
-    - stage: tests
-      name: "Old Tests"
       before_script:
-        - pip3 install -r requirements.txt
-        - cd deploy
-        - make prepare
-        - make bootstrap ARGS='--inbox mina --keyserver ega'
-        - sudo chown -R travis private
-        - make up
-        - docker-compose ps
+        - cd docker/images
+        - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin
       script:
-        - cd tests
-        - mvn test -Dtest=IngestionTests -B || echo 'Nope'
-        - mvn test -Dtest=OutgestionTests -B || echo 'Nope'
-        - mvn test -Dtest=RobustnessTests -B || echo 'Nope'
+        - make pull-tag
+        - make retag
+        - make push
+        - make clean-tag
+    # #
+    # # Old tests. Make them succeed with "|| :"
+    # #
+    # - stage: tests
+    #   name: "Old Tests"
+    #   before_script:
+    #     - pip3 install -r requirements.txt
+    #     - cd deploy
+    #     - make prepare
+    #     - make bootstrap ARGS='--inbox mina --keyserver ega'
+    #     - sudo chown -R travis private
+    #     - make up
+    #     - docker-compose ps
+    #   script:
+    #     - cd tests
+    #     - mvn test -Dtest=IngestionTests -B || echo 'Nope'
+    #     - mvn test -Dtest=OutgestionTests -B || echo 'Nope'
+    #     - mvn test -Dtest=RobustnessTests -B || echo 'Nope'
 
 notifications:
   email: false

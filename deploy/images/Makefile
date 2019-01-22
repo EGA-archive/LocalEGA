@@ -1,5 +1,9 @@
 SHELL := /bin/bash
 
+ifndef CHECKOUT
+CHECKOUT=$(shell git rev-parse --abbrev-ref HEAD)
+endif
+
 TAG=$(shell git rev-parse --short HEAD)
 
 ifdef TRAVIS_COMMIT
@@ -18,6 +22,7 @@ all: base inbox
 
 base inbox:
 	docker build \
+	       --build-arg checkout=$(CHECKOUT) \
 	       --cache-from $(TARGET_PREFIX)$@:latest \
                --tag $(TARGET_PREFIX)$@:$(TAG) \
                --tag $(TARGET_PREFIX)$@:latest \
@@ -61,3 +66,10 @@ push push-tag:
 	docker push $(TARGET_PREFIX)base:$(TAG)
 	docker push $(TARGET_PREFIX)inbox:$(TAG)
 
+retag:
+	docker tag $(TARGET_PREFIX)base:$(TAG) $(TARGET_PREFIX)base:latest
+	docker tag $(TARGET_PREFIX)inbox:$(TAG) $(TARGET_PREFIX)inbox:latest
+
+clean-tag:
+	@echo "No way to remove $(TARGET_PREFIX)base:$(TAG) from docker hub at the moment"
+	@echo "No way to remove $(TARGET_PREFIX)inbox:$(TAG) from docker hub at the moment"
