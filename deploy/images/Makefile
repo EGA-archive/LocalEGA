@@ -56,15 +56,24 @@ pull-%:
 
 # Upload images
 push-%:
-	-@docker login -u "$(DOCKER_USER)" -p "$(DOCKER_PASSWORD)"
+	-@echo -n "$(DOCKER_PASSWORD)" | docker login -u "$(DOCKER_USER)" --password-stdin
 	docker push $(TARGET_PREFIX)$(@:push-%=%):$(IMGTAG)
 
 # Retag 
 retag:
-	-@docker login -u "$(DOCKER_USER)" -p "$(DOCKER_PASSWORD)"
+	-@echo -n "$(DOCKER_PASSWORD)" | docker login -u "$(DOCKER_USER)" --password-stdin
 	docker tag $(TARGET_PREFIX)base:$(TAG) $(TARGET_PREFIX)base:latest
 	docker tag $(TARGET_PREFIX)inbox:$(TAG) $(TARGET_PREFIX)inbox:latest
 
 clean-tag:
 	@echo "No way to remove $(TARGET_PREFIX)base:$(TAG) from docker hub at the moment"
 	@echo "No way to remove $(TARGET_PREFIX)inbox:$(TAG) from docker hub at the moment"
+
+
+# Create the inbox base OS (here for convenience)
+inbox-os:
+	docker build \
+	       --build-arg LEGA_GID=$(LEGA_GID) \
+	       --cache-from $(TARGET_PREFIX)$@:latest \
+               --tag $(TARGET_PREFIX)$@:latest \
+               inbox
