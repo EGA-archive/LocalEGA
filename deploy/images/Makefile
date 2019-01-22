@@ -54,22 +54,18 @@ purge:
 	@$(call remove_dangling,)
 
 
-# Check if 
-check-%: $(MAIN_REPO)/Dockerfile.%
-	git diff --exit-code --quiet origin/master -- $< || make $(@:check-%=%)
-
 # Download images
 pull-%:
 	docker pull $(TARGET_PREFIX)$(@:pull-%=%):$(IMGTAG)
 
 # Upload images
 push-%:
-	-@echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin
+	-@docker login -u "$(DOCKER_USER)" -p "$(DOCKER_PASSWORD)"
 	docker push $(TARGET_PREFIX)$(@:push-%=%):$(IMGTAG)
 
 # Retag 
 retag:
-	-@echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin
+	-@docker login -u "$(DOCKER_USER)" -p "$(DOCKER_PASSWORD)"
 	docker tag $(TARGET_PREFIX)base:$(TAG) $(TARGET_PREFIX)base:latest
 	docker tag $(TARGET_PREFIX)inbox:$(TAG) $(TARGET_PREFIX)inbox:latest
 

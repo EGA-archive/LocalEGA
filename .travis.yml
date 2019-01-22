@@ -28,7 +28,6 @@ jobs:
         - cd deploy/images
         # Pulling image for layer caching
         - make -j 2 pull-base pull-inbox IMGTAG=latest
-        - make -j 2 check-base check-inbox
       script:
         - make -j 2
         - make -j 2 push-base push-inbox
@@ -42,7 +41,7 @@ jobs:
         - cd deploy
         - make -C images -j 2 pull-base pull-inbox
         - make prepare
-        - make bootstrap ARGS="--keyserver ega --image-tag PR${TRAVIS_PULL_REQUEST}"
+        - make bootstrap ARGS="--keyserver ega"
         - sudo chown -R travis private
         - make up OMIT="--scale res=0"
         - make preflight-check
@@ -59,7 +58,7 @@ jobs:
         - cd deploy
         - make -C images -j 2 pull-base pull-inbox
         - make prepare
-        - make bootstrap ARGS="--keyserver ega --image-tag PR${TRAVIS_PULL_REQUEST}"
+        - make bootstrap ARGS="--keyserver ega"
         - sudo chown -R travis private
         - make up OMIT="--scale res=0"
         - make preflight-check
@@ -80,7 +79,7 @@ jobs:
         - cd deploy
         - make -C images -j 2 pull-base pull-inbox
         - make prepare
-        - make bootstrap ARGS="--keyserver ega --image-tag PR${TRAVIS_PULL_REQUEST}"
+        - make bootstrap ARGS="--keyserver ega"
         - sudo chown -R travis private
         - make up OMIT="--scale res=0"
         - make preflight-check
@@ -89,6 +88,7 @@ jobs:
         - bats security
     # Retagging the images
     - stage: images
+      services: docker
       name: "Images Retag"
       before_script:
         - cd deploy/images

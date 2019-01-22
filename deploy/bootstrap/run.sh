@@ -16,7 +16,6 @@ INBOX=openssh
 INBOX_BACKEND=posix
 KEYSERVER=lega
 REAL_CEGA=no
-IMAGE_TAG=latest
 
 GEN_KEY=${EXTRAS}/generate_pgp_key.py
 PYTHONEXEC=python
@@ -341,7 +340,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF  # SFTP inbox
       - CEGA_ENDPOINT_JSON_PREFIX=response.result
     ports:
       - "${DOCKER_PORT_inbox}:9000"
-    image: egarchive/lega-inbox:${IMAGE_TAG}
+    image: egarchive/lega-inbox:latest
     volumes:
       - ./conf.ini:/etc/ega/conf.ini:ro
       - ../images/inbox/entrypoint.sh:/usr/local/bin/entrypoint.sh
@@ -356,7 +355,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     depends_on:
       - db
       - mq
-    image: egarchive/lega-base:${IMAGE_TAG}
+    image: egarchive/lega-base:latest
     container_name: finalize
     labels:
         lega_label: "finalize"
@@ -374,7 +373,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     depends_on:
       - db
       - mq
-    image: egarchive/lega-base:${IMAGE_TAG}
+    image: egarchive/lega-base:latest
     container_name: ingest
     labels:
         lega_label: "ingest"
@@ -428,7 +427,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     container_name: keys
     labels:
         lega_label: "keys"
-    image: egarchive/lega-base:${IMAGE_TAG}
+    image: egarchive/lega-base:latest
     expose:
       - "8443"
     environment:
@@ -461,7 +460,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     container_name: verify
     labels:
         lega_label: "verify"
-    image: egarchive/lega-base:${IMAGE_TAG}
+    image: egarchive/lega-base:latest
     environment:
       - LEGA_PASSWORD=${LEGA_PASSWORD}
       - VAULT_ACCESS_KEY=${S3_ACCESS_KEY}
@@ -587,7 +586,7 @@ services:
     hostname: cega-users
     ports:
       - "15671:80"
-    image: egarchive/lega-base:${IMAGE_TAG}
+    image: egarchive/lega-base:latest
     container_name: cega-users
     labels:
         lega_label: "cega-users"
