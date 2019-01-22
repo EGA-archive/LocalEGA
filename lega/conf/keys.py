@@ -1,7 +1,6 @@
 import os
 import configparser
 from pathlib import Path
-import yaml
 from hashlib import md5
 
 

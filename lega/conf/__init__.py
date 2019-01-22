@@ -32,6 +32,7 @@ _config_files = [
     '/etc/ega/conf.ini'
 ]
 
+
 class Configuration(configparser.ConfigParser):
     """Configuration from config_files or environment variables or config server (e.g. Spring Cloud Config)."""
 
