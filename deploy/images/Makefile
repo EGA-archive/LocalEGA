@@ -10,15 +10,14 @@ ifdef TRAVIS_PULL_REQUEST
 TAG=PR$(TRAVIS_PULL_REQUEST)
 endif
 
+IMGTAG=$(TAG)
+
 TARGET_PREFIX=egarchive/lega-
 
 LEGA_GID=1000
 
 # Must find better, but working so far
 MAIN_REPO := $(abspath $(dir $(abspath $(lastword $(MAKEFILE_LIST))))/../..)
-
-echo:
-	@echo "Main repo: $(MAIN_REPO)"
 
 .PHONY: all erase clean purge base inbox push
 
@@ -56,22 +55,19 @@ purge:
 
 
 # Check if 
-check-%: %/Dockerfile
+check-%: $(MAIN_REPO)/Dockerfile.%
 	git diff --exit-code --quiet origin/master -- $< || make $(@:check-%=%)
 
-check: check-base check-inbox
+# Download images
+pull-%:
+	docker pull $(TARGET_PREFIX)$(@:pull-%=%):$(IMGTAG)
 
-pull: TAG=latest
-pull pull-tag:
-	docker pull $(TARGET_PREFIX)base:$(TAG)
-	docker pull $(TARGET_PREFIX)inbox:$(TAG)
-
-push: TAG=latest
-push push-tag:
+# Upload images
+push-%:
 	-@echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin
-	docker push $(TARGET_PREFIX)base:$(TAG)
-	docker push $(TARGET_PREFIX)inbox:$(TAG)
+	docker push $(TARGET_PREFIX)$(@:push-%=%):$(IMGTAG)
 
+# Retag 
 retag:
 	-@echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin
 	docker tag $(TARGET_PREFIX)base:$(TAG) $(TARGET_PREFIX)base:latest

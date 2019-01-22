@@ -27,11 +27,11 @@ jobs:
       before_script:
         - cd deploy/images
         # Pulling image for layer caching
-        - make pull
-        - make check
+        - make -j 2 pull-base pull-inbox
+        - make -j 2 check-base check-inbox
       script:
-        - make -j 4
-        - make push-tag
+        - make -j 2
+        - make -j 2 push-base push-inbox
     - stage: tests
       name: "Integration Tests"
       services: docker
@@ -40,7 +40,7 @@ jobs:
         - git clone https://github.com/bats-core/bats-core.git
         - pushd bats-core && git checkout v1.1.0 && sudo ./install.sh /usr/local && popd
         - cd deploy
-        - make -C images pull-tag
+        - make -C images -j 2 pull-base pull-inbox
         - make prepare
         - make bootstrap ARGS="--keyserver ega --image-tag PR${TRAVIS_PULL_REQUEST}"
         - sudo chown -R travis private
@@ -57,6 +57,7 @@ jobs:
         - git clone https://github.com/bats-core/bats-core.git
         - pushd bats-core && git checkout v1.1.0 && sudo ./install.sh /usr/local && popd
         - cd deploy
+        - make -C images -j 2 pull-base pull-inbox
         - make prepare
         - make bootstrap ARGS="--keyserver ega --image-tag PR${TRAVIS_PULL_REQUEST}"
         - sudo chown -R travis private
@@ -77,6 +78,7 @@ jobs:
         - git clone https://github.com/bats-core/bats-core.git
         - pushd bats-core && git checkout v1.1.0 && sudo ./install.sh /usr/local && popd
         - cd deploy
+        - make -C images -j 2 pull-base pull-inbox
         - make prepare
         - make bootstrap ARGS="--keyserver ega --image-tag PR${TRAVIS_PULL_REQUEST}"
         - sudo chown -R travis private
@@ -91,9 +93,9 @@ jobs:
       before_script:
         - cd deploy/images
       script:
-        - make pull-tag
+        - make -j 2 pull-base pull-inbox
         - make retag
-        - make push
+        - make -j 2 push-base push-inbox
         - make clean-tag
     # #
     # # Old tests. Make them succeed with "|| :"
