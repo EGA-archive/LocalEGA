@@ -10,7 +10,8 @@ RUN apk add --no-cache \
 ##
 #################################################
 
-RUN addgroup lega && \
+ARG LEGA_GID=1000
+RUN addgroup -g ${LEGA_GID} lega && \
     adduser -D -G lega lega
 
 # RUN git clone https://github.com/EGA-archive/crypt4gh.git /root/crypt4gh && \

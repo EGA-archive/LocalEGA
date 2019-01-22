@@ -16,6 +16,8 @@ endif
 
 TARGET_PREFIX=egarchive/lega-
 
+LEGA_GID=1000
+
 .PHONY: all erase clean purge base inbox push
 
 all: base inbox
@@ -23,6 +25,7 @@ all: base inbox
 base inbox:
 	docker build \
 	       --build-arg checkout=$(CHECKOUT) \
+	       --build-arg LEGA_GID=$(LEGA_GID) \
 	       --cache-from $(TARGET_PREFIX)$@:latest \
                --tag $(TARGET_PREFIX)$@:$(TAG) \
                --tag $(TARGET_PREFIX)$@:latest \

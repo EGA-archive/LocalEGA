@@ -5,7 +5,8 @@ EXPOSE 9000
 VOLUME /ega/inbox
 
 # Before the EGA PAM lib is loaded
-RUN groupadd -r lega && \
+ARG LEGA_GID=1000
+RUN groupadd -r -g ${LEGA_GID} lega && \
     useradd -r -g lega lega
 
 #################################################
