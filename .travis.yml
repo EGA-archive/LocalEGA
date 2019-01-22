@@ -31,7 +31,7 @@ jobs:
         - make pull
         - make check
       script:
-        - make
+        - make -j 4
         - make push-tag
     - stage: tests
       name: "Integration Tests"
