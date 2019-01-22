@@ -18,10 +18,9 @@ RUN addgroup -g ${LEGA_GID} lega && \
 #     pip3.6 install -r /root/crypt4gh/requirements.txt && \
 #     rm -rf /root/crypt4gh
 
-ARG checkout=master
-RUN git clone https://github.com/EGA-archive/LocalEGA.git /root/LocalEGA && \
-    cd /root/LocalEGA && \
-    git checkout ${checkout}
+COPY setup.py /root/LocalEGA/setup.py
+COPY lega /root/LocalEGA/lega
+COPY requirements.txt /root/LocalEGA/requirements.txt
 
 RUN pip install -r /root/LocalEGA/requirements.txt && \
     pip install /root/LocalEGA && \

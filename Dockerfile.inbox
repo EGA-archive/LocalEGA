@@ -85,7 +85,7 @@ RUN git clone --branch ${OPENSSH_TAG} git://anongit.mindrot.org/openssh.git /roo
 	--without-kerberos5 \
         --with-libedit
 
-COPY notify_cega.patch /root/openssh/notify_cega.patch
+COPY deploy/images/inbox/notify_cega.patch /root/openssh/notify_cega.patch
 
 RUN cd /root/openssh && \
     patch -p0 < notify_cega.patch && \
@@ -99,8 +99,8 @@ RUN rm -f /etc/ssh/ssh_host_{rsa,dsa,ed25519}_key && \
 RUN rm -rf /root/openssh && \
     cp ${OPENSSH_DIR}/sbin/sshd ${OPENSSH_DIR}/sbin/ega
 
-COPY banner /ega/banner
-COPY sshd_config /etc/ega/sshd_config
+COPY deploy/images/inbox/banner /ega/banner
+COPY deploy/images/inbox/sshd_config /etc/ega/sshd_config
 
 #################################################
 ##
@@ -120,7 +120,7 @@ RUN git clone https://github.com/EGA-archive/EGA-auth.git /root/ega-auth && \
 
 RUN ldconfig -v
 
-COPY pam.ega /etc/pam.d/ega
+COPY deploy/images/inbox/pam.ega /etc/pam.d/ega
 
 #################################################
 ##
@@ -158,13 +158,11 @@ RUN gosu nobody true
 RUN pip3.6 install --upgrade pip && \
     pip3.6 install PyYaml pika==0.12.0 uvloop
 
-ARG checkout=master
-RUN git clone https://github.com/ega-archive/LocalEGA.git /root/LocalEGA && \
-    cd /root/LocalEGA && \
-    git checkout ${checkout} && cd && \
-    pip3.6 install /root/LocalEGA && \
+COPY setup.py /root/LocalEGA/setup.py
+COPY lega /root/LocalEGA/lega
+
+RUN pip install /root/LocalEGA && \
     rm -rf /root/LocalEGA
-    
 
 #################################################
 ##
@@ -177,6 +175,6 @@ RUN yum -y remove dpkg && \
 
 #################################################
 
-COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+COPY deploy/images/inbox/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod 755 /usr/local/bin/entrypoint.sh
 ENTRYPOINT ["entrypoint.sh"]

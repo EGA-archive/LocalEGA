@@ -23,9 +23,9 @@ jobs:
       script: tox
     - stage: preflight
       services: docker
-      name: "Pre-images"
+      name: "Images build"
       before_script:
-        - cd docker/images
+        - cd deploy/images
         - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin
         # Pulling image for layer caching
         - make pull
@@ -88,9 +88,9 @@ jobs:
         - bats security
     # Retagging the images
     - stage: images
-      name: "Images Build"
+      name: "Images Retag"
       before_script:
-        - cd docker/images
+        - cd deploy/images
         - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin
       script:
         - make pull-tag

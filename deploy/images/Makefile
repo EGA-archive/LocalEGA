@@ -1,9 +1,5 @@
 SHELL := /bin/bash
 
-ifndef CHECKOUT
-CHECKOUT=$(shell git rev-parse --abbrev-ref HEAD)
-endif
-
 TAG=$(shell git rev-parse --short HEAD)
 
 ifdef TRAVIS_COMMIT
@@ -18,18 +14,24 @@ TARGET_PREFIX=egarchive/lega-
 
 LEGA_GID=1000
 
+# Must find better, but working so far
+MAIN_REPO := $(abspath $(dir $(abspath $(lastword $(MAKEFILE_LIST))))/../..)
+
+echo:
+	@echo "Main repo: $(MAIN_REPO)"
+
 .PHONY: all erase clean purge base inbox push
 
 all: base inbox
 
 base inbox:
-	docker build \
-	       --build-arg checkout=$(CHECKOUT) \
+	cd $(MAIN_REPO) && \
+	docker build -f Dockerfile.$@ \
 	       --build-arg LEGA_GID=$(LEGA_GID) \
 	       --cache-from $(TARGET_PREFIX)$@:latest \
                --tag $(TARGET_PREFIX)$@:$(TAG) \
                --tag $(TARGET_PREFIX)$@:latest \
-               $@
+               .
 
 define clean_tag
     docker images $(1) --format "{{.Repository}} {{.Tag}}" | \
@@ -66,10 +68,12 @@ pull pull-tag:
 
 push: TAG=latest
 push push-tag:
+	-@echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin
 	docker push $(TARGET_PREFIX)base:$(TAG)
 	docker push $(TARGET_PREFIX)inbox:$(TAG)
 
 retag:
+	-@echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin
 	docker tag $(TARGET_PREFIX)base:$(TAG) $(TARGET_PREFIX)base:latest
 	docker tag $(TARGET_PREFIX)inbox:$(TAG) $(TARGET_PREFIX)inbox:latest
 
