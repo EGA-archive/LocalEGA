@@ -2,7 +2,7 @@ import unittest
 from lega.verify import main, get_records, work
 from unittest import mock
 from test.support import EnvironmentVarGuard
-from testfixtures import tempdir
+from testfixtures import tempdir, TempDirectory
 from . import pgp_data
 import io
 from urllib.error import HTTPError
@@ -61,11 +61,17 @@ class testVerify(unittest.TestCase):
     def setUp(self):
         """Initialise fixtures."""
         self.env = EnvironmentVarGuard()
+        self._dir = TempDirectory()
+        self.outputdir = self._dir.makedir('output')
+        self.env = EnvironmentVarGuard()
+        self.env.set('VAULT_LOCATION', self.outputdir + '/%s/')
         self.env.set('LEGA_PASSWORD', 'value')
         self.env.set('QUALITY_CONTROL_VERIFY_CERTIFICATE', 'True')
 
     def tearDown(self):
         """Remove setup variables."""
+        self.env.unset('VAULT_LOCATION')
+        self._dir.cleanup_all()
         self.env.unset('LEGA_PASSWORD')
         self.env.unset('QUALITY_CONTROL_VERIFY_CERTIFICATE')
 
@@ -137,9 +143,10 @@ class testVerify(unittest.TestCase):
                     get_records(f)
         filedir.cleanup()
 
+    @mock.patch('lega.ingest.getattr')
     @mock.patch('lega.verify.get_connection')
     @mock.patch('lega.verify.consume')
-    def test_main(self, mock_consume, mock_connection):
+    def test_main(self, mock_consume, mock_connection, mock_getattr):
         """Test main verify, by mocking cosume call."""
         mock_consume.return_value = mock.MagicMock()
         main()

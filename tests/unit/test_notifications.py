@@ -54,7 +54,7 @@ class testForwarder(unittest.TestCase):
         self._forwarder.data_received(b'user$file.name$user$/to')
         self._forwarder.send_message.assert_called_with('user', 'file.name')
         self._forwarder.data_received(b'to4.txt$us')
-        self._forwarder.send_message.assert_called_with('user', 'toto4.txt')
+        self._forwarder.send_message.assert_called_with('user', '/toto4.txt')
         self._forwarder.data_received(b'er$test.fi')
         self._forwarder.data_received(b'le$')
         self._forwarder.send_message.assert_called_with('user', 'test.file')
