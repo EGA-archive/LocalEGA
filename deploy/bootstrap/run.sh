@@ -328,6 +328,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
         lega_label: "finalize"
     volumes:
        - ./conf.ini:/etc/ega/conf.ini:ro
+       - ./../../lega:/home/lega/.local/lib/python3.6/site-packages/lega
     restart: on-failure:3
     networks:
       - lega
@@ -350,6 +351,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     volumes:
        - inbox:/ega/inbox
        - ./conf.ini:/etc/ega/conf.ini:ro
+       - ./../../lega:/home/lega/.local/lib/python3.6/site-packages/lega
     restart: on-failure:3
     networks:
       - lega
@@ -403,6 +405,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
        - ./certs/ssl.key:/etc/ega/ssl.key:ro
        - ./pgp/ega.sec:/etc/ega/pgp/ega.sec:ro
        - ./pgp/ega2.sec:/etc/ega/pgp/ega2.sec:ro
+       - ./../../lega:/home/lega/.local/lib/python3.6/site-packages/lega
     restart: on-failure:3
     networks:
       - lega
