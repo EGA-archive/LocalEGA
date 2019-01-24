@@ -213,10 +213,8 @@ class S3Storage():
         endpoint = CONF.get_value('vault', 'url')
         region = CONF.get_value('vault', 'region')
         bucket = CONF.get_value('vault', 'bucket', default='lega')
-        # access_key = CONF.get_value('vault', 'access_key')
-        # secret_key = CONF.get_value('vault', 'secret_key')
-        access_key = os.environ['S3_ACCESS_KEY']
-        secret_key = os.environ['S3_SECRET_KEY']
+        access_key = CONF.get_value('vault', 'access_key')
+        secret_key = CONF.get_value('vault', 'secret_key')
         self.s3 = boto3.client('s3',
                                endpoint_url=endpoint,
                                region_name=region,
