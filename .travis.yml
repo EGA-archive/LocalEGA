@@ -8,7 +8,6 @@ git:
 
 stages:
   - name: tests
-    if: type IN (push, pull_request)
   - name: images
     if: type = pull_request AND branch = master
 
