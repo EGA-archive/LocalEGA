@@ -105,7 +105,7 @@ jobs:
         - make preflight-check
       script:
         - cd tests
-        - mvn test -Dtest=RobustnessTests || echo 'Nope'
+        - mvn test -Dtest=RobustnessTests
 
     - stage: images
       name: "Images Build"
