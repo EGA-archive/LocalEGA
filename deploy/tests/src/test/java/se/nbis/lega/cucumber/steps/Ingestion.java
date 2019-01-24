@@ -27,15 +27,10 @@ public class Ingestion implements En {
         Utils utils = context.getUtils();
 
         Given("^I have CEGA MQ username and password$", () -> {
-            try {
-                context.setCegaMQUser(utils.readTraceProperty("CEGA_MQ_USER"));
-                context.setCegaMQPassword(utils.readTraceProperty("CEGA_MQ_PASSWORD"));
-                context.setCegaMQVHost(utils.getProperty("instance.name"));
-                context.setRoutingKey(utils.getProperty("instance.name"));
-            } catch (IOException e) {
-                log.error(e.getMessage(), e);
-                Assert.fail(e.getMessage());
-            }
+            context.setCegaMQUser(utils.getProperty("cega.user"));
+            context.setCegaMQPassword(utils.getProperty("cega.password"));
+            context.setCegaMQVHost(utils.getProperty("instance.name"));
+            context.setRoutingKey(utils.getProperty("instance.name"));
         });
 
         When("^I turn off the keyserver$", () -> utils.stopContainer(utils.findContainer(utils.getProperty("container.label.keys"))));
@@ -145,7 +140,7 @@ public class Ingestion implements En {
     private void ingestFile(Context context) {
         try {
             Utils utils = context.getUtils();
-            utils.publishCEGA(String.format("amqp://%s:%s@localhost:5672/%s",
+            utils.publishCEGA(String.format("amqp://%s:%s@localhost:5670/%s",
                     context.getCegaMQUser(),
                     context.getCegaMQPassword(),
                     context.getCegaMQVHost()),

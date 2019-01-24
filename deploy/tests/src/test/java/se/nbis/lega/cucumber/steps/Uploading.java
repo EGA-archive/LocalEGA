@@ -35,7 +35,7 @@ public class Uploading implements En {
                 }
                 File encryptedFile = new File(rawFile.getAbsolutePath() + ".enc");
                 byte[] digest = DigestUtils.sha256(FileUtils.openInputStream(rawFile));
-                String key = FileUtils.readFileToString(new File(String.format("%s/%s/pgp/ega.pub", utils.getPrivateFolderPath(), utils.getProperty("instance.name"))), Charset.defaultCharset());
+                String key = FileUtils.readFileToString(new File(String.format("%s/pgp/ega.pub", utils.getPrivateFolderPath())), Charset.defaultCharset());
                 FileOutputStream fileOutputStream = new FileOutputStream(encryptedFile);
                 Crypt4GHOutputStream crypt4GHOutputStream = new Crypt4GHOutputStream(fileOutputStream, key, digest);
                 context.setSessionKey(Hex.encodeHexString(crypt4GHOutputStream.getSessionKeyBytes()));

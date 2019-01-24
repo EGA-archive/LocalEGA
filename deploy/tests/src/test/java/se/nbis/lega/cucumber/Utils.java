@@ -66,7 +66,16 @@ public class Utils {
      * @return Absolute path or a private folder.
      */
     public String getPrivateFolderPath() {
-        return Paths.get("").toAbsolutePath().getParent().toString() + getProperty("private.folder.name");
+        return Paths.get("").toAbsolutePath().getParent().getParent().toString() + getProperty("private.folder.path");
+    }
+
+    /**
+     * Gets absolute path or a common folder.
+     *
+     * @return Absolute path or a common folder.
+     */
+    public String getCommonFolderPath() {
+        return Paths.get("").toAbsolutePath().getParent().getParent().toString() + getProperty("common.folder.path");
     }
 
     /**
@@ -151,7 +160,7 @@ public class Utils {
      * @throws IOException In case it's not possible to read trace file.
      */
     public String readTraceProperty(String property) throws IOException {
-        File trace = new File(String.format("%s/%s/%s", getPrivateFolderPath(), getProperty("instance.name"), getProperty("trace.file.name")));
+        File trace = new File(String.format("%s/%s", getPrivateFolderPath(), getProperty("trace.file.name")));
         return FileUtils.readLines(trace, Charset.defaultCharset()).
                 stream().
                 filter(l -> l.startsWith(property)).

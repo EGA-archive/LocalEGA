@@ -26,7 +26,6 @@ public class BeforeAfterHooks implements En {
     @SuppressWarnings("ResultOfMethodCallIgnored")
     @Before
     public void setUp() throws IOException {
-        context.getUtils().waitForInitializationToComplete();
         File dataFolder = new File("data");
         dataFolder.mkdir();
         File rawFile = File.createTempFile("data", ".raw", dataFolder);

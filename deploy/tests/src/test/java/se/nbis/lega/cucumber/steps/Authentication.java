@@ -1,5 +1,7 @@
 package se.nbis.lega.cucumber.steps;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import cucumber.api.java8.En;
 import lombok.extern.slf4j.Slf4j;
 import net.schmizz.sshj.SSHClient;
@@ -12,37 +14,50 @@ import org.apache.commons.io.FileUtils;
 import org.junit.Assert;
 import se.nbis.lega.cucumber.Context;
 import se.nbis.lega.cucumber.Utils;
+import se.nbis.lega.cucumber.pojo.User;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.List;
 
 @Slf4j
 public class Authentication implements En {
+
+    private ObjectMapper objectMapper = new ObjectMapper();
+
+    {
+        objectMapper.enable(SerializationFeature.INDENT_OUTPUT);
+    }
 
     public Authentication(Context context) {
         Utils utils = context.getUtils();
 
         Given("^I have an account at Central EGA$", () -> {
-            String cegaUsersFolderPath = utils.getPrivateFolderPath() + "/cega/users/" + utils.getProperty("instance.name");
-            String user = context.getUser();
+            String cegaUsersFolderPath = utils.getCommonFolderPath();
+            String username = context.getUser();
             try {
                 generateKeypair(context);
                 byte[] keyBytes = new Buffer.PlainBuffer().putPublicKey(context.getKeyProvider().getPublic()).getCompactData();
                 String publicKey = Base64.getEncoder().encodeToString(keyBytes);
-                File userYML = new File(String.format(cegaUsersFolderPath + "/%s.yml", user));
-                FileUtils.writeLines(userYML, Arrays.asList("---",
-                        "username: " + user,
-                        "uid: " + Math.abs(new SecureRandom().nextInt()),
-                        "gecos: EGA User " + user,
-                        "pubkey: ssh-rsa " + publicKey));
+                User user = new User();
+                user.setUsername(username);
+                user.setUid(Math.abs(new SecureRandom().nextInt()));
+                user.setSshPublicKey("ssh-rsa " + publicKey);
+                File usersJSON = new File(cegaUsersFolderPath + "/users.json");
+                List<String> lines = FileUtils.readLines(usersJSON, Charset.defaultCharset());
+                lines = lines.subList(0, lines.size() - 1);
+                lines.add("},");
+                lines.add(objectMapper.writeValueAsString(user) + "]");
+                FileUtils.writeLines(usersJSON, lines);
             } catch (IOException e) {
-                log.error(e.getMessage(), e);
+                throw new RuntimeException(e.getMessage(), e);
             }
         });
 
@@ -116,7 +131,7 @@ public class Authentication implements En {
         } catch (UserAuthException | SFTPException e) {
             context.setAuthenticationFailed(true);
         } catch (IOException e) {
-            log.error(e.getMessage(), e);
+            throw new RuntimeException(e.getMessage(), e);
         }
     }
 
