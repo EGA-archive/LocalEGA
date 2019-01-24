@@ -73,6 +73,7 @@ jobs:
     - stage: tests
       name: "Cucumber Ingestion Tests"
       before_script:
+        - pip3 install -r requirements.txt
         - cd deploy
         - make prepare
         - make bootstrap ARGS='--inbox mina --keyserver ega'
@@ -85,6 +86,7 @@ jobs:
     - stage: tests
       name: "Cucumber Outgestion Tests"
       before_script:
+        - pip3 install -r requirements.txt
         - cd deploy
         - make prepare
         - make bootstrap ARGS='--inbox mina --keyserver ega'
@@ -97,6 +99,7 @@ jobs:
     - stage: tests
       name: "Cucumber Robustness Tests"
       before_script:
+        - pip3 install -r requirements.txt
         - cd deploy
         - make prepare
         - make bootstrap ARGS='--inbox mina --keyserver ega'
