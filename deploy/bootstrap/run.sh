@@ -328,6 +328,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
         lega_label: "finalize"
     volumes:
        - ./conf.ini:/etc/ega/conf.ini:ro
+       - ./../../lega:/home/lega/.local/lib/python3.6/site-packages/lega
     restart: on-failure:3
     networks:
       - lega
@@ -343,13 +344,14 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     labels:
         lega_label: "ingest"
     environment:
-      - S3_ACCESS_KEY=${S3_ACCESS_KEY}
-      - S3_SECRET_KEY=${S3_SECRET_KEY}
+      - VAULT_ACCESS_KEY=${S3_ACCESS_KEY}
+      - VAULT_SECRET_KEY=${S3_SECRET_KEY}
       - AWS_ACCESS_KEY_ID=${S3_ACCESS_KEY}
       - AWS_SECRET_ACCESS_KEY=${S3_SECRET_KEY}
     volumes:
        - inbox:/ega/inbox
        - ./conf.ini:/etc/ega/conf.ini:ro
+       - ./../../lega:/home/lega/.local/lib/python3.6/site-packages/lega
     restart: on-failure:3
     networks:
       - lega
@@ -403,6 +405,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
        - ./certs/ssl.key:/etc/ega/ssl.key:ro
        - ./pgp/ega.sec:/etc/ega/pgp/ega.sec:ro
        - ./pgp/ega2.sec:/etc/ega/pgp/ega2.sec:ro
+       - ./../../lega:/home/lega/.local/lib/python3.6/site-packages/lega
     restart: on-failure:3
     networks:
       - lega
@@ -424,8 +427,8 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     image: nbisweden/ega-base:latest
     environment:
       - LEGA_PASSWORD=${LEGA_PASSWORD}
-      - S3_ACCESS_KEY=${S3_ACCESS_KEY}
-      - S3_SECRET_KEY=${S3_SECRET_KEY}
+      - VAULT_ACCESS_KEY=${S3_ACCESS_KEY}
+      - VAULT_SECRET_KEY=${S3_SECRET_KEY}
       - AWS_ACCESS_KEY_ID=${S3_ACCESS_KEY}
       - AWS_SECRET_ACCESS_KEY=${S3_SECRET_KEY}
     volumes:
@@ -597,8 +600,8 @@ DB_LEGA_OUT_USER          = lega_out
 CEGA_CONNECTION           = ${CEGA_CONNECTION}
 CEGA_ENDPOINT_CREDS       = ${CEGA_USERS_CREDS}
 #
-S3_ACCESS_KEY             = ${S3_ACCESS_KEY}
-S3_SECRET_KEY             = ${S3_SECRET_KEY}
+VAULT_ACCESS_KEY             = ${S3_ACCESS_KEY}
+VAULT_SECRET_KEY             = ${S3_SECRET_KEY}
 #
 DOCKER_PORT_inbox         = ${DOCKER_PORT_inbox}
 DOCKER_PORT_mq            = ${DOCKER_PORT_mq}

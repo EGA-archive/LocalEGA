@@ -58,15 +58,15 @@ class TestS3Storage(unittest.TestCase):
         self.env = EnvironmentVarGuard()
         self.env.set('VAULT_URL', 'http://localhost:5000')
         self.env.set('VAULT_REGION', 'lega')
-        self.env.set('S3_ACCESS_KEY', 'test')
-        self.env.set('S3_SECRET_KEY', 'test')
+        self.env.set('VAULT_ACCESS_KEY', 'test')
+        self.env.set('VAULT_SECRET_KEY', 'test')
 
     def tearDown(self):
         """Remove setup variables."""
         self.env.unset('VAULT_URL')
         self.env.unset('VAULT_REGION')
-        self.env.unset('S3_ACCESS_KEY')
-        self.env.unset('S3_SECRET_KEY')
+        self.env.unset('VAULT_ACCESS_KEY')
+        self.env.unset('VAULT_SECRET_KEY')
         self._dir.cleanup_all()
 
     @mock.patch.object(boto3, 'client')
