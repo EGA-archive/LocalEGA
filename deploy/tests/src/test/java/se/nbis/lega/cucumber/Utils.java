@@ -196,60 +196,6 @@ public class Utils {
     }
 
     /**
-     * Gets all LocalEGA Docker containers.
-     *
-     * @return All LocalEGA Docker containers.
-     */
-    public Collection<Container> getAllLocalEGAContainers() {
-        return dockerClient.listContainersCmd().withShowAll(true).withLabelFilter("lega_label").exec();
-    }
-
-    /**
-     * Restarts all the LocalEGA containers.
-     */
-    public void restartAllLocalEGAContainers() {
-        Collection<Container> allLocalEGAContainers = getAllLocalEGAContainers();
-        allLocalEGAContainers.parallelStream().forEach(this::stopContainer);
-        safeSleep(10000);
-        allLocalEGAContainers.parallelStream().forEach(this::startContainer);
-        waitForInitializationToComplete();
-    }
-
-    /**
-     * Waits for all LocalEGA containers to initialize.
-     */
-    public void waitForInitializationToComplete() {
-        Collection<Container> containers = getAllLocalEGAContainers();
-        long maxTimeout = Long.parseLong(getProperty("initialization.max-timeout"));
-        long timeout = 0;
-        while (containers.isEmpty() || !containers.stream().map(Container::getStatus).allMatch(s -> s.startsWith("Up"))) {
-            if (containers.isEmpty()) {
-                containers = getAllLocalEGAContainers();
-            }
-            safeSleep(1000);
-            timeout += 1000;
-            if (timeout > maxTimeout) {
-                throw new RuntimeException(String.format("The system was not initialized in time: initialization.max-timeout = %s", maxTimeout));
-            }
-        }
-        // Sleep a bit more to let containers not only start up, but finish initialization.
-        safeSleep(Long.parseLong(getProperty("initialization.delay")));
-    }
-
-    /**
-     * Sleeps for some time without throwing an exception (to make it easier to use in lambdas).
-     *
-     * @param millis Time to sleep in milliseconds.
-     */
-    private void safeSleep(long millis) {
-        try {
-            Thread.sleep(millis);
-        } catch (InterruptedException e) {
-            log.error(e.getMessage(), e);
-        }
-    }
-
-    /**
      * Calculates hash of a file.
      *
      * @param file             File to calculate hash for.
