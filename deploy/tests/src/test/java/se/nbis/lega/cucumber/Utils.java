@@ -210,6 +210,7 @@ public class Utils {
     public void restartAllLocalEGAContainers() {
         Collection<Container> allLocalEGAContainers = getAllLocalEGAContainers();
         allLocalEGAContainers.parallelStream().forEach(this::stopContainer);
+        safeSleep(5000);
         allLocalEGAContainers.parallelStream().forEach(this::startContainer);
         waitForInitializationToComplete();
     }
