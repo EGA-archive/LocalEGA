@@ -92,16 +92,6 @@ public class Authentication implements En {
 
         When("^I am disconnected from the LocalEGA inbox$", () -> Assert.assertFalse(isConnected(context)));
 
-//        When("^inbox is not created for me$", () -> {
-//            try {
-//                disconnect(context);
-//                utils.removeUserInbox(context.getUser());
-//                connect(context);
-//            } catch (InterruptedException e) {
-//                log.error(e.getMessage(), e);
-//            }
-//        });
-
         Then("^I'm logged in successfully$", () -> Assert.assertFalse(context.isAuthenticationFailed()));
 
         Then("^authentication fails$", () -> Assert.assertTrue(context.isAuthenticationFailed()));

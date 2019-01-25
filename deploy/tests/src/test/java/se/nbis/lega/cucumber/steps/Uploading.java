@@ -74,26 +74,6 @@ public class Uploading implements En {
             }
         });
 
-//        When("^I upload companion files to the LocalEGA inbox via SFTP$", () -> {
-//            try {
-//                HashingAlgorithm hashingAlgorithm = HashingAlgorithm.MD5;
-//                context.setHashingAlgorithm(hashingAlgorithm);
-//                String encFilePath = context.getEncryptedFile().getAbsolutePath();
-//                File rawChecksumFile = new File(encFilePath.substring(0, encFilePath.lastIndexOf(".")) + "." + hashingAlgorithm.name().toLowerCase());
-//                File encChecksumFile = new File(encFilePath + "." + hashingAlgorithm.name().toLowerCase());
-//                String rawChecksum = utils.calculateChecksum(context.getRawFile(), hashingAlgorithm);
-//                context.setRawChecksum(rawChecksum);
-//                FileUtils.write(rawChecksumFile, rawChecksum, Charset.defaultCharset());
-//                String encChecksum = utils.calculateChecksum(context.getEncryptedFile(), hashingAlgorithm);
-//                context.setEncChecksum(encChecksum);
-//                FileUtils.write(encChecksumFile, encChecksum, Charset.defaultCharset());
-//                context.getSftp().put(rawChecksumFile.getAbsolutePath(), rawChecksumFile.getName());
-//                context.getSftp().put(encChecksumFile.getAbsolutePath(), encChecksumFile.getName());
-//            } catch (IOException e) {
-//                log.error(e.getMessage(), e);
-//            }
-//        });
-
         Then("^the file is uploaded successfully$", () -> {
             try {
                 Assert.assertTrue(context.getSftp().ls("/").stream().map(RemoteResourceInfo::getName).anyMatch(n -> context.getEncryptedFile().getName().equals(n)));

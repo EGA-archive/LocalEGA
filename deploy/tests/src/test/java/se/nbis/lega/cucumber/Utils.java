@@ -128,19 +128,6 @@ public class Utils {
         return executeWithinContainer(dbContainer, "psql", connectionString, "-c", query);
     }
 
-//    /**
-//     * Removes the user's inbox.
-//     *
-//     * @param user     Username.
-//     * @throws InterruptedException In case the query execution is interrupted.
-//     */
-//    public void removeUserInbox(String user) throws InterruptedException {
-//        executeWithinContainer(findContainer(getProperty("images.name.inbox"), getProperty("container.name.inbox")),
-//                String.format("umount -l %s/%s", getProperty("inbox.fuse.folder.path"), user).split(" "));
-//        executeWithinContainer(findContainer(getProperty("images.name.inbox"), getProperty("container.name.inbox")),
-//                String.format("rm -rf %s/%s", getProperty("inbox.real.folder.path"), user).split(" "));
-//    }
-
     /**
      * Removes the uploaded file from the inbox.
      *
@@ -221,12 +208,9 @@ public class Utils {
      * Restarts all the LocalEGA containers.
      */
     public void restartAllLocalEGAContainers() {
-        getAllLocalEGAContainers().
-                stream().
-                peek(this::stopContainer).
-                peek(c -> safeSleep(5000)).
-                peek(this::startContainer).
-                forEach(c -> safeSleep(5000));
+        Collection<Container> allLocalEGAContainers = getAllLocalEGAContainers();
+        allLocalEGAContainers.parallelStream().forEach(this::stopContainer);
+        allLocalEGAContainers.parallelStream().forEach(this::startContainer);
         waitForInitializationToComplete();
     }
 
@@ -298,20 +282,6 @@ public class Utils {
         message.setUser(user);
         message.setFilepath(encryptedFileName);
         message.setStableID("EGAF" + UUID.randomUUID().toString().toLowerCase());
-
-//        if (StringUtils.isNotEmpty(rawChecksum)) {
-//            Checksum unencrypted = new Checksum();
-//            unencrypted.setAlgorithm(hashingAlgorithm.toLowerCase());
-//            unencrypted.setChecksum(rawChecksum);
-//            message.setUnencryptedIntegrity(unencrypted);
-//        }
-//
-//        if (StringUtils.isNotEmpty(encChecksum)) {
-//            Checksum encrypted = new Checksum();
-//            encrypted.setAlgorithm(hashingAlgorithm.toLowerCase());
-//            encrypted.setChecksum(encChecksum);
-//            message.setEncryptedIntegrity(encrypted);
-//        }
 
         ConnectionFactory factory = new ConnectionFactory();
         factory.setUri(connection);

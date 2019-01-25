@@ -29,7 +29,6 @@ public class BeforeAfterHooks implements En {
         File dataFolder = new File("data");
         dataFolder.mkdir();
         File rawFile = File.createTempFile("data", ".raw", dataFolder);
-        FileUtils.writeStringToFile(rawFile, "hello", Charset.defaultCharset());
         context.setDataFolder(dataFolder);
         context.setRawFile(rawFile);
         context.setUser(UUID.randomUUID().toString());
