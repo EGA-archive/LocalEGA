@@ -151,7 +151,7 @@ def get_info(file_id):
     """Retrieve information for ``file_id``."""
     with connect() as conn:
         with conn.cursor() as cur:
-            query = 'SELECT inbox_path, vault_path, stable_id, header from local_ega.files WHERE id = %(file_id)s;'
+            query = 'SELECT inbox_path, archive_path, stable_id, header from local_ega.files WHERE id = %(file_id)s;'
             cur.execute(query, {'file_id': file_id})
             return cur.fetchone()
 
@@ -206,22 +206,22 @@ def store_header(file_id, header):
                          'header': header})
 
 
-def set_archived(file_id, vault_path, vault_filesize):
+def set_archived(file_id, archive_path, archive_filesize):
     """Archive ``file_id``."""
     assert file_id, 'Eh? No file_id?'
-    assert vault_path, 'Eh? No vault name?'
+    assert archive_path, 'Eh? No archive name?'
     LOG.debug(f'Setting status to archived for file_id {file_id}')
     with connect() as conn:
         with conn.cursor() as cur:
             cur.execute('UPDATE local_ega.files '
                         'SET status = %(status)s, '
-                        '    vault_path = %(vault_path)s, '
-                        '    vault_filesize = %(vault_filesize)s '
+                        '    archive_path = %(archive_path)s, '
+                        '    archive_filesize = %(archive_filesize)s '
                         'WHERE id = %(file_id)s;',
                         {'status': 'ARCHIVED',
                          'file_id': file_id,
-                         'vault_path': vault_path,
-                         'vault_filesize': vault_filesize})
+                         'archive_path': archive_path,
+                         'archive_filesize': archive_filesize})
 
 
 ######################################

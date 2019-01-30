@@ -82,9 +82,9 @@ def work(fs, inbox_fs, channel, data):
         LOG.info(f'[{fs.__class__.__name__}] Moving the rest of {filepath} to {target}')
         target_size = fs.copy(infile, target)  # It will copy the rest only
 
-        LOG.info(f'Vault copying completed. Updating database')
+        LOG.info(f'Archive copying completed. Updating database')
         db.set_archived(file_id, target, target_size)
-        data['vault_path'] = target
+        data['archive_path'] = target
 
     LOG.debug(f"Reply message: {data}")
     return data

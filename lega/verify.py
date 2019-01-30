@@ -4,7 +4,7 @@
 """This module reads a message from the ``archived`` queue, and attempts to decrypt the file.
 
 The decryption includes a checksum step.
-It the checksum is valid, we consider that the vault has a properly
+It the checksum is valid, we consider that the archive has a properly
 stored file. In such case, a message is sent to the local exchange
 with the routing key: ``completed``.
 
@@ -67,18 +67,18 @@ def get_records(header):
 @db.catch_error
 @db.crypt4gh_to_user_errors
 def work(chunk_size, mover, channel, data):
-    """Verify that the file in the vault can be properly decrypted."""
+    """Verify that the file in the archive can be properly decrypted."""
     LOG.info('Verification | message: %s', data)
 
     file_id = data['file_id']
     header = bytes.fromhex(data['header'])[16:]  # in hex -> bytes, and take away 16 bytes
-    vault_path = data['vault_path']
+    archive_path = data['archive_path']
 
     # Get it from the header and the keyserver
     records, key_id = get_records(header)  # might raise exception
     r = records[0]  # only first one
 
-    LOG.info('Opening vault file: %s', vault_path)
+    LOG.info('Opening archive file: %s', archive_path)
     # If you can decrypt... the checksum is valid
 
     # Calculate the checksum of the original content
@@ -87,7 +87,7 @@ def work(chunk_size, mover, channel, data):
     def checksum_content(data):
         md.update(data)
 
-    with mover.open(vault_path, 'rb') as infile:
+    with mover.open(archive_path, 'rb') as infile:
         LOG.info('Decrypting (chunk size: %s)', chunk_size)
         body_decrypt(r, infile, process_output=checksum_content, chunk_size=chunk_size)
 
