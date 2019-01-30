@@ -16,7 +16,7 @@ CREATE USER lega_out;
 GRANT USAGE ON SCHEMA local_ega TO lega_in, lega_out;
 GRANT ALL PRIVILEGES ON ALL TABLES    IN SCHEMA local_ega TO lega_in; -- Read/Write access on local_ega.* for lega_in
 GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA local_ega TO lega_in; -- Don't forget the sequences
-GRANT SELECT ON local_ega.vault_files  TO lega_out;                    -- Read-Only access for lega_out
+GRANT SELECT ON local_ega.archive_files  TO lega_out;                    -- Read-Only access for lega_out
 GRANT SELECT ON local_ega.ebi_files    TO lega_out;                    -- Used by EBI
 GRANT SELECT ON local_ega.index_files  TO lega_out;                    -- Used by EBI
 GRANT SELECT ON local_ega.file2dataset TO lega_out;                    -- Used by EBI

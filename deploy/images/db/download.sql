@@ -13,7 +13,7 @@ CREATE TABLE local_ega_download.status (
 INSERT INTO local_ega_download.status(id,code,description)
 VALUES (10, 'INIT'        , 'Initializing a download request'),
        (20, 'REENCRYPTING', 'Re-Encrypting the header for a given user'),
-       (30, 'STREAMING'   , 'Streaming file from the Vault'),
+       (30, 'STREAMING'   , 'Streaming file from the Archive'),
        (40, 'DONE'        , 'Download completed'), -- checksums are in the Crypt4GH formatted file
                                                    -- and validated by the decryptor
        (0, 'ERROR'        , 'An Error occured, check the error table');
@@ -41,37 +41,37 @@ CREATE TABLE local_ega_download.main (
 );
 
 
--- Insert new request, and return some vault information
+-- Insert new request, and return some archive information
 CREATE TYPE request_type AS (req_id     INTEGER, -- local_ega_download.main.id%TYPE,
-                             file_id    INTEGER, -- local_ega.vault_files.id%TYPE,
-			     header     TEXT,    -- local_ega.vault_files.header%TYPE,
-			     vault_path TEXT,    -- local_ega.vault_files.vault_file_reference%TYPE,
-			     vault_type local_ega.storage);--local_ega.vault_files.vault_file_type%TYPE);
+                             file_id    INTEGER, -- local_ega.archive_files.id%TYPE,
+			     header     TEXT,    -- local_ega.archive_files.header%TYPE,
+			     archive_path TEXT,    -- local_ega.archive_files.archive_file_reference%TYPE,
+			     archive_type local_ega.storage);--local_ega.archive_files.archive_file_type%TYPE);
 
 CREATE FUNCTION make_request(sid local_ega.main.stable_id%TYPE)
 RETURNS request_type AS $make_request$
 #variable_conflict use_column
 DECLARE
      req  local_ega_download.request_type;
-     vault_rec local_ega.vault_files%ROWTYPE;
+     archive_rec local_ega.archive_files%ROWTYPE;
      rid  INTEGER;
 BEGIN
 
-     SELECT * INTO vault_rec FROM local_ega.vault_files WHERE stable_id = sid LIMIT 1;
+     SELECT * INTO archive_rec FROM local_ega.archive_files WHERE stable_id = sid LIMIT 1;
 
-     IF vault_rec IS NULL THEN
-     	RAISE EXCEPTION 'Vault file not found for stable_id: % ', sid;
+     IF archive_rec IS NULL THEN
+     	RAISE EXCEPTION 'Archive file not found for stable_id: % ', sid;
      END IF;
 
      INSERT INTO local_ega_download.main (file_id, status)
-     VALUES (vault_rec.id, 'INIT')
+     VALUES (archive_rec.id, 'INIT')
      RETURNING local_ega_download.main.id INTO rid;
 
      req.req_id     := rid;
-     req.file_id    := vault_rec.id;
-     req.header     := vault_rec.header;
-     req.vault_path := vault_rec.vault_file_reference;
-     req.vault_type := vault_rec.vault_file_type;
+     req.file_id    := archive_rec.id;
+     req.header     := archive_rec.header;
+     req.archive_path := archive_rec.archive_file_reference;
+     req.archive_type := archive_rec.archive_file_type;
      RETURN req;
 END;
 $make_request$ LANGUAGE plpgsql;
