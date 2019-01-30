@@ -38,7 +38,7 @@ using the ``--conf <file>`` switch to specify the configuration file.
 
 The settings are loaded, in order:
 
-* from environment variables (where the naming convention is uppercase ``section_option`` (as in ``default.ini``), e.g. ``VAULT_DRIVER`` or ``POSTGRES_DB``,
+* from environment variables (where the naming convention is uppercase ``section_option`` (as in ``default.ini``), e.g. ``ARCHIVE_DRIVER`` or ``POSTGRES_DB``,
 * from the package's ``defaults.ini``,
 * from the file ``/etc/ega/conf.ini`` (if it exists),
 * and finally from the file specified as the ``--conf`` argument.

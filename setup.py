@@ -8,7 +8,7 @@ setup(name='lega',
       author='EGA System Developers',
       description='Local EGA',
       long_description='''\
-LocalEGA ingests into its vault, files that are dropped in some inbox.
+LocalEGA ingests into its archive, files that are dropped in some inbox.
 
 The program is divided into several components interconnected via a
 message broker and a database.

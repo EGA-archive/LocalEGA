@@ -16,7 +16,7 @@ The workflow consists of two ordered parts:
 
 The user first logs onto the Local EGA's inbox and uploads its
 files. He/She then goes to the Central EGA's interface to prepare a
-submission. Upon completion, the files are ingested into the vault and
+submission. Upon completion, the files are ingested into the archive and
 become searchable by the Central EGA's engine.
 
 ----

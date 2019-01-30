@@ -45,7 +45,7 @@ Use `docker-compose up -d --scale ingest=3 --scale verify=5` instead,
 if you want to start 3 ingestion and 5 verification workers.
 
 Note that, in this architecture, we use separate volumes, e.g. for
-the inbox area, for the vault (here backed by S3). They
+the inbox area, for the archive (here backed by S3). They
 will be created on-the-fly by docker-compose.
 
 ## Stopping

@@ -52,16 +52,16 @@ use the stub implementation of CentralEGA and the following queues, per
 
 ``LegaMQ`` contains two exchanges named ``lega`` and ``cega``, and the following queues, in the default ``vhost``:
 
-+-----------------+-------------------------------------+
-| Name            | Purpose                             |
-+=================+=====================================+
-| files           | Trigger for file ingestion          |
-+-----------------+-------------------------------------+
-| archived        | The file is in the vault            |
-+-----------------+-------------------------------------+
-| qc              | The file is "verified" in the vault |
-|                 | and Quality Controllers can execute |
-+-----------------+-------------------------------------+
++-----------------+---------------------------------------+
+| Name            | Purpose                               |
++=================+=======================================+
+| files           | Trigger for file ingestion            |
++-----------------+---------------------------------------+
+| archived        | The file is in the archive            |
++-----------------+---------------------------------------+
+| qc              | The file is "verified" in the archive |
+|                 | and Quality Controllers can execute   |
++-----------------+---------------------------------------+
 
 ``LegaMQ`` registers ``CegaMQ`` as an *upstream* and listens to the
 incoming messages in ``files`` using a *federated queue*.  Ingestion

@@ -25,9 +25,9 @@ LocalEGA is divided into several components, as docker containers.
 | inbox       | SFTP server, acting as a dropbox, where user credentials are fetched from CentralEGA |
 | ingesters   | Split the Crypt4GH header and move the remainder to the storage backend. No cryptographic task, nor access to the decryption keys. |
 | verifiers   | Decrypt the stored files and checksum them against their embedded checksum. |
-| vault       | Storage backend: as a regular file system or as a S3 object store. |
+| archive     | Storage backend: as a regular file system or as a S3 object store. |
 | finalizers  | Handle the so-called _Stable ID_ filename mappings from CentralEGA. |
 | outgesters  | Front-facing checks for download permissions. |
-| streamers   | Fetch the files from the vault and re-encrypt its header for the given requester. |
+| streamers   | Fetch the files from the archive and re-encrypt its header for the given requester. |
 
 Find the [LocalEGA documentation](http://localega.readthedocs.io) hosted on [ReadTheDocs.org](https://readthedocs.org/).
