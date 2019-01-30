@@ -113,11 +113,11 @@ def main(args=None):
 
     CONF.setup(args)  # re-conf
 
-    store = getattr(storage, CONF.get_value('vault', 'driver', default='FileStorage'))
-    chunk_size = CONF.get_value('vault', 'chunk_size', conv=int, default=1 << 22)  # 4 MB
+    store = getattr(storage, CONF.get_value('archive', 'driver', default='FileStorage'))
+    chunk_size = CONF.get_value('archive', 'chunk_size', conv=int, default=1 << 22)  # 4 MB
 
     broker = get_connection('broker')
-    do_work = partial(work, chunk_size, store('vault', 'lega'), broker.channel())
+    do_work = partial(work, chunk_size, store('archive', 'lega'), broker.channel())
 
     consume(do_work, broker, 'archived', 'completed')
 

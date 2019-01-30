@@ -68,7 +68,7 @@ def work(fs, inbox_fs, channel, data):
     publish(org_msg, channel, 'cega', 'files.processing')
     org_msg.pop('status', None)
 
-    # Strip the header out and copy the rest of the file to the vault
+    # Strip the header out and copy the rest of the file to the archive
     LOG.debug('Opening %s', filepath)
     with inbox.open(filepath, 'rb') as infile:
         LOG.debug(f'Reading header | file_id: {file_id}')
@@ -98,9 +98,9 @@ def main(args=None):
     CONF.setup(args)  # re-conf
 
     inbox_fs = getattr(storage, CONF.get_value('inbox', 'driver', default='FileStorage'))
-    fs = getattr(storage, CONF.get_value('vault', 'driver', default='FileStorage'))
+    fs = getattr(storage, CONF.get_value('archive', 'driver', default='FileStorage'))
     broker = get_connection('broker')
-    do_work = partial(work, fs('vault', 'lega'), partial(inbox_fs, 'inbox'), broker.channel())
+    do_work = partial(work, fs('archive', 'lega'), partial(inbox_fs, 'inbox'), broker.channel())
 
     # upstream link configured in local broker
     consume(do_work, broker, 'files', 'archived')
