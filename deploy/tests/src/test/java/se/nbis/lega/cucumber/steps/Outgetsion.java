@@ -22,7 +22,7 @@ public class Outgetsion implements En {
         When("^I download archived file$", () -> {
             try {
                 Map<String, String> ingestionInformation = context.getIngestionInformation();
-                String filePath = ingestionInformation.get("vault_path");
+                String filePath = ingestionInformation.get("archive_path");
                 URL resURL = new URL(String.format("http://localhost:8081/file?sourceKey=%s&sourceIV=%s&filePath=%s",
                         context.getSessionKey(),
                         context.getIv(),

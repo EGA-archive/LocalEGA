@@ -19,12 +19,12 @@ class TestFileStorage(unittest.TestCase):
         self._dir = TempDirectory()
         self.outputdir = self._dir.makedir('output')
         self.env = EnvironmentVarGuard()
-        self.env.set('VAULT_LOCATION', self.outputdir + '/%s/')
-        self._store = FileStorage('vault', 'lega')
+        self.env.set('ARCHIVE_LOCATION', self.outputdir + '/%s/')
+        self._store = FileStorage('archive', 'lega')
 
     def tearDown(self):
         """Remove setup variables."""
-        self.env.unset('VAULT_LOCATION')
+        self.env.unset('ARCHIVE_LOCATION')
         self._dir.cleanup_all()
 
     def test_location(self):
@@ -57,29 +57,29 @@ class TestS3Storage(unittest.TestCase):
         """Initialise fixtures."""
         self._dir = TempDirectory()
         self.env = EnvironmentVarGuard()
-        self.env.set('VAULT_URL', 'http://localhost:5000')
-        self.env.set('VAULT_REGION', 'lega')
-        self.env.set('VAULT_ACCESS_KEY', 'test')
-        self.env.set('VAULT_SECRET_KEY', 'test')
+        self.env.set('ARCHIVE_URL', 'http://localhost:5000')
+        self.env.set('ARCHIVE_REGION', 'lega')
+        self.env.set('ARCHIVE_ACCESS_KEY', 'test')
+        self.env.set('ARCHIVE_SECRET_KEY', 'test')
 
     def tearDown(self):
         """Remove setup variables."""
-        self.env.unset('VAULT_URL')
-        self.env.unset('VAULT_REGION')
-        self.env.unset('VAULT_ACCESS_KEY')
-        self.env.unset('VAULT_SECRET_KEY')
+        self.env.unset('ARCHIVE_URL')
+        self.env.unset('ARCHIVE_REGION')
+        self.env.unset('ARCHIVE_ACCESS_KEY')
+        self.env.unset('ARCHIVE_SECRET_KEY')
         self._dir.cleanup_all()
 
     @mock.patch.object(boto3, 'client')
     def test_init_s3storage(self, mock_boto):
         """Initialise S3 storage."""
-        S3Storage('vault', 'lega')
+        S3Storage('archive', 'lega')
         mock_boto.assert_called()
 
     @mock.patch.object(boto3, 'client')
     def test_init_location(self, mock_boto):
         """Initialise S3 storage."""
-        storage = S3Storage('vault', 'lega')
+        storage = S3Storage('archive', 'lega')
         result = storage.location('file_id')
         self.assertEqual('file_id', result)
         mock_boto.assert_called()
@@ -88,7 +88,7 @@ class TestS3Storage(unittest.TestCase):
     def test_upload(self, mock_boto):
         """Test copy to S3, should call boto3 client."""
         path = self._dir.write('test.file', 'data1'.encode('utf-8'))
-        storage = S3Storage('vault', 'lega')
+        storage = S3Storage('archive', 'lega')
         storage.copy(path, 'lega')
         mock_boto.assert_called_with('s3', aws_access_key_id='test', aws_secret_access_key='test',
                                      endpoint_url='http://localhost:5000', region_name='lega',
@@ -98,7 +98,7 @@ class TestS3Storage(unittest.TestCase):
     def test_open(self, mock_boto):
         """Test open , should call S3FileReader."""
         path = self._dir.write('test.file', 'data1'.encode('utf-8'))
-        storage = S3Storage('vault', 'lega')
+        storage = S3Storage('archive', 'lega')
         with storage.open(path) as resource:
             self.assertEqual(S3FileReader, type(resource))
 

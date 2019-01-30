@@ -80,7 +80,7 @@ class DBTest(unittest.TestCase):
     def test_set_archived(self, mock_connect):
         """DB set progress."""
         # Values are not important in this call
-        set_archived("file_id", '/ega/vault/000/000/0a1', 1000)
+        set_archived("file_id", '/ega/archive/000/000/0a1', 1000)
         mock_connect().__enter__().cursor().__enter__().execute.assert_called()
 
     @mock.patch('lega.utils.db.connect')
