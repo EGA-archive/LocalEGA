@@ -31,6 +31,7 @@ public class Ingestion implements En {
             context.setCegaMQPassword(utils.getProperty("cega.password"));
             context.setCegaMQVHost(utils.getProperty("instance.name"));
             context.setRoutingKey(utils.getProperty("instance.name"));
+            context.setCegaMQPort(utils.getProperty("cega.port"));
         });
 
         When("^I turn off the keyserver$", () -> utils.stopContainer(utils.findContainer(utils.getProperty("container.label.keys"))));
@@ -74,9 +75,10 @@ public class Ingestion implements En {
     private void ingestFile(Context context) {
         try {
             Utils utils = context.getUtils();
-            utils.publishCEGA(String.format("amqp://%s:%s@localhost:5670/%s",
+            utils.publishCEGA(String.format("amqp://%s:%s@localhost:%s/%s",
                     context.getCegaMQUser(),
                     context.getCegaMQPassword(),
+                    context.getCegaMQPort(),
                     context.getCegaMQVHost()),
                     context.getUser(),
                     context.getEncryptedFile().getName());
