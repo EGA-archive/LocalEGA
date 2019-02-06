@@ -4,30 +4,6 @@ We thank you in advance :thumbsup: :tada: for taking the time to
 contribute, whether with *code* or with *ideas*, to the Local EGA
 project.
 
-## AGILE project management
-
-We use *Zenhub*, the Agile project management within Github.
-
-You should first `install it`_ if you want to contribute or just follow the project progress.  
-You can also use the `Zenhub app`_ if you wish.
-
-In short, the `AGILE method`_ helps developers organize themselves:
-
-* They decide about the tasks (not the managers)
-* Main Tasks should be divided into smaller manageable ones. The big
-  tasks are called *Epics*.
-* We have a given period (called Sprint) to work on a chosen
-  task. Here, a Sprint spans across 2 weeks.
-* We review the work done at the end of the Sprint, closing issues or
-  pushing them into the next Sprint. Ideally, they are sub-divided in
-  case they encounter obstacles.
-* We have a short meeting every weekday at 9:30 AM. We call it a
-  *standup* and we use it to keep everyone on point, and identify
-  quickly blockers. It's not a lengthy discussion. We ask:
-
-  - What did you get done yesterday (or last week, last month, etc.)?
-  - What are you working on now?
-  - What isn’t going well, and on what could you use help?
 
 ## Procedure
 
