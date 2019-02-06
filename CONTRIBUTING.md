@@ -5,15 +5,27 @@ contribute, whether with *code* or with *ideas*, to the Local EGA
 project.
 
 
+## Highlevel overview of how we work
+
+### Github projects
+We use github projects in the EGA-Archive to manage our work
+
+### How we use issues
+ Issues are the central area for all work.
+
+### Standups
+ Every day at 10:30 we have standups in Zoom meeting: <id>
+
+### Sprint Reviews and Planning
+Approximately every 2 weeks we have sprint reviews and then also a sprint
+planning meeting.
+
 ## Procedure
 
 
 1. Create an issue on Github, and talk to the team members on the NBIS
    local-ega Slack channel. You can alternatively pick one already
    created.
-
-.. note:: 
-   Contact `Jonas Hagberg`_ to request access if you are not part of that channel already.
 
 
 2. Assign yourself to that issue.
