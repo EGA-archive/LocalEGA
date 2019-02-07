@@ -5,6 +5,20 @@ contribute, whether with *code* or with *ideas*, to the Local EGA
 project.
 
 
+## Did you find a bug?
+
+* Ensure that the bug was not already reported by [searching under Issues].
+
+* If you're unable to find an (open) issue addressing the problem, [open a new
+  one]. Be sure to prefix the issue title with **[BUG]** and to include:
+
+  - a *clear* description,
+  - as much relevant information as possible, and
+  - a *code sample* or an (executable) *test case* demonstrating the expected behaviour that is not occurring.
+
+* If possible, use the following [template to report a bug].
+
+
 ## Highlevel overview of how we work
 
 ### Github projects
@@ -114,23 +128,6 @@ planning meeting.
    reject. We think we can do better than that, and introduce a finer
    grained acceptance, by involving *beforehand* discussions so that
    everyone is on point.
-
-
-
-# Did you find a bug?
-
-
-* Ensure that the bug was not already reported by [searching under Issues].
-
-* If you're unable to find an (open) issue addressing the problem, [open a new
-  one]. Be sure to prefix the issue title with **[BUG]** and to include:
-
-  - a *clear* description,
-  - as much relevant information as possible, and
-  - a *code sample* or an (executable) *test case* demonstrating the expected behaviour that is not occurring.
-
-* If possible, use the following [template to report a bug].
-
 
 
 
