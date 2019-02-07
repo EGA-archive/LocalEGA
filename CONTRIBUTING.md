@@ -122,10 +122,8 @@ planning meeting.
 
 * Ensure that the bug was not already reported by [searching under Issues].
 
-* Do _not_ file it as a plain GitHub issue (we use the
-  issue system for our internal tasks (see Zenhub)).  If you're unable
-  to find an (open) issue addressing the problem, [open a new one].
-  Be sure to prefix the issue title with **[BUG]** and to include:
+* If you're unable to find an (open) issue addressing the problem, [open a new
+  one]. Be sure to prefix the issue title with **[BUG]** and to include:
 
   - a *clear* description,
   - as much relevant information as possible, and
@@ -141,7 +139,6 @@ planning meeting.
 Thanks again,
 /NBIS System Developers
 
-[Zenhub]: https://www.zenhub.com
 [coding guidelines from NBIS]: https://github.com/NBISweden/development-guidelines
 [git rebase -i]: https://git-scm.com/book/en/v2/Git-Tools-Rewriting-History
 [NBIS reviewing guidelines]: https://github.com/NBISweden/development-guidelines#how-we-do-code-reviews
