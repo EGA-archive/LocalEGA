@@ -1,17 +1,10 @@
-.. role:: bolditalic
-    :class: bolditalic
+# Contributing guidelines
 
-=======================
-Contributing guidelines
-=======================
-
-We thank you in advance |thumbup| |tada| for taking the time to
+We thank you in advance :thumbsup: :tada: for taking the time to
 contribute, whether with *code* or with *ideas*, to the Local EGA
 project.
 
-------------------------
-AGILE project management
-------------------------
+## AGILE project management
 
 We use *Zenhub*, the Agile project management within Github.
 
@@ -36,9 +29,8 @@ In short, the `AGILE method`_ helps developers organize themselves:
   - What are you working on now?
   - What isn’t going well, and on what could you use help?
 
----------
-Procedure
----------
+## Procedure
+
 
 1. Create an issue on Github, and talk to the team members on the NBIS
    local-ega Slack channel. You can alternatively pick one already
@@ -59,21 +51,21 @@ Procedure
    effort.
 
 #. Work on it (on a fork, or on a separate branch) as you wish. That's
-   what ``git`` is good for. This GitHub repository follows
-   the `coding guidelines from NBIS`_.
+   what `git` is good for. This GitHub repository follows
+   the [coding guidelines from NBIS].
    
    Name your branch as you wish and prefix the name with:
 
-   * ``feature/`` if it is a code feature
-   * ``hotfix/`` if you are fixing an urgent bug
+   * `feature/` if it is a code feature
+   * `hotfix/` if you are fixing an urgent bug
 
    Use comments in your code, choose variable and function names that
    clearly show what you intend to implement.
 
-   Use `git rebase -i`_ in
+   Use [git rebase -i] in
    order to rewrite your history, and have meaningful commits.  That
-   way, we avoid the 'Typo', 'Work In Progress (WIP)', or
-   'Oops...forgot this or that' commits.
+   way, we avoid the _'Typo'_, _'Work In Progress (WIP)'_, or
+   _'Oops...forgot this or that'_ commits.
 
    Limit the first line of your git commits to 72 characters or less.
 
@@ -84,15 +76,15 @@ Procedure
    That PR should be connected to the issue you are working on.
    Moreover, the PR:
    
-   - should use ``Estimate=1``,
+   - should use `Estimate=1`,
    - should be connected to:
 
-     * an ``Epic``,
-     * a ``Milestone`` and
-     * a ``User story``
+     * an `Epic`,
+     * a `Milestone` and
+     * a `User story`
      * ... or several.
 
-   N.B: Pull requests are done to the ``dev`` branch. PRs to ``master`` are rejected.
+   N.B: Pull requests are done to the `dev` branch. PRs to `master` are rejected.
 
 #. Selecting a review goes as follows: Pick one *main* reviewer.  It
    is usually one that you had discussions with, and is somehow 
@@ -103,7 +95,7 @@ Procedure
    merge the PR. Moreover, the main reviewer is the one merging the
    PR, not you.
    
-   Find more information on the `NBIS reviewing guidelines`_.
+   Find more information on the [NBIS reviewing guidelines],
 
 
 #. It is possible that your PR requires changes (because it creates
@@ -132,42 +124,34 @@ Procedure
 
 
 
--------------------
-Did you find a bug?
--------------------
+# Did you find a bug?
 
-* Ensure that the bug was not already reported by `searching under Issues`_.
 
-* Do :bolditalic:`not` file it as a plain GitHub issue (we use the
+* Ensure that the bug was not already reported by [searching under Issues].
+
+* Do _not_ file it as a plain GitHub issue (we use the
   issue system for our internal tasks (see Zenhub)).  If you're unable
-  to find an (open) issue addressing the problem, `open a new one`_.
+  to find an (open) issue addressing the problem, [open a new one].
   Be sure to prefix the issue title with **[BUG]** and to include:
 
   - a *clear* description,
   - as much relevant information as possible, and 
   - a *code sample* or an (executable) *test case* demonstrating the expected behaviour that is not occurring.
 
-* If possible, use the following `template to report a bug`_.
+* If possible, use the following [template to report a bug].
 
-.. todo:: Make that template
+
 
 
 ----
 
-| Thanks again,  
-| /NBIS System Developers
+Thanks again,
+/NBIS System Developers
 
-.. _Zenhub: https://www.zenhub.com
-.. _install it: https://www.zenhub.com/extension
-.. _Zenhub app: https://app.zenhub.com
-.. _AGILE method: https://www.zenhub.com/blog/how-to-use-github-agile-project-management
-.. _Jonas Hagberg: https://nbis.se/about/staff/jonas-hagberg/
-.. _coding guidelines from NBIS: https://github.com/NBISweden/development-guidelines
-.. _git rebase -i: https://git-scm.com/book/en/v2/Git-Tools-Rewriting-History
-.. _NBIS reviewing guidelines: https://github.com/NBISweden/development-guidelines#how-we-do-code-reviews
-.. _searching under Issues: https://github.com/NBISweden/LocalEGA/issues?utf8=%E2%9C%93&q=is%3Aissue%20label%3Abug%20%5BBUG%5D%20in%3Atitle
-.. _open a new one: https://github.com/NBISweden/LocalEGA/issues/new?title=%5BBUG%5D
-.. _template to report a bug: todo
-.. |tada| unicode:: U+1f389
-.. |thumbup| unicode:: U+1f44d
-
+[Zenhub]: https://www.zenhub.com
+[coding guidelines from NBIS]: https://github.com/NBISweden/development-guidelines
+[git rebase -i]: https://git-scm.com/book/en/v2/Git-Tools-Rewriting-History
+[NBIS reviewing guidelines]: https://github.com/NBISweden/development-guidelines#how-we-do-code-reviews
+[searching under Issues]: https://github.com/NBISweden/LocalEGA/issues?utf8=%E2%9C%93&q=is%3Aissue%20label%3Abug%20%5BBUG%5D%20in%3Atitle
+[open a new one]: https://github.com/NBISweden/LocalEGA/issues/new?title=%5BBUG%5D
+[template to report a bug]: todo
