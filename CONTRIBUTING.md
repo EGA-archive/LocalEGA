@@ -144,9 +144,6 @@ Once all the reviews are positive the Pull Request can be _merged_ into
 Thanks again,
 /NBIS System Developers
 
-[coding guidelines from NBIS]: https://github.com/NBISweden/development-guidelines
-[git rebase -i]: https://git-scm.com/book/en/v2/Git-Tools-Rewriting-History
-[NBIS reviewing guidelines]: https://github.com/NBISweden/development-guidelines#how-we-do-code-reviews
 [searching under Issues]: https://github.com/NBISweden/LocalEGA/issues?utf8=%E2%9C%93&q=is%3Aissue%20label%3Abug%20%5BBUG%5D%20in%3Atitle
 [open a new one]: https://github.com/NBISweden/LocalEGA/issues/new?title=%5BBUG%5D
-[template to report a bug]: todo
+[template to report a bug]: https://github.com/EGA-archive/LocalEGA/issues/new?template=bug-report.md
