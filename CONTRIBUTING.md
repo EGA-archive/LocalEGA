@@ -8,15 +8,19 @@ project.
 ## Highlevel overview of how we work
 
 ### Github projects
-We use github projects in the EGA-Archive to manage our work
+
+We use github projects in the EGA-Archive to manage our work.
 
 ### How we use issues
- Issues are the central area for all work.
+
+Issues are the central area for all work.
 
 ### Standups
- Every day at 10:30 we have standups in Zoom meeting: <id>
+
+Every day at 10:30 we have standups in Zoom meeting: <id>
 
 ### Sprint Reviews and Planning
+
 Approximately every 2 weeks we have sprint reviews and then also a sprint
 planning meeting.
 
@@ -31,8 +35,8 @@ planning meeting.
 2. Assign yourself to that issue.
 
 #. Discussions on how to proceed about that issue take place in the
-   comment section on that issue, beforehand.  
-   
+   comment section on that issue, beforehand.
+
    The keyword here is *beforehand*. It is usually a good idea to talk
    about it first. Somebody might have already some pieces in place,
    we avoid unnecessary work duplication and a waste of time and
@@ -59,8 +63,8 @@ planning meeting.
 
 
 #. Create a Pull Request (PR), so that your code is reviewed by the
-   admins on this repository.  
-   
+   admins on this repository.
+
    That PR should be connected to the issue you are working on.
    Moreover, the PR:
    
@@ -75,14 +79,14 @@ planning meeting.
    N.B: Pull requests are done to the `dev` branch. PRs to `master` are rejected.
 
 #. Selecting a review goes as follows: Pick one *main* reviewer.  It
-   is usually one that you had discussions with, and is somehow 
+   is usually one that you had discussions with, and is somehow
    connected to that issue. If this is not the case, pick several reviewers.
-   
+
    Note that, in turn, the main reviewer might ask another reviewer
    for help. The approval of all reviewers is compulsory in order to
    merge the PR. Moreover, the main reviewer is the one merging the
    PR, not you.
-   
+
    Find more information on the [NBIS reviewing guidelines],
 
 
@@ -123,7 +127,7 @@ planning meeting.
   Be sure to prefix the issue title with **[BUG]** and to include:
 
   - a *clear* description,
-  - as much relevant information as possible, and 
+  - as much relevant information as possible, and
   - a *code sample* or an (executable) *test case* demonstrating the expected behaviour that is not occurring.
 
 * If possible, use the following [template to report a bug].
