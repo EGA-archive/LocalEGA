@@ -9,7 +9,8 @@ project.
 
 ### Github projects
 
-We use github projects in the EGA-Archive to manage our work.
+We use the [Local EGA](https://github.com/orgs/EGA-archive/projects/3) github
+project in the EGA-Archive to manage our work.
 
 ### How we use issues
 
