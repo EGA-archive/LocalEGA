@@ -510,7 +510,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     container_name: vault
     labels:
         lega_label: "vault"
-    image: minio/minio
+    image: minio/minio:RELEASE.2018-12-19T23-46-24Z
     environment:
       - MINIO_ACCESS_KEY=${S3_ACCESS_KEY}
       - MINIO_SECRET_KEY=${S3_SECRET_KEY}
