@@ -4,6 +4,7 @@
 import os
 import sys
 import datetime
+from recommonmark.parser import CommonMarkParser
 from unittest.mock import MagicMock
 
 # Get the project root dir, which is the parent dir of this
@@ -52,8 +53,10 @@ templates_path = ['templates']
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
 #
-# source_suffix = ['.rst', '.md']
-source_suffix = '.rst'
+source_suffix = ['.rst', '.md']
+source_parsers = {
+    '.md': CommonMarkParser,
+}
 
 # The master toctree document.
 master_doc = 'index'
