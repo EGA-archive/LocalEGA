@@ -114,7 +114,7 @@ def main(args=None):
     CONF.setup(args)  # re-conf
 
     store = getattr(storage, CONF.get_value('archive', 'storage_driver', default='FileStorage'))
-    chunk_size = CONF.get_value('archive', 'chunk_size', conv=int, default=1 << 22)  # 4 MB
+    chunk_size = CONF.get_value('archive', 's3_chunk_size', conv=int, default=1 << 22)  # 4 MB
 
     broker = get_connection('broker')
     do_work = partial(work, chunk_size, store('archive', 'lega'), broker.channel())

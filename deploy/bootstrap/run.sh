@@ -198,9 +198,9 @@ sslmode = require
 
 [archive]
 storage_driver = S3Storage
-url = http://archive:9000
-access_key = ${S3_ACCESS_KEY}
-secret_key = ${S3_SECRET_KEY}
+s3_url = http://archive:9000
+s3_access_key = ${S3_ACCESS_KEY}
+s3_secret_key = ${S3_SECRET_KEY}
 #region = lega
 
 EOF
@@ -378,8 +378,8 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     labels:
         lega_label: "ingest"
     environment:
-      - ARCHIVE_ACCESS_KEY=${S3_ACCESS_KEY}
-      - ARCHIVE_SECRET_KEY=${S3_SECRET_KEY}
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY}
+      - S3_SECRET_KEY=${S3_SECRET_KEY}
       - AWS_ACCESS_KEY_ID=${S3_ACCESS_KEY}
       - AWS_SECRET_ACCESS_KEY=${S3_SECRET_KEY}
     volumes:
@@ -463,8 +463,8 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     image: egarchive/lega-base:latest
     environment:
       - LEGA_PASSWORD=${LEGA_PASSWORD}
-      - ARCHIVE_ACCESS_KEY=${S3_ACCESS_KEY}
-      - ARCHIVE_SECRET_KEY=${S3_SECRET_KEY}
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY}
+      - S3_SECRET_KEY=${S3_SECRET_KEY}
       - AWS_ACCESS_KEY_ID=${S3_ACCESS_KEY}
       - AWS_SECRET_ACCESS_KEY=${S3_SECRET_KEY}
     volumes:
@@ -659,8 +659,8 @@ DB_LEGA_OUT_USER          = lega_out
 CEGA_CONNECTION           = ${CEGA_CONNECTION}
 CEGA_ENDPOINT_CREDS       = ${CEGA_USERS_CREDS}
 #
-ARCHIVE_ACCESS_KEY             = ${S3_ACCESS_KEY}
-ARCHIVE_SECRET_KEY             = ${S3_SECRET_KEY}
+S3_ACCESS_KEY             = ${S3_ACCESS_KEY}
+S3_SECRET_KEY             = ${S3_SECRET_KEY}
 #
 DOCKER_PORT_inbox         = ${DOCKER_PORT_inbox}
 DOCKER_PORT_mq            = ${DOCKER_PORT_mq}

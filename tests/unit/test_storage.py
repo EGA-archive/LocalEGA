@@ -57,17 +57,17 @@ class TestS3Storage(unittest.TestCase):
         """Initialise fixtures."""
         self._dir = TempDirectory()
         self.env = EnvironmentVarGuard()
-        self.env.set('ARCHIVE_URL', 'http://localhost:5000')
-        self.env.set('ARCHIVE_REGION', 'lega')
-        self.env.set('ARCHIVE_ACCESS_KEY', 'test')
-        self.env.set('ARCHIVE_SECRET_KEY', 'test')
+        self.env.set('ARCHIVE_S3_URL', 'http://localhost:5000')
+        self.env.set('ARCHIVE_S3_REGION', 'lega')
+        self.env.set('ARCHIVE_S3_ACCESS_KEY', 'test')
+        self.env.set('ARCHIVE_S3_SECRET_KEY', 'test')
 
     def tearDown(self):
         """Remove setup variables."""
-        self.env.unset('ARCHIVE_URL')
-        self.env.unset('ARCHIVE_REGION')
-        self.env.unset('ARCHIVE_ACCESS_KEY')
-        self.env.unset('ARCHIVE_SECRET_KEY')
+        self.env.unset('ARCHIVE_S3_URL')
+        self.env.unset('ARCHIVE_S3_REGION')
+        self.env.unset('ARCHIVE_S3_ACCESS_KEY')
+        self.env.unset('ARCHIVE_S3_SECRET_KEY')
         self._dir.cleanup_all()
 
     @mock.patch.object(boto3, 'client')
