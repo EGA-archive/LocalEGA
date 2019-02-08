@@ -15,17 +15,17 @@ LOG = logging.getLogger(__name__)
 
 
 class FileStorage():
-    """Vault storage on disk and related I/O."""
+    """Storage on disk and related I/O."""
 
-    def __init__(self):
-        """Initialize backend storage to a POSIX file system's path."""
-        self.vault_area = Path(CONF.get_value('vault', 'location'))
+    def __init__(self, config_section, user):
+        """Initialize backend storage to a POSIX file system."""
+        self.prefix = Path(CONF.get_value(config_section, 'location', raw=True) % user)
 
     def location(self, file_id):
         """Retrieve file location."""
         name = f"{file_id:0>20}"  # filling with zeros, and 20 characters wide
         name_bits = [name[i:i+3] for i in range(0, len(name), 3)]
-        target = self.vault_area.joinpath(*name_bits)
+        target = self.prefix.joinpath(*name_bits)
         target.parent.mkdir(parents=True, exist_ok=True)
         return str(target)
 
@@ -38,9 +38,19 @@ class FileStorage():
     @contextmanager
     def open(self, path, mode='rb'):
         """Open stored file."""
-        f = open(path, mode)
+        fp = self.prefix / path.lstrip('/')
+        f = open(fp, mode)
         yield f
         f.close()
+
+    def exists(self, filepath):
+        """Return true if the path exists."""
+        fp = self.prefix / filepath.lstrip('/')
+        return fp.exists()
+
+    def __str__(self):
+        """Return inbox prefix."""
+        return self.prefix
 
 
 class S3FileReader(object):
@@ -88,33 +98,6 @@ class S3FileReader(object):
             raise ValueError('Seek before start of file')
         self.loc = nloc
         return self.loc
-
-    # def readline(self, length=-1):
-    #     self._fetch(self.loc, self.loc + 1)
-    #     while True:
-    #         found = self.cache[self.loc - self.start:].find(b'\n') + 1
-    #         if 0 < length < found:
-    #             return self.read(length)
-    #         if found:
-    #             return self.read(found)
-    #         if self.end > self.size:
-    #             return self.read(length)
-    #         self._fetch(self.start, self.end + self.blocksize)
-
-    # def __next__(self):
-    #     out = self.readline()
-    #     if not out:
-    #         raise StopIteration
-    #     return out
-
-    # next = __next__
-
-    # def __iter__(self):
-    #     return self
-
-    # def readlines(self):
-    #     """ Return all lines in a file as a list """
-    #     return list(self)
 
     def read(self, length=-1):
         """Read and return up to size bytes."""
@@ -168,8 +151,8 @@ class S3FileReader(object):
 
     def readinto(self, b):
         """Read bytes into a pre-allocated object b and return the number of bytes read."""
-        data = self.read()
-        datalen = len(data)
+        datalen = len(b)
+        data = self.read(datalen)
         b[:datalen] = data
         return datalen
 
@@ -204,19 +187,17 @@ class S3FileReader(object):
 
 
 class S3Storage():
-    """Vault S3 object storage and related I/O."""
+    """S3 object storage and related I/O."""
 
-    def __init__(self):
+    def __init__(self, config_section, user):
         """Initialize S3 object Storage."""
         import boto3
-
-        endpoint = CONF.get_value('vault', 'url')
-        region = CONF.get_value('vault', 'region')
-        bucket = CONF.get_value('vault', 'bucket', default='lega')
-        access_key = CONF.get_value('vault', 'access_key')
-        secret_key = CONF.get_value('vault', 'secret_key')
+        self.endpoint = CONF.get_value(config_section, 'url')
+        region = CONF.get_value(config_section, 'region')
+        access_key = CONF.get_value(config_section, 'access_key')
+        secret_key = CONF.get_value(config_section, 'secret_key')
         self.s3 = boto3.client('s3',
-                               endpoint_url=endpoint,
+                               endpoint_url=self.endpoint,
                                region_name=region,
                                use_ssl=False,
                                verify=False,
@@ -224,9 +205,9 @@ class S3Storage():
                                aws_secret_access_key=secret_key)
         # LOG.debug(f'S3 client: {self.s3!r}')
         try:
-            LOG.debug('Creating "%s" bucket', bucket)
-            self.bucket = bucket
-            self.s3.create_bucket(Bucket=bucket)
+            LOG.debug('Creating "%s" bucket', user)
+            self.bucket = user
+            self.s3.create_bucket(Bucket=self.bucket)
         except self.s3.exceptions.BucketAlreadyOwnedByYou as e:
             LOG.debug(f'Ignoring ({type(e)}): {e}')
         # No need to close anymore?
@@ -247,3 +228,12 @@ class S3Storage():
         f = S3FileReader(self.s3, self.bucket, path, mode=mode)
         yield f
         f.close()
+
+    def exists(self, path):
+        """Return true if the path exists."""
+        resp = self.s3.head_object(Bucket=self.bucket, Key=path)
+        return bool(resp['ContentLength'])
+
+    def __str__(self):
+        """Return endpoint/bucket."""
+        return self.endpoint + '/' + self.bucket

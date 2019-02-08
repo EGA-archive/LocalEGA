@@ -45,8 +45,8 @@ while True:
         user = data.get('user')
         filepath = data.get('filepath')
         assert( user and filepath ) 
-        if user == args.user and filepath.endswith(args.filepath):  # quick hack to fix the Mina inbox issue with filepaths
-        #if user == args.user and filepath == args.filepath:
+        #if user == args.user and filepath.endswith(args.filepath):  # quick hack to fix the Mina inbox issue with filepaths
+        if user == args.user and filepath == args.filepath:
             correlation_ids.append( (props.correlation_id,message_id) )
     except:
         pass
