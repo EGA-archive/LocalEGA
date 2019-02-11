@@ -197,7 +197,7 @@ try = 30
 sslmode = require
 
 [archive]
-driver = S3Storage
+storage_driver = S3Storage
 url = http://archive:9000
 access_key = ${S3_ACCESS_KEY}
 secret_key = ${S3_SECRET_KEY}
@@ -208,7 +208,7 @@ EOF
 if [[ ${INBOX_BACKEND} == 's3' ]]; then
     cat >> ${PRIVATE}/conf.ini <<EOF
 [inbox]
-driver = S3Storage
+storage_driver = S3Storage
 url = http://inbox-s3-backend:9000
 access_key = ${S3_ACCESS_KEY_INBOX}
 secret_key = ${S3_SECRET_KEY_INBOX}

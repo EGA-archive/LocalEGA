@@ -97,8 +97,8 @@ def main(args=None):
 
     CONF.setup(args)  # re-conf
 
-    inbox_fs = getattr(storage, CONF.get_value('inbox', 'driver', default='FileStorage'))
-    fs = getattr(storage, CONF.get_value('archive', 'driver', default='FileStorage'))
+    inbox_fs = getattr(storage, CONF.get_value('inbox', 'storage_driver', default='FileStorage'))
+    fs = getattr(storage, CONF.get_value('archive', 'storage_driver', default='FileStorage'))
     broker = get_connection('broker')
     do_work = partial(work, fs('archive', 'lega'), partial(inbox_fs, 'inbox'), broker.channel())
 
