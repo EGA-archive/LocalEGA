@@ -533,7 +533,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     container_name: inbox-s3-backend
     labels:
         lega_label: "inbox-s3-backend"
-    image: minio/minio
+    image: minio/minio:RELEASE.2018-12-19T23-46-24Z
     environment:
       - MINIO_ACCESS_KEY=${S3_ACCESS_KEY_INBOX}
       - MINIO_SECRET_KEY=${S3_SECRET_KEY_INBOX}
