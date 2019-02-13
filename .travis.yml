@@ -91,7 +91,7 @@ jobs:
         - make prepare
         - make bootstrap ARGS='--inbox mina --keyserver ega'
         - sudo chown -R travis private
-        - make up OMIT="--scale res=0"
+        - make up
         - make preflight-check
       script:
         - cd tests
@@ -104,7 +104,7 @@ jobs:
         - make prepare
         - make bootstrap ARGS='--inbox mina --keyserver ega'
         - sudo chown -R travis private
-        - make up
+        - make up OMIT="--scale res=0"
         - make preflight-check
       script:
         - cd tests
