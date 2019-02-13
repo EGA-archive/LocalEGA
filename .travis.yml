@@ -1,6 +1,9 @@
 language: python
 python: 3.6
 install: true
+cache:
+  directories:
+    - $HOME/.m2
 
 git:
   depth: false
