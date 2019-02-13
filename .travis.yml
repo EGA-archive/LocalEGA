@@ -40,6 +40,7 @@ jobs:
         - pushd bats-core && git checkout v1.1.0 && sudo ./install.sh /usr/local && popd
         - cd deploy
         - make -C images -j 2 pull-base pull-inbox
+        - make -C images -j 2 retag-base retag-inbox
         - make prepare
         - make bootstrap ARGS="--keyserver ega"
         - sudo chown -R travis private
@@ -57,6 +58,7 @@ jobs:
         - pushd bats-core && git checkout v1.1.0 && sudo ./install.sh /usr/local && popd
         - cd deploy
         - make -C images -j 2 pull-base pull-inbox
+        - make -C images -j 2 retag-base retag-inbox
         - make prepare
         - make bootstrap ARGS="--keyserver ega"
         - sudo chown -R travis private
@@ -78,6 +80,7 @@ jobs:
         - pushd bats-core && git checkout v1.1.0 && sudo ./install.sh /usr/local && popd
         - cd deploy
         - make -C images -j 2 pull-base pull-inbox
+        - make -C images -j 2 retag-base retag-inbox
         - make prepare
         - make bootstrap ARGS="--keyserver ega"
         - sudo chown -R travis private
@@ -94,9 +97,9 @@ jobs:
         - cd deploy/images
       script:
         - make -j 2 pull-base pull-inbox
-        - make retag
-        - make -j 2 push-base push-inbox
-        - make clean-tag
+        - make retag-base retag-inbox
+        - make -j 2 push-base push-inbox IMGTAG=latest
+        - make clean-tag-base clean-tag-inbox
     # #
     # # Old tests. Make them succeed with "|| :"
     # #

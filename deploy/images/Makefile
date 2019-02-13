@@ -60,14 +60,11 @@ push-%:
 	docker push $(TARGET_PREFIX)$(@:push-%=%):$(IMGTAG)
 
 # Retag 
-retag:
-	-@echo -n "$(DOCKER_PASSWORD)" | docker login -u "$(DOCKER_USER)" --password-stdin
-	docker tag $(TARGET_PREFIX)base:$(TAG) $(TARGET_PREFIX)base:latest
-	docker tag $(TARGET_PREFIX)inbox:$(TAG) $(TARGET_PREFIX)inbox:latest
+retag-%:
+	docker tag $(TARGET_PREFIX)$(@:retag-%=%):$(IMGTAG) $(TARGET_PREFIX)$(@:retag-%=%):latest
 
-clean-tag:
-	@echo "No way to remove $(TARGET_PREFIX)base:$(TAG) from docker hub at the moment"
-	@echo "No way to remove $(TARGET_PREFIX)inbox:$(TAG) from docker hub at the moment"
+clean-tag-%:
+	@echo "No way to remove $(TARGET_PREFIX)$(@:clean-tag-%=%):$(TAG) from docker hub at the moment"
 
 
 # Create the inbox base OS (here for convenience)
