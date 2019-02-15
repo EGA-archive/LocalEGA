@@ -14,16 +14,12 @@ ARG LEGA_GID=1000
 RUN addgroup -g ${LEGA_GID} lega && \
     adduser -D -G lega lega
 
-# RUN git clone https://github.com/EGA-archive/crypt4gh.git /root/crypt4gh && \
-#     pip3.6 install -r /root/crypt4gh/requirements.txt && \
-#     rm -rf /root/crypt4gh
-
 COPY setup.py /root/LocalEGA/setup.py
 COPY lega /root/LocalEGA/lega
 COPY requirements.txt /root/LocalEGA/requirements.txt
 
-RUN pip install -r /root/LocalEGA/requirements.txt && \
-    pip install /root/LocalEGA && \
+RUN pip install -r /root/LocalEGA/requirements.txt
+RUN pip install /root/LocalEGA && \
     rm -rf /root/LocalEGA
 
 RUN apk del --no-cache --purge \
