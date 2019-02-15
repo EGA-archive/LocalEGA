@@ -17,7 +17,7 @@ MAIN_REPO := $(abspath $(dir $(abspath $(lastword $(MAKEFILE_LIST))))/../..)
 
 .PHONY: all erase clean purge base inbox push
 
-all: base inbox
+all: base inbox unit-tests
 
 base inbox:
 	cd $(MAIN_REPO) && \
@@ -74,3 +74,6 @@ inbox-os:
 	       --cache-from $(TARGET_PREFIX)$@:latest \
                --tag $(TARGET_PREFIX)$@:latest \
                inbox
+
+unit-tests:
+	cd ../.. && tox
