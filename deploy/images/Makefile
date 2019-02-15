@@ -17,7 +17,7 @@ MAIN_REPO := $(abspath $(dir $(abspath $(lastword $(MAKEFILE_LIST))))/../..)
 
 .PHONY: all erase clean purge base inbox push
 
-all: base inbox unit-tests
+all: base inbox
 
 base inbox:
 	cd $(MAIN_REPO) && \
