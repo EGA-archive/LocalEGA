@@ -1,6 +1,9 @@
 language: python
 python: 3.6
 install: true
+cache:
+  directories:
+    - $HOME/.m2
 
 git:
   depth: false
@@ -8,7 +11,6 @@ git:
 
 stages:
   - name: tests
-    if: type IN (push, pull_request)
   - name: images
     if: type = pull_request AND branch = master
 
@@ -71,14 +73,21 @@ jobs:
       script:
         - cd ../tests
         - bats security
-    - stage: images
-      name: "Images Build"
-      script: echo 'Next PR'
-    #
-    # Old tests. Make them succeed with "|| :"
-    #
     - stage: tests
-      name: "Old Tests"
+      name: "Cucumber Ingestion Tests"
+      before_script:
+        - pip3 install -r requirements.txt
+        - cd deploy
+        - make prepare
+        - make bootstrap ARGS='--inbox mina --keyserver ega'
+        - sudo chown -R travis private
+        - make up OMIT="--scale res=0"
+        - make preflight-check
+      script:
+        - cd tests
+        - mvn test -Dtest=IngestionTests
+    - stage: tests
+      name: "Cucumber Outgestion Tests"
       before_script:
         - pip3 install -r requirements.txt
         - cd deploy
@@ -86,12 +95,27 @@ jobs:
         - make bootstrap ARGS='--inbox mina --keyserver ega'
         - sudo chown -R travis private
         - make up
-        - docker-compose ps
+        - make preflight-check
       script:
         - cd tests
-        - mvn test -Dtest=IngestionTests -B || echo 'Nope'
-        - mvn test -Dtest=OutgestionTests -B || echo 'Nope'
-        - mvn test -Dtest=RobustnessTests -B || echo 'Nope'
+        - mvn test -Dtest=OutgestionTests
+    - stage: tests
+      name: "Cucumber Robustness Tests"
+      before_script:
+        - pip3 install -r requirements.txt
+        - cd deploy
+        - make prepare
+        - make bootstrap ARGS='--inbox mina --keyserver ega'
+        - sudo chown -R travis private
+        - make up OMIT="--scale res=0"
+        - make preflight-check
+      script:
+        - cd tests
+        - mvn test -Dtest=RobustnessTests
+
+    - stage: images
+      name: "Images Build"
+      script: echo 'Next PR'
 
 notifications:
   email: false

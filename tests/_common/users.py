@@ -22,6 +22,7 @@ logging.basicConfig(format='[%(levelname)-8s] (L:%(lineno)s) %(message)s')
 LOG = logging.getLogger(__name__)
 LOG.setLevel(logging.INFO)
 
+filepath = None
 instances = {}
 store = None
 usernames = {}
@@ -54,6 +55,9 @@ async def user(request):
     if info is None or info != passwd:
         raise web.HTTPUnauthorized(text=f'Protected access\n')
 
+    # Reload users list
+    load_users()
+
     # Find user
     user_info = fetch_user_info(request.match_info['identifier'], request.rel_url.query)
     if user_info is None:
@@ -79,26 +83,29 @@ def main():
 
     host = sys.argv[1]
     port = sys.argv[2]
+
+    global filepath
     filepath = sys.argv[3]
 
     server = web.Application()
-
-    # Initialization
-    global instances, store, usernames, uids
-    instances['legatest'] = 'legatest'  # Hard-coding legatest:legatest
-    with open(filepath, 'rt') as f:
-        store = json.load(f)
-    for i, d in enumerate(store):
-        usernames[d['username']] = i  # No KeyError, should be there
-        uids[d['uid']] = i
-
-    print(uids)
+    load_users()
 
     # Registering the routes
     server.router.add_get('/lega/v1/legas/users/{identifier}', user, name='user')
 
     # aaaand... cue music
     web.run_app(server, host=host, port=port, shutdown_timeout=0, ssl_context=None)
+
+
+def load_users():
+    # Initialization
+    global filepath, instances, store, usernames, uids
+    instances['legatest'] = 'legatest'  # Hard-coding legatest:legatest
+    with open(filepath, 'rt') as f:
+        store = json.load(f)
+    for i, d in enumerate(store):
+        usernames[d['username']] = i  # No KeyError, should be there
+        uids[d['uid']] = i
 
 
 if __name__ == '__main__':
