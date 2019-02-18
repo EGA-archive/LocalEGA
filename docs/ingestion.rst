@@ -32,7 +32,7 @@ either a regular file system on disk, or an S3 object storage.
 
 The files are read chunk by chunk in order to bound the memory
 usage. After completion, the remainder of the file (the AES encrypted
-bulk part) is in the vault and a message is dropped into the local
+bulk part) is in the archive and a message is dropped into the local
 message broker to signal that the next step can start.
 
 The next step is a verification step to ensure that the stored file is

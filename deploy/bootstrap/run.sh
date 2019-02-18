@@ -196,11 +196,11 @@ database = lega
 try = 30
 sslmode = require
 
-[vault]
-driver = S3Storage
-url = http://vault:9000
-access_key = ${S3_ACCESS_KEY}
-secret_key = ${S3_SECRET_KEY}
+[archive]
+storage_driver = S3Storage
+s3_url = http://archive:9000
+s3_access_key = ${S3_ACCESS_KEY}
+s3_secret_key = ${S3_SECRET_KEY}
 #region = lega
 
 EOF
@@ -208,7 +208,7 @@ EOF
 if [[ ${INBOX_BACKEND} == 's3' ]]; then
     cat >> ${PRIVATE}/conf.ini <<EOF
 [inbox]
-driver = S3Storage
+storage_driver = S3Storage
 url = http://inbox-s3-backend:9000
 access_key = ${S3_ACCESS_KEY_INBOX}
 secret_key = ${S3_SECRET_KEY_INBOX}
@@ -239,7 +239,7 @@ networks:
 volumes:
   db:
   inbox:
-  vault:
+  archive:
 EOF
 
 if [[ ${INBOX_BACKEND} == 's3' ]]; then
@@ -378,8 +378,8 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     labels:
         lega_label: "ingest"
     environment:
-      - VAULT_ACCESS_KEY=${S3_ACCESS_KEY}
-      - VAULT_SECRET_KEY=${S3_SECRET_KEY}
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY}
+      - S3_SECRET_KEY=${S3_SECRET_KEY}
       - AWS_ACCESS_KEY_ID=${S3_ACCESS_KEY}
       - AWS_SECRET_ACCESS_KEY=${S3_SECRET_KEY}
     volumes:
@@ -463,8 +463,8 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     image: egarchive/lega-base:latest
     environment:
       - LEGA_PASSWORD=${LEGA_PASSWORD}
-      - VAULT_ACCESS_KEY=${S3_ACCESS_KEY}
-      - VAULT_SECRET_KEY=${S3_SECRET_KEY}
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY}
+      - S3_SECRET_KEY=${S3_SECRET_KEY}
       - AWS_ACCESS_KEY_ID=${S3_ACCESS_KEY}
       - AWS_SECRET_ACCESS_KEY=${S3_SECRET_KEY}
     volumes:
@@ -479,7 +479,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
   # Data Out re-encryption service
   res:
     depends_on:
-      - vault
+      - archive
       - keys
     hostname: res
     container_name: res
@@ -500,7 +500,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - EGA_SHAREDPASS_PATH=/etc/ega/pgp/ega.shared.pass
       - EGA_EBI_AWS_ACCESS_KEY=${S3_ACCESS_KEY}
       - EGA_EBI_AWS_ACCESS_SECRET=${S3_SECRET_KEY}
-      - EGA_EBI_AWS_ENDPOINT_URL=http://vault:${DOCKER_PORT_s3}
+      - EGA_EBI_AWS_ENDPOINT_URL=http://archive:${DOCKER_PORT_s3}
       - EGA_EBI_AWS_ENDPOINT_REGION=
     volumes:
       - ./pgp/ega.shared.pass:/etc/ega/pgp/ega.shared.pass:ro
@@ -509,17 +509,17 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - lega
 
   # Storage backend: S3
-  vault:
-    hostname: vault
-    container_name: vault
+  archive:
+    hostname: archive
+    container_name: archive
     labels:
-        lega_label: "vault"
+        lega_label: "archive"
     image: minio/minio:RELEASE.2018-12-19T23-46-24Z
     environment:
       - MINIO_ACCESS_KEY=${S3_ACCESS_KEY}
       - MINIO_SECRET_KEY=${S3_SECRET_KEY}
     volumes:
-      - vault:/data
+      - archive:/data
     restart: on-failure:3
     networks:
       - lega
@@ -659,8 +659,8 @@ DB_LEGA_OUT_USER          = lega_out
 CEGA_CONNECTION           = ${CEGA_CONNECTION}
 CEGA_ENDPOINT_CREDS       = ${CEGA_USERS_CREDS}
 #
-VAULT_ACCESS_KEY             = ${S3_ACCESS_KEY}
-VAULT_SECRET_KEY             = ${S3_SECRET_KEY}
+S3_ACCESS_KEY             = ${S3_ACCESS_KEY}
+S3_SECRET_KEY             = ${S3_SECRET_KEY}
 #
 DOCKER_PORT_inbox         = ${DOCKER_PORT_inbox}
 DOCKER_PORT_mq            = ${DOCKER_PORT_mq}

@@ -53,7 +53,7 @@ These tests will not treat the system as a black box.
 
 They require some knowledge on how the components are interconnected.
 
-- [ ] Check Vault+DB consistency<br/>
+- [ ] Check Archive+DB consistency<br/>
       Expected outcome: Re-checksums the files after several ingestions
 
 - [x] (skipped) DB restarted after *n* seconds<br/>

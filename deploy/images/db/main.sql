@@ -30,8 +30,8 @@ CREATE TABLE local_ega.status (
 INSERT INTO local_ega.status(id,code,description)
 VALUES (10, 'INIT'        , 'Initializing a file ingestion'),
        (20, 'IN_INGESTION', 'Currently under ingestion'),
-       (30, 'ARCHIVED'    , 'File moved to Vault'),
-       (40, 'COMPLETED'   , 'File verified in Vault'),
+       (30, 'ARCHIVED'    , 'File moved to Archive'),
+       (40, 'COMPLETED'   , 'File verified in Archive'),
        (50, 'READY'       , 'File ingested, ready for download'),
        -- (60, 'IN_INDEXING', 'Currently under index creation'),
        (0, 'ERROR'        , 'An Error occured, check the error table'),
@@ -41,12 +41,12 @@ VALUES (10, 'INIT'        , 'Initializing a file ingestion'),
 -- ##################################################
 --                ENCRYPTION FORMAT
 -- ##################################################
-CREATE TABLE local_ega.vault_encryption (
+CREATE TABLE local_ega.archive_encryption (
        mode          VARCHAR(16) NOT NULL, PRIMARY KEY(mode), UNIQUE (mode),
        description   TEXT
 );
 
-INSERT INTO local_ega.vault_encryption(mode,description)
+INSERT INTO local_ega.archive_encryption(mode,description)
 VALUES ('CRYPT4GH'  , 'Crypt4GH encryption (using version)'),
        ('PGP'       , 'OpenPGP encryption (RFC 4880)'),
        ('AES'       , 'AES encryption with passphrase'),
@@ -78,15 +78,15 @@ CREATE TABLE local_ega.main (
        submission_file_size                     BIGINT NULL,
        submission_user                          TEXT NOT NULL, -- Elixir ID, or internal user
  
-       -- Vault information
-       vault_file_reference      TEXT,    -- file path if POSIX, object id if S3
-       vault_file_type           storage, -- S3 or POSIX file system
-       vault_file_size           BIGINT,
-       vault_file_checksum       VARCHAR(128) NULL, -- NOT NULL,
-       vault_file_checksum_type  checksum_algorithm,
+       -- Archive information
+       archive_file_reference      TEXT,    -- file path if POSIX, object id if S3
+       archive_file_type           storage, -- S3 or POSIX file system
+       archive_file_size           BIGINT,
+       archive_file_checksum       VARCHAR(128) NULL, -- NOT NULL,
+       archive_file_checksum_type  checksum_algorithm,
        
        -- Encryption/Decryption
-       encryption_method         VARCHAR REFERENCES local_ega.vault_encryption (mode), -- ON DELETE CASCADE,
+       encryption_method         VARCHAR REFERENCES local_ega.archive_encryption (mode), -- ON DELETE CASCADE,
        version                   INTEGER , -- DEFAULT 1, -- Crypt4GH version
        header                    TEXT,              -- Crypt4GH header
        session_key_checksum      VARCHAR(128) NULL, -- NOT NULL, -- To check if session key already used
@@ -138,11 +138,11 @@ SELECT id,
        submission_file_calculated_checksum      AS inbox_file_checksum,
        submission_file_calculated_checksum_type AS inbox_file_checksum_type,
        status,
-       vault_file_reference                     AS vault_path,
-       vault_file_type                          AS vault_type,
-       vault_file_size                          AS vault_filesize,
-       vault_file_checksum                      AS unencrypted_checksum,
-       vault_file_checksum_type                 AS unencrypted_checksum_type,
+       archive_file_reference                     AS archive_path,
+       archive_file_type                          AS archive_type,
+       archive_file_size                          AS archive_filesize,
+       archive_file_checksum                      AS unencrypted_checksum,
+       archive_file_checksum_type                 AS unencrypted_checksum_type,
        stable_id,
        header,  -- Crypt4gh specific
        version,
@@ -173,7 +173,7 @@ RETURNS local_ega.main.id%TYPE AS $insert_file$
 	  	                    submission_user,
 			   	    submission_file_extension,
 			  	    status,
-			  	    encryption_method) -- hard-code the vault_encryption
+			  	    encryption_method) -- hard-code the archive_encryption
 	VALUES(inpath,eid,file_ext,'INIT','CRYPT4GH') RETURNING local_ega.main.id
 	INTO file_id;
 	RETURN file_id;
@@ -198,7 +198,7 @@ CREATE FUNCTION finalize_file(inpath        local_ega.files.inbox_path%TYPE,
 	-- 		inbox_path = inpath AND
 	-- 		status <> 'COMPLETED')
 	-- THEN
-	--    RAISE EXCEPTION 'Vault file not in completed state for stable_id: % ', sid;
+	--    RAISE EXCEPTION 'Archive file not in completed state for stable_id: % ', sid;
 	-- END IF;
 	-- Go ahead and mark _them_ done
 	UPDATE local_ega.files
@@ -275,12 +275,12 @@ CREATE TRIGGER mark_ready
 --           For data-out
 -- ##########################################################################
 
--- View on the vault files
-CREATE VIEW local_ega.vault_files AS
+-- View on the archive files
+CREATE VIEW local_ega.archive_files AS
 SELECT id,
        stable_id,
-       vault_file_reference,
-       vault_file_type,
+       archive_file_reference,
+       archive_file_type,
        header
 FROM local_ega.main
 WHERE status = 'READY';
@@ -290,14 +290,14 @@ WHERE status = 'READY';
 -- ##########################################################################
 -- 
 -- 
--- We can support multiple encryption types in the vault
+-- We can support multiple encryption types in the archive
 -- (Say, for example, Crypt4GH, PGP and plain AES),
 -- in the following manner:
 -- 
 -- We create a table for each method of encryption.
 -- Each table will have its own set of fields, refering to data it needs for decryption
 -- 
--- Then we update the main file table with a vault_encryption "keyword".
+-- Then we update the main file table with a archive_encryption "keyword".
 -- That will tell the main file table to look at another table for that
 -- particular file. (Note that this file reference is found in only one
 -- encryption table).

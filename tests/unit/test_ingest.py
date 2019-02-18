@@ -42,7 +42,7 @@ class testIngest(unittest.TestCase):
                   'file_id': 32,
                   'org_msg': {'filepath': infile, 'user': 'user_id@elixir-europe.org'},
                   'header': '626567696e6e696e67686561646572',
-                  'vault_path': 'smth'}
+                  'archive_path': 'smth'}
         self.assertEqual(mocked, result)
         filedir.cleanup()
 

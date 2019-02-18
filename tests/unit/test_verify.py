@@ -64,13 +64,13 @@ class testVerify(unittest.TestCase):
         self._dir = TempDirectory()
         self.outputdir = self._dir.makedir('output')
         self.env = EnvironmentVarGuard()
-        self.env.set('VAULT_LOCATION', self.outputdir + '/%s/')
+        self.env.set('ARCHIVE_LOCATION', self.outputdir + '/%s/')
         self.env.set('LEGA_PASSWORD', 'value')
         self.env.set('QUALITY_CONTROL_VERIFY_CERTIFICATE', 'True')
 
     def tearDown(self):
         """Remove setup variables."""
-        self.env.unset('VAULT_LOCATION')
+        self.env.unset('ARCHIVE_LOCATION')
         self._dir.cleanup_all()
         self.env.unset('LEGA_PASSWORD')
         self.env.unset('QUALITY_CONTROL_VERIFY_CERTIFICATE')
@@ -167,7 +167,7 @@ class testVerify(unittest.TestCase):
         mock_broker = mock.MagicMock(name='channel')
         mock_broker.channel.return_value = mock.Mock()
         infile = filedir.write('infile.in', 'text'.encode("utf-8"))
-        data = {'header': pgp_data.ENC_FILE, 'stable_id': '1', 'vault_path': infile, 'file_id': '123', 'org_msg': {}}
+        data = {'header': pgp_data.ENC_FILE, 'stable_id': '1', 'archive_path': infile, 'file_id': '123', 'org_msg': {}}
         result = work('10', store, mock_broker, data)
         self.assertTrue({'status': {'state': 'COMPLETED', 'details': '1'}}, result)
         filedir.cleanup()

@@ -192,10 +192,10 @@ class S3Storage():
     def __init__(self, config_section, user):
         """Initialize S3 object Storage."""
         import boto3
-        self.endpoint = CONF.get_value(config_section, 'url')
-        region = CONF.get_value(config_section, 'region')
-        access_key = CONF.get_value(config_section, 'access_key')
-        secret_key = CONF.get_value(config_section, 'secret_key')
+        self.endpoint = CONF.get_value(config_section, 's3_url')
+        region = CONF.get_value(config_section, 's3_region')
+        access_key = CONF.get_value(config_section, 's3_access_key')
+        secret_key = CONF.get_value(config_section, 's3_secret_key')
         self.s3 = boto3.client('s3',
                                endpoint_url=self.endpoint,
                                region_name=region,
