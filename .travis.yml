@@ -1,6 +1,9 @@
 language: python
 python: 3.6
 install: true
+cache:
+  directories:
+    - $HOME/.m2
 
 git:
   depth: false
@@ -15,6 +18,9 @@ stages:
 
 jobs:
   include:
+    #
+    # Unit Tests and Image Build
+    #
     - stage: preflight
       name: "Unit Tests"
       python: 3.6
@@ -32,6 +38,9 @@ jobs:
       script:
         - make -j 4 base inbox unit-tests
         - make -j 2 push-base push-inbox
+    #
+    # BATS Tests
+    #
     - stage: tests
       name: "Integration Tests"
       services: docker
@@ -90,7 +99,57 @@ jobs:
       script:
         - cd ../tests
         - bats security
+    #
+    # Cucumber Tests
+    #
+    - stage: tests
+      name: "Cucumber Ingestion Tests"
+      before_script:
+        - pip3 install -r requirements.txt
+        - cd deploy
+        - make -C images -j 2 pull-base pull-inbox
+        - make -C images -j 2 retag-base retag-inbox
+        - make prepare
+        - make bootstrap ARGS='--inbox mina --keyserver ega'
+        - sudo chown -R travis private
+        - make up OMIT="--scale res=0"
+        - make preflight-check
+      script:
+        - cd tests
+        - mvn test -Dtest=IngestionTests
+    - stage: tests
+      name: "Cucumber Outgestion Tests"
+      before_script:
+        - pip3 install -r requirements.txt
+        - cd deploy
+        - make -C images -j 2 pull-base pull-inbox
+        - make -C images -j 2 retag-base retag-inbox
+        - make prepare
+        - make bootstrap ARGS='--inbox mina --keyserver ega'
+        - sudo chown -R travis private
+        - make up
+        - make preflight-check
+      script:
+        - cd tests
+        - mvn test -Dtest=OutgestionTests
+    - stage: tests
+      name: "Cucumber Robustness Tests"
+      before_script:
+        - pip3 install -r requirements.txt
+        - cd deploy
+        - make -C images -j 2 pull-base pull-inbox
+        - make -C images -j 2 retag-base retag-inbox
+        - make prepare
+        - make bootstrap ARGS='--inbox mina --keyserver ega'
+        - sudo chown -R travis private
+        - make up OMIT="--scale res=0"
+        - make preflight-check
+      script:
+        - cd tests
+        - mvn test -Dtest=RobustnessTests
+    #
     # Retagging the images
+    #
     - stage: images
       services: docker
       name: "Images Retag"
@@ -101,24 +160,7 @@ jobs:
         - make retag-base retag-inbox
         - make -j 2 push-base push-inbox IMGTAG=latest
         - make clean-tag-base clean-tag-inbox
-    # #
-    # # Old tests. Make them succeed with "|| :"
-    # #
-    # - stage: tests
-    #   name: "Old Tests"
-    #   before_script:
-    #     - pip3 install -r requirements.txt
-    #     - cd deploy
-    #     - make prepare
-    #     - make bootstrap ARGS='--inbox mina --keyserver ega'
-    #     - sudo chown -R travis private
-    #     - make up
-    #     - docker-compose ps
-    #   script:
-    #     - cd tests
-    #     - mvn test -Dtest=IngestionTests -B || echo 'Nope'
-    #     - mvn test -Dtest=OutgestionTests -B || echo 'Nope'
-    #     - mvn test -Dtest=RobustnessTests -B || echo 'Nope'
+
 
 notifications:
   email: false

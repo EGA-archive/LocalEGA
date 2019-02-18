@@ -18,10 +18,6 @@ public enum FileStatus {
         this.status = status;
     }
 
-    public String getStatus() {
-        return status;
-    }
-
     public static FileStatus getValue(String status) {
         return Arrays.stream(FileStatus.values()).filter(fs -> fs.status.equals(status)).findAny().orElse(FileStatus.UNDEFINED);
     }

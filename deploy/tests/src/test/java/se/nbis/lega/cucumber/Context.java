@@ -19,6 +19,7 @@ public class Context {
     private String cegaMQUser;
     private String cegaMQPassword;
     private String cegaMQVHost;
+    private String cegaMQPort;
     private String routingKey;
     private SSHClient ssh;
     private SFTPClient sftp;

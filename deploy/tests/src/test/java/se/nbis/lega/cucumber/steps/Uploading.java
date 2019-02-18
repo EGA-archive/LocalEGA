@@ -35,7 +35,7 @@ public class Uploading implements En {
                 }
                 File encryptedFile = new File(rawFile.getAbsolutePath() + ".enc");
                 byte[] digest = DigestUtils.sha256(FileUtils.openInputStream(rawFile));
-                String key = FileUtils.readFileToString(new File(String.format("%s/%s/pgp/ega.pub", utils.getPrivateFolderPath(), utils.getProperty("instance.name"))), Charset.defaultCharset());
+                String key = FileUtils.readFileToString(new File(String.format("%s/pgp/ega.pub", utils.getPrivateFolderPath())), Charset.defaultCharset());
                 FileOutputStream fileOutputStream = new FileOutputStream(encryptedFile);
                 Crypt4GHOutputStream crypt4GHOutputStream = new Crypt4GHOutputStream(fileOutputStream, key, digest);
                 context.setSessionKey(Hex.encodeHexString(crypt4GHOutputStream.getSessionKeyBytes()));
@@ -73,26 +73,6 @@ public class Uploading implements En {
                 log.error(e.getMessage(), e);
             }
         });
-
-//        When("^I upload companion files to the LocalEGA inbox via SFTP$", () -> {
-//            try {
-//                HashingAlgorithm hashingAlgorithm = HashingAlgorithm.MD5;
-//                context.setHashingAlgorithm(hashingAlgorithm);
-//                String encFilePath = context.getEncryptedFile().getAbsolutePath();
-//                File rawChecksumFile = new File(encFilePath.substring(0, encFilePath.lastIndexOf(".")) + "." + hashingAlgorithm.name().toLowerCase());
-//                File encChecksumFile = new File(encFilePath + "." + hashingAlgorithm.name().toLowerCase());
-//                String rawChecksum = utils.calculateChecksum(context.getRawFile(), hashingAlgorithm);
-//                context.setRawChecksum(rawChecksum);
-//                FileUtils.write(rawChecksumFile, rawChecksum, Charset.defaultCharset());
-//                String encChecksum = utils.calculateChecksum(context.getEncryptedFile(), hashingAlgorithm);
-//                context.setEncChecksum(encChecksum);
-//                FileUtils.write(encChecksumFile, encChecksum, Charset.defaultCharset());
-//                context.getSftp().put(rawChecksumFile.getAbsolutePath(), rawChecksumFile.getName());
-//                context.getSftp().put(encChecksumFile.getAbsolutePath(), encChecksumFile.getName());
-//            } catch (IOException e) {
-//                log.error(e.getMessage(), e);
-//            }
-//        });
 
         Then("^the file is uploaded successfully$", () -> {
             try {

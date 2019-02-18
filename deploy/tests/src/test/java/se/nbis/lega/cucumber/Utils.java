@@ -66,7 +66,16 @@ public class Utils {
      * @return Absolute path or a private folder.
      */
     public String getPrivateFolderPath() {
-        return Paths.get("").toAbsolutePath().getParent().toString() + getProperty("private.folder.name");
+        return Paths.get("").toAbsolutePath().getParent().getParent().toString() + getProperty("private.folder.path");
+    }
+
+    /**
+     * Gets absolute path or a common folder.
+     *
+     * @return Absolute path or a common folder.
+     */
+    public String getCommonFolderPath() {
+        return Paths.get("").toAbsolutePath().getParent().getParent().toString() + getProperty("common.folder.path");
     }
 
     /**
@@ -119,19 +128,6 @@ public class Utils {
         return executeWithinContainer(dbContainer, "psql", connectionString, "-c", query);
     }
 
-//    /**
-//     * Removes the user's inbox.
-//     *
-//     * @param user     Username.
-//     * @throws InterruptedException In case the query execution is interrupted.
-//     */
-//    public void removeUserInbox(String user) throws InterruptedException {
-//        executeWithinContainer(findContainer(getProperty("images.name.inbox"), getProperty("container.name.inbox")),
-//                String.format("umount -l %s/%s", getProperty("inbox.fuse.folder.path"), user).split(" "));
-//        executeWithinContainer(findContainer(getProperty("images.name.inbox"), getProperty("container.name.inbox")),
-//                String.format("rm -rf %s/%s", getProperty("inbox.real.folder.path"), user).split(" "));
-//    }
-
     /**
      * Removes the uploaded file from the inbox.
      *
@@ -151,7 +147,7 @@ public class Utils {
      * @throws IOException In case it's not possible to read trace file.
      */
     public String readTraceProperty(String property) throws IOException {
-        File trace = new File(String.format("%s/%s/%s", getPrivateFolderPath(), getProperty("instance.name"), getProperty("trace.file.name")));
+        File trace = new File(String.format("%s/%s", getPrivateFolderPath(), getProperty("trace.file.name")));
         return FileUtils.readLines(trace, Charset.defaultCharset()).
                 stream().
                 filter(l -> l.startsWith(property)).
@@ -200,62 +196,6 @@ public class Utils {
     }
 
     /**
-     * Gets all LocalEGA Docker containers.
-     *
-     * @return All LocalEGA Docker containers.
-     */
-    public Collection<Container> getAllLocalEGAContainers() {
-        return dockerClient.listContainersCmd().withShowAll(true).withLabelFilter("lega_label").exec();
-    }
-
-    /**
-     * Restarts all the LocalEGA containers.
-     */
-    public void restartAllLocalEGAContainers() {
-        getAllLocalEGAContainers().
-                stream().
-                peek(this::stopContainer).
-                peek(c -> safeSleep(5000)).
-                peek(this::startContainer).
-                forEach(c -> safeSleep(5000));
-        waitForInitializationToComplete();
-    }
-
-    /**
-     * Waits for all LocalEGA containers to initialize.
-     */
-    public void waitForInitializationToComplete() {
-        Collection<Container> containers = getAllLocalEGAContainers();
-        long maxTimeout = Long.parseLong(getProperty("initialization.max-timeout"));
-        long timeout = 0;
-        while (containers.isEmpty() || !containers.stream().map(Container::getStatus).allMatch(s -> s.startsWith("Up"))) {
-            if (containers.isEmpty()) {
-                containers = getAllLocalEGAContainers();
-            }
-            safeSleep(1000);
-            timeout += 1000;
-            if (timeout > maxTimeout) {
-                throw new RuntimeException(String.format("The system was not initialized in time: initialization.max-timeout = %s", maxTimeout));
-            }
-        }
-        // Sleep a bit more to let containers not only start up, but finish initialization.
-        safeSleep(Long.parseLong(getProperty("initialization.delay")));
-    }
-
-    /**
-     * Sleeps for some time without throwing an exception (to make it easier to use in lambdas).
-     *
-     * @param millis Time to sleep in milliseconds.
-     */
-    private void safeSleep(long millis) {
-        try {
-            Thread.sleep(millis);
-        } catch (InterruptedException e) {
-            log.error(e.getMessage(), e);
-        }
-    }
-
-    /**
      * Calculates hash of a file.
      *
      * @param file             File to calculate hash for.
@@ -289,20 +229,6 @@ public class Utils {
         message.setUser(user);
         message.setFilepath(encryptedFileName);
         message.setStableID("EGAF" + UUID.randomUUID().toString().toLowerCase());
-
-//        if (StringUtils.isNotEmpty(rawChecksum)) {
-//            Checksum unencrypted = new Checksum();
-//            unencrypted.setAlgorithm(hashingAlgorithm.toLowerCase());
-//            unencrypted.setChecksum(rawChecksum);
-//            message.setUnencryptedIntegrity(unencrypted);
-//        }
-//
-//        if (StringUtils.isNotEmpty(encChecksum)) {
-//            Checksum encrypted = new Checksum();
-//            encrypted.setAlgorithm(hashingAlgorithm.toLowerCase());
-//            encrypted.setChecksum(encChecksum);
-//            message.setEncryptedIntegrity(encrypted);
-//        }
 
         ConnectionFactory factory = new ConnectionFactory();
         factory.setUri(connection);
