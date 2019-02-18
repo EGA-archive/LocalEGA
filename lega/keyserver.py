@@ -15,7 +15,8 @@ import ssl
 from aiohttp import web
 import pgpy
 
-from .conf import CONF, KeysConfiguration
+from .conf import CONF
+from .conf.keys import KeysConfiguration
 
 LOG = logging.getLogger(__name__)
 routes = web.RouteTableDef()

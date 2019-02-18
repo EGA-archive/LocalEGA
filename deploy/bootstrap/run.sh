@@ -340,7 +340,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF  # SFTP inbox
       - CEGA_ENDPOINT_JSON_PREFIX=response.result
     ports:
       - "${DOCKER_PORT_inbox}:9000"
-    image: nbisweden/ega-inbox:latest
+    image: egarchive/lega-inbox:latest
     volumes:
       - ./conf.ini:/etc/ega/conf.ini:ro
       - ../images/inbox/entrypoint.sh:/usr/local/bin/entrypoint.sh
@@ -355,7 +355,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     depends_on:
       - db
       - mq
-    image: nbisweden/ega-base:latest
+    image: egarchive/lega-base:latest
     container_name: finalize
     labels:
         lega_label: "finalize"
@@ -365,14 +365,15 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     restart: on-failure:3
     networks:
       - lega
-    entrypoint: ["gosu", "lega", "ega-id-mapper"]
+    user: lega
+    entrypoint: ["ega-finalize"]
 
   # Ingestion Workers
   ingest:
     depends_on:
       - db
       - mq
-    image: nbisweden/ega-base:latest
+    image: egarchive/lega-base:latest
     container_name: ingest
     labels:
         lega_label: "ingest"
@@ -388,7 +389,8 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     restart: on-failure:3
     networks:
       - lega
-    entrypoint: ["gosu", "lega", "ega-ingest"]
+    user: lega
+    entrypoint: ["ega-ingest"]
 
   # Key server
 EOF
@@ -425,7 +427,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     container_name: keys
     labels:
         lega_label: "keys"
-    image: nbisweden/ega-base:latest
+    image: egarchive/lega-base:latest
     expose:
       - "8443"
     environment:
@@ -442,7 +444,8 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     restart: on-failure:3
     networks:
       - lega
-    entrypoint: ["gosu","lega","ega-keyserver","--keys","/etc/ega/keys.ini.enc"]
+    user: lega
+    entrypoint: ["ega-keyserver","--keys","/etc/ega/keys.ini.enc"]
 
 EOF
 fi
@@ -457,7 +460,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     container_name: verify
     labels:
         lega_label: "verify"
-    image: nbisweden/ega-base:latest
+    image: egarchive/lega-base:latest
     environment:
       - LEGA_PASSWORD=${LEGA_PASSWORD}
       - VAULT_ACCESS_KEY=${S3_ACCESS_KEY}
@@ -470,7 +473,8 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     restart: on-failure:3
     networks:
       - lega
-    entrypoint: ["gosu", "lega", "ega-verify"]
+    user: lega
+    entrypoint: ["ega-verify"]
 
   # Data Out re-encryption service
   res:
@@ -582,7 +586,7 @@ services:
     hostname: cega-users
     ports:
       - "15671:80"
-    image: nbisweden/ega-base:latest
+    image: egarchive/lega-base:latest
     container_name: cega-users
     labels:
         lega_label: "cega-users"
@@ -591,7 +595,7 @@ services:
        - ../../tests/_common/users.json:/cega/users.json
     networks:
       - lega
-    entrypoint: ["python3.6", "/cega/users.py", "0.0.0.0", "80", "/cega/users.json"]
+    entrypoint: ["python", "/cega/users.py", "0.0.0.0", "80", "/cega/users.json"]
 EOF
 
     # The user/password is legatest:legatest

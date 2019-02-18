@@ -10,17 +10,37 @@ git:
   quiet: true
 
 stages:
+  - name: preflight
   - name: tests
+    if: type = pull_request
   - name: images
     if: type = pull_request AND branch = master
 
 jobs:
   include:
-    - stage: tests
+    #
+    # Unit Tests and Image Build
+    #
+    - stage: preflight
       name: "Unit Tests"
       python: 3.6
       before_script: pip install tox-travis
       script: tox
+    - stage: preflight
+      if: type = pull_request
+      services: docker
+      name: "Images build"
+      before_script:
+        - pip install tox-travis
+        - cd deploy/images
+        # Pulling image for layer caching
+        - make -j 2 pull-base pull-inbox IMGTAG=latest
+      script:
+        - make -j 4 base inbox unit-tests
+        - make -j 2 push-base push-inbox
+    #
+    # BATS Tests
+    #
     - stage: tests
       name: "Integration Tests"
       services: docker
@@ -29,6 +49,8 @@ jobs:
         - git clone https://github.com/bats-core/bats-core.git
         - pushd bats-core && git checkout v1.1.0 && sudo ./install.sh /usr/local && popd
         - cd deploy
+        - make -C images -j 2 pull-base pull-inbox
+        - make -C images -j 2 retag-base retag-inbox
         - make prepare
         - make bootstrap ARGS="--keyserver ega"
         - sudo chown -R travis private
@@ -45,6 +67,8 @@ jobs:
         - git clone https://github.com/bats-core/bats-core.git
         - pushd bats-core && git checkout v1.1.0 && sudo ./install.sh /usr/local && popd
         - cd deploy
+        - make -C images -j 2 pull-base pull-inbox
+        - make -C images -j 2 retag-base retag-inbox
         - make prepare
         - make bootstrap ARGS="--keyserver ega"
         - sudo chown -R travis private
@@ -65,6 +89,8 @@ jobs:
         - git clone https://github.com/bats-core/bats-core.git
         - pushd bats-core && git checkout v1.1.0 && sudo ./install.sh /usr/local && popd
         - cd deploy
+        - make -C images -j 2 pull-base pull-inbox
+        - make -C images -j 2 retag-base retag-inbox
         - make prepare
         - make bootstrap ARGS="--keyserver ega"
         - sudo chown -R travis private
@@ -73,11 +99,16 @@ jobs:
       script:
         - cd ../tests
         - bats security
+    #
+    # Cucumber Tests
+    #
     - stage: tests
       name: "Cucumber Ingestion Tests"
       before_script:
         - pip3 install -r requirements.txt
         - cd deploy
+        - make -C images -j 2 pull-base pull-inbox
+        - make -C images -j 2 retag-base retag-inbox
         - make prepare
         - make bootstrap ARGS='--inbox mina --keyserver ega'
         - sudo chown -R travis private
@@ -91,6 +122,8 @@ jobs:
       before_script:
         - pip3 install -r requirements.txt
         - cd deploy
+        - make -C images -j 2 pull-base pull-inbox
+        - make -C images -j 2 retag-base retag-inbox
         - make prepare
         - make bootstrap ARGS='--inbox mina --keyserver ega'
         - sudo chown -R travis private
@@ -104,6 +137,8 @@ jobs:
       before_script:
         - pip3 install -r requirements.txt
         - cd deploy
+        - make -C images -j 2 pull-base pull-inbox
+        - make -C images -j 2 retag-base retag-inbox
         - make prepare
         - make bootstrap ARGS='--inbox mina --keyserver ega'
         - sudo chown -R travis private
@@ -112,10 +147,20 @@ jobs:
       script:
         - cd tests
         - mvn test -Dtest=RobustnessTests
-
+    #
+    # Retagging the images
+    #
     - stage: images
-      name: "Images Build"
-      script: echo 'Next PR'
+      services: docker
+      name: "Images Retag"
+      before_script:
+        - cd deploy/images
+      script:
+        - make -j 2 pull-base pull-inbox
+        - make retag-base retag-inbox
+        - make -j 2 push-base push-inbox IMGTAG=latest
+        - make clean-tag-base clean-tag-inbox
+
 
 notifications:
   email: false
