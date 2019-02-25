@@ -1,6 +1,6 @@
 # Local EGA main repository
 
-[![Build Status](https://travis-ci.org/EGA-archive/LocalEGA.svg?branch=dev)](https://travis-ci.org/EGA-archive/LocalEGA)
+[![Build Status](https://travis-ci.org/EGA-archive/LocalEGA.svg?branch=master)](https://travis-ci.org/EGA-archive/LocalEGA)
 [![Documentation Status](https://readthedocs.org/projects/localega/badge/?version=latest)](https://localega.readthedocs.io/en/latest/?badge=latest)
 [![Coverage Status](https://coveralls.io/repos/github/EGA-archive/LocalEGA/badge.svg?branch=master)](https://coveralls.io/github/EGA-archive/LocalEGA?branch=master)
 
