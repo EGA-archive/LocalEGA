@@ -294,7 +294,6 @@ services:
       - ../images/db/postgresql.conf:/etc/ega/pg.conf:ro
       - ../images/db/main.sql:/docker-entrypoint-initdb.d/main.sql:ro
       - ../images/db/grants.sql:/docker-entrypoint-initdb.d/grants.sql:ro
-      - ../images/db/audit.sql:/docker-entrypoint-initdb.d/audit.sql:ro
       - ../images/db/download.sql:/docker-entrypoint-initdb.d/download.sql:ro
       - ../images/db/ebi.sql:/docker-entrypoint-initdb.d/ebi.sql:ro
       - ../images/db/qc.sql:/docker-entrypoint-initdb.d/qc.sql:ro
