@@ -337,12 +337,12 @@ cat >> ${PRIVATE}/lega.yml <<EOF  # SFTP inbox
       - CEGA_ENDPOINT=${CEGA_USERS_ENDPOINT}
       - CEGA_ENDPOINT_CREDS=${CEGA_USERS_CREDS}
       - CEGA_ENDPOINT_JSON_PREFIX=response.result
+      - CEGA_MQ_CONNECTION=${CEGA_CONNECTION}
     ports:
       - "${DOCKER_PORT_inbox}:9000"
     image: egarchive/lega-inbox:latest
     volumes:
       - ./conf.ini:/etc/ega/conf.ini:ro
-      - ../images/inbox/entrypoint.sh:/usr/local/bin/entrypoint.sh
       - inbox:/ega/inbox
 EOF
 fi
