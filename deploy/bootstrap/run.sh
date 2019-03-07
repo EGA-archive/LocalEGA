@@ -340,7 +340,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF  # SFTP inbox
       - CEGA_MQ_CONNECTION=${CEGA_CONNECTION}
     ports:
       - "${DOCKER_PORT_inbox}:9000"
-    image: egarchive/lega-inbox:latest
+    image: egarchive/lega-inbox:dev
     volumes:
       - ./conf.ini:/etc/ega/conf.ini:ro
       - inbox:/ega/inbox
