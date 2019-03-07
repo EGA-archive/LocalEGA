@@ -1,85 +1,47 @@
+CREATE SCHEMA local_ega_ebi;
+
+SET search_path TO local_ega_ebi;
 
 -- Special view for EBI Data-Out
-CREATE VIEW local_ega.ebi_files AS
-SELECT id                                       AS file_id,
-       stable_id                                AS file_name,
-       archive_file_reference                     AS file_path,
-       archive_file_type                          AS file_type,
-       archive_file_size                          AS file_size,
-       archive_file_checksum                      AS unencrypted_checksum,
-       archive_file_checksum_type                 AS unencrypted_checksum_type,
-       header                                   AS header,
-       created_by                               AS created_by,
-       last_modified_by                         AS last_updated_by,
-       created_at                               AS created,
-       last_modified                            AS last_updated
+CREATE VIEW local_ega_ebi.file AS
+SELECT stable_id                                AS file_id,
+       archive_file_reference                   AS file_name,
+       archive_file_reference                   AS file_path,
+       reverse(split_part(reverse(submission_file_path::text), '/'::text, 1)) AS display_file_name,
+       archive_file_size                        AS file_size,
+       NULL::text                               AS checksum,
+       NULL::text                               AS checksum_type,
+       archive_file_checksum                    AS unencrypted_checksum,
+       archive_file_checksum_type               AS unencrypted_checksum_type,
+       status                                   AS file_status,
+       header                                   AS header
 FROM local_ega.main
 WHERE status = 'READY';
 
+-- Relation File EGAF <-> Dataset EGAD
+CREATE TABLE local_ega_ebi.filedataset (
+       id       SERIAL, PRIMARY KEY(id), UNIQUE (id),
+       file_id     INTEGER NOT NULL REFERENCES local_ega.main (id) ON DELETE CASCADE, -- not stable_id
+       dataset_stable_id  TEXT NOT NULL
+);
+
+-- This view was created to be in sync with the entity eu.elixir.ega.ebi.downloader.domain.entity.FileDataset
+-- which uses a view and has an @Id annotation in file_id
+CREATE VIEW local_ega_ebi.file_dataset AS
+SELECT m.stable_id AS file_id, dataset_stable_id as dataset_id FROM local_ega_ebi.filedataset fd
+INNER JOIN local_ega.main m ON fd.file_id=m.id;
 
 -- Relation File <-> Index File
-CREATE TABLE local_ega.index_files (
+CREATE TABLE local_ega_ebi.fileindexfile (
        id       SERIAL, PRIMARY KEY(id), UNIQUE (id),
-
-       file_id  INTEGER NOT NULL REFERENCES local_ega.main (id) ON DELETE CASCADE,
-
+       file_id     INTEGER NOT NULL REFERENCES local_ega.main (id) ON DELETE CASCADE, -- not stable_id
+       index_file_id TEXT,
        index_file_reference      TEXT NOT NULL,     -- file path if POSIX, object id if S3
        index_file_type           local_ega.storage  -- S3 or POSIX file system
 );
 
--- Relation File EGAF <-> Dataset EGAD
-CREATE TABLE local_ega.file2dataset (
-       id       SERIAL, PRIMARY KEY(id), UNIQUE (id),
-
-       file_id     INTEGER NOT NULL REFERENCES local_ega.main (id) ON DELETE CASCADE, -- not stable_id
-
-       dataset_id  TEXT NOT NULL
-);
-
--- Event
-CREATE TABLE local_ega.event (
-       event_id  SERIAL, UNIQUE (event_id),
-
-       client_ip varchar(45) NOT NULL,
-
-       event varchar(256) NOT NULL,
-
-       event_type varchar(256) NOT NULL,
-
-       email varchar(256) NOT NULL,
-
-       created timestamp NOT NULL DEFAULT now(),
-
-       CONSTRAINT event_pkey PRIMARY KEY (event_id)
-
-);
-
--- Download Log
-CREATE TABLE local_ega.download_log (
-       download_log_id SERIAL, PRIMARY KEY(download_log_id), UNIQUE (download_log_id),
-
-       client_ip varchar(45) NOT NULL,
-
-       api varchar(45) NOT NULL,
-
-       email varchar(256) NOT NULL,
-
-       file_id varchar(15) NOT NULL,
-
-       download_speed float8 NOT NULL DEFAULT '-1'::integer,
-
-       download_status varchar(256) NOT NULL DEFAULT 'success'::character varying,
-
-       encryption_type varchar(256) NOT NULL,
-
-       start_coordinate int8 NOT NULL DEFAULT 0,
-
-       end_coordinate int8 NOT NULL DEFAULT 0,
-
-       bytes int8 NOT NULL DEFAULT 0,
-
-       created timestamp NOT NULL DEFAULT now(),
-
-       token_source varchar(255) NOT NULL
-
-);
+-- This view was created to be in sync with the entity eu.elixir.ega.ebi.downloader.domain.entity.FileIndexFile
+-- which seems to use a view and has an @Id annotation in file_id
+CREATE VIEW local_ega_ebi.file_index_file AS
+SELECT m.stable_id AS file_id, index_file_id FROM local_ega_ebi.fileindexfile fif
+INNER JOIN local_ega.main m ON fif.file_id=m.id;

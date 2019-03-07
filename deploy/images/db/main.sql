@@ -277,14 +277,17 @@ CREATE TRIGGER mark_ready
 
 -- View on the archive files
 CREATE VIEW local_ega.archive_files AS
-SELECT id,
-       stable_id,
-       archive_file_reference,
-       archive_file_type,
-       header
+SELECT id                        AS file_id
+     , stable_id                 AS stable_id
+     , archive_file_reference      AS archive_path
+     , archive_file_type           AS archive_type
+     , archive_file_size           AS archive_filesize
+     , archive_file_checksum       AS unencrypted_checksum
+     , archive_file_checksum_type  AS unencrypted_checksum_type
+     , header                    AS header
+     , version                   AS version
 FROM local_ega.main
 WHERE status = 'READY';
-
 -- ##########################################################################
 --                   About the encryption
 -- ##########################################################################
