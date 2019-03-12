@@ -18,7 +18,8 @@ COPY setup.py /root/LocalEGA/setup.py
 COPY lega /root/LocalEGA/lega
 COPY requirements.txt /root/LocalEGA/requirements.txt
 
-RUN pip install -r /root/LocalEGA/requirements.txt
+RUN pip install --upgrade pip && \
+    pip install -r /root/LocalEGA/requirements.txt
 RUN pip install /root/LocalEGA && \
     rm -rf /root/LocalEGA
 
