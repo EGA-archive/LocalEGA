@@ -29,6 +29,9 @@ class FileStorage():
         target.parent.mkdir(parents=True, exist_ok=True)
         return str(target)
 
+    def filesize(self, path):
+        return os.stat(self.prefix / path.lstrip('/')).st_size
+
     def copy(self, fileobj, location):
         """Copy file object at a specific location."""
         with open(location, 'wb') as h:
@@ -216,6 +219,10 @@ class S3Storage():
         """Retrieve object location."""
         return str(file_id)
 
+    def filesize(self, path):
+        resp = self.s3.head_object(Bucket=self.bucket, Key=path)
+        return resp['ContentLength']
+
     def copy(self, fileobj, location):
         """Copy file object in a bucket."""
         self.s3.upload_fileobj(fileobj, self.bucket, location)
@@ -231,8 +238,7 @@ class S3Storage():
 
     def exists(self, path):
         """Return true if the path exists."""
-        resp = self.s3.head_object(Bucket=self.bucket, Key=path)
-        return bool(resp['ContentLength'])
+        return bool(self.filesize(path))
 
     def __str__(self):
         """Return endpoint/bucket."""
