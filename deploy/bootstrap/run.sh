@@ -337,13 +337,39 @@ cat >> ${PRIVATE}/lega.yml <<EOF  # SFTP inbox
       - CEGA_ENDPOINT=${CEGA_USERS_ENDPOINT}
       - CEGA_ENDPOINT_CREDS=${CEGA_USERS_CREDS}
       - CEGA_ENDPOINT_JSON_PREFIX=response.result
-      - CEGA_MQ_CONNECTION=${CEGA_CONNECTION}
+      - MQ_SSL=no
+      - MQ_HOST=mq
+      - MQ_PORT=5672
+      - MQ_VHOST=/
+      - MQ_USER=guest
+      - MQ_PASSWORD=guest
+      - MQ_EXCHANGE=lega
+      - MQ_ROUTING_KEY=inbox
     ports:
       - "${DOCKER_PORT_inbox}:9000"
     image: egarchive/lega-inbox:dev
     volumes:
       - ./conf.ini:/etc/ega/conf.ini:ro
       - inbox:/ega/inbox
+
+  # SFTP inbox - listener
+  inbox-listener:
+    hostname: ega-inbox-listener
+    depends_on:
+      - mq
+    container_name: inbox-listener
+    image: egarchive/lega-base:latest
+    labels:
+        lega_label: "inbox-listener"
+    restart: on-failure:3
+    volumes:
+      - ./conf.ini:/etc/ega/conf.ini:ro
+      - inbox:/ega/inbox
+    restart: on-failure:3
+    networks:
+      - lega
+    user: lega
+    entrypoint: ["ega-inbox"]
 EOF
 fi
 
