@@ -343,7 +343,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF  # SFTP inbox
       - MQ_ROUTING_KEY=files.inbox
     ports:
       - "${DOCKER_PORT_inbox}:9000"
-    image: egarchive/lega-inbox:dev
+    image: egarchive/lega-inbox:stable
     volumes:
       - ./conf.ini:/etc/ega/conf.ini:ro
       - inbox:/ega/inbox
