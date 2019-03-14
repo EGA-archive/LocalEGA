@@ -30,6 +30,7 @@ class FileStorage():
         return str(target)
 
     def filesize(self, path):
+        """Return the size of the file pointed by ``path``."""
         return os.stat(self.prefix / path.lstrip('/')).st_size
 
     def copy(self, fileobj, location):
@@ -220,6 +221,7 @@ class S3Storage():
         return str(file_id)
 
     def filesize(self, path):
+        """Return the size of the file pointed by ``path``."""
         resp = self.s3.head_object(Bucket=self.bucket, Key=path)
         return resp['ContentLength']
 
