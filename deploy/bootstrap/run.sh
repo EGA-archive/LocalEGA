@@ -332,44 +332,21 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - inbox:/ega/inbox
 EOF
 else
+# SSL support is temporarily off
 cat >> ${PRIVATE}/lega.yml <<EOF  # SFTP inbox
     environment:
       - CEGA_ENDPOINT=${CEGA_USERS_ENDPOINT}
       - CEGA_ENDPOINT_CREDS=${CEGA_USERS_CREDS}
       - CEGA_ENDPOINT_JSON_PREFIX=response.result
-      - MQ_SSL=no
-      - MQ_HOST=mq
-      - MQ_PORT=5672
-      - MQ_VHOST=/
-      - MQ_USER=guest
-      - MQ_PASSWORD=guest
-      - MQ_EXCHANGE=lega
-      - MQ_ROUTING_KEY=inbox
+      - MQ_CONNECTION=amqp://guest:guest@mq:5672/%2F
+      - MQ_EXCHANGE=cega
+      - MQ_ROUTING_KEY=files.inbox
     ports:
       - "${DOCKER_PORT_inbox}:9000"
     image: egarchive/lega-inbox:dev
     volumes:
       - ./conf.ini:/etc/ega/conf.ini:ro
       - inbox:/ega/inbox
-
-  # SFTP inbox - notify
-  notify:
-    hostname: notify
-    depends_on:
-      - mq
-    container_name: notify
-    image: egarchive/lega-base:latest
-    labels:
-        lega_label: "notify"
-    restart: on-failure:3
-    volumes:
-      - ./conf.ini:/etc/ega/conf.ini:ro
-      - inbox:/ega/inbox
-    restart: on-failure:3
-    networks:
-      - lega
-    user: lega
-    entrypoint: ["ega-notify"]
 
 EOF
 fi
