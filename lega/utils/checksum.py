@@ -28,25 +28,17 @@ def instantiate(algo):
         raise UnsupportedHashAlgorithm(algo)
 
 
-def calculate_obj(f, algo, bsize=8192):
-    """Compute the checksum of the file-object ``f`` using the message digest ``m``."""
+def calculate(filepath, algo, bsize=8192):
+    """Compute the checksum of a file using the message digest ``m``."""
     try:
         m = instantiate(algo)
-        while True:
-            data = f.read(bsize)
-            if not data:
-                break
-            m.update(data)
-        return m.hexdigest()
-    except OSError as e:
-        LOG.error(f'Unable to calculate checksum: {e!r}')
-        return None
-
-def calculate(filepath, algo, bsize=8192):
-    """Compute the checksum of the file-object ``f`` using the message digest ``m``."""
-    try:
         with open(filepath, 'rb') as f:  # Open the file in binary mode. No encoding dance.
-            return calculate_obj(f, algo, bsize=bsize)
+            while True:
+                data = f.read(bsize)
+                if not data:
+                    break
+                m.update(data)
+        return m.hexdigest()
     except OSError as e:
         LOG.error(f'Unable to calculate checksum: {e!r}')
         return None
