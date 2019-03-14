@@ -53,7 +53,7 @@ class FileStorage():
 
     def __str__(self):
         """Return inbox prefix."""
-        return self.prefix
+        return str(self.prefix)
 
 
 class S3FileReader(object):

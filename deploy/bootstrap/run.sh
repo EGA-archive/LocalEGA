@@ -352,15 +352,15 @@ cat >> ${PRIVATE}/lega.yml <<EOF  # SFTP inbox
       - ./conf.ini:/etc/ega/conf.ini:ro
       - inbox:/ega/inbox
 
-  # SFTP inbox - listener
-  inbox-listener:
-    hostname: ega-inbox-listener
+  # SFTP inbox - notify
+  notify:
+    hostname: notify
     depends_on:
       - mq
-    container_name: inbox-listener
+    container_name: notify
     image: egarchive/lega-base:latest
     labels:
-        lega_label: "inbox-listener"
+        lega_label: "notify"
     restart: on-failure:3
     volumes:
       - ./conf.ini:/etc/ega/conf.ini:ro
@@ -369,7 +369,8 @@ cat >> ${PRIVATE}/lega.yml <<EOF  # SFTP inbox
     networks:
       - lega
     user: lega
-    entrypoint: ["ega-inbox"]
+    entrypoint: ["ega-notify"]
+
 EOF
 fi
 
