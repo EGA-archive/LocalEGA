@@ -44,18 +44,18 @@ function lega_ingest {
     [ "$status" -eq 0 ]
 
     # Fetch the correlation id for that file (Hint: with user/filepath combination)
-    retry_until 0 100 1 ${MQ_GET} v1.files.inbox "${TESTUSER}" "${TESTFILE}.c4ga"
+    retry_until 0 100 1 ${MQ_GET} v1.files.inbox "${TESTUSER}" "/${TESTFILE}.c4ga"
     [ "$status" -eq 0 ]
     CORRELATION_ID=$output
 
     # Publish the file to simulate a CentralEGA trigger
-    MESSAGE="{ \"user\": \"${TESTUSER}\", \"filepath\": \"${TESTFILE}.c4ga\"}"
+    MESSAGE="{ \"user\": \"${TESTUSER}\", \"filepath\": \"/${TESTFILE}.c4ga\"}"
     legarun ${MQ_PUBLISH} --correlation_id ${CORRELATION_ID} files "$MESSAGE"
     [ "$status" -eq 0 ]
 
     # Check that a message with the above correlation id arrived in the expected queue
     # Waiting 20 seconds.
-    retry_until 0 10 10 ${MQ_GET} $queue "${TESTUSER}" "${TESTFILE}.c4ga"
+    retry_until 0 10 10 ${MQ_GET} $queue "${TESTUSER}" "/${TESTFILE}.c4ga"
     [ "$status" -eq 0 ]
 }
 
@@ -102,18 +102,18 @@ function lega_ingest {
     [ "$status" -eq 0 ]
 
     # Fetch the correlation id for that file (Hint: with user/filepath combination)
-    retry_until 0 100 1 ${MQ_GET} v1.files.inbox "${TESTUSER}" "${TESTFILE}.c4ga.2"
+    retry_until 0 100 1 ${MQ_GET} v1.files.inbox "${TESTUSER}" "/${TESTFILE}.c4ga.2"
     [ "$status" -eq 0 ]
     CORRELATION_ID2=$output
     [ "$CORRELATION_ID" != "$CORRELATION_ID2" ]
 
     # Publish the file to simulate a CentralEGA trigger
-    MESSAGE2="{ \"user\": \"${TESTUSER}\", \"filepath\": \"${TESTFILE}.c4ga.2\"}"
+    MESSAGE2="{ \"user\": \"${TESTUSER}\", \"filepath\": \"/${TESTFILE}.c4ga.2\"}"
     legarun ${MQ_PUBLISH} --correlation_id ${CORRELATION_ID2} files "$MESSAGE2"
     [ "$status" -eq 0 ]
 
     # Check that a message with the above correlation id arrived in the error queue
-    retry_until 0 100 1 ${MQ_GET} v1.files.error "${TESTUSER}" "${TESTFILE}.c4ga.2"
+    retry_until 0 100 1 ${MQ_GET} v1.files.error "${TESTUSER}" "/${TESTFILE}.c4ga.2"
     [ "$status" -eq 0 ]
 }
 
@@ -145,12 +145,12 @@ function lega_ingest {
     CORRELATION_ID=$output
 
     # Publish the file to simulate a CentralEGA trigger
-    MESSAGE="{ \"user\": \"${TESTUSER}\", \"filepath\": \"${TESTFILE}.c4ga\"}"
+    MESSAGE="{ \"user\": \"${TESTUSER}\", \"filepath\": \"/${TESTFILE}.c4ga\"}"
     legarun ${MQ_PUBLISH} --correlation_id ${CORRELATION_ID} files "$MESSAGE"
     [ "$status" -eq 0 ]
 
     # Check that a message with the above correlation id arrived in the completed queue
-    retry_until 0 100 1 ${MQ_GET} v1.files.error "${TESTUSER}" "${TESTFILE}.c4ga"
+    retry_until 0 100 1 ${MQ_GET} v1.files.error "${TESTUSER}" "/${TESTFILE}.c4ga"
     [ "$status" -eq 0 ]
 }
 
