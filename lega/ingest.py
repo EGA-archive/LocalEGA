@@ -51,7 +51,7 @@ def work(fs, inbox_fs, channel, data):
 
     # Instantiate the inbox backend
     inbox = inbox_fs(user_id)
-    LOG.info("Inbox backend: %s", inbox)
+    LOG.info("Inbox backend: %s", str(inbox))
 
     # Check if file is in inbox
     if not inbox.exists(filepath):
