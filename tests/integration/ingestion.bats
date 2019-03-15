@@ -140,7 +140,7 @@ function lega_ingest {
     [ "$status" -eq 0 ]
 
     # Fetch the correlation id for that file (Hint: with user/filepath combination)
-    retry_until 0 100 1 ${MQ_GET} v1.files.inbox "${TESTUSER}" "${TESTFILE}.c4ga"
+    retry_until 0 100 1 ${MQ_GET} v1.files.inbox "${TESTUSER}" "/${TESTFILE}.c4ga"
     [ "$status" -eq 0 ]
     CORRELATION_ID=$output
 
