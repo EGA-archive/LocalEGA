@@ -21,9 +21,9 @@ all: base
 
 base:
 	cd $(MAIN_REPO) && \
-	docker build -f Dockerfile.$@ \
+	docker build -f Dockerfile \
 	       --build-arg LEGA_GID=$(LEGA_GID) \
-	       --cache-from $(TARGET_PREFIX)$@:latest \
+	       --cache-from $(TARGET_PREFIX)base:latest \
                --tag $(TARGET_PREFIX)$@:$(TAG) \
                --tag $(TARGET_PREFIX)$@:latest \
                .
@@ -49,20 +49,20 @@ purge:
 
 
 # Download images
-pull-%:
-	docker pull $(TARGET_PREFIX)$(@:pull-%=%):$(IMGTAG)
+pull:
+	docker pull $(TARGET_PREFIX)base:$(IMGTAG)
 
 # Upload images
-push-%:
+push:
 	-@echo -n "$(DOCKER_PASSWORD)" | docker login -u "$(DOCKER_USER)" --password-stdin
-	docker push $(TARGET_PREFIX)$(@:push-%=%):$(IMGTAG)
+	docker push $(TARGET_PREFIX)base:$(IMGTAG)
 
 # Retag 
-retag-%:
-	docker tag $(TARGET_PREFIX)$(@:retag-%=%):$(IMGTAG) $(TARGET_PREFIX)$(@:retag-%=%):latest
+retag:
+	docker tag $(TARGET_PREFIX)base:$(IMGTAG) $(TARGET_PREFIX)base:latest
 
-clean-tag-%:
-	@echo "No way to remove $(TARGET_PREFIX)$(@:clean-tag-%=%):$(TAG) from docker hub at the moment"
+clean-tag:
+	@echo "No way to remove $(TARGET_PREFIX)base:$(TAG) from docker hub at the moment"
 
 unit-tests:
 	cd ../.. && tox

@@ -237,6 +237,7 @@ networks:
 
 # Use the default driver for volume creation
 volumes:
+  mq:
   db:
   inbox:
   archive:
@@ -260,10 +261,12 @@ services:
   mq:
     environment:
       - CEGA_CONNECTION=${CEGA_CONNECTION}
+      - MQ_USER=${MQ_USER}
+      - MQ_PASSWORD_HASH=${MQ_PASSWORD_HASH}
     hostname: mq
     ports:
       - "${DOCKER_PORT_mq}:15672"
-    image: rabbitmq:3.6.14-management
+    image: egarchive/lega-mq:stable
     container_name: mq
     labels:
         lega_label: "mq"
@@ -271,13 +274,9 @@ services:
     networks:
       - lega
     volumes:
-      - ../images/mq/defs.json:/etc/rabbitmq/defs.json
-      - ../images/mq/rabbitmq.config:/etc/rabbitmq/rabbitmq.config
-      - ../images/mq/entrypoint.sh:/usr/bin/ega-entrypoint.sh
-    entrypoint: ["/bin/bash", "/usr/bin/ega-entrypoint.sh"]
-    command: ["rabbitmq-server"]
+      - mq:/var/lib/rabbitmq
 
-  # Postgres Database
+  # Local Database
   db:
     environment:
       - DB_LEGA_IN_PASSWORD=${DB_LEGA_IN_PASSWORD}
@@ -288,20 +287,12 @@ services:
     container_name: db
     labels:
         lega_label: "db"
-    image: postgres:10
+    image: egarchive/lega-db:stable
     volumes:
       - db:/ega/data
-      - ../images/db/postgresql.conf:/etc/ega/pg.conf:ro
-      - ../images/db/main.sql:/docker-entrypoint-initdb.d/main.sql:ro
-      - ../images/db/grants.sql:/docker-entrypoint-initdb.d/grants.sql:ro
-      - ../images/db/download.sql:/docker-entrypoint-initdb.d/download.sql:ro
-      - ../images/db/ebi.sql:/docker-entrypoint-initdb.d/ebi.sql:ro
-      - ../images/db/qc.sql:/docker-entrypoint-initdb.d/qc.sql:ro
-      - ../images/db/entrypoint.sh:/usr/bin/ega-entrypoint.sh
     restart: on-failure:3
     networks:
       - lega
-    entrypoint: ["/bin/bash", "/usr/bin/ega-entrypoint.sh"]
 
   # SFTP inbox
   inbox:
@@ -347,27 +338,10 @@ cat >> ${PRIVATE}/lega.yml <<EOF  # SFTP inbox
     volumes:
       - ./conf.ini:/etc/ega/conf.ini:ro
       - inbox:/ega/inbox
-
 EOF
 fi
 
 cat >> ${PRIVATE}/lega.yml <<EOF
-  # Stable ID mapper
-  finalize:
-    depends_on:
-      - db
-      - mq
-    image: egarchive/lega-base:latest
-    container_name: finalize
-    labels:
-        lega_label: "finalize"
-    volumes:
-      - ./conf.ini:/etc/ega/conf.ini:ro
-    restart: on-failure:3
-    networks:
-      - lega
-    user: lega
-    entrypoint: ["ega-finalize"]
 
   # Ingestion Workers
   ingest:
@@ -391,6 +365,48 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - lega
     user: lega
     entrypoint: ["ega-ingest"]
+
+  # Consistency Control
+  verify:
+    depends_on:
+      - db
+      - mq
+      - keys
+    hostname: verify
+    container_name: verify
+    labels:
+        lega_label: "verify"
+    image: egarchive/lega-base:latest
+    environment:
+      - LEGA_PASSWORD=${LEGA_PASSWORD}
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY}
+      - S3_SECRET_KEY=${S3_SECRET_KEY}
+      - AWS_ACCESS_KEY_ID=${S3_ACCESS_KEY}
+      - AWS_SECRET_ACCESS_KEY=${S3_SECRET_KEY}
+    volumes:
+      - ./conf.ini:/etc/ega/conf.ini:ro
+    restart: on-failure:3
+    networks:
+      - lega
+    user: lega
+    entrypoint: ["ega-verify"]
+
+  # Stable ID mapper
+  finalize:
+    depends_on:
+      - db
+      - mq
+    image: egarchive/lega-base:latest
+    container_name: finalize
+    labels:
+        lega_label: "finalize"
+    volumes:
+      - ./conf.ini:/etc/ega/conf.ini:ro
+    restart: on-failure:3
+    networks:
+      - lega
+    user: lega
+    entrypoint: ["ega-finalize"]
 
   # Key server
 EOF
@@ -418,7 +434,6 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     restart: on-failure:3
     networks:
       - lega
-
 EOF
 else
 cat >> ${PRIVATE}/lega.yml <<EOF
@@ -445,34 +460,9 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - lega
     user: lega
     entrypoint: ["ega-keyserver","--keys","/etc/ega/keys.ini.enc"]
-
 EOF
 fi
 cat >> ${PRIVATE}/lega.yml <<EOF
-  # Quality Control
-  verify:
-    depends_on:
-      - db
-      - mq
-      - keys
-    hostname: verify
-    container_name: verify
-    labels:
-        lega_label: "verify"
-    image: egarchive/lega-base:latest
-    environment:
-      - LEGA_PASSWORD=${LEGA_PASSWORD}
-      - S3_ACCESS_KEY=${S3_ACCESS_KEY}
-      - S3_SECRET_KEY=${S3_SECRET_KEY}
-      - AWS_ACCESS_KEY_ID=${S3_ACCESS_KEY}
-      - AWS_SECRET_ACCESS_KEY=${S3_SECRET_KEY}
-    volumes:
-      - ./conf.ini:/etc/ega/conf.ini:ro
-    restart: on-failure:3
-    networks:
-      - lega
-    user: lega
-    entrypoint: ["ega-verify"]
 
   # Data Out re-encryption service
   res:
@@ -524,11 +514,11 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     # ports:
     #   - "${DOCKER_PORT_s3}:9000"
     command: server /data
-
 EOF
 
 if [[ ${INBOX_BACKEND} == 's3' ]]; then
 cat >> ${PRIVATE}/lega.yml <<EOF
+
   # Inbox S3 Backend Storage
   inbox-s3-backend:
     hostname: inbox-s3-backend
@@ -648,12 +638,12 @@ PGP_NAME                  = ${PGP_NAME}
 PGP_COMMENT               = ${PGP_COMMENT}
 PGP_EMAIL                 = ${PGP_EMAIL}
 SSL_SUBJ                  = ${SSL_SUBJ}
+#
 # Database users are 'lega_in' and 'lega_out'
 DB_LEGA_IN_PASSWORD       = ${DB_LEGA_IN_PASSWORD}
 DB_LEGA_OUT_PASSWORD      = ${DB_LEGA_OUT_PASSWORD}
-DB_LEGA_IN_USER           = lega_in
-DB_LEGA_OUT_USER          = lega_out
 #
+# Central EGA mq and user credentials
 CEGA_CONNECTION           = ${CEGA_CONNECTION}
 CEGA_ENDPOINT_CREDS       = ${CEGA_USERS_CREDS}
 #
@@ -667,6 +657,13 @@ DOCKER_PORT_res           = ${DOCKER_PORT_res}
 #
 LEGA_PASSWORD             = ${LEGA_PASSWORD}
 KEYS_PASSWORD             = ${KEYS_PASSWORD}
+#
+# Local Message Broker (used by mq and inbox)
+MQ_USER                   = ${MQ_USER}
+MQ_PASSWORD_HASH          = ${MQ_PASSWORD_HASH}
+MQ_CONNECTION             = amqp://guest:guest@mq:5672/%2F
+MQ_EXCHANGE               = cega
+MQ_ROUTING_KEY            = files.inbox
 EOF
 
 if [[ ${INBOX_BACKEND} == 's3' ]]; then

@@ -40,3 +40,9 @@ KEYS_PASSWORD=$(generate_password 32)
 if [[ -z ${CEGA_CONNECTION+x} ]] && [[ -z ${CEGA_USERS_CREDS+x} ]]; then
     source ${HERE}/settings.rc.private
 fi
+
+MQ_USER=guest
+MQ_PASSWORD_HASH=4tHURqDiZzypw0NTvoHhpn8/MMgONWonWxgRZ4NXgR8nZRBz
+# That's just "guest"
+# Note: We updated it in the dev branch to a randomly-generated password.
+#       For the moment "guest:guest" is hard-coded.

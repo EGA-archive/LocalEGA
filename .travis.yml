@@ -34,10 +34,10 @@ jobs:
         - pip install tox-travis
         - cd deploy/images
         # Pulling image for layer caching
-        - make -j 2 pull-base IMGTAG=latest
+        - make -j 2 pull IMGTAG=latest
       script:
         - make -j 4 base unit-tests
-        - make -j 2 push-base
+        - make -j 2 push
     #
     # BATS Tests
     #
@@ -49,8 +49,8 @@ jobs:
         - git clone https://github.com/bats-core/bats-core.git
         - pushd bats-core && git checkout v1.1.0 && sudo ./install.sh /usr/local && popd
         - cd deploy
-        - make -C images -j 2 pull-base
-        - make -C images -j 2 retag-base
+        - make -C images -j 2 pull
+        - make -C images -j 2 retag
         - make prepare
         - make bootstrap ARGS="--keyserver ega"
         - sudo chown -R travis private
@@ -67,8 +67,8 @@ jobs:
         - git clone https://github.com/bats-core/bats-core.git
         - pushd bats-core && git checkout v1.1.0 && sudo ./install.sh /usr/local && popd
         - cd deploy
-        - make -C images -j 2 pull-base
-        - make -C images -j 2 retag-base
+        - make -C images -j 2 pull
+        - make -C images -j 2 retag
         - make prepare
         - make bootstrap ARGS="--keyserver ega"
         - sudo chown -R travis private
@@ -89,8 +89,8 @@ jobs:
         - git clone https://github.com/bats-core/bats-core.git
         - pushd bats-core && git checkout v1.1.0 && sudo ./install.sh /usr/local && popd
         - cd deploy
-        - make -C images -j 2 pull-base
-        - make -C images -j 2 retag-base
+        - make -C images -j 2 pull
+        - make -C images -j 2 retag
         - make prepare
         - make bootstrap ARGS="--keyserver ega"
         - sudo chown -R travis private
@@ -107,8 +107,8 @@ jobs:
       before_script:
         - pip3 install -r requirements.txt
         - cd deploy
-        - make -C images -j 2 pull-base
-        - make -C images -j 2 retag-base
+        - make -C images -j 2 pull
+        - make -C images -j 2 retag
         - make prepare
         - make bootstrap ARGS='--inbox mina --keyserver ega'
         - sudo chown -R travis private
@@ -122,8 +122,8 @@ jobs:
       before_script:
         - pip3 install -r requirements.txt
         - cd deploy
-        - make -C images -j 2 pull-base
-        - make -C images -j 2 retag-base
+        - make -C images -j 2 pull
+        - make -C images -j 2 retag
         - make prepare
         - make bootstrap ARGS='--inbox mina --keyserver ega'
         - sudo chown -R travis private
@@ -137,8 +137,8 @@ jobs:
       before_script:
         - pip3 install -r requirements.txt
         - cd deploy
-        - make -C images -j 2 pull-base
-        - make -C images -j 2 retag-base
+        - make -C images -j 2 pull
+        - make -C images -j 2 retag
         - make prepare
         - make bootstrap ARGS='--inbox mina --keyserver ega'
         - sudo chown -R travis private
@@ -147,19 +147,6 @@ jobs:
       script:
         - cd tests
         - mvn test -Dtest=RobustnessTests
-    #
-    # Retagging the images
-    #
-    - stage: images
-      services: docker
-      name: "Images Retag"
-      before_script:
-        - cd deploy/images
-      script:
-        - make -j 2 pull-base
-        - make retag-base
-        - make -j 2 push-base IMGTAG=latest
-        - make clean-tag-base
 
 
 notifications:
