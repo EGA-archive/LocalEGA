@@ -3,10 +3,8 @@ SHELL := /bin/bash
 TAG=$(shell git rev-parse --short HEAD)
 
 ifdef TRAVIS_COMMIT
-TAG=$(TRAVIS_COMMIT)
+TAG=travis-$(TRAVIS_COMMIT)
 endif
-
-IMGTAG=$(TAG)
 
 TARGET_PREFIX=egarchive/lega-
 
@@ -15,7 +13,7 @@ LEGA_GID=1000
 # Must find better, but working so far
 MAIN_REPO := $(abspath $(dir $(abspath $(lastword $(MAKEFILE_LIST))))/../..)
 
-.PHONY: all erase clean purge base push
+.PHONY: all erase clean purge base push pull retag
 
 all: base
 
@@ -50,16 +48,16 @@ purge:
 
 # Download images
 pull:
-	docker pull $(TARGET_PREFIX)base:$(IMGTAG)
+	docker pull $(TARGET_PREFIX)base:$(TAG)
 
 # Upload images
 push:
 	-@echo -n "$(DOCKER_PASSWORD)" | docker login -u "$(DOCKER_USER)" --password-stdin
-	docker push $(TARGET_PREFIX)base:$(IMGTAG)
+	docker push $(TARGET_PREFIX)base:$(TAG)
 
 # Retag 
 retag:
-	docker tag $(TARGET_PREFIX)base:$(IMGTAG) $(TARGET_PREFIX)base:latest
+	docker tag $(TARGET_PREFIX)base:$(TAG) $(TARGET_PREFIX)base:latest
 
 clean-tag:
 	@echo "No way to remove $(TARGET_PREFIX)base:$(TAG) from docker hub at the moment"

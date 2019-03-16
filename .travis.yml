@@ -34,7 +34,7 @@ jobs:
         - pip install tox-travis
         - cd deploy/images
         # Pulling image for layer caching
-        - make -j 2 pull IMGTAG=latest
+        - make -j 2 pull TAG=latest
       script:
         - make -j 4 base unit-tests
         - make -j 2 push
