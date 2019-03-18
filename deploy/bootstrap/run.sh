@@ -72,6 +72,8 @@ exec 2>${PRIVATE}/.err
 
 #########################################################################
 
+source ${HERE}/settings.rc
+
 if [[ ${REAL_CEGA} != 'yes' ]]; then
     # Reset the variables here
     CEGA_CONNECTION=$'amqp://legatest:legatest@cega-mq:5672/lega'
@@ -100,8 +102,6 @@ COMPOSE_FILE=${PRIVATE}/lega.yml:${PRIVATE}/cega.yml
 COMPOSE_PATH_SEPARATOR=:
 EOF
 fi
-
-source ${HERE}/settings.rc
 
 #########################################################################
 
@@ -266,7 +266,7 @@ services:
     hostname: mq
     ports:
       - "${DOCKER_PORT_mq}:15672"
-    image: egarchive/lega-mq:stable
+    image: egarchive/lega-mq:latest
     container_name: mq
     labels:
         lega_label: "mq"
@@ -287,7 +287,7 @@ services:
     container_name: db
     labels:
         lega_label: "db"
-    image: egarchive/lega-db:stable
+    image: egarchive/lega-db:latest
     volumes:
       - db:/ega/data
     restart: on-failure:3
@@ -334,7 +334,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF  # SFTP inbox
       - MQ_ROUTING_KEY=files.inbox
     ports:
       - "${DOCKER_PORT_inbox}:9000"
-    image: egarchive/lega-inbox:stable
+    image: egarchive/lega-inbox:latest
     volumes:
       - ./conf.ini:/etc/ega/conf.ini:ro
       - inbox:/ega/inbox
