@@ -3,6 +3,7 @@ LABEL maintainer "EGA System Developers"
 
 RUN apk add --no-cache \
     libressl libressl-dev make gcc musl-dev libffi-dev postgresql-libs postgresql-dev git
+RUN pip install --upgrade pip
 
 #################################################
 ##

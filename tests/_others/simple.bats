@@ -27,18 +27,16 @@ function teardown() {
     rm -rf ${TESTFILES}
 }
 
-# Ingesting a 10MB file
+# Ingesting a 1 MB file
 # ----------------------
 # A message should be found in the completed queue
 
 @test "Ingest properly a test file" {
-    local TESTFILE=$(uuidgen)
-    local size=1
-    local queue=v1.files.completed
-    local inputsource=${4:-/dev/urandom}
+    
+    TESTFILE=$(uuidgen)
 
-    # Generate a random file
-    legarun c4gh_generate $size $inputsource ${TESTFILES}/${TESTFILE}
+    # Generate a random file (1 MB)
+    legarun c4gh_generate 1 /dev/urandom ${TESTFILES}/${TESTFILE}
     [ "$status" -eq 0 ]
 
     # Upload it
@@ -47,17 +45,17 @@ function teardown() {
     [ "$status" -eq 0 ]
 
     # Fetch the correlation id for that file (Hint: with user/filepath combination)
-    retry_until 0 100 1 ${MQ_GET} v1.files.inbox "${TESTUSER}" "${TESTFILE}.c4ga"
+    retry_until 0 100 1 ${MQ_GET} v1.files.inbox "${TESTUSER}" "/${TESTFILE}.c4ga"
     [ "$status" -eq 0 ]
     CORRELATION_ID=$output
 
     # Publish the file to simulate a CentralEGA trigger
-    MESSAGE="{ \"user\": \"${TESTUSER}\", \"filepath\": \"${TESTFILE}.c4ga\"}"
+    MESSAGE="{ \"user\": \"${TESTUSER}\", \"filepath\": \"/${TESTFILE}.c4ga\"}"
     legarun ${MQ_PUBLISH} --correlation_id ${CORRELATION_ID} files "$MESSAGE"
     [ "$status" -eq 0 ]
 
     # Check that a message with the above correlation id arrived in the expected queue
     # Waiting 20 seconds.
-    retry_until 0 10 10 ${MQ_GET} $queue "${TESTUSER}" "${TESTFILE}.c4ga"
+    retry_until 0 10 10 ${MQ_GET} v1.files.completed "${TESTUSER}" "/${TESTFILE}.c4ga"
     [ "$status" -eq 0 ]
 }

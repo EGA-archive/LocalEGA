@@ -15,11 +15,11 @@ LEGA_GID=1000
 # Must find better, but working so far
 MAIN_REPO := $(abspath $(dir $(abspath $(lastword $(MAKEFILE_LIST))))/../..)
 
-.PHONY: all erase clean purge base inbox push
+.PHONY: all erase clean purge base push
 
-all: base inbox
+all: base
 
-base inbox:
+base:
 	cd $(MAIN_REPO) && \
 	docker build -f Dockerfile.$@ \
 	       --build-arg LEGA_GID=$(LEGA_GID) \
@@ -40,11 +40,9 @@ endef
 
 clean:
 	@$(call clean_tag,$(TARGET_PREFIX)base, $(TAG))
-	@$(call clean_tag,$(TARGET_PREFIX)inbox, $(TAG))
 
 erase:
 	@$(call remove_dangling,$(TARGET_PREFIX)base)
-	@$(call remove_dangling,$(TARGET_PREFIX)inbox)
 
 purge:
 	@$(call remove_dangling,)
@@ -65,15 +63,6 @@ retag-%:
 
 clean-tag-%:
 	@echo "No way to remove $(TARGET_PREFIX)$(@:clean-tag-%=%):$(TAG) from docker hub at the moment"
-
-
-# Create the inbox base OS (here for convenience)
-inbox-os:
-	docker build \
-	       --build-arg LEGA_GID=$(LEGA_GID) \
-	       --cache-from $(TARGET_PREFIX)$@:latest \
-               --tag $(TARGET_PREFIX)$@:latest \
-               inbox
 
 unit-tests:
 	cd ../.. && tox

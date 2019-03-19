@@ -69,7 +69,7 @@ class Configuration(configparser.ConfigParser):
         _logger = _here / f'loggers/{filename}.yaml'
         if _logger.exists():
             with open(_logger, 'r') as stream:
-                dictConfig(yaml.load(stream))
+                dictConfig(yaml.safe_load(stream))
                 self.log_conf = _logger
                 return
 
@@ -83,7 +83,7 @@ class Configuration(configparser.ConfigParser):
 
         if filename.suffix in ('.yaml', '.yml'):
             with open(filename, 'r') as stream:
-                dictConfig(yaml.load(stream))
+                dictConfig(yaml.safe_load(stream))
                 self.log_conf = filename
                 return
 

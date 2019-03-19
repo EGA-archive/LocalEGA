@@ -29,7 +29,7 @@ def instantiate(algo):
 
 
 def calculate(filepath, algo, bsize=8192):
-    """Compute the checksum of the file-object ``f`` using the message digest ``m``."""
+    """Compute the checksum of a file using the message digest ``m``."""
     try:
         m = instantiate(algo)
         with open(filepath, 'rb') as f:  # Open the file in binary mode. No encoding dance.
@@ -38,7 +38,7 @@ def calculate(filepath, algo, bsize=8192):
                 if not data:
                     break
                 m.update(data)
-            return m.hexdigest()
+        return m.hexdigest()
     except OSError as e:
         LOG.error(f'Unable to calculate checksum: {e!r}')
         return None
