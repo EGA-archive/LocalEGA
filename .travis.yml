@@ -26,18 +26,6 @@ jobs:
       python: 3.6
       before_script: pip install tox-travis
       script: tox
-    - stage: preflight
-      if: type = pull_request
-      services: docker
-      name: "Images build"
-      before_script:
-        - pip install tox-travis
-        - cd deploy/images
-        # Pulling image for layer caching
-        - make -j 2 pull TAG=latest
-      script:
-        - make -j 4 base unit-tests
-        - make -j 2 push
     #
     # BATS Tests
     #
@@ -49,8 +37,7 @@ jobs:
         - git clone https://github.com/bats-core/bats-core.git
         - pushd bats-core && git checkout v1.1.0 && sudo ./install.sh /usr/local && popd
         - cd deploy
-        - make -C images -j 2 pull
-        - make -C images -j 2 retag
+        - make -C images -j 4 base unit-tests
         - make prepare
         - make bootstrap ARGS="--keyserver ega"
         - sudo chown -R travis private
@@ -67,8 +54,7 @@ jobs:
         - git clone https://github.com/bats-core/bats-core.git
         - pushd bats-core && git checkout v1.1.0 && sudo ./install.sh /usr/local && popd
         - cd deploy
-        - make -C images -j 2 pull
-        - make -C images -j 2 retag
+        - make -C images -j 4 base unit-tests
         - make prepare
         - make bootstrap ARGS="--keyserver ega"
         - sudo chown -R travis private
@@ -89,8 +75,7 @@ jobs:
         - git clone https://github.com/bats-core/bats-core.git
         - pushd bats-core && git checkout v1.1.0 && sudo ./install.sh /usr/local && popd
         - cd deploy
-        - make -C images -j 2 pull
-        - make -C images -j 2 retag
+        - make -C images -j 4 base unit-tests
         - make prepare
         - make bootstrap ARGS="--keyserver ega"
         - sudo chown -R travis private
@@ -107,8 +92,7 @@ jobs:
       before_script:
         - pip3 install -r requirements.txt
         - cd deploy
-        - make -C images -j 2 pull
-        - make -C images -j 2 retag
+        - make -C images -j 4 base unit-tests
         - make prepare
         - make bootstrap ARGS='--inbox mina --keyserver ega'
         - sudo chown -R travis private
@@ -122,8 +106,7 @@ jobs:
       before_script:
         - pip3 install -r requirements.txt
         - cd deploy
-        - make -C images -j 2 pull
-        - make -C images -j 2 retag
+        - make -C images -j 4 base unit-tests
         - make prepare
         - make bootstrap ARGS='--inbox mina --keyserver ega'
         - sudo chown -R travis private
@@ -137,8 +120,7 @@ jobs:
       before_script:
         - pip3 install -r requirements.txt
         - cd deploy
-        - make -C images -j 2 pull
-        - make -C images -j 2 retag
+        - make -C images -j 4 base unit-tests
         - make prepare
         - make bootstrap ARGS='--inbox mina --keyserver ega'
         - sudo chown -R travis private
