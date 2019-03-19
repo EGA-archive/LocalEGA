@@ -14,14 +14,15 @@ The result is an image, named `egarchive/lega-base`, and containing `python 3.6`
 
 ## Dependencies
 
-The following images are pulled from the main Docker hub:
+The following images are pulled from Docker Hub:
 
-* `egarchive/lega-inbox` (based on OpenSSH version 7.8p1 and CentOS7)
 * `egarchive/lega-mq` (based on `rabbitmq:3.6.14-management`)
 * `egarchive/lega-db` (based on `postgres:11.2`)
+* `egarchive/lega-inbox` (based on OpenSSH version 7.8p1 and CentOS7)
+* `nbisweden/lega-inbox` (based on Apache Mina)
 * `python:3.6-alpine3.8` 
 
-The [`egarchive/lega-inbox`](https://github.com/EGA-archive/LocalEGA-inbox) is a LocalEGA inbox, fetching user credentials from CentralEGA and sending file events notifications to the configured message broker. It is based on OpenSSH SFTP server version `7.8p1` 
+The [`egarchive/lega-inbox`](https://github.com/EGA-archive/LocalEGA-inbox) and [`nbisweden/lega-inbox`](https://github.com/NBISweden/LocalEGA-inbox) are LocalEGA inboxes, fetching user credentials from CentralEGA and sending file events notifications to the configured message broker. It is based on OpenSSH SFTP server version `7.8p1` 
 
 ## Testing
 
