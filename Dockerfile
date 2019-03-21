@@ -21,7 +21,7 @@ LABEL org.label-schema.vcs-url="https://github.com/EGA-archive/LocalEGA"
 LABEL org.label-schema.vcs-ref=$SOURCE_COMMIT
 
 
-RUN apk add --no-cache --update postgresql-dev
+RUN apk add --no-cache --update libressl postgresql-libs
 
 ARG LEGA_GID=1000
 
