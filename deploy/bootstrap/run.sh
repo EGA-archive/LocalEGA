@@ -72,14 +72,14 @@ exec 2>${PRIVATE}/.err
 
 #########################################################################
 
-source ${HERE}/settings.rc
-
 if [[ ${REAL_CEGA} != 'yes' ]]; then
     # Reset the variables here
     CEGA_CONNECTION=$'amqp://legatest:legatest@cega-mq:5672/lega'
     CEGA_USERS_ENDPOINT=$'http://cega-users/lega/v1/legas/users'
     CEGA_USERS_CREDS=$'legatest:legatest'
 fi
+
+source ${HERE}/settings.rc
 
 # Make sure the variables are set
 [[ -z "${CEGA_USERS_ENDPOINT}" ]] && echo 'Environment CEGA_USERS_ENDPOINT is empty' 1>&2 && exit 1
