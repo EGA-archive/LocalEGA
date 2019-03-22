@@ -62,11 +62,6 @@ jobs:
         - cd ../tests
         - bats robustness
     - stage: tests
-      name: "Stress Tests"
-      if: type = pull_request
-      services: docker
-      script: echo "Stress Tests.... hmm... later"
-    - stage: tests
       name: "Security Tests"
       if: type = pull_request
       services: docker
