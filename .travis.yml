@@ -103,21 +103,6 @@ jobs:
         - cd tests
         - mvn test -Dtest=IngestionTests
     - stage: tests
-      name: "Cucumber Outgestion Tests"
-      if: type = pull_request
-      before_script:
-        - pip3 install -r requirements.txt
-        - cd deploy
-        - make -C images
-        - make prepare
-        - make bootstrap ARGS='--inbox mina --keyserver ega'
-        - sudo chown -R travis private
-        - make up
-        - make preflight-check
-      script:
-        - cd tests
-        - mvn test -Dtest=OutgestionTests
-    - stage: tests
       name: "Cucumber Robustness Tests"
       if: type = pull_request
       before_script:
