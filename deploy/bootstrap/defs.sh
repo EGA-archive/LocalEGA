@@ -55,3 +55,8 @@ function generate_password {
     ${PYTHONEXEC} -c "import secrets,string;print(''.join(secrets.choice(string.ascii_letters + string.digits) for i in range(${size})))"
 }
 
+function generate_mq_hash {
+    local pass=${1}
+    [[ -n $1 ]] || { echo 'Missing argument' 1>&2; exit 1; }  # fail
+    ${PYTHONEXEC} $HERE/mq_hash.py "$1"
+}

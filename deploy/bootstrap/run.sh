@@ -183,6 +183,8 @@ cat >> ${PRIVATE}/conf.ini <<EOF
 ## Connecting to Local EGA
 [broker]
 host = mq
+username = ${MQ_USER}
+password = ${MQ_PASSWORD}
 connection_attempts = 30
 # delay in seconds
 retry_delay = 10
@@ -262,6 +264,7 @@ services:
     environment:
       - CEGA_CONNECTION=${CEGA_CONNECTION}
       - MQ_USER=${MQ_USER}
+      - MQ_PASSWORD=${MQ_PASSWORD}
       - MQ_PASSWORD_HASH=${MQ_PASSWORD_HASH}
     hostname: mq
     ports:
@@ -329,7 +332,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF  # SFTP inbox
       - CEGA_ENDPOINT=${CEGA_USERS_ENDPOINT}
       - CEGA_ENDPOINT_CREDS=${CEGA_USERS_CREDS}
       - CEGA_ENDPOINT_JSON_PREFIX=response.result
-      - MQ_CONNECTION=amqp://guest:guest@mq:5672/%2F
+      - MQ_CONNECTION=amqp://${MQ_USER}:${MQ_PASSWORD}@mq:5672/%2F
       - MQ_EXCHANGE=cega
       - MQ_ROUTING_KEY=files.inbox
     ports:
@@ -660,8 +663,8 @@ KEYS_PASSWORD             = ${KEYS_PASSWORD}
 #
 # Local Message Broker (used by mq and inbox)
 MQ_USER                   = ${MQ_USER}
-MQ_PASSWORD_HASH          = ${MQ_PASSWORD_HASH}
-MQ_CONNECTION             = amqp://guest:guest@mq:5672/%2F
+MQ_PASSWORD               = ${MQ_PASSWORD}
+MQ_CONNECTION             = amqp://${MQ_USER}:${MQ_PASSWORD}@mq:5672/%2F
 MQ_EXCHANGE               = cega
 MQ_ROUTING_KEY            = files.inbox
 EOF
