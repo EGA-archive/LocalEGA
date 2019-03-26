@@ -40,3 +40,8 @@ KEYS_PASSWORD=$(generate_password 32)
 if [[ -z ${CEGA_CONNECTION+x} ]] && [[ -z ${CEGA_USERS_CREDS+x} ]]; then
     source ${HERE}/settings.rc.private
 fi
+
+# For Local Broker connections
+MQ_USER=admin
+MQ_PASSWORD=$(generate_password 16)
+MQ_PASSWORD_HASH=$(generate_mq_hash ${MQ_PASSWORD})

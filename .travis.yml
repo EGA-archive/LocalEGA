@@ -10,47 +10,31 @@ git:
   quiet: true
 
 stages:
-  - name: preflight
   - name: tests
-    if: type = pull_request
-  - name: images
-    if: type = pull_request AND branch = master
 
 jobs:
   include:
     #
     # Unit Tests and Image Build
     #
-    - stage: preflight
+    - stage: tests
       name: "Unit Tests"
       python: 3.6
       before_script: pip install tox-travis
       script: tox
-    - stage: preflight
-      if: type = pull_request
-      services: docker
-      name: "Images build"
-      before_script:
-        - pip install tox-travis
-        - cd deploy/images
-        # Pulling image for layer caching
-        - make -j 2 pull-base IMGTAG=latest
-      script:
-        - make -j 4 base unit-tests
-        - make -j 2 push-base
     #
     # BATS Tests
     #
     - stage: tests
       name: "Integration Tests"
+      if: type = pull_request
       services: docker
       before_script:
         - pip3 install -r requirements.txt
         - git clone https://github.com/bats-core/bats-core.git
         - pushd bats-core && git checkout v1.1.0 && sudo ./install.sh /usr/local && popd
         - cd deploy
-        - make -C images -j 2 pull-base
-        - make -C images -j 2 retag-base
+        - make -C images
         - make prepare
         - make bootstrap ARGS="--keyserver ega"
         - sudo chown -R travis private
@@ -61,14 +45,14 @@ jobs:
         - bats integration
     - stage: tests
       name: "Robustness Tests"
+      if: type = pull_request
       services: docker
       before_script:
         - pip3 install -r requirements.txt
         - git clone https://github.com/bats-core/bats-core.git
         - pushd bats-core && git checkout v1.1.0 && sudo ./install.sh /usr/local && popd
         - cd deploy
-        - make -C images -j 2 pull-base
-        - make -C images -j 2 retag-base
+        - make -C images
         - make prepare
         - make bootstrap ARGS="--keyserver ega"
         - sudo chown -R travis private
@@ -78,19 +62,15 @@ jobs:
         - cd ../tests
         - bats robustness
     - stage: tests
-      name: "Stress Tests"
-      services: docker
-      script: echo "Stress Tests.... hmm... later"
-    - stage: tests
       name: "Security Tests"
+      if: type = pull_request
       services: docker
       before_script:
         - pip3 install -r requirements.txt
         - git clone https://github.com/bats-core/bats-core.git
         - pushd bats-core && git checkout v1.1.0 && sudo ./install.sh /usr/local && popd
         - cd deploy
-        - make -C images -j 2 pull-base
-        - make -C images -j 2 retag-base
+        - make -C images
         - make prepare
         - make bootstrap ARGS="--keyserver ega"
         - sudo chown -R travis private
@@ -104,11 +84,11 @@ jobs:
     #
     - stage: tests
       name: "Cucumber Ingestion Tests"
+      if: type = pull_request
       before_script:
         - pip3 install -r requirements.txt
         - cd deploy
-        - make -C images -j 2 pull-base
-        - make -C images -j 2 retag-base
+        - make -C images
         - make prepare
         - make bootstrap ARGS='--inbox mina --keyserver ega'
         - sudo chown -R travis private
@@ -118,27 +98,12 @@ jobs:
         - cd tests
         - mvn test -Dtest=IngestionTests
     - stage: tests
-      name: "Cucumber Outgestion Tests"
-      before_script:
-        - pip3 install -r requirements.txt
-        - cd deploy
-        - make -C images -j 2 pull-base
-        - make -C images -j 2 retag-base
-        - make prepare
-        - make bootstrap ARGS='--inbox mina --keyserver ega'
-        - sudo chown -R travis private
-        - make up
-        - make preflight-check
-      script:
-        - cd tests
-        - mvn test -Dtest=OutgestionTests
-    - stage: tests
       name: "Cucumber Robustness Tests"
+      if: type = pull_request
       before_script:
         - pip3 install -r requirements.txt
         - cd deploy
-        - make -C images -j 2 pull-base
-        - make -C images -j 2 retag-base
+        - make -C images
         - make prepare
         - make bootstrap ARGS='--inbox mina --keyserver ega'
         - sudo chown -R travis private
@@ -147,19 +112,6 @@ jobs:
       script:
         - cd tests
         - mvn test -Dtest=RobustnessTests
-    #
-    # Retagging the images
-    #
-    - stage: images
-      services: docker
-      name: "Images Retag"
-      before_script:
-        - cd deploy/images
-      script:
-        - make -j 2 pull-base
-        - make retag-base
-        - make -j 2 push-base IMGTAG=latest
-        - make clean-tag-base
 
 
 notifications:
