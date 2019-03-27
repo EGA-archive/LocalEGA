@@ -25,8 +25,7 @@ class FileStorage():
         """Retrieve file location."""
         name = f"{file_id:0>20}"  # filling with zeros, and 20 characters wide
         name_bits = [name[i:i+3] for i in range(0, len(name), 3)]
-        target = self.prefix.joinpath(*name_bits)
-        target.parent.mkdir(parents=True, exist_ok=True)
+        target = Path('/').joinpath(*name_bits)
         return str(target)
 
     def filesize(self, path):
@@ -35,9 +34,11 @@ class FileStorage():
 
     def copy(self, fileobj, location):
         """Copy file object at a specific location."""
-        with open(location, 'wb') as h:
+        target = self.prefix / location.lstrip('/')
+        target.parent.mkdir(parents=True, exist_ok=True)
+        with open(target, 'wb') as h:
             shutil.copyfileobj(fileobj, h)
-        return os.stat(location).st_size
+        return self.filesize(location)
 
     @contextmanager
     def open(self, path, mode='rb'):

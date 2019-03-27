@@ -14,6 +14,7 @@ FORCE=yes
 OPENSSL=openssl
 INBOX=openssh
 INBOX_BACKEND=posix
+ARCHIVE_BACKEND=s3
 KEYSERVER=lega
 REAL_CEGA=no
 
@@ -27,6 +28,7 @@ function usage {
     echo -e "\t--inbox <value>       \tSelect inbox \"openssh\" or \"mina\" [Default: ${INBOX}]"
     echo -e "\t--keyserver <value>   \tSelect keyserver \"lega\" or \"ega\" [Default: ${KEYSERVER}]"
     echo -e "\t--inbox-backend <value>   \tSelect the inbox backend: S3 or POSIX [Default: ${INBOX_BACKEND}]"
+    echo -e "\t--archive-backend <value> \tSelect the archive backend: S3 or POSIX [Default: ${ARCHIVE_BACKEND}]"
     echo -e "\t--genkey <value>      \tPath to PGP key generator [Default: ${GEN_KEY}]"
     echo -e "\t--pythonexec <value>  \tPython execute command [Default: ${PYTHONEXEC}]"
     echo -e "\t--with-real-cega      \tUse the real Central EGA Message broker and Authentication Service"
@@ -48,12 +50,14 @@ while [[ $# -gt 0 ]]; do
         --openssl) OPENSSL=$2; shift;;
         --inbox) INBOX=${2,,}; shift;;
         --inbox-backend) INBOX_BACKEND=${2,,}; shift;;
+        --archive-backend) ARCHIVE_BACKEND=${2,,}; shift;;
         --keyserver) KEYSERVER=${2,,}; shift;;
         --genkey) GEN_KEY=$2; shift;;
         --pythonexec) PYTHONEXEC=$2; shift;;
         --with-real-cega) REAL_CEGA=yes;;
         --) shift; break;;
-        *) echo "$0: error - unrecognized option $1" 1>&2; usage; exit 1;;    esac
+        *) echo "$0: error - unrecognized option $1" 1>&2; usage; exit 1;;
+    esac
     shift
 done
 
@@ -105,8 +109,8 @@ fi
 
 #########################################################################
 
-mkdir -p $PRIVATE/{pgp,certs,logs}
-chmod 700 $PRIVATE/{pgp,certs,logs}
+mkdir -p $PRIVATE/{pgp,certs,logs,data/archive}
+chmod 700 $PRIVATE/{pgp,certs,logs,data/archive}
 
 echomsg "\t* the PGP key"
 
@@ -199,16 +203,26 @@ try = 30
 sslmode = require
 
 [archive]
+EOF
+if [[ ${ARCHIVE_BACKEND} == 's3' ]]; then
+    cat >> ${PRIVATE}/conf.ini <<EOF
 storage_driver = S3Storage
 s3_url = http://archive:9000
 s3_access_key = ${S3_ACCESS_KEY}
 s3_secret_key = ${S3_SECRET_KEY}
 #region = lega
-
 EOF
+else
+    # POSIX file system
+    cat >> ${PRIVATE}/conf.ini <<EOF
+storage_driver = FileStorage
+location = /ega/archive/%s/
+EOF
+fi
 
 if [[ ${INBOX_BACKEND} == 's3' ]]; then
     cat >> ${PRIVATE}/conf.ini <<EOF
+
 [inbox]
 storage_driver = S3Storage
 url = http://inbox-s3-backend:9000
@@ -219,6 +233,7 @@ EOF
 else
     # Default: POSIX file system
     cat >> ${PRIVATE}/conf.ini <<EOF
+
 [inbox]
 location = /ega/inbox/%s/
 chroot_sessions = True
@@ -242,8 +257,12 @@ volumes:
   mq:
   db:
   inbox:
+EOF
+if [[ ${ARCHIVE_BACKEND} == 's3' ]]; then
+cat >> ${PRIVATE}/lega.yml <<EOF
   archive:
 EOF
+fi
 
 if [[ ${INBOX_BACKEND} == 's3' ]]; then
 cat >> ${PRIVATE}/lega.yml <<EOF
@@ -363,6 +382,14 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     volumes:
       - inbox:/ega/inbox
       - ./conf.ini:/etc/ega/conf.ini:ro
+EOF
+if [[ ${ARCHIVE_BACKEND} == 'posix' ]]; then
+cat >> ${PRIVATE}/lega.yml <<EOF
+      - ./data/archive:/ega/archive
+EOF
+fi
+
+cat >> ${PRIVATE}/lega.yml <<EOF
     restart: on-failure:3
     networks:
       - lega
@@ -388,6 +415,14 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - AWS_SECRET_ACCESS_KEY=${S3_SECRET_KEY}
     volumes:
       - ./conf.ini:/etc/ega/conf.ini:ro
+EOF
+if [[ ${ARCHIVE_BACKEND} == 'posix' ]]; then
+cat >> ${PRIVATE}/lega.yml <<EOF
+      - ./data/archive:/ega/archive
+EOF
+fi
+
+cat >> ${PRIVATE}/lega.yml <<EOF
     restart: on-failure:3
     networks:
       - lega
@@ -470,7 +505,6 @@ cat >> ${PRIVATE}/lega.yml <<EOF
   # Data Out re-encryption service
   res:
     depends_on:
-      - archive
       - keys
     hostname: res
     container_name: res
@@ -499,6 +533,10 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     networks:
       - lega
 
+EOF
+
+if [[ ${ARCHIVE_BACKEND} == 's3' ]]; then
+cat >> ${PRIVATE}/lega.yml <<EOF
   # Storage backend: S3
   archive:
     hostname: archive
@@ -518,6 +556,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     #   - "${DOCKER_PORT_s3}:9000"
     command: server /data
 EOF
+fi
 
 if [[ ${INBOX_BACKEND} == 's3' ]]; then
 cat >> ${PRIVATE}/lega.yml <<EOF
