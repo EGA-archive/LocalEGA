@@ -30,14 +30,14 @@ class TestFileStorage(unittest.TestCase):
     def test_location(self):
         """Test file location."""
         result = self._store.location('12')
-        self.assertEqual(os.path.join(self.outputdir, 'lega', '000', '000', '000', '000', '000', '000', '12'), result)
+        self.assertEqual(os.path.join('/', '000', '000', '000', '000', '000', '000', '12'), result)
 
     def test_copy(self):
         """Test copy file."""
         path = self._dir.write('output/lega/test.file', 'data1'.encode('utf-8'))
         path1 = self._dir.write('output/lega/test1.file', ''.encode('utf-8'))
         result = self._store.copy(open(path, 'rb'), path1)
-        self.assertEqual(os.stat(path1).st_size, result)
+        self.assertEqual(os.stat(path).st_size, result)
 
     def test_open(self):
         """Test open file."""
