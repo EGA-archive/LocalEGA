@@ -14,13 +14,14 @@ all: base
 base:
 	cd $(MAIN_REPO) && \
 	docker build -f Dockerfile \
-	       --build-arg LEGA_GID=$(LEGA_GID) \
-	       --cache-from $(TARGET_PREFIX)base:latest \
-               --tag $(TARGET_PREFIX)$@:latest \
-               .
+		   --build-arg LEGA_GID=$(LEGA_GID) \
+		   --build-arg BUILD_DATE=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ') \
+		   --build-arg SOURCE_COMMIT=$(shell git rev-parse --short HEAD) \
+		   --tag $(TARGET_PREFIX)$@:latest \
+		   .
 
 define remove_dangling
-    docker images $(1) -f "dangling=true" -q | uniq | while read n; do docker rmi -f $$n; done
+	docker images $(1) -f "dangling=true" -q | uniq | while read n; do docker rmi -f $$n; done
 endef
 
 erase:

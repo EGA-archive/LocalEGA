@@ -586,6 +586,7 @@ services:
        - ../../tests/_common/users.json:/cega/users.json
     networks:
       - lega
+    user: root
     entrypoint: ["python", "/cega/users.py", "0.0.0.0", "80", "/cega/users.json"]
 EOF
 
