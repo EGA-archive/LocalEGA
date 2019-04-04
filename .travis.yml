@@ -44,6 +44,24 @@ jobs:
         - cd ../tests
         - bats integration
     - stage: tests
+      name: "Integration Tests POSIX"
+      if: type = pull_request
+      services: docker
+      before_script:
+        - pip3 install -r requirements.txt
+        - git clone https://github.com/bats-core/bats-core.git
+        - pushd bats-core && git checkout v1.1.0 && sudo ./install.sh /usr/local && popd
+        - cd deploy
+        - make -C images
+        - make prepare
+        - make bootstrap ARGS="--keyserver ega --archive-backend posix"
+        - sudo chown -R travis private
+        - make up OMIT="--scale res=0"
+        - make preflight-check
+      script:
+        - cd ../tests
+        - bats integration
+    - stage: tests
       name: "Robustness Tests"
       if: type = pull_request
       services: docker
