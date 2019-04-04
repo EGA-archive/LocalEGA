@@ -264,12 +264,11 @@ services:
     environment:
       - CEGA_CONNECTION=${CEGA_CONNECTION}
       - MQ_USER=${MQ_USER}
-      - MQ_PASSWORD=${MQ_PASSWORD}
       - MQ_PASSWORD_HASH=${MQ_PASSWORD_HASH}
     hostname: mq
     ports:
       - "${DOCKER_PORT_mq}:15672"
-    image: egarchive/lega-mq:latest
+    image: dtitov/lega-mq:latest
     container_name: mq
     labels:
         lega_label: "mq"
