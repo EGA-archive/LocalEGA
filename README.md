@@ -14,7 +14,7 @@ Other provisioning methods are provided by our partners:
 * on a [Kubernetes/OpenShift cluster](https://github.com/NBISweden/LocalEGA-deploy-k8s), using `kubernetes`;
 * on a [Docker Swarm cluster](https://github.com/NBISweden/LocalEGA-deploy-swarm), using `gradle`.
 
-# Architecture
+## Architecture
 
 LocalEGA is divided into several components, as docker containers.
 
