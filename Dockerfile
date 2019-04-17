@@ -6,7 +6,8 @@ COPY setup.py /root/LocalEGA/setup.py
 COPY lega /root/LocalEGA/lega
 COPY requirements.txt /root/LocalEGA/requirements.txt
 
-RUN pip install -r /root/LocalEGA/requirements.txt && \
+RUN pip install --upgrade pip && \
+    pip install -r /root/LocalEGA/requirements.txt && \
     pip install /root/LocalEGA
 
 FROM python:3.6-alpine3.8
@@ -35,5 +36,11 @@ COPY --from=BUILD /usr/local/bin/lega-cryptor /usr/local/bin/
 COPY --from=BUILD /usr/local/bin/ega-* /usr/local/bin/
 
 VOLUME /etc/ega
+
+RUN mkdir -p /ega/archive && \
+    chgrp lega /ega/archive && \
+    chmod 2770 /ega/archive
+
+VOLUME /ega/archive
 
 USER lega
