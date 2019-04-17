@@ -109,8 +109,8 @@ fi
 
 #########################################################################
 
-mkdir -p $PRIVATE/{pgp,certs,logs,data/archive}
-chmod 700 $PRIVATE/{pgp,certs,logs,data/archive}
+mkdir -p $PRIVATE/{pgp,certs,logs}
+chmod 700 $PRIVATE/{pgp,certs,logs}
 
 echomsg "\t* the PGP key"
 
@@ -257,12 +257,8 @@ volumes:
   mq:
   db:
   inbox:
-EOF
-if [[ ${ARCHIVE_BACKEND} == 's3' ]]; then
-cat >> ${PRIVATE}/lega.yml <<EOF
   archive:
 EOF
-fi
 
 if [[ ${INBOX_BACKEND} == 's3' ]]; then
 cat >> ${PRIVATE}/lega.yml <<EOF
@@ -385,7 +381,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
 EOF
 if [[ ${ARCHIVE_BACKEND} == 'posix' ]]; then
 cat >> ${PRIVATE}/lega.yml <<EOF
-      - ./data/archive:/ega/archive
+      - archive:/ega/archive
 EOF
 fi
 
@@ -418,7 +414,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
 EOF
 if [[ ${ARCHIVE_BACKEND} == 'posix' ]]; then
 cat >> ${PRIVATE}/lega.yml <<EOF
-      - ./data/archive:/ega/archive
+      - archive:/ega/archive
 EOF
 fi
 
@@ -500,40 +496,6 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     entrypoint: ["ega-keyserver","--keys","/etc/ega/keys.ini.enc"]
 EOF
 fi
-cat >> ${PRIVATE}/lega.yml <<EOF
-
-  # Data Out re-encryption service
-  res:
-    depends_on:
-      - keys
-    hostname: res
-    container_name: res
-    labels:
-        lega_label: "res"
-    image: cscfi/ega-res
-    ports:
-      - "${DOCKER_PORT_res}:8080"
-    environment:
-      - SPRING_PROFILES_ACTIVE=no-oss,LocalEGA
-      - EGA_EGA_EXTERNAL_URL=
-      - EGA_EGA_CRAM_FASTA_A=
-      - EGA_EGA_CRAM_FASTA_B=
-      - EGA_EBI_FIRE_URL=
-      - EGA_EBI_FIRE_ARCHIVE=
-      - EGA_EBI_FIRE_KEY=
-      - SERVICE_ARCHIVE_CLASS=
-      - EGA_SHAREDPASS_PATH=/etc/ega/pgp/ega.shared.pass
-      - EGA_EBI_AWS_ACCESS_KEY=${S3_ACCESS_KEY}
-      - EGA_EBI_AWS_ACCESS_SECRET=${S3_SECRET_KEY}
-      - EGA_EBI_AWS_ENDPOINT_URL=http://archive:${DOCKER_PORT_s3}
-      - EGA_EBI_AWS_ENDPOINT_REGION=
-    volumes:
-      - ./pgp/ega.shared.pass:/etc/ega/pgp/ega.shared.pass:ro
-    restart: on-failure:3
-    networks:
-      - lega
-
-EOF
 
 if [[ ${ARCHIVE_BACKEND} == 's3' ]]; then
 cat >> ${PRIVATE}/lega.yml <<EOF
