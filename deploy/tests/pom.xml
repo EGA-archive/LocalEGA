@@ -60,9 +60,9 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>no.uio.ifi</groupId>
+            <groupId>com.github.uio-bmi</groupId>
             <artifactId>crypt4gh</artifactId>
-            <version>1.2.0</version>
+            <version>v1.2.1</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -111,8 +111,8 @@
 
     <repositories>
         <repository>
-            <id>nexus.norgene.no</id>
-            <url>https://nexus.norgene.no/repository/maven-releases/</url>
+            <id>jitpack.io</id>
+            <url>https://jitpack.io</url>
         </repository>
     </repositories>
 
