@@ -93,37 +93,37 @@ jobs:
       script:
         - cd ../tests
         - bats security
-    # #
-    # # Cucumber Tests
-    # #
-    # - stage: tests
-    #   name: "Cucumber Ingestion Tests"
-    #   if: type = pull_request
-    #   before_script:
-    #     - pip3 install -r requirements.txt
-    #     - cd deploy
-    #     - make -C images
-    #     - make prepare
-    #     - make bootstrap ARGS='--inbox mina --keyserver ega'
-    #     - make up
-    #     - make preflight-check
-    #   script:
-    #     - cd tests
-    #     - mvn test -Dtest=IngestionTests
-    # - stage: tests
-    #   name: "Cucumber Robustness Tests"
-    #   if: type = pull_request
-    #   before_script:
-    #     - pip3 install -r requirements.txt
-    #     - cd deploy
-    #     - make -C images
-    #     - make prepare
-    #     - make bootstrap ARGS='--inbox mina --keyserver ega'
-    #     - make up
-    #     - make preflight-check
-    #   script:
-    #     - cd tests
-    #     - mvn test -Dtest=RobustnessTests
+    #
+    # Cucumber Tests
+    #
+    - stage: tests
+      name: "Cucumber Ingestion Tests"
+      if: type = pull_request
+      before_script:
+        - pip3 install -r requirements.txt
+        - cd deploy
+        - make -C images
+        - make prepare
+        - make bootstrap ARGS='--inbox mina --keyserver ega'
+        - make up
+        - make preflight-check
+      script:
+        - cd tests
+        - mvn test -Dtest=IngestionTests
+    - stage: tests
+      name: "Cucumber Robustness Tests"
+      if: type = pull_request
+      before_script:
+        - pip3 install -r requirements.txt
+        - cd deploy
+        - make -C images
+        - make prepare
+        - make bootstrap ARGS='--inbox mina --keyserver ega'
+        - make up
+        - make preflight-check
+      script:
+        - cd tests
+        - mvn test -Dtest=RobustnessTests
 
 
 notifications:
