@@ -44,8 +44,8 @@ def retry_loop(on_failure=None, exception=psycopg2.OperationalError):
         @wraps(func)
         def wrapper(*args, **kwargs):
             """Retry loop."""
-            nb_try = CONF.get_value('postgres', 'try', conv=int, default=1)
-            try_interval = CONF.get_value('postgres', 'try_interval', conv=int, default=1)
+            nb_try = CONF.get_value('db', 'try', conv=int, default=1)
+            try_interval = CONF.get_value('db', 'try_interval', conv=int, default=1)
             LOG.debug(f"{nb_try} attempts (every {try_interval} seconds)")
             count = 0
             backoff = try_interval
@@ -106,8 +106,9 @@ def connect():
 
     Before success, we try to connect ``try`` times every ``try_interval`` seconds (defined in CONF)
     """
-    db_args = fetch_args(CONF)
-    return psycopg2.connect(**db_args)
+    db_args = CONF.get_value('db', 'connection', raw=True)
+    LOG.info(f"Initializing a connection to: {db_args}")
+    return psycopg2.connect(db_args)
 
 
 def insert_file(filename, user_id):

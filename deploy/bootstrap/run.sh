@@ -78,7 +78,7 @@ exec 2>${PRIVATE}/.err
 
 if [[ ${REAL_CEGA} != 'yes' ]]; then
     # Reset the variables here
-    CEGA_CONNECTION=$'amqp://legatest:legatest@cega-mq:5672/lega'
+    CEGA_CONNECTION=$'amqps://legatest:legatest@cega-mq:5671/lega'
     CEGA_USERS_ENDPOINT=$'http://cega-users/lega/v1/legas/users'
     CEGA_USERS_CREDS=$'legatest:legatest'
 fi
@@ -127,7 +127,18 @@ echo -n ${LEGA_PASSWORD} > ${PRIVATE}/pgp/ega.shared.pass
 #########################################################################
 
 echomsg "\t* the SSL certificates"
-${OPENSSL} req -x509 -newkey rsa:2048 -keyout ${PRIVATE}/certs/ssl.key -nodes -out ${PRIVATE}/certs/ssl.cert -sha256 -days 1000 -subj ${SSL_SUBJ}
+
+${OPENSSL} req -x509 -newkey rsa:2048 -keyout ${PRIVATE}/certs/keys-ssl.key -nodes -out ${PRIVATE}/certs/keys-ssl.cert -sha256 -days 1000 -subj ${SSL_SUBJ}
+
+${OPENSSL} req -x509 -newkey rsa:2048 -keyout ${PRIVATE}/certs/db-ssl.key -nodes -out ${PRIVATE}/certs/db-ssl.cert -sha256 -days 1000 -subj ${SSL_SUBJ}
+
+${OPENSSL} req -x509 -newkey rsa:2048 -keyout ${PRIVATE}/certs/mq-ssl.key -nodes -out ${PRIVATE}/certs/mq-ssl.cert -sha256 -days 1000 -subj ${SSL_SUBJ}
+
+if [[ ${REAL_CEGA} != 'yes' ]]; then
+
+    ${OPENSSL} req -x509 -newkey rsa:2048 -keyout ${PRIVATE}/certs/cega-mq-ssl.key -nodes -out ${PRIVATE}/certs/cega-mq-ssl.cert -sha256 -days 1000 -subj ${SSL_SUBJ}
+
+fi
 
 #########################################################################
 
@@ -182,25 +193,27 @@ keyserver_endpoint = https://keys:8443/retrieve/%s/private
 EOF
 fi
 
+
+MQ_CONNECTION_PARAMS=$(python -c "from urllib.parse import urlencode;               \
+			          print(urlencode({ 'heartbeat': 0,                 \
+				                    'connection_attempts': 30,      \
+				                    'retry_delay': 10,              \
+				                  }))")
+
+MQ_CONNECTION="amqps://${MQ_USER}:${MQ_PASSWORD}@mq:5671/%2F?${MQ_CONNECTION_PARAMS}"
+
 cat >> ${PRIVATE}/conf.ini <<EOF
 
 ## Connecting to Local EGA
 [broker]
-host = mq
-username = ${MQ_USER}
-password = ${MQ_PASSWORD}
-connection_attempts = 30
-# delay in seconds
-retry_delay = 10
+connection = ${MQ_CONNECTION}
 
-[postgres]
-host = db
-port = 5432
-user = lega_in
-password = ${DB_LEGA_IN_PASSWORD}
-database = lega
+[db]
+# sslrequire = TLS encryption, but no client verification yet.
+connection = postgres://lega_in:${DB_LEGA_IN_PASSWORD}@db:5432/lega?sslmode=require
+#connection = postgres://lega_in:${DB_LEGA_IN_PASSWORD}@db:5432/lega?sslmode=verify-ca
 try = 30
-sslmode = require
+try_interval = 1
 
 [archive]
 EOF
@@ -279,7 +292,6 @@ services:
     environment:
       - CEGA_CONNECTION=${CEGA_CONNECTION}
       - MQ_USER=${MQ_USER}
-      - MQ_PASSWORD=${MQ_PASSWORD}
       - MQ_PASSWORD_HASH=${MQ_PASSWORD_HASH}
     hostname: mq
     ports:
@@ -293,6 +305,8 @@ services:
       - lega
     volumes:
       - mq:/var/lib/rabbitmq
+      - ./certs/mq-ssl.cert:/etc/rabbitmq/ssl-server.cert:ro
+      - ./certs/mq-ssl.key:/etc/rabbitmq/ssl-server.key:ro
 
   # Local Database
   db:
@@ -308,6 +322,8 @@ services:
     image: egarchive/lega-db:latest
     volumes:
       - db:/ega/data
+      - ./certs/db-ssl.cert:/etc/ega/pg.cert
+      - ./certs/db-ssl.key:/etc/ega/pg.key
     restart: on-failure:3
     networks:
       - lega
@@ -341,13 +357,12 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - inbox:/ega/inbox
 EOF
 else
-# SSL support is temporarily off
 cat >> ${PRIVATE}/lega.yml <<EOF  # SFTP inbox
     environment:
       - CEGA_ENDPOINT=${CEGA_USERS_ENDPOINT}
       - CEGA_ENDPOINT_CREDS=${CEGA_USERS_CREDS}
       - CEGA_ENDPOINT_JSON_PREFIX=response.result
-      - MQ_CONNECTION=amqp://${MQ_USER}:${MQ_PASSWORD}@mq:5672/%2F
+      - MQ_CONNECTION=${MQ_CONNECTION}
       - MQ_EXCHANGE=cega
       - MQ_ROUTING_KEY=files.inbox
     ports:
@@ -485,8 +500,8 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     volumes:
        - ./conf.ini:/etc/ega/conf.ini:ro
        - ./keys.ini.enc:/etc/ega/keys.ini.enc:ro
-       - ./certs/ssl.cert:/etc/ega/ssl.cert:ro
-       - ./certs/ssl.key:/etc/ega/ssl.key:ro
+       - ./certs/keys-ssl.cert:/etc/ega/ssl.cert:ro
+       - ./certs/keys-ssl.key:/etc/ega/ssl.key:ro
        - ./pgp/ega.sec:/etc/ega/pgp/ega.sec:ro
        - ./pgp/ega2.sec:/etc/ega/pgp/ega2.sec:ro
     restart: on-failure:3
@@ -558,21 +573,6 @@ if [[ ${REAL_CEGA} != 'yes' ]]; then
 version: '3.2'
 
 services:
-  cega-mq:
-    hostname: cega-mq
-    ports:
-      - "15670:15672"
-      - "5670:5672"
-    image: rabbitmq:3.6.14-management
-    container_name: cega-mq
-    labels:
-        lega_label: "cega-mq"
-    volumes:
-       - ./cega-mq-defs.json:/etc/rabbitmq/defs.json:ro
-       - ./cega-mq-rabbitmq.config:/etc/rabbitmq/rabbitmq.config:ro
-    restart: on-failure:3
-    networks:
-      - lega
 
   cega-users:
     hostname: cega-users
@@ -589,11 +589,29 @@ services:
       - lega
     user: root
     entrypoint: ["python", "/cega/users.py", "0.0.0.0", "80", "/cega/users.json"]
+
+  cega-mq:
+    hostname: cega-mq
+    ports:
+      - "15670:15672"
+      - "5670:5672"
+    image: rabbitmq:3.7.8-management-alpine
+    container_name: cega-mq
+    labels:
+        lega_label: "cega-mq"
+    volumes:
+       - ./cega-mq-defs.json:/etc/rabbitmq/defs.json:ro
+       - ./cega-mq-rabbitmq.config:/etc/rabbitmq/rabbitmq.config:ro
+       - ./certs/cega-mq-ssl.cert:/etc/rabbitmq/ssl.cert:ro
+       - ./certs/cega-mq-ssl.key:/etc/rabbitmq/ssl.key:ro
+    restart: on-failure:3
+    networks:
+      - lega
 EOF
 
     # The user/password is legatest:legatest
     cat > ${PRIVATE}/cega-mq-defs.json <<EOF
-{"rabbit_version":"3.6.14",
+{"rabbit_version":"3.7.8",
  "users":[{"name":"legatest","password_hash":"P9snZluoiHj2JeGqrDYmUHGLu637Qo7Fjgn5wakpk4jCyvcO","hashing_algorithm":"rabbit_password_hashing_sha256","tags":"administrator"}],
  "vhosts":[{"name":"lega"}],
  "permissions":[{"user":"legatest", "vhost":"lega", "configure":".*", "write":".*", "read":".*"}],
@@ -620,7 +638,13 @@ EOF
 %% -*- mode: erlang -*-
 %%
 [{rabbit,[{loopback_users, [ ] },
-	  {disk_free_limit, "1GB"}]},
+	  {tcp_listeners, [ ]},
+	  {ssl_listeners, [5671]},
+	  {ssl_options, [{certfile,   "/etc/rabbitmq/ssl.cert"},
+          		 {keyfile,    "/etc/rabbitmq/ssl.key"},
+			 {verify,     verify_none},
+			 {fail_if_no_peer_cert, false}]}
+ 	  ]},
  {rabbitmq_management, [ {load_definitions, "/etc/rabbitmq/defs.json"} ]}
 ].
 EOF
@@ -666,7 +690,7 @@ KEYS_PASSWORD             = ${KEYS_PASSWORD}
 # Local Message Broker (used by mq and inbox)
 MQ_USER                   = ${MQ_USER}
 MQ_PASSWORD               = ${MQ_PASSWORD}
-MQ_CONNECTION             = amqp://${MQ_USER}:${MQ_PASSWORD}@mq:5672/%2F
+MQ_CONNECTION             = ${MQ_CONNECTION}
 MQ_EXCHANGE               = cega
 MQ_ROUTING_KEY            = files.inbox
 EOF

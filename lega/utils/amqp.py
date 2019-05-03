@@ -19,40 +19,13 @@ def get_connection(domain, blocking=True):
     """
     assert domain in CONF.sections(), "Section not found in config file"
 
-    params = {
-        'host': CONF.get_value(domain, 'host', default='localhost'),
-        'port': CONF.get_value(domain, 'port', conv=int, default=5672),
-        'virtual_host': CONF.get_value(domain, 'vhost', default='/'),
-        'credentials': pika.PlainCredentials(
-            CONF.get_value(domain, 'username', default='guest'),
-            CONF.get_value(domain, 'password', default='guest')
-        ),
-        'connection_attempts': CONF.get_value(domain, 'connection_attempts', conv=int, default=10),
-        'retry_delay': CONF.get_value(domain, 'retry_delay', conv=int, default=10),  # seconds
-    }
-    heartbeat = CONF.get_value(domain, 'heartbeat', conv=int, default=0)
-    if heartbeat is not None:  # can be 0
-        # heartbeat_interval instead of heartbeat like they say in the doc
-        # https://pika.readthedocs.io/en/latest/modules/parameters.html#connectionparameters
-        params['heartbeat_interval'] = heartbeat
-        LOG.debug(f'Setting hearbeat to {heartbeat}')
-
-    # SSL configuration
-    if CONF.get_value(domain, 'enable_ssl', conv=bool, default=False):
-        params['ssl'] = True
-        params['ssl_options'] = {
-            'ca_certs': CONF.get_value(domain, 'cacert'),
-            'certfile': CONF.get_value(domain, 'cert'),
-            'keyfile': CONF.get_value(domain, 'keyfile'),
-            'cert_reqs': 2,  # ssl.CERT_REQUIRED is actually <VerifyMode.CERT_REQUIRED: 2>
-        }
-
     LOG.info(f'Getting a connection to {domain}')
-    LOG.debug(params)
+    params = CONF.get_value(domain, 'connection', raw=True)
+    LOG.debug(f"Initializing a connection to: {params}")
 
     if blocking:
-        return pika.BlockingConnection(pika.ConnectionParameters(**params))
-    return pika.SelectConnection(pika.ConnectionParameters(**params))
+        return pika.BlockingConnection(pika.connection.URLParameters(params))
+    return pika.SelectConnection(pika.connection.URLParameters(params))
 
 
 def publish(message, channel, exchange, routing, correlation_id=None):
