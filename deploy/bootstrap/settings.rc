@@ -9,7 +9,7 @@ DOCKER_PORT_keyserver=8443
 DOCKER_PORT_res=8081
 
 
-SSL_SUBJ="/C=SE/ST=Sweden/L=Uppsala/O=NBIS/OU=SysDevs/CN=LocalEGA/emailAddress=ega@nbis.se"
+SSL_SUBJ="/C=ES/ST=Spain/L=Barcelona/O=CRG/OU=SysDevs/CN=LocalEGA/emailAddress=dev.ega@crg.eu"
 
 # Database users are lega_in and lega_out
 DB_LEGA_IN_PASSWORD=$(generate_password 16)
