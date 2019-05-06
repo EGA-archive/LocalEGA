@@ -9,6 +9,8 @@ import json
 import string
 import secrets
 import os
+import ssl
+import sys
 
 import pika
 
@@ -29,8 +31,23 @@ correlation_id = args.correlation_id if args.correlation_id else str(uuid.uuid4(
 # Just checking the JSON-formatting
 message = json.loads(args.message)
 
-mq_connection = args.connection if args.connection else os.getenv('CEGA_CONNECTION', default="amqp://localhost:5672/%2F")
-parameters = pika.URLParameters(mq_connection)
+mq_connection = args.connection if args.connection else os.getenv('CEGA_CONNECTION',
+                                                                  default="amqps://legatest:legatest@localhost:5670/%2F")
+parameters = pika.connection.URLParameters(mq_connection)
+
+
+if mq_connection.startswith('amqps'):
+
+    context = ssl.SSLContext(protocol=ssl.PROTOCOL_TLS) # Enforcing (highest) TLS version (so... 1.2?)
+
+    # Ignore the server and client verification
+    context.verify_mode = ssl.CERT_NONE
+    context.check_hostname = False
+    
+    # Finally, the pika ssl options
+    parameters.ssl_options = pika.SSLOptions(context=context, server_hostname=None)
+
+
 connection = pika.BlockingConnection(parameters)
 channel = connection.channel()
 channel.basic_publish(exchange='localega.v1', routing_key=args.routing_key,

@@ -20,7 +20,7 @@ TESTDATA_DIR=$HERE
 # then it is against the fake one, which is deployed on the same network
 # as LocalEGA components, and accessible from the localhost via a port mapping
 if [[ "${CEGA_CONNECTION}" != *hellgate* ]]; then
-    export CEGA_CONNECTION="amqp://legatest:legatest@localhost:5670/lega"
+    export CEGA_CONNECTION="amqps://legatest:legatest@localhost:5670/lega"
 fi
 
 # Utilities to scan the Message Queues

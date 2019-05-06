@@ -194,19 +194,32 @@ EOF
 fi
 
 
-MQ_CONNECTION_PARAMS=$(python -c "from urllib.parse import urlencode;               \
-			          print(urlencode({ 'heartbeat': 0,                 \
-				                    'connection_attempts': 30,      \
-				                    'retry_delay': 10,              \
+MQ_CONNECTION_PARAMS=$(python -c "from urllib.parse import urlencode;                   \
+			          print(urlencode({ 'heartbeat': 0,                     \
+				                    'connection_attempts': 30,          \
+				                    'retry_delay': 10,                  \
 				                  }))")
 
-MQ_CONNECTION="amqps://${MQ_USER}:${MQ_PASSWORD}@mq:5671/%2F?${MQ_CONNECTION_PARAMS}"
+# Pika is not parsing the URL the way RabbitMQ likes.
+# So we add the parameters on the configuration file and
+# create the SSL socket ourselves
+# Some parameters can be passed in the URL, though.
+
+MQ_CONNECTION="amqps://${MQ_USER}:${MQ_PASSWORD}@mq:5671/%2F"
 
 cat >> ${PRIVATE}/conf.ini <<EOF
 
 ## Connecting to Local EGA
 [broker]
-connection = ${MQ_CONNECTION}
+connection = ${MQ_CONNECTION}?${MQ_CONNECTION_PARAMS}
+
+enable_ssl = yes
+verify_peer = no
+verify_hostname = no
+
+# cacertfile = /etc/ega/ca.cert
+# certfile = /etc/ega/ssl.cert
+# keyfile = /etc/ega/ssl.key
 
 [db]
 # sslrequire = TLS encryption, but no client verification yet.
@@ -594,7 +607,7 @@ services:
     hostname: cega-mq
     ports:
       - "15670:15672"
-      - "5670:5672"
+      - "5670:5671"
     image: rabbitmq:3.7.8-management-alpine
     container_name: cega-mq
     labels:
@@ -690,7 +703,7 @@ KEYS_PASSWORD             = ${KEYS_PASSWORD}
 # Local Message Broker (used by mq and inbox)
 MQ_USER                   = ${MQ_USER}
 MQ_PASSWORD               = ${MQ_PASSWORD}
-MQ_CONNECTION             = ${MQ_CONNECTION}
+MQ_CONNECTION             = ${MQ_CONNECTION}?${MQ_CONNECTION_PARAMS}
 MQ_EXCHANGE               = cega
 MQ_ROUTING_KEY            = files.inbox
 EOF

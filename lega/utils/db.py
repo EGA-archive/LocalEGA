@@ -22,18 +22,6 @@ LOG = logging.getLogger(__name__)
 ######################################
 #          DB connection             #
 ######################################
-def fetch_args(d):
-    """Fetch arguments for initializing a connection to db."""
-    db_args = {'user': d.get_value('postgres', 'user'),
-               'password': d.get_value('postgres', 'password'),
-               'database': d.get_value('postgres', 'database'),
-               'host': d.get_value('postgres', 'host'),
-               'port': d.get_value('postgres', 'port', conv=int),
-               'sslmode': d.get_value('postgres', 'sslmode'),
-               }
-    LOG.info(f"Initializing a connection to: {db_args['host']}:{db_args['port']}/{db_args['database']}")
-    return db_args
-
 
 def retry_loop(on_failure=None, exception=psycopg2.OperationalError):
     """Retry function decorator, ``try`` times every ``try_interval`` seconds.
