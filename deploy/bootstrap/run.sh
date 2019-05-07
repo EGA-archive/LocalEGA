@@ -167,6 +167,14 @@ cat >> ${PRIVATE}/conf.ini <<EOF
 [keyserver]
 port = 8080
 
+enable_ssl = True
+verify_peer = True
+cacertfile = /etc/ega/CA.cert
+verify_hostname = True
+certfile = /etc/ega/ssl.cert
+keyfile = /etc/ega/ssl.key
+
+
 [quality_control]
 keyserver_endpoint = http://keys:8080/keys/retrieve/%s/private/bin?idFormat=hex
 
@@ -217,7 +225,7 @@ certfile = /etc/ega/ssl.cert
 keyfile = /etc/ega/ssl.key
 
 [db]
-connection = postgres://lega_in:${DB_LEGA_IN_PASSWORD}@db:5432/lega?sslmode=verify-ca
+connection = postgres://lega_in:${DB_LEGA_IN_PASSWORD}@db:5432/lega?application_name=LocalEGA&sslmode=verify-full&sslcert=/etc/ega/ssl.cert&sslkey=/etc/ega/ssl.key&sslrootcert=/etc/ega/CA.cert
 try = 30
 try_interval = 1
 
@@ -311,7 +319,7 @@ services:
       - lega
     volumes:
       - mq:/var/lib/rabbitmq
-      - ../bootstrap/certs/data/mq.cert.pem:/etc/rabbitmq/ssl/mq-server.cert:ro
+      - ../bootstrap/certs/data/mq.cert.pem:/etc/rabbitmq/ssl/mq-server.cert
       - ../bootstrap/certs/data/mq.sec.pem:/etc/rabbitmq/ssl/mq-server.key
       - ../bootstrap/certs/data/CA.cert.pem:/etc/rabbitmq/ssl/CA.cert
 
@@ -375,6 +383,11 @@ cat >> ${PRIVATE}/lega.yml <<EOF  # SFTP inbox
       - MQ_CONNECTION=${MQ_CONNECTION}
       - MQ_EXCHANGE=cega
       - MQ_ROUTING_KEY=files.inbox
+      - MQ_VERIFY_PEER=yes
+      - MQ_VERIFY_HOSTNAME=yes
+      - MQ_CACERT=/etc/ega/CA.cert
+      - MQ_CERTFILE=/etc/ega/ssl.cert
+      - MQ_KEYFILE=/etc/ega/ssl.key
     ports:
       - "${DOCKER_PORT_inbox}:9000"
     image: egarchive/lega-inbox:latest
@@ -513,7 +526,6 @@ cat >> ${PRIVATE}/lega.yml <<EOF
 EOF
 else
 cat >> ${PRIVATE}/lega.yml <<EOF
-  keys:
     image: egarchive/lega-base:latest
     expose:
       - "8443"
@@ -521,12 +533,12 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - LEGA_PASSWORD=${LEGA_PASSWORD}
       - KEYS_PASSWORD=${KEYS_PASSWORD}
     volumes:
-       - ./conf.ini:/etc/ega/conf.ini:ro
-       - ./keys.ini.enc:/etc/ega/keys.ini.enc:ro
-       - ./certs/keys-ssl.cert:/etc/ega/ssl.cert:ro
-       - ./certs/keys-ssl.key:/etc/ega/ssl.key:ro
-       - ./pgp/ega.sec:/etc/ega/pgp/ega.sec:ro
-       - ./pgp/ega2.sec:/etc/ega/pgp/ega2.sec:ro
+      - ./conf.ini:/etc/ega/conf.ini:ro
+      - ./keys.ini.enc:/etc/ega/keys.ini.enc:ro
+      - ./certs/keys-ssl.cert:/etc/ega/ssl.cert:ro
+      - ./certs/keys-ssl.key:/etc/ega/ssl.key:ro
+      - ./pgp/ega.sec:/etc/ega/pgp/ega.sec:ro
+      - ./pgp/ega2.sec:/etc/ega/pgp/ega2.sec:ro
       - ../bootstrap/certs/data/keys.cert.pem:/etc/ega/ssl.cert
       - ../bootstrap/certs/data/keys.sec.pem:/etc/ega/ssl.key
       - ../bootstrap/certs/data/CA.cert.pem:/etc/ega/CA.cert
@@ -537,6 +549,7 @@ fi
 
 if [[ ${ARCHIVE_BACKEND} == 's3' ]]; then
 cat >> ${PRIVATE}/lega.yml <<EOF
+
   # Storage backend: S3
   archive:
     hostname: archive.localega
@@ -549,15 +562,15 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - MINIO_SECRET_KEY=${S3_SECRET_KEY}
     volumes:
       - archive:/data
-      - ../bootstrap/certs/data/archive.cert.pem:/etc/ega/ssl.cert
-      - ../bootstrap/certs/data/archive.sec.pem:/etc/ega/ssl.key
-      - ../bootstrap/certs/data/CA.cert.pem:/etc/ega/CA.cert
+      - ../bootstrap/certs/data/archive.cert.pem:/home/.minio/public.crt
+      - ../bootstrap/certs/data/archive.sec.pem:/home/.minio/private.key
+      - ../bootstrap/certs/data/CA.cert.pem:/home/.minio/CAs/LocalEGA.crt
     restart: on-failure:3
     networks:
       - lega
     # ports:
     #   - "${DOCKER_PORT_s3}:9000"
-    command: server /data
+    command: ["server", "/data"]
 EOF
 fi
 
@@ -574,9 +587,9 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     environment:
       - MINIO_ACCESS_KEY=${S3_ACCESS_KEY_INBOX}
       - MINIO_SECRET_KEY=${S3_SECRET_KEY_INBOX}
-      - ../bootstrap/certs/data/inbox-s3-backend.cert.pem:/etc/ega/ssl.cert
-      - ../bootstrap/certs/data/inbox-s3-backend.sec.pem:/etc/ega/ssl.key
-      - ../bootstrap/certs/data/CA.cert.pem:/etc/ega/CA.cert
+      - ../bootstrap/certs/data/inbox-s3-backend.cert.pem:/home/.minio/public.crt
+      - ../bootstrap/certs/data/inbox-s3-backend.sec.pem:/home/.minio/private.key
+      - ../bootstrap/certs/data/CA.cert.pem:/home/.minio/CAs/LocalEGA.crt
     volumes:
       - inbox-s3:/data
     restart: on-failure:3
@@ -584,7 +597,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - lega
     ports:
       - "${DOCKER_PORT_s3_inbox}:9000"
-    command: server /data
+    command: ["server", "/data"]
 EOF
 fi
 
@@ -614,9 +627,9 @@ services:
     volumes:
       - ../../tests/_common/users.py:/cega/users.py
       - ../../tests/_common/users.json:/cega/users.json
-      - ../bootstrap/certs/data/cega-users.cert.pem:/etc/ega/ssl.cert
-      - ../bootstrap/certs/data/cega-users.sec.pem:/etc/ega/ssl.key
-      - ../bootstrap/certs/data/CA.cert.pem:/etc/ega/CA.cert
+      - ../bootstrap/certs/data/cega-users.cert.pem:/cega/ssl.crt
+      - ../bootstrap/certs/data/cega-users.sec.pem:/cega/ssl.key
+      - ../bootstrap/certs/data/CA.cert.pem:/cega/CA.crt
     networks:
       - lega
     user: root

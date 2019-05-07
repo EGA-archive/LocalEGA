@@ -209,13 +209,37 @@ def main(args=None):
     # health_check_url = 'http://{}:{}{}'.format(host, port, CONF.get_value('keyserver', 'health_endpoint'))
     # status_check_url = 'http://{}:{}{}'.format(host, port, CONF.get_value('keyserver', 'status_endpoint'))
 
-    ssl_certfile = Path(CONF.get_value('keyserver', 'ssl_certfile')).expanduser()
-    ssl_keyfile = Path(CONF.get_value('keyserver', 'ssl_keyfile')).expanduser()
-    LOG.debug(f'Certfile: {ssl_certfile}')
-    LOG.debug(f'Keyfile: {ssl_keyfile}')
-    sslcontext = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-    sslcontext.check_hostname = False
-    sslcontext.load_cert_chain(ssl_certfile, ssl_keyfile)
+    context = None
+    if CONF.get_value('keyserver', 'enable_ssl', conv=bool, default=False):
+
+        LOG.debug("Enforcing a TLS context")
+        context = ssl.SSLContext(ssl.Purpose.SERVER_AUTH, protocol=ssl.PROTOCOL_TLS)  # Enforcing (highest) TLS version (so... 1.2?)
+
+        context.verify_mode = ssl.CERT_NONE
+        # Require server verification
+        if CONF.get_value(domain, 'verify_peer', conv=bool, default=False):
+            LOG.debug("Require server verification")
+            context.verify_mode = ssl.CERT_REQUIRED
+            cacertfile = CONF.get_value(domain, 'cacertfile', default=None)
+            if cacertfile:
+                context.load_verify_locations(cafile=cacertfile)
+
+        # Check the server's hostname
+        server_hostname = CONF.get_value(domain, 'server_hostname', default=None)
+        verify_hostname = CONF.get_value(domain, 'verify_hostname', conv=bool, default=False)
+        if verify_hostname:
+            LOG.debug("Require hostname verification")
+            assert server_hostname, "server_hostname must be set if verify_hostname is"
+            context.check_hostname = True
+            context.verify_mode = ssl.CERT_REQUIRED
+
+        # If client verification is required
+        certfile = CONF.get_value(domain, 'certfile', default=None)
+        if certfile:
+            LOG.debug("Prepare for client verification")
+            keyfile = CONF.get_value(domain, 'keyfile')
+            context.load_cert_chain(certfile, keyfile=keyfile)
+
 
     loop = asyncio.get_event_loop()
 
@@ -232,7 +256,7 @@ def main(args=None):
     keyserver['store'] = store
 
     LOG.info(f"Start keyserver on {host}:{port}")
-    web.run_app(keyserver, host=host, port=port, shutdown_timeout=0, ssl_context=sslcontext)
+    web.run_app(keyserver, host=host, port=port, shutdown_timeout=0, ssl_context=context)
 
 
 if __name__ == '__main__':

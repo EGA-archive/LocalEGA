@@ -14,6 +14,7 @@ import logging
 import asyncio
 import json
 from base64 import b64decode
+import ssl
 
 from aiohttp import web
 
@@ -93,8 +94,19 @@ def main():
     # Registering the routes
     server.router.add_get('/lega/v1/legas/users/{identifier}', user, name='user')
 
+    # SSL settings
+    cacertfile = '/cega/CA.crt'
+    certfile = '/cega/ssl.crt'
+    keyfile = '/cega/ssl.key'
+
+    ssl_ctx = ssl.create_default_context(purpose=ssl.Purpose.SERVER_AUTH, cafile=cacertfile)
+    # ssl_ctx.verify_mode = ssl.CERT_REQUIRED
+    ssl_ctx.check_hostname = True
+
+    ssl_ctx.load_cert_chain(certfile, keyfile=keyfile)
+
     # aaaand... cue music
-    web.run_app(server, host=host, port=port, shutdown_timeout=0, ssl_context=None)
+    web.run_app(server, host=host, port=port, shutdown_timeout=0, ssl_context=ssl_ctx)
 
 
 def load_users():
