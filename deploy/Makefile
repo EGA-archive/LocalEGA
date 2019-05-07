@@ -29,6 +29,7 @@ down: #.env
 
 clean:
 	rm -rf .env private
+	make -C bootstrap/certs clean
 
 clean-all: clean clean-volumes
 

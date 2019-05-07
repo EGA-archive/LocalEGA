@@ -89,11 +89,21 @@ nsComment = "LocalEGA Root R1 CA"
 # Extensions for server+client certificates (`man x509v3_config`).
 basicConstraints = CA:FALSE
 nsCertType = server,client
-nsComment = "LocalEGA Client Certificate"
+nsComment = "LocalEGA Server+Client Certificate"
 subjectKeyIdentifier = hash
 authorityKeyIdentifier = keyid,issuer:always
 keyUsage = critical, nonRepudiation, digitalSignature, keyEncipherment
 extendedKeyUsage = critical, clientAuth, serverAuth
+
+[ client_cert ]
+# Extensions for client certificates (`man x509v3_config`).
+basicConstraints = CA:FALSE
+nsCertType = client
+nsComment = "LocalEGA Client Certificate"
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid,issuer:always
+keyUsage = critical, nonRepudiation, digitalSignature, keyEncipherment
+extendedKeyUsage = critical, clientAuth
 
 [ server_cert ]
 # Extensions for server certificates (`man x509v3_config`).

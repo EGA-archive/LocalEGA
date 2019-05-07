@@ -13,7 +13,11 @@ all: data/ingest.cert.pem \
      data/mq.cert.pem \
      data/keys.cert.pem \
      data/inbox.cert.pem \
-     data/archive.cert.pem 
+     data/archive.cert.pem \
+     data/inbox-s3-backend.cert.pem 
+
+cega: data/cega-mq.cert.pem \
+      data/cega-users.cert.pem
 
 prepare:
 	@mkdir -p data
@@ -26,7 +30,7 @@ prepare:
 
 data/CA.cert.pem: data/CA.sec.pem
 	@echo "======== Creating $@"
-	$(OPENSSL) req -config LocalEGA.cnf \
+	@$(OPENSSL) req -config LocalEGA.cnf \
 	           -subj "/C=ES/ST=Spain/L=Barcelona/O=CRG/OU=EGA/CN=LocalEGA root CA/emailAddress=dev.ega@crg.eu" \
 	           -key $< -x509 -new -days 7300 -sha256 -nodes \
 	           -extensions v3_ca -out $@
@@ -45,14 +49,23 @@ data/db.cert.pem: data/db.csr.pem
 data/mq.cert.pem: data/mq.csr.pem
 data/inbox.cert.pem: data/inbox.csr.pem
 data/archive.cert.pem: data/archive.csr.pem
+data/inbox-s3-backend.cert.pem: data/inbox-s3-backend.csr.pem
 data/keys.cert.pem: data/keys.csr.pem
 
-data/ingest.cert.pem data/verify.cert.pem data/finalize.cert.pem data/db.cert.pem data/mq.cert.pem data/inbox.cert.pem data/archive.cert.pem data/keys.cert.pem: data/CA.cert.pem
-data/ingest.cert.pem data/verify.cert.pem data/finalize.cert.pem: EXT=server_client_cert
-data/db.cert.pem data/mq.cert.pem data/inbox.cert.pem data/archive.cert.pem data/keys.cert.pem: EXT=server_cert
-data/ingest.cert.pem data/verify.cert.pem data/finalize.cert.pem data/db.cert.pem data/mq.cert.pem data/inbox.cert.pem data/archive.cert.pem data/keys.cert.pem:
+data/cega-mq.cert.pem: data/cega-mq.csr.pem
+data/cega-users.cert.pem: data/cega-users.csr.pem
+
+data/ingest.cert.pem data/verify.cert.pem data/finalize.cert.pem: data/CA.cert.pem
+data/db.cert.pem data/mq.cert.pem data/inbox.cert.pem data/archive.cert.pem: data/CA.cert.pem
+data/inbox-s3-backend.cert.pem data/keys.cert.pem: data/CA.cert.pem
+data/ingest.cert.pem data/verify.cert.pem data/finalize.cert.pem: EXT=client_cert
+data/mq.cert.pem: EXT=server_client_cert
+data/db.cert.pem data/inbox.cert.pem data/archive.cert.pem: EXT=server_cert
+data/inbox-s3-backend.cert.pem data/keys.cert.pem: EXT=server_cert
+data/cega-mq.cert.pem data/cega-users.cert.pem: EXT=server_cert
+data/ingest.cert.pem data/verify.cert.pem data/finalize.cert.pem data/db.cert.pem data/mq.cert.pem data/inbox.cert.pem data/archive.cert.pem data/inbox-s3-backend.cert.pem data/keys.cert.pem data/cega-mq.cert.pem data/cega-users.cert.pem:
 	@echo "======== Creating $@"
-	$(OPENSSL) ca -config LocalEGA.cnf \
+	@$(OPENSSL) ca -config LocalEGA.cnf \
 	           -extensions $(EXT) \
 	           -days 375 -notext -md sha256 -in $< -out $@
 	-@rm data/100*.pem
@@ -78,11 +91,18 @@ data/mq.csr.pem: COMPONENT=mq
 data/inbox.csr.pem: COMPONENT=inbox
 data/keys.csr.pem: COMPONENT=keys
 data/archive.csr.pem: COMPONENT=archive
+data/inbox-s3-backend.csr.pem: COMPONENT=inbox-s3-backend
 
-data/ingest.csr.pem data/verify.csr.pem data/finalize.csr.pem data/db.csr.pem data/mq.csr.pem data/inbox.csr.pem data/archive.csr.pem data/keys.csr.pem: data/CA.sec.pem
-data/ingest.csr.pem data/verify.csr.pem data/finalize.csr.pem data/db.csr.pem data/mq.csr.pem data/inbox.csr.pem data/archive.csr.pem data/keys.csr.pem:
+data/cega-mq.csr.pem: COMPONENT=cega-mq
+data/cega-users.csr.pem: COMPONENT=cega-users
+
+data/ingest.csr.pem data/verify.csr.pem data/finalize.csr.pem: data/CA.sec.pem
+data/db.csr.pem data/mq.csr.pem data/inbox.csr.pem data/archive.csr.pem: data/CA.sec.pem
+data/inbox-s3-backend.csr.pem data/keys.csr.pem: data/CA.sec.pem
+data/cega-mq.csr.pem data/cega-users.csr.pem: data/CA.sec.pem
+data/ingest.csr.pem data/verify.csr.pem data/finalize.csr.pem data/db.csr.pem data/mq.csr.pem data/inbox.csr.pem data/archive.csr.pem data/inbox-s3-backend.csr.pem data/keys.csr.pem data/cega-mq.csr.pem data/cega-users.csr.pem:
 	@echo "======== Creating $@"
-	$(OPENSSL) req -config LocalEGA.cnf \
+	@$(OPENSSL) req -config LocalEGA.cnf \
 	           -subj "${SUBJ_PREFIX}/CN=${COMPONENT}${DOMAIN}/emailAddress=${COMPONENT}${DOMAIN_EMAIL}" \
 	           -key $< -new -sha256 -out $@
 
@@ -92,7 +112,7 @@ data/ingest.csr.pem data/verify.csr.pem data/finalize.csr.pem data/db.csr.pem da
 ###############################################
 data/%.sec.pem:
 	@echo "======== Creating $@"
-	$(OPENSSL) genpkey -algorithm RSA -out $@
+	@$(OPENSSL) genpkey -algorithm RSA -out $@
 	@chmod 400 $@
 
 ###############################################
@@ -100,7 +120,7 @@ data/%.sec.pem:
 ###############################################
 
 clean:
-	rm -rf data
+	@rm -rf data
 
 ###############################################
 ## Debug / Testing
