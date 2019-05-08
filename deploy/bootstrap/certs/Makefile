@@ -68,9 +68,9 @@ data/cega-mq.cert.pem data/cega-users.cert.pem: data/CA.cert.pem
 data/outgest.cert.pem data/streamer.cert.pem: data/CA.cert.pem
 
 data/ingest.cert.pem data/verify.cert.pem data/finalize.cert.pem: EXT=client_cert
-data/mq.cert.pem: EXT=server_client_cert
-data/db.cert.pem data/inbox.cert.pem data/archive.cert.pem: EXT=server_cert
-data/inbox-s3-backend.cert.pem data/keys.cert.pem: EXT=server_client_cert
+data/mq.cert.pem data/inbox.cert.pem: EXT=server_client_cert
+data/db.cert.pem data/archive.cert.pem: EXT=server_cert
+data/inbox-s3-backend.cert.pem data/keys.cert.pem: EXT=server_cert
 data/cega-mq.cert.pem data/cega-users.cert.pem: EXT=server_cert
 data/outgest.cert.pem data/streamer.cert.pem: EXT=server_client_cert
 data/ingest.cert.pem data/verify.cert.pem data/finalize.cert.pem data/db.cert.pem data/mq.cert.pem data/inbox.cert.pem data/archive.cert.pem data/inbox-s3-backend.cert.pem data/keys.cert.pem data/cega-mq.cert.pem data/cega-users.cert.pem data/outgest.cert.pem data/streamer.cert.pem:
@@ -91,7 +91,7 @@ data/finalize.csr.pem: data/verify.sec.pem
 data/db.csr.pem: data/db.sec.pem
 data/mq.csr.pem: data/mq.sec.pem
 data/inbox.csr.pem: data/inbox.sec.pem
-data/keys.csr.pem: data/verify.sec.pem
+data/keys.csr.pem: data/keys.sec.pem
 
 data/cega-mq.csr.pem: data/cega-mq.sec.pem
 data/cega-users.csr.pem: data/cega-users.sec.pem
