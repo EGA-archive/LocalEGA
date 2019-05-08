@@ -51,8 +51,14 @@ function rm_politely {
 }
 
 function generate_password {
+    local force=${2:-no}
+    if [[ "${force}" != "force" ]] && [[ "${DEPLOY_DEV}" = "yes" ]]; then
+	echo "dummy"
+	return 0 # early return
+    fi
+    # Otherwise
     local size=${1:-16} # defaults to 16 characters
-    ${PYTHONEXEC} -c "import secrets,string;print(''.join(secrets.choice(string.ascii_letters + string.digits) for i in range(${size})))"
+    ${PYTHONEXEC:-python3.6} -c "import secrets,string;print(''.join(secrets.choice(string.ascii_letters + string.digits) for i in range(${size})))"
 }
 
 function generate_mq_hash {
