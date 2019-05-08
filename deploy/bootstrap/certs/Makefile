@@ -144,14 +144,3 @@ data/%.sec.pem:
 clean:
 	@rm -rf data
 
-###############################################
-## Debug / Testing
-###############################################
-
-client-debug: DEBUG=-showcerts -prexit -state -debug -msg -tlsextdebug
-client client-debug: data/ingest.cert.pem data/ingest.sec.pem data/CA.cert.pem
-	$(OPENSSL) s_client -connect localhost:10000 -cert data/ingest.cert.pem -CAfile data/CA.cert.pem -key data/ingest.sec.pem -no_ssl3 -no_tls1 -noservername $(DEBUG)
-
-server-debug: DEBUG=-msg -tlsextdebug -debug #-HTTP -www
-server server-debug: data/db.cert.pem data/db.sec.pem data/CA.cert.pem
-	$(OPENSSL) s_server -cert data/db.cert.pem -CAfile data/CA.cert.pem -key data/db.sec.pem -accept 10000 -no_ssl3 -no_tls1 -verify 10 $(DEBUG)

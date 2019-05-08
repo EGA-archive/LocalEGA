@@ -63,7 +63,6 @@ done
 
 #########################################################################
 
-
 [[ $VERBOSE == 'no' ]] && echo -en "Bootstrapping "
 
 source ${HERE}/defs.sh
@@ -78,17 +77,17 @@ exec 2>${PRIVATE}/.err
 
 if [[ ${REAL_CEGA} != 'yes' ]]; then
     # Reset the variables here
-    CEGA_CONNECTION_PARAMS=$(python -c "from urllib.parse import urlencode;                   \
-	  			        print(urlencode({ 'heartbeat': 0,                     \
-				                          'connection_attempts': 30,          \
-				                          'retry_delay': 10,                  \
-							  'server_name_indication': 'mq',     \
-							  'verify': 'verify_peer',            \
-							  'fail_if_no_peer_cert': 'true',     \
+    CEGA_CONNECTION_PARAMS=$(python -c "from urllib.parse import urlencode;                               \
+	  			        print(urlencode({ 'heartbeat': 0,                                 \
+				                          'connection_attempts': 30,                      \
+				                          'retry_delay': 10,                              \
+							  'server_name_indication': 'cega-mq.localega',   \
+							  'verify': 'verify_peer',                        \
+							  'fail_if_no_peer_cert': 'true',                 \
 							  'cacertfile': '/etc/rabbitmq/ssl/CA.cert',      \
 							  'certfile': '/etc/rabbitmq/ssl/mq-server.cert', \
 							  'keyfile': '/etc/rabbitmq/ssl/mq-server.key',   \
-				                  }))")
+				                  }, safe='/-_.'))")
 
     CEGA_CONNECTION="amqps://legatest:legatest@cega-mq:5671/lega?${CEGA_CONNECTION_PARAMS}"
     CEGA_USERS_ENDPOINT=$'http://cega-users/lega/v1/legas/users'
@@ -229,7 +228,7 @@ DB_CONNECTION_PARAMS=$(python -c "from urllib.parse import urlencode;           
 				                    'sslcert': '/etc/ega/ssl.cert',     \
 				                    'sslkey': '/etc/ega/ssl.key',       \
 				                    'sslrootcert': '/etc/ega/CA.cert',  \
-				                  }))")
+				                  }, safe='/-_.'))")
 
 DB_CONNECTION="postgres://lega_in:${DB_LEGA_IN_PASSWORD}@db:5432/lega"
 
@@ -356,6 +355,10 @@ services:
       - DB_LEGA_IN_PASSWORD=${DB_LEGA_IN_PASSWORD}
       - DB_LEGA_OUT_PASSWORD=${DB_LEGA_OUT_PASSWORD}
       - PGDATA=/ega/data
+      - PG_CERTFILE=/etc/ega/pg.cert
+      - PG_KEYFILE=/etc/ega/pg.key
+      - PG_CACERTFILE=/etc/ega/CA.cert
+      - PG_VERIFY_PEER=1
     hostname: db.localega
     container_name: db
     labels:
@@ -644,7 +647,7 @@ version: '3.2'
 services:
 
   cega-users:
-    hostname: cega-users
+    hostname: cega-users.localega
     ports:
       - "15671:80"
     image: egarchive/lega-base:latest
@@ -663,7 +666,7 @@ services:
     entrypoint: ["python", "/cega/users.py", "0.0.0.0", "80", "/cega/users.json"]
 
   cega-mq:
-    hostname: cega-mq
+    hostname: cega-mq.localega
     ports:
       - "15670:15672"
       - "5670:5671"
