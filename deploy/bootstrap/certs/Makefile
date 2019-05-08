@@ -87,11 +87,13 @@ data/ingest.cert.pem data/verify.cert.pem data/finalize.cert.pem data/db.cert.pe
 
 data/ingest.csr.pem: data/ingest.sec.pem
 data/verify.csr.pem: data/verify.sec.pem
-data/finalize.csr.pem: data/verify.sec.pem
+data/finalize.csr.pem: data/finalize.sec.pem
 data/db.csr.pem: data/db.sec.pem
 data/mq.csr.pem: data/mq.sec.pem
 data/inbox.csr.pem: data/inbox.sec.pem
 data/keys.csr.pem: data/keys.sec.pem
+data/archive.csr.pem: data/archive.sec.pem
+data/inbox-s3-backend.csr.pem: data/inbox-s3-backend.sec.pem
 
 data/cega-mq.csr.pem: data/cega-mq.sec.pem
 data/cega-users.csr.pem: data/cega-users.sec.pem
