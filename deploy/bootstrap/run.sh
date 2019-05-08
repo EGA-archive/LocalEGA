@@ -90,7 +90,7 @@ if [[ ${REAL_CEGA} != 'yes' ]]; then
 				                  }, safe='/-_.'))")
 
     CEGA_CONNECTION="amqps://legatest:legatest@cega-mq:5671/lega?${CEGA_CONNECTION_PARAMS}"
-    CEGA_USERS_ENDPOINT=$'http://cega-users/lega/v1/legas/users'
+    CEGA_USERS_ENDPOINT=$'https://cega-users/lega/v1/legas/users'
     CEGA_USERS_CREDS=$'legatest:legatest'
 fi
 
@@ -649,7 +649,7 @@ services:
   cega-users:
     hostname: cega-users.localega
     ports:
-      - "15671:80"
+      - "15671:443"
     image: egarchive/lega-base:latest
     container_name: cega-users
     labels:
@@ -663,7 +663,7 @@ services:
     networks:
       - lega
     user: root
-    entrypoint: ["python", "/cega/users.py", "0.0.0.0", "80", "/cega/users.json"]
+    entrypoint: ["python", "/cega/users.py", "0.0.0.0", "443", "/cega/users.json"]
 
   cega-mq:
     hostname: cega-mq.localega
