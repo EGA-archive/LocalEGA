@@ -90,7 +90,7 @@ if [[ ${REAL_CEGA} != 'yes' ]]; then
 							  'keyfile': '/etc/rabbitmq/ssl/mq-server.key',   \
 				                  }))")
 
-    CEGA_CONNECTION="amqps://legatest:legatest@cega-mq:5671/lega?'${CEGA_CONNECTION_PARAMS}"
+    CEGA_CONNECTION="amqps://legatest:legatest@cega-mq:5671/lega?${CEGA_CONNECTION_PARAMS}"
     CEGA_USERS_ENDPOINT=$'http://cega-users/lega/v1/legas/users'
     CEGA_USERS_CREDS=$'legatest:legatest'
 fi

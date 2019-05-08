@@ -20,6 +20,12 @@ PGP_PASSPHRASE=$(generate_password 16)
 S3_ACCESS_KEY=$(generate_password 16)
 S3_SECRET_KEY=$(generate_password 32)
 
+if [[ "${force}" != "force" ]] && [[ "${DEPLOY_DEV}" = "yes" ]]; then
+    S3_ACCESS_KEY=dummyaccesskey
+    S3_SECRET_KEY=dummysecretkey
+fi
+
+
 if [[ ${INBOX_BACKEND} == 's3' ]]; then # S3 backend for inbox
 DOCKER_PORT_s3_inbox=9001
 S3_ACCESS_KEY_INBOX=$(generate_password 16)

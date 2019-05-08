@@ -9,7 +9,7 @@ help:
 	@echo "where <target> is: 'bootstrap', 'up' 'ps', 'down', 'network' or 'clean'\n"
 
 # If DEPLOY_DEV is yes, we use dummy passwords
-bootstrap-dev: DEPLOY_DEV=yes
+bootstrap-dev: export DEPLOY_DEV=yes
 .env private/lega.yml private bootstrap bootstrap-dev:
 	@bootstrap/run.sh ${ARGS} || { cat private/.err; exit 1; }
 
