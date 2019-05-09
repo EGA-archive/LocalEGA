@@ -23,6 +23,11 @@ if [[ "${CEGA_CONNECTION}" != *hellgate* ]]; then
     export CEGA_CONNECTION="amqps://legatest:legatest@localhost:5670/lega"
 fi
 
+# Create certfile/keyfile for testsuite
+yes | make --silent -C ${MAIN_REPO}/deploy/bootstrap/certs testsuite &>/dev/null
+cp -f ${MAIN_REPO}/deploy/bootstrap/certs/data/testsuite.{cert,sec}.pem ${HERE}/mq/.
+cp -f ${MAIN_REPO}/deploy/bootstrap/certs/data/CA.cert.pem ${HERE}/mq/.
+
 # Utilities to scan the Message Queues
 MQ_CONSUME="python ${HERE}/mq/consume.py --connection ${CEGA_CONNECTION}"
 MQ_FIND="python ${HERE}/mq/find.py --connection ${CEGA_CONNECTION}"

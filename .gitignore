@@ -10,6 +10,7 @@ tests/**/*.debug
 tests/**/*.d
 tests/_common/users.json
 tests/_common/backup
+tests/_common/mq/*.pem
 
 # =====================================
 # Byte-compiled / optimized / DLL files

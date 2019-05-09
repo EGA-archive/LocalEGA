@@ -100,8 +100,8 @@ def main():
     keyfile = '/cega/ssl.key'
 
     ssl_ctx = ssl.create_default_context(purpose=ssl.Purpose.SERVER_AUTH, cafile=cacertfile)
-    # ssl_ctx.verify_mode = ssl.CERT_REQUIRED
-    ssl_ctx.check_hostname = True
+    ssl_ctx.verify_mode = ssl.CERT_REQUIRED
+    ssl_ctx.check_hostname = False
 
     ssl_ctx.load_cert_chain(certfile, keyfile=keyfile)
 
