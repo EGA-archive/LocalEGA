@@ -89,8 +89,8 @@ if [[ ${REAL_CEGA} != 'yes' ]]; then
 							  'keyfile': '/etc/rabbitmq/ssl/mq-server.key',   \
 				                  }, safe='/-_.'))")
 
-    CEGA_CONNECTION="amqps://legatest:legatest@cega-mq:5671/lega?${CEGA_CONNECTION_PARAMS}"
-    CEGA_USERS_ENDPOINT=$'https://cega-users/lega/v1/legas/users'
+    CEGA_CONNECTION="amqps://legatest:legatest@cega-mq.localega:5671/lega?${CEGA_CONNECTION_PARAMS}"
+    CEGA_USERS_ENDPOINT=$'https://cega-users.localega/lega/v1/legas/users'
     CEGA_USERS_CREDS=$'legatest:legatest'
 fi
 
@@ -219,7 +219,7 @@ MQ_CONNECTION_PARAMS=$(python -c "from urllib.parse import urlencode;           
 # So we add the parameters on the configuration file and
 # create the SSL socket ourselves
 # Some parameters can be passed in the URL, though.
-MQ_CONNECTION="amqps://${MQ_USER}:${MQ_PASSWORD}@mq:5671/%2F"
+MQ_CONNECTION="amqps://${MQ_USER}:${MQ_PASSWORD}@mq.localega:5671/%2F"
 
 # Database connection
 DB_CONNECTION_PARAMS=$(python -c "from urllib.parse import urlencode;                   \
@@ -243,8 +243,8 @@ cat >> ${PRIVATE}/conf.ini <<EOF
 connection = ${MQ_CONNECTION}?${MQ_CONNECTION_PARAMS}
 
 enable_ssl = yes
-verify_peer = no
-verify_hostname = no
+verify_peer = yes
+verify_hostname = yes
 
 cacertfile = /etc/ega/CA.cert
 certfile = /etc/ega/ssl.cert
@@ -337,7 +337,7 @@ services:
     ports:
       - "${DOCKER_PORT_mq}:15672"
     image: egarchive/lega-mq:latest
-    container_name: mq
+    container_name: mq.localega
     labels:
         lega_label: "mq"
     restart: on-failure:3
@@ -360,7 +360,7 @@ services:
       - PG_CACERTFILE=/etc/ega/CA.cert
       - PG_VERIFY_PEER=1
     hostname: db.localega
-    container_name: db
+    container_name: db.localega
     labels:
         lega_label: "db"
     image: egarchive/lega-db:latest
@@ -379,7 +379,7 @@ services:
     depends_on:
       - mq
     # Required external link
-    container_name: inbox
+    container_name: inbox.localega
     labels:
         lega_label: "inbox"
     restart: on-failure:3
@@ -414,10 +414,15 @@ cat >> ${PRIVATE}/lega.yml <<EOF  # SFTP inbox
       - MQ_EXCHANGE=cega
       - MQ_ROUTING_KEY=files.inbox
       - MQ_VERIFY_PEER=yes
-      - MQ_VERIFY_HOSTNAME=yes
-      - MQ_CACERT=/etc/ega/CA.cert
+      - MQ_VERIFY_HOSTNAME=no
+      - MQ_CACERTFILE=/etc/ega/CA.cert
       - MQ_CERTFILE=/etc/ega/ssl.cert
       - MQ_KEYFILE=/etc/ega/ssl.key
+      - VERIFY_PEER=yes
+      - VERIFY_HOSTNAME=yes
+      - CACERTFILE=/etc/ega/CA.cert
+      - CERTFILE=/etc/ega/ssl.cert
+      - KEYFILE=/etc/ega/ssl.key
     ports:
       - "${DOCKER_PORT_inbox}:9000"
     image: egarchive/lega-inbox:latest
@@ -439,7 +444,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - db
       - mq
     image: egarchive/lega-base:latest
-    container_name: ingest
+    container_name: ingest.localega
     labels:
         lega_label: "ingest"
     environment:
@@ -474,7 +479,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - mq
       - keys
     hostname: verify.localega
-    container_name: verify
+    container_name: verify.localega
     labels:
         lega_label: "verify"
     image: egarchive/lega-base:latest
@@ -510,7 +515,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - db
       - mq
     image: egarchive/lega-base:latest
-    container_name: finalize
+    container_name: finalize.localega
     labels:
         lega_label: "finalize"
     volumes:
@@ -527,7 +532,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
   # Key server
   keys:
     hostname: keys.localega
-    container_name: keys
+    container_name: keys.localega
     labels:
         lega_label: "keys"
     restart: on-failure:3
@@ -583,7 +588,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
   # Storage backend: S3
   archive:
     hostname: archive.localega
-    container_name: archive
+    container_name: archive.localega
     labels:
         lega_label: "archive"
     image: minio/minio:RELEASE.2018-12-19T23-46-24Z
@@ -610,7 +615,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
   # Inbox S3 Backend Storage
   inbox-s3-backend:
     hostname: inbox-s3-backend.localega
-    container_name: inbox-s3-backend
+    container_name: inbox-s3-backend.localega
     labels:
         lega_label: "inbox-s3-backend"
     image: minio/minio:RELEASE.2018-12-19T23-46-24Z
@@ -651,7 +656,7 @@ services:
     ports:
       - "15671:443"
     image: egarchive/lega-base:latest
-    container_name: cega-users
+    container_name: cega-users.localega
     labels:
         lega_label: "cega-users"
     volumes:
@@ -671,7 +676,7 @@ services:
       - "15670:15672"
       - "5670:5671"
     image: rabbitmq:3.7.8-management-alpine
-    container_name: cega-mq
+    container_name: cega-mq.localega
     labels:
         lega_label: "cega-mq"
     volumes:
