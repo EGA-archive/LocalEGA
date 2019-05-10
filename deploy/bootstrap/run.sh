@@ -369,7 +369,7 @@ services:
       - PGDATA=/ega/data
       - PG_SERVER_CERT=/etc/ega/pg.cert
       - PG_SERVER_KEY=/etc/ega/pg.key
-      - PG_SERVER_CA=/etc/ega/CA.cert
+      - PG_CA=/etc/ega/CA.cert
       - PG_VERIFY_PEER=1
     hostname: db${HOSTNAME_DOMAIN}
     container_name: db${HOSTNAME_DOMAIN}
