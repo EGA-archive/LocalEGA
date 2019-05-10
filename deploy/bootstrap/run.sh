@@ -361,9 +361,9 @@ services:
       - DB_LEGA_IN_PASSWORD=${DB_LEGA_IN_PASSWORD}
       - DB_LEGA_OUT_PASSWORD=${DB_LEGA_OUT_PASSWORD}
       - PGDATA=/ega/data
-      - PG_CERTFILE=/etc/ega/pg.cert
-      - PG_KEYFILE=/etc/ega/pg.key
-      - PG_CACERTFILE=/etc/ega/CA.cert
+      - PG_SERVERCERT=/etc/ega/pg.cert
+      - PG_SERVERKEY=/etc/ega/pg.key
+      - PG_SERVERCA=/etc/ega/CA.cert
       - PG_VERIFY_PEER=1
     hostname: db.localega
     container_name: db.localega
