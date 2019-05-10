@@ -17,7 +17,7 @@ INBOX_BACKEND=posix
 ARCHIVE_BACKEND=s3
 KEYSERVER=lega
 REAL_CEGA=no
-HOSTNAME_DOMAIN=".localega"
+HOSTNAME_DOMAIN='' #".localega"
 
 GEN_KEY=${EXTRAS}/generate_pgp_key.py
 PYTHONEXEC=python
@@ -33,7 +33,7 @@ function usage {
     echo -e "\t--genkey <value>      \tPath to PGP key generator [Default: ${GEN_KEY}]"
     echo -e "\t--pythonexec <value>  \tPython execute command [Default: ${PYTHONEXEC}]"
     echo -e "\t--with-real-cega      \tUse the real Central EGA Message broker and Authentication Service"
-    echo -e "\t--domain <value>      \tDomain for the hostnames [Default: ${HOSTNAME_DOMAIN}]"
+    echo -e "\t--domain <value>      \tDomain for the hostnames [Default: '${HOSTNAME_DOMAIN}']"
     echo ""
     echo -e "\t--verbose, -v     \tShow verbose output"
     echo -e "\t--polite, -p      \tDo not force the re-creation of the subfolders. Ask instead"
