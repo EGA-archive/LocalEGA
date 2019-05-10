@@ -17,6 +17,7 @@ INBOX_BACKEND=posix
 ARCHIVE_BACKEND=s3
 KEYSERVER=lega
 REAL_CEGA=no
+HOSTNAME_DOMAIN=".localega"
 
 GEN_KEY=${EXTRAS}/generate_pgp_key.py
 PYTHONEXEC=python
@@ -32,6 +33,7 @@ function usage {
     echo -e "\t--genkey <value>      \tPath to PGP key generator [Default: ${GEN_KEY}]"
     echo -e "\t--pythonexec <value>  \tPython execute command [Default: ${PYTHONEXEC}]"
     echo -e "\t--with-real-cega      \tUse the real Central EGA Message broker and Authentication Service"
+    echo -e "\t--domain <value>      \tDomain for the hostnames [Default: ${HOSTNAME_DOMAIN}]"
     echo ""
     echo -e "\t--verbose, -v     \tShow verbose output"
     echo -e "\t--polite, -p      \tDo not force the re-creation of the subfolders. Ask instead"
@@ -55,6 +57,7 @@ while [[ $# -gt 0 ]]; do
         --genkey) GEN_KEY=$2; shift;;
         --pythonexec) PYTHONEXEC=$2; shift;;
         --with-real-cega) REAL_CEGA=yes;;
+        --domain) HOSTNAME_DOMAIN=${2,,}; shift;;
         --) shift; break;;
         *) echo "$0: error - unrecognized option $1" 1>&2; usage; exit 1;;
     esac
@@ -81,7 +84,7 @@ if [[ ${REAL_CEGA} != 'yes' ]]; then
 	  			        print(urlencode({ 'heartbeat': 0,                                 \
 				                          'connection_attempts': 30,                      \
 				                          'retry_delay': 10,                              \
-							  'server_name_indication': 'cega-mq.localega',   \
+							  'server_name_indication': 'cega-mq${HOSTNAME_DOMAIN}',   \
 							  'verify': 'verify_peer',                        \
 							  'fail_if_no_peer_cert': 'true',                 \
 							  'cacertfile': '/etc/rabbitmq/CA.cert',          \
@@ -89,8 +92,8 @@ if [[ ${REAL_CEGA} != 'yes' ]]; then
 							  'keyfile': '/etc/rabbitmq/ssl.key',             \
 				                  }, safe='/-_.'))")
 
-    CEGA_CONNECTION="amqps://legatest:legatest@cega-mq.localega:5671/lega?${CEGA_CONNECTION_PARAMS}"
-    CEGA_USERS_ENDPOINT=$'https://cega-users.localega/lega/v1/legas/users'
+    CEGA_CONNECTION="amqps://legatest:legatest@cega-mq${HOSTNAME_DOMAIN}:5671/lega?${CEGA_CONNECTION_PARAMS}"
+    CEGA_USERS_ENDPOINT="https://cega-users${HOSTNAME_DOMAIN}/lega/v1/legas/users"
     CEGA_USERS_CREDS=$'legatest:legatest'
 fi
 
@@ -140,10 +143,10 @@ echo -n ${LEGA_PASSWORD} > ${PRIVATE}/pgp/ega.shared.pass
 echomsg "\t* the SSL certificates"
 
 make -C ${HERE}/certs clean prepare OPENSSL=${OPENSSL} &>${PRIVATE}/.err
-yes | make -C ${HERE}/certs OPENSSL=${OPENSSL} &>${PRIVATE}/.err
+yes | make -C ${HERE}/certs OPENSSL=${OPENSSL} DOMAIN="${HOSTNAME_DOMAIN}" &>${PRIVATE}/.err
 
 if [[ ${REAL_CEGA} != 'yes' ]]; then
-    yes | make -C ${HERE}/certs cega OPENSSL=${OPENSSL} &>${PRIVATE}/.err
+    yes | make -C ${HERE}/certs cega OPENSSL=${OPENSSL} DOMAIN="${HOSTNAME_DOMAIN}" &>${PRIVATE}/.err
 fi
 
 #########################################################################
@@ -179,11 +182,11 @@ cat >> ${PRIVATE}/conf.ini <<EOF
 port = 8080
 
 [quality_control]
-keyserver_endpoint = http://keys.localega:8080/keys/retrieve/%s/private/bin?idFormat=hex
+keyserver_endpoint = http://keys${HOSTNAME_DOMAIN}:8080/keys/retrieve/%s/private/bin?idFormat=hex
 
 [outgestion]
 # Just for test
-keyserver_endpoint = http://keys.localega:8080/keys/retrieve/%s/private/bin?idFormat=hex
+keyserver_endpoint = http://keys${HOSTNAME_DOMAIN}:8080/keys/retrieve/%s/private/bin?idFormat=hex
 EOF
 else
 cat >> ${PRIVATE}/conf.ini <<EOF
@@ -199,7 +202,7 @@ enable_ssl = no
 # keyfile = /etc/ega/ssl.key
 
 [quality_control]
-keyserver_endpoint = https://keys.localega:8443/retrieve/%s/private
+keyserver_endpoint = https://keys${HOSTNAME_DOMAIN}:8443/retrieve/%s/private
 
 verify_peer = yes
 verify_hostname = no
@@ -209,7 +212,7 @@ keyfile = /etc/ega/ssl.key
 
 [outgestion]
 # Just for test
-keyserver_endpoint = https://keys.localega:8443/retrieve/%s/private
+keyserver_endpoint = https://keys${HOSTNAME_DOMAIN}:8443/retrieve/%s/private
 EOF
 fi
 
@@ -225,7 +228,7 @@ MQ_CONNECTION_PARAMS=$(python -c "from urllib.parse import urlencode;           
 # So we add the parameters on the configuration file and
 # create the SSL socket ourselves
 # Some parameters can be passed in the URL, though.
-MQ_CONNECTION="amqps://${MQ_USER}:${MQ_PASSWORD}@mq.localega:5671/%2F"
+MQ_CONNECTION="amqps://${MQ_USER}:${MQ_PASSWORD}@mq${HOSTNAME_DOMAIN}:5671/%2F"
 
 # Database connection
 DB_CONNECTION_PARAMS=$(python -c "from urllib.parse import urlencode;                   \
@@ -236,7 +239,7 @@ DB_CONNECTION_PARAMS=$(python -c "from urllib.parse import urlencode;           
 				                    'sslrootcert': '/etc/ega/CA.cert',  \
 				                  }, safe='/-_.'))")
 
-DB_CONNECTION="postgres://lega_in:${DB_LEGA_IN_PASSWORD}@db.localega:5432/lega"
+DB_CONNECTION="postgres://lega_in:${DB_LEGA_IN_PASSWORD}@db${HOSTNAME_DOMAIN}:5432/lega"
 
 #
 # Configuration file
@@ -266,7 +269,7 @@ EOF
 if [[ ${ARCHIVE_BACKEND} == 's3' ]]; then
     cat >> ${PRIVATE}/conf.ini <<EOF
 storage_driver = S3Storage
-s3_url = http://archive.localega:9000
+s3_url = http://archive${HOSTNAME_DOMAIN}:9000
 s3_access_key = ${S3_ACCESS_KEY}
 s3_secret_key = ${S3_SECRET_KEY}
 #region = lega
@@ -284,7 +287,7 @@ if [[ ${INBOX_BACKEND} == 's3' ]]; then
 
 [inbox]
 storage_driver = S3Storage
-url = http://inbox-s3-backend.localega:9000
+url = http://inbox-s3-backend${HOSTNAME_DOMAIN}:9000
 access_key = ${S3_ACCESS_KEY_INBOX}
 secret_key = ${S3_SECRET_KEY_INBOX}
 #region = lega
@@ -342,11 +345,11 @@ services:
       - MQ_CA=/etc/rabbitmq/CA.cert
       - MQ_SERVER_CERT=/etc/rabbitmq/ssl.cert
       - MQ_SERVER_KEY=/etc/rabbitmq/ssl.key
-    hostname: mq.localega
+    hostname: mq${HOSTNAME_DOMAIN}
     ports:
       - "${DOCKER_PORT_mq}:15672"
     image: egarchive/lega-mq:latest
-    container_name: mq.localega
+    container_name: mq${HOSTNAME_DOMAIN}
     labels:
         lega_label: "mq"
     restart: on-failure:3
@@ -368,8 +371,8 @@ services:
       - PG_SERVER_KEY=/etc/ega/pg.key
       - PG_SERVER_CA=/etc/ega/CA.cert
       - PG_VERIFY_PEER=1
-    hostname: db.localega
-    container_name: db.localega
+    hostname: db${HOSTNAME_DOMAIN}
+    container_name: db${HOSTNAME_DOMAIN}
     labels:
         lega_label: "db"
     image: egarchive/lega-db:latest
@@ -384,11 +387,11 @@ services:
 
   # SFTP inbox
   inbox:
-    hostname: inbox.localega
+    hostname: inbox${HOSTNAME_DOMAIN}
     depends_on:
       - mq
     # Required external link
-    container_name: inbox.localega
+    container_name: inbox${HOSTNAME_DOMAIN}
     labels:
         lega_label: "inbox"
     restart: on-failure:3
@@ -448,12 +451,12 @@ cat >> ${PRIVATE}/lega.yml <<EOF
 
   # Ingestion Workers
   ingest:
-    hostname: ingest.localega
+    hostname: ingest${HOSTNAME_DOMAIN}
     depends_on:
       - db
       - mq
     image: egarchive/lega-base:latest
-    container_name: ingest.localega
+    container_name: ingest${HOSTNAME_DOMAIN}
     labels:
         lega_label: "ingest"
     environment:
@@ -487,8 +490,8 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - db
       - mq
       - keys
-    hostname: verify.localega
-    container_name: verify.localega
+    hostname: verify${HOSTNAME_DOMAIN}
+    container_name: verify${HOSTNAME_DOMAIN}
     labels:
         lega_label: "verify"
     image: egarchive/lega-base:latest
@@ -519,12 +522,12 @@ cat >> ${PRIVATE}/lega.yml <<EOF
 
   # Stable ID mapper
   finalize:
-    hostname: finalize.localega
+    hostname: finalize${HOSTNAME_DOMAIN}
     depends_on:
       - db
       - mq
     image: egarchive/lega-base:latest
-    container_name: finalize.localega
+    container_name: finalize${HOSTNAME_DOMAIN}
     labels:
         lega_label: "finalize"
     volumes:
@@ -540,8 +543,8 @@ cat >> ${PRIVATE}/lega.yml <<EOF
 
   # Key server
   keys:
-    hostname: keys.localega
-    container_name: keys.localega
+    hostname: keys${HOSTNAME_DOMAIN}
+    container_name: keys${HOSTNAME_DOMAIN}
     labels:
         lega_label: "keys"
     restart: on-failure:3
@@ -596,8 +599,8 @@ cat >> ${PRIVATE}/lega.yml <<EOF
 
   # Storage backend: S3
   archive:
-    hostname: archive.localega
-    container_name: archive.localega
+    hostname: archive${HOSTNAME_DOMAIN}
+    container_name: archive${HOSTNAME_DOMAIN}
     labels:
         lega_label: "archive"
     image: minio/minio:RELEASE.2018-12-19T23-46-24Z
@@ -623,8 +626,8 @@ cat >> ${PRIVATE}/lega.yml <<EOF
 
   # Inbox S3 Backend Storage
   inbox-s3-backend:
-    hostname: inbox-s3-backend.localega
-    container_name: inbox-s3-backend.localega
+    hostname: inbox-s3-backend${HOSTNAME_DOMAIN}
+    container_name: inbox-s3-backend${HOSTNAME_DOMAIN}
     labels:
         lega_label: "inbox-s3-backend"
     image: minio/minio:RELEASE.2018-12-19T23-46-24Z
@@ -661,11 +664,11 @@ version: '3.2'
 services:
 
   cega-users:
-    hostname: cega-users.localega
+    hostname: cega-users${HOSTNAME_DOMAIN}
     ports:
       - "15671:443"
     image: egarchive/lega-base:latest
-    container_name: cega-users.localega
+    container_name: cega-users${HOSTNAME_DOMAIN}
     labels:
         lega_label: "cega-users"
     volumes:
@@ -680,12 +683,12 @@ services:
     entrypoint: ["python", "/cega/users.py", "0.0.0.0", "443", "/cega/users.json"]
 
   cega-mq:
-    hostname: cega-mq.localega
+    hostname: cega-mq${HOSTNAME_DOMAIN}
     ports:
       - "15670:15672"
       - "5670:5671"
     image: rabbitmq:3.7.8-management-alpine
-    container_name: cega-mq.localega
+    container_name: cega-mq${HOSTNAME_DOMAIN}
     labels:
         lega_label: "cega-mq"
     volumes:
