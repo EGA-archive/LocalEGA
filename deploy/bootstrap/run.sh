@@ -15,7 +15,6 @@ OPENSSL=openssl
 INBOX=openssh
 INBOX_BACKEND=posix
 ARCHIVE_BACKEND=s3
-KEYSERVER=lega
 REAL_CEGA=no
 HOSTNAME_DOMAIN='' #".localega"
 
@@ -27,7 +26,6 @@ function usage {
     echo -e "\nOptions are:"
     echo -e "\t--openssl <value>     \tPath to the Openssl executable [Default: ${OPENSSL}]"
     echo -e "\t--inbox <value>       \tSelect inbox \"openssh\" or \"mina\" [Default: ${INBOX}]"
-    echo -e "\t--keyserver <value>   \tSelect keyserver \"lega\" or \"ega\" [Default: ${KEYSERVER}]"
     echo -e "\t--inbox-backend <value>   \tSelect the inbox backend: S3 or POSIX [Default: ${INBOX_BACKEND}]"
     echo -e "\t--archive-backend <value> \tSelect the archive backend: S3 or POSIX [Default: ${ARCHIVE_BACKEND}]"
     echo -e "\t--genkey <value>      \tPath to PGP key generator [Default: ${GEN_KEY}]"
@@ -53,7 +51,6 @@ while [[ $# -gt 0 ]]; do
         --inbox) INBOX=${2,,}; shift;;
         --inbox-backend) INBOX_BACKEND=${2,,}; shift;;
         --archive-backend) ARCHIVE_BACKEND=${2,,}; shift;;
-        --keyserver) KEYSERVER=${2,,}; shift;;
         --genkey) GEN_KEY=$2; shift;;
         --pythonexec) PYTHONEXEC=$2; shift;;
         --with-real-cega) REAL_CEGA=yes;;
@@ -174,10 +171,6 @@ cat > ${PRIVATE}/conf.ini <<EOF
 log = debug
 #log = silent
 
-EOF
-if [[ $KEYSERVER == 'ega' ]]; then
-cat >> ${PRIVATE}/conf.ini <<EOF
-
 [keyserver]
 port = 8080
 
@@ -188,34 +181,6 @@ keyserver_endpoint = http://keys${HOSTNAME_DOMAIN}:8080/keys/retrieve/%s/private
 # Just for test
 keyserver_endpoint = http://keys${HOSTNAME_DOMAIN}:8080/keys/retrieve/%s/private/bin?idFormat=hex
 EOF
-else
-cat >> ${PRIVATE}/conf.ini <<EOF
-[keyserver]
-host = 0.0.0.0
-port = 8443
-
-enable_ssl = no
-# verify_peer = yes
-# verify_hostname = no
-# cacertfile = /etc/ega/CA.cert
-# certfile = /etc/ega/ssl.cert
-# keyfile = /etc/ega/ssl.key
-
-[quality_control]
-keyserver_endpoint = https://keys${HOSTNAME_DOMAIN}:8443/retrieve/%s/private
-
-verify_peer = yes
-verify_hostname = no
-cacertfile = /etc/ega/CA.cert
-certfile = /etc/ega/ssl.cert
-keyfile = /etc/ega/ssl.key
-
-[outgestion]
-# Just for test
-keyserver_endpoint = https://keys${HOSTNAME_DOMAIN}:8443/retrieve/%s/private
-EOF
-fi
-
 
 # Local broker connection
 MQ_CONNECTION_PARAMS=$(python -c "from urllib.parse import urlencode;                   \
@@ -550,9 +515,6 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     restart: on-failure:3
     networks:
       - lega
-EOF
-if [[ $KEYSERVER == 'ega' ]]; then
-cat >> ${PRIVATE}/lega.yml <<EOF
     image: cscfi/ega-keyserver
     environment:
       - SPRING_PROFILES_ACTIVE=no-oss
@@ -571,28 +533,6 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - ../bootstrap/certs/data/keys.sec.pem:/etc/ega/ssl.key
       - ../bootstrap/certs/data/CA.cert.pem:/etc/ega/CA.cert
 EOF
-else
-cat >> ${PRIVATE}/lega.yml <<EOF
-    image: egarchive/lega-base:latest
-    expose:
-      - "8443"
-    environment:
-      - LEGA_PASSWORD=${LEGA_PASSWORD}
-      - KEYS_PASSWORD=${KEYS_PASSWORD}
-    volumes:
-      - ./conf.ini:/etc/ega/conf.ini:ro
-      - ./keys.ini.enc:/etc/ega/keys.ini.enc:ro
-      - ./certs/keys-ssl.cert:/etc/ega/ssl.cert:ro
-      - ./certs/keys-ssl.key:/etc/ega/ssl.key:ro
-      - ./pgp/ega.sec:/etc/ega/pgp/ega.sec:ro
-      - ./pgp/ega2.sec:/etc/ega/pgp/ega2.sec:ro
-      - ../bootstrap/certs/data/keys.cert.pem:/etc/ega/ssl.cert
-      - ../bootstrap/certs/data/keys.sec.pem:/etc/ega/ssl.key
-      - ../bootstrap/certs/data/CA.cert.pem:/etc/ega/CA.cert
-    user: lega
-    entrypoint: ["ega-keyserver","--keys","/etc/ega/keys.ini.enc"]
-EOF
-fi
 
 if [[ ${ARCHIVE_BACKEND} == 's3' ]]; then
 cat >> ${PRIVATE}/lega.yml <<EOF

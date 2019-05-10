@@ -36,7 +36,7 @@ jobs:
         - cd deploy
         - make -C images
         - make prepare
-        - make bootstrap ARGS="--keyserver ega"
+        - make bootstrap
         - make up
         - make preflight-check
       script:
@@ -53,7 +53,7 @@ jobs:
         - cd deploy
         - make -C images
         - make prepare
-        - make bootstrap ARGS="--keyserver ega --archive-backend posix"
+        - make bootstrap
         - make up
         - make preflight-check
       script:
@@ -70,7 +70,7 @@ jobs:
         - cd deploy
         - make -C images
         - make prepare
-        - make bootstrap ARGS="--keyserver ega"
+        - make bootstrap
         - make up
         - make preflight-check
       script:
@@ -87,7 +87,7 @@ jobs:
         - cd deploy
         - make -C images
         - make prepare
-        - make bootstrap ARGS="--keyserver ega"
+        - make bootstrap
         - make up
         - make preflight-check
       script:
@@ -104,7 +104,7 @@ jobs:
     #     - cd deploy
     #     - make -C images
     #     - make prepare
-    #     - make bootstrap ARGS='--inbox mina --keyserver ega'
+    #     - make bootstrap ARGS='--inbox mina'
     #     - make up
     #     - make preflight-check
     #   script:
@@ -118,7 +118,7 @@ jobs:
     #     - cd deploy
     #     - make -C images
     #     - make prepare
-    #     - make bootstrap ARGS='--inbox mina --keyserver ega'
+    #     - make bootstrap ARGS='--inbox mina'
     #     - make up
     #     - make preflight-check
     #   script:
