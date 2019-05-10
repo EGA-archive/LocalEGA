@@ -206,27 +206,24 @@ def main(args=None):
     host = CONF.get_value('keyserver', 'host')  # fallbacks are in defaults.ini
     port = CONF.get_value('keyserver', 'port', conv=int)
 
-    # health_check_url = 'http://{}:{}{}'.format(host, port, CONF.get_value('keyserver', 'health_endpoint'))
-    # status_check_url = 'http://{}:{}{}'.format(host, port, CONF.get_value('keyserver', 'status_endpoint'))
-
     context = None
     if CONF.get_value('keyserver', 'enable_ssl', conv=bool, default=False):
 
         LOG.debug("Enforcing a TLS context")
-        context = ssl.SSLContext(ssl.Purpose.SERVER_AUTH, protocol=ssl.PROTOCOL_TLS)  # Enforcing (highest) TLS version (so... 1.2?)
+        context = ssl.SSLContext(protocol=ssl.PROTOCOL_TLS)  # Enforcing (highest) TLS version (so... 1.2?)
 
         context.verify_mode = ssl.CERT_NONE
         # Require server verification
-        if CONF.get_value(domain, 'verify_peer', conv=bool, default=False):
+        if CONF.get_value('keyserver', 'verify_peer', conv=bool, default=False):
             LOG.debug("Require server verification")
             context.verify_mode = ssl.CERT_REQUIRED
-            cacertfile = CONF.get_value(domain, 'cacertfile', default=None)
+            cacertfile = CONF.get_value('keyserver', 'cacertfile', default=None)
             if cacertfile:
                 context.load_verify_locations(cafile=cacertfile)
 
         # Check the server's hostname
-        server_hostname = CONF.get_value(domain, 'server_hostname', default=None)
-        verify_hostname = CONF.get_value(domain, 'verify_hostname', conv=bool, default=False)
+        server_hostname = CONF.get_value('keyserver', 'server_hostname', default=None)
+        verify_hostname = CONF.get_value('keyserver', 'verify_hostname', conv=bool, default=False)
         if verify_hostname:
             LOG.debug("Require hostname verification")
             assert server_hostname, "server_hostname must be set if verify_hostname is"
@@ -234,10 +231,10 @@ def main(args=None):
             context.verify_mode = ssl.CERT_REQUIRED
 
         # If client verification is required
-        certfile = CONF.get_value(domain, 'certfile', default=None)
+        certfile = CONF.get_value('keyserver', 'certfile', default=None)
         if certfile:
             LOG.debug("Prepare for client verification")
-            keyfile = CONF.get_value(domain, 'keyfile')
+            keyfile = CONF.get_value('keyserver', 'keyfile')
             context.load_cert_chain(certfile, keyfile=keyfile)
 
 

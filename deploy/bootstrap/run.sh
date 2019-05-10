@@ -178,32 +178,38 @@ cat >> ${PRIVATE}/conf.ini <<EOF
 [keyserver]
 port = 8080
 
-enable_ssl = True
-verify_peer = True
-cacertfile = /etc/ega/CA.cert
-verify_hostname = True
-certfile = /etc/ega/ssl.cert
-keyfile = /etc/ega/ssl.key
-
-
 [quality_control]
-keyserver_endpoint = http://keys:8080/keys/retrieve/%s/private/bin?idFormat=hex
+keyserver_endpoint = http://keys.localega:8080/keys/retrieve/%s/private/bin?idFormat=hex
 
 [outgestion]
 # Just for test
-keyserver_endpoint = http://keys:8080/keys/retrieve/%s/private/bin?idFormat=hex
+keyserver_endpoint = http://keys.localega:8080/keys/retrieve/%s/private/bin?idFormat=hex
 EOF
 else
 cat >> ${PRIVATE}/conf.ini <<EOF
 [keyserver]
+host = 0.0.0.0
 port = 8443
 
+enable_ssl = no
+# verify_peer = yes
+# verify_hostname = no
+# cacertfile = /etc/ega/CA.cert
+# certfile = /etc/ega/ssl.cert
+# keyfile = /etc/ega/ssl.key
+
 [quality_control]
-keyserver_endpoint = https://keys:8443/retrieve/%s/private
+keyserver_endpoint = https://keys.localega:8443/retrieve/%s/private
+
+verify_peer = yes
+verify_hostname = no
+cacertfile = /etc/ega/CA.cert
+certfile = /etc/ega/ssl.cert
+keyfile = /etc/ega/ssl.key
 
 [outgestion]
 # Just for test
-keyserver_endpoint = https://keys:8443/retrieve/%s/private
+keyserver_endpoint = https://keys.localega:8443/retrieve/%s/private
 EOF
 fi
 
@@ -230,7 +236,7 @@ DB_CONNECTION_PARAMS=$(python -c "from urllib.parse import urlencode;           
 				                    'sslrootcert': '/etc/ega/CA.cert',  \
 				                  }, safe='/-_.'))")
 
-DB_CONNECTION="postgres://lega_in:${DB_LEGA_IN_PASSWORD}@db:5432/lega"
+DB_CONNECTION="postgres://lega_in:${DB_LEGA_IN_PASSWORD}@db.localega:5432/lega"
 
 #
 # Configuration file
@@ -244,7 +250,7 @@ connection = ${MQ_CONNECTION}?${MQ_CONNECTION_PARAMS}
 
 enable_ssl = yes
 verify_peer = yes
-verify_hostname = yes
+verify_hostname = no
 
 cacertfile = /etc/ega/CA.cert
 certfile = /etc/ega/ssl.cert
@@ -260,7 +266,7 @@ EOF
 if [[ ${ARCHIVE_BACKEND} == 's3' ]]; then
     cat >> ${PRIVATE}/conf.ini <<EOF
 storage_driver = S3Storage
-s3_url = http://archive:9000
+s3_url = http://archive.localega:9000
 s3_access_key = ${S3_ACCESS_KEY}
 s3_secret_key = ${S3_SECRET_KEY}
 #region = lega
@@ -278,7 +284,7 @@ if [[ ${INBOX_BACKEND} == 's3' ]]; then
 
 [inbox]
 storage_driver = S3Storage
-url = http://inbox-s3-backend:9000
+url = http://inbox-s3-backend.localega:9000
 access_key = ${S3_ACCESS_KEY_INBOX}
 secret_key = ${S3_SECRET_KEY_INBOX}
 #region = lega
