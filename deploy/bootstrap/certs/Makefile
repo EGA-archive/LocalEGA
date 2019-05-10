@@ -27,7 +27,7 @@ data-out: data/outgest.cert.pem \
 prepare:
 	@mkdir -p data
 	@touch data/index.txt data/index.txt.attr
-	@[[ -e data/serial ]] || echo 1000 > data/serial
+	@test -e data/serial || echo 1000 > data/serial
 
 
 ###############################################
