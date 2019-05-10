@@ -1,8 +1,9 @@
-OPENSSL=~/.local/openssl/bin/openssl
 
-SUBJ_PREFIX=/C=ES/ST=Spain/L=Barcelona/O=CRG/OU=EGA
-DOMAIN=.localega
-DOMAIN_EMAIL=-dev.ega@crg.eu
+SHELL := /bin/bash
+OPENSSL := ${OPENSSL:-openssl}
+SUBJ_PREFIX := /C=ES/ST=Spain/L=Barcelona/O=CRG/OU=EGA
+#DOMAIN := .localega
+DOMAIN_EMAIL := -dev.ega@crg.eu
 
 .PHONY: all prepare clean cega
 

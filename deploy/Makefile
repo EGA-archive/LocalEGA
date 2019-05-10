@@ -2,7 +2,7 @@ SHELL := /bin/bash
 
 ARGS=
 
-.PHONY: help bootstrap private network up down clean ps clean-volumes clean-all prepare
+.PHONY: help bootstrap private network up down clean ps clean-volumes clean-all prepare images
 
 help:
 	@echo "Usage: make <target>\n"
@@ -35,16 +35,15 @@ clean-all: clean clean-volumes
 
 preflight-check:
 	@echo "Ensure the system is up"
-	sleep 120
+	sleep 150
 
-# Note: "sleep 120" will be replaced with a script that checks for open port, mq settings, etc.
+# Note: "sleep 150" will be replaced with a script that checks for open port, mq settings, etc.
 # It might be a good idea to run it in the same network as the containers.
 # docker run --rm -it --network=lega_lega \
-#        -v ${PWD}/integration/ensure_system_up.sh:/ensure_system_up.sh \
-#        nbisweden/ega-base /ensure_system_up.sh
+#        -v ${PWD}/bootstrap/ensure_system_up.sh:/ensure_system_up.sh \
+#        egarchive/lega-base /ensure_system_up.sh
 
 # For the moment, we simply do sleep 60, because we need
-# - the inbox notification server up
 # - the rabbitmq shovel to CentralEGA (the federated queue can be late, it doesn't hurt)
 # - the key server (the java spring needs 97 seconds, 10 are enough for the other)
 
@@ -60,3 +59,5 @@ prepare: ../tests/_common/dummy.sec ../tests/_common/john.sec ../tests/_common/j
 %.json: %.json.enc
 	openssl enc -aes-256-cbc -d -in $< -out $@ -k ${REPO_PASSWORD}
 
+images:
+	make -C images

@@ -24,7 +24,7 @@ if [[ "${CEGA_CONNECTION}" != *hellgate* ]]; then
 fi
 
 # Create certfile/keyfile for testsuite
-yes | make --silent -C ${MAIN_REPO}/deploy/bootstrap/certs testsuite &>/dev/null
+#yes | make --silent -C ${MAIN_REPO}/deploy/bootstrap/certs testsuite OPENSSL=${OPENSSL:-openssl} &>/dev/null
 cp -f ${MAIN_REPO}/deploy/bootstrap/certs/data/testsuite.{cert,sec}.pem ${HERE}/mq/.
 cp -f ${MAIN_REPO}/deploy/bootstrap/certs/data/CA.cert.pem ${HERE}/mq/.
 
