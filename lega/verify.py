@@ -34,7 +34,7 @@ def get_records(header):
     LOG.info(f'Key ID {keyid}')
     keyurl = CONF.get_value('quality_control', 'keyserver_endpoint', raw=True) % keyid
     LOG.info('Retrieving the Private Key from %s', keyurl)
-        
+
     context = None
     if keyurl.startswith('https'):
         import ssl
@@ -66,7 +66,6 @@ def get_records(header):
             LOG.debug("Prepare for client verification")
             keyfile = CONF.get_value('quality_control', 'keyfile')
             context.load_cert_chain(certfile, keyfile=keyfile)
-
 
     try:
         with urlopen(keyurl, context=context) as response:

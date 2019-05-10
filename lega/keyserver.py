@@ -9,7 +9,7 @@ import logging
 import time
 import datetime
 import asyncio
-from pathlib import Path
+# from pathlib import Path
 import ssl
 
 from aiohttp import web
@@ -236,7 +236,6 @@ def main(args=None):
             LOG.debug("Prepare for client verification")
             keyfile = CONF.get_value('keyserver', 'keyfile')
             context.load_cert_chain(certfile, keyfile=keyfile)
-
 
     loop = asyncio.get_event_loop()
 
