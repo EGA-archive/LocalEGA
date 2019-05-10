@@ -84,9 +84,9 @@ if [[ ${REAL_CEGA} != 'yes' ]]; then
 							  'server_name_indication': 'cega-mq.localega',   \
 							  'verify': 'verify_peer',                        \
 							  'fail_if_no_peer_cert': 'true',                 \
-							  'cacertfile': '/etc/rabbitmq/ssl/CA.cert',      \
-							  'certfile': '/etc/rabbitmq/ssl/mq-server.cert', \
-							  'keyfile': '/etc/rabbitmq/ssl/mq-server.key',   \
+							  'cacertfile': '/etc/rabbitmq/CA.cert',          \
+							  'certfile': '/etc/rabbitmq/ssl.cert',           \
+							  'keyfile': '/etc/rabbitmq/ssl.key',             \
 				                  }, safe='/-_.'))")
 
     CEGA_CONNECTION="amqps://legatest:legatest@cega-mq.localega:5671/lega?${CEGA_CONNECTION_PARAMS}"
@@ -339,6 +339,9 @@ services:
       - CEGA_CONNECTION=${CEGA_CONNECTION}
       - MQ_USER=${MQ_USER}
       - MQ_PASSWORD_HASH=${MQ_PASSWORD_HASH}
+      - MQ_CA=/etc/rabbitmq/CA.cert
+      - MQ_SERVER_CERT=/etc/rabbitmq/ssl.cert
+      - MQ_SERVER_KEY=/etc/rabbitmq/ssl.key
     hostname: mq.localega
     ports:
       - "${DOCKER_PORT_mq}:15672"
@@ -351,9 +354,9 @@ services:
       - lega
     volumes:
       - mq:/var/lib/rabbitmq
-      - ../bootstrap/certs/data/mq.cert.pem:/etc/rabbitmq/ssl/mq-server.cert
-      - ../bootstrap/certs/data/mq.sec.pem:/etc/rabbitmq/ssl/mq-server.key
-      - ../bootstrap/certs/data/CA.cert.pem:/etc/rabbitmq/ssl/CA.cert
+      - ../bootstrap/certs/data/mq.cert.pem:/etc/rabbitmq/ssl.cert
+      - ../bootstrap/certs/data/mq.sec.pem:/etc/rabbitmq/ssl.key
+      - ../bootstrap/certs/data/CA.cert.pem:/etc/rabbitmq/CA.cert
 
   # Local Database
   db:
@@ -361,9 +364,9 @@ services:
       - DB_LEGA_IN_PASSWORD=${DB_LEGA_IN_PASSWORD}
       - DB_LEGA_OUT_PASSWORD=${DB_LEGA_OUT_PASSWORD}
       - PGDATA=/ega/data
-      - PG_SERVERCERT=/etc/ega/pg.cert
-      - PG_SERVERKEY=/etc/ega/pg.key
-      - PG_SERVERCA=/etc/ega/CA.cert
+      - PG_SERVER_CERT=/etc/ega/pg.cert
+      - PG_SERVER_KEY=/etc/ega/pg.key
+      - PG_SERVER_CA=/etc/ega/CA.cert
       - PG_VERIFY_PEER=1
     hostname: db.localega
     container_name: db.localega
@@ -421,14 +424,14 @@ cat >> ${PRIVATE}/lega.yml <<EOF  # SFTP inbox
       - MQ_ROUTING_KEY=files.inbox
       - MQ_VERIFY_PEER=yes
       - MQ_VERIFY_HOSTNAME=no
-      - MQ_CACERTFILE=/etc/ega/CA.cert
-      - MQ_CERTFILE=/etc/ega/ssl.cert
-      - MQ_KEYFILE=/etc/ega/ssl.key
-      - VERIFY_PEER=yes
-      - VERIFY_HOSTNAME=yes
-      - CACERTFILE=/etc/ega/CA.cert
-      - CERTFILE=/etc/ega/ssl.cert
-      - KEYFILE=/etc/ega/ssl.key
+      - MQ_CA=/etc/ega/CA.cert
+      - MQ_CLIENT_CERT=/etc/ega/ssl.cert
+      - MQ_CLIENT_KEY=/etc/ega/ssl.key
+      - AUTH_VERIFY_PEER=yes
+      - AUTH_VERIFY_HOSTNAME=yes
+      - AUTH_CA=/etc/ega/CA.cert
+      - AUTH_CLIENT_CERT=/etc/ega/ssl.cert
+      - AUTH_CLIENT_KEY=/etc/ega/ssl.key
     ports:
       - "${DOCKER_PORT_inbox}:9000"
     image: egarchive/lega-inbox:latest
