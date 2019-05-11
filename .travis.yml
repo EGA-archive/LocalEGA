@@ -30,12 +30,11 @@ jobs:
       if: type = pull_request
       services: docker
       before_script:
-        - pip3 install -r requirements.txt
         - git clone https://github.com/bats-core/bats-core.git
         - pushd bats-core && git checkout v1.1.0 && sudo ./install.sh /usr/local && popd
         - cd deploy
         - make -C images
-        - make prepare
+        - make install-bootstrap-packages prepare
         - make bootstrap
         - make up
         - make preflight-check
@@ -47,12 +46,11 @@ jobs:
       if: type = pull_request
       services: docker
       before_script:
-        - pip3 install -r requirements.txt
         - git clone https://github.com/bats-core/bats-core.git
         - pushd bats-core && git checkout v1.1.0 && sudo ./install.sh /usr/local && popd
         - cd deploy
         - make -C images
-        - make prepare
+        - make install-bootstrap-packages prepare
         - make bootstrap
         - make up
         - make preflight-check
@@ -64,12 +62,11 @@ jobs:
       if: type = pull_request
       services: docker
       before_script:
-        - pip3 install -r requirements.txt
         - git clone https://github.com/bats-core/bats-core.git
         - pushd bats-core && git checkout v1.1.0 && sudo ./install.sh /usr/local && popd
         - cd deploy
         - make -C images
-        - make prepare
+        - make install-bootstrap-packages prepare
         - make bootstrap
         - make up
         - make preflight-check
@@ -81,12 +78,11 @@ jobs:
       if: type = pull_request
       services: docker
       before_script:
-        - pip3 install -r requirements.txt
         - git clone https://github.com/bats-core/bats-core.git
         - pushd bats-core && git checkout v1.1.0 && sudo ./install.sh /usr/local && popd
         - cd deploy
         - make -C images
-        - make prepare
+        - make install-bootstrap-packages prepare
         - make bootstrap
         - make up
         - make preflight-check

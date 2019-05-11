@@ -2,7 +2,7 @@ SHELL := /bin/bash
 
 ARGS=
 
-.PHONY: help bootstrap private network up down clean ps clean-volumes clean-all prepare images
+.PHONY: help bootstrap private network up down clean ps clean-volumes clean-all prepare images install-bootstrap-packages
 
 help:
 	@echo "Usage: make <target>\n"
@@ -61,3 +61,8 @@ prepare: ../tests/_common/dummy.sec ../tests/_common/john.sec ../tests/_common/j
 
 images:
 	make -C images
+
+# That's for Travis
+install-bootstrap-packages:
+	pip3 install git+https://github.com/NBISweden/LocalEGA-cryptor.git
+	pip3 install pgpy pika==1.0.1
