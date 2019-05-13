@@ -22,6 +22,7 @@ testsuite: data/testsuite.cert.pem
 
 cega: data/cega-mq.cert.pem \
       data/cega-users.cert.pem
+	chmod 444 data/cega-mq.sec.pem
 
 data-out: data/outgest.cert.pem \
 	  data/streamer.cert.pem

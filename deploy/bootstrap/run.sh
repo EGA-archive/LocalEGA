@@ -632,8 +632,8 @@ services:
     labels:
         lega_label: "cega-mq"
     volumes:
-      - ./cega-mq-defs.json:/etc/rabbitmq/defs.json:ro
-      - ./cega-mq-rabbitmq.config:/etc/rabbitmq/rabbitmq.config:ro
+      - ./cega-mq-defs.json:/etc/rabbitmq/defs.json
+      - ./cega-mq-rabbitmq.config:/etc/rabbitmq/rabbitmq.config
       - ./cega-entrypoint.sh:/usr/local/bin/cega-entrypoint.sh
       - ../bootstrap/certs/data/cega-mq.cert.pem:/etc/rabbitmq/ssl.cert
       - ../bootstrap/certs/data/cega-mq.sec.pem:/etc/rabbitmq/ssl.key
@@ -687,7 +687,8 @@ EOF
 
     cat > ${PRIVATE}/cega-entrypoint.sh <<EOF
 #!/bin/bash
-chown rabbitmq:rabbitmq /etc/rabbitmq/{CA.cert,ssl.cert,ssl.key}
+chown rabbitmq:rabbitmq /etc/rabbitmq/*
+find /var/lib/rabbitmq \! -user rabbitmq -exec chown rabbitmq '{}' +
 exec docker-entrypoint.sh rabbitmq-server
 EOF
     chmod +x ${PRIVATE}/cega-entrypoint.sh
