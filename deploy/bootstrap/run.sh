@@ -78,7 +78,7 @@ exec 2>${PRIVATE}/.err
 if [[ ${REAL_CEGA} != 'yes' ]]; then
     # Reset the variables here
     CEGA_CONNECTION_PARAMS=$(python -c "from urllib.parse import urlencode;                               \
-	  			        print(urlencode({ 'heartbeat': 0,                                 \
+	  			        print(urlencode({ 'heartbeat': 30,                                 \
 				                          'connection_attempts': 30,                      \
 				                          'retry_delay': 10,                              \
 							  'server_name_indication': 'cega-mq${HOSTNAME_DOMAIN}',   \
@@ -184,7 +184,7 @@ EOF
 
 # Local broker connection
 MQ_CONNECTION_PARAMS=$(python -c "from urllib.parse import urlencode;                   \
-			          print(urlencode({ 'heartbeat': 0,                     \
+			          print(urlencode({ 'heartbeat': 30,                     \
 				                    'connection_attempts': 30,          \
 				                    'retry_delay': 10,                  \
 				                  }))")
@@ -200,7 +200,7 @@ DB_CONNECTION_PARAMS=$(python -c "from urllib.parse import urlencode;           
 			          print(urlencode({ 'application_name': 'LocalEGA',     \
 				                    'sslmode': 'verify-full',           \
 				                    'sslcert': '/etc/ega/ssl.cert',     \
-				                    'sslkey': '/etc/ega/ssl.key',       \
+				                    'sslkey': '/etc/ega/ssl.key.lega',  \
 				                    'sslrootcert': '/etc/ega/CA.cert',  \
 				                  }, safe='/-_.'))")
 
@@ -447,7 +447,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     networks:
       - lega
     user: lega
-    entrypoint: ["ega-ingest"]
+    command: ["ega-ingest"]
 
   # Consistency Control
   verify:
@@ -483,7 +483,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     networks:
       - lega
     user: lega
-    entrypoint: ["ega-verify"]
+    command: ["ega-verify"]
 
   # Stable ID mapper
   finalize:
@@ -504,7 +504,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     networks:
       - lega
     user: lega
-    entrypoint: ["ega-finalize"]
+    command: ["ega-finalize"]
 
   # Key server
   keys:

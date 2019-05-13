@@ -16,6 +16,7 @@ all: data/ingest.cert.pem \
      data/inbox.cert.pem \
      data/archive.cert.pem \
      data/inbox-s3-backend.cert.pem
+	chmod 444 data/{ingest,verify,finalize}.sec.pem
 
 testsuite: data/testsuite.cert.pem
 
