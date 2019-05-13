@@ -634,12 +634,14 @@ services:
     volumes:
       - ./cega-mq-defs.json:/etc/rabbitmq/defs.json:ro
       - ./cega-mq-rabbitmq.config:/etc/rabbitmq/rabbitmq.config:ro
-      - ../bootstrap/certs/data/cega-mq.cert.pem:/etc/rabbitmq/ssl.cert:ro
-      - ../bootstrap/certs/data/cega-mq.sec.pem:/etc/rabbitmq/ssl.key:ro
-      - ../bootstrap/certs/data/CA.cert.pem:/etc/rabbitmq/CA.cert:ro
+      - ./cega-entrypoint.sh:/usr/local/bin/cega-entrypoint.sh
+      - ../bootstrap/certs/data/cega-mq.cert.pem:/etc/rabbitmq/ssl.cert
+      - ../bootstrap/certs/data/cega-mq.sec.pem:/etc/rabbitmq/ssl.key
+      - ../bootstrap/certs/data/CA.cert.pem:/etc/rabbitmq/CA.cert
     restart: on-failure:3
     networks:
       - lega
+    entrypoint: ["/usr/local/bin/cega-entrypoint.sh"]
 EOF
 
     # The user/password is legatest:legatest
@@ -682,6 +684,13 @@ EOF
  {rabbitmq_management, [ {load_definitions, "/etc/rabbitmq/defs.json"} ]}
 ].
 EOF
+
+    cat > ${PRIVATE}/cega-entrypoint.sh <<EOF
+#!/bin/bash
+chown rabbitmq:rabbitmq /etc/rabbitmq/{CA.cert,ssl.cert,ssl.key}
+exec docker-entrypoint.sh rabbitmq-server
+EOF
+    chmod +x ${PRIVATE}/cega-entrypoint.sh
 fi
 
 
