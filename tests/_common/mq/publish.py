@@ -16,16 +16,9 @@ from pathlib import Path
 import pika
 
 parser = argparse.ArgumentParser(description='''Publish message to the broker on this machine.''')
-
 parser.add_argument('--connection',
                     help="of the form 'amqp://<user>:<password>@<host>:<port>/<vhost>'")
-
 parser.add_argument('--correlation_id', default=None)
-
-parser.add_argument('--cacertfile', help="path the CA certificate")
-parser.add_argument('--certfile', help="path the certificate")
-parser.add_argument('--keyfile', help="path the secret key")
-
 parser.add_argument('routing_key', help='The routing key used for the CentralEGA exchange')
 parser.add_argument('message', help='A JSON-formatted string')
 

@@ -88,7 +88,7 @@ for message_id in messages:
 connection.close()
 
 if not correlation_ids:
-    sys.exit(2)
+    sys.exit(102)
 
 correlation_id = correlation_ids[0][0]
 if args.latest_message:

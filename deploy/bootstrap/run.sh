@@ -404,7 +404,6 @@ cat >> ${PRIVATE}/lega.yml <<EOF  # SFTP inbox
       - "${DOCKER_PORT_inbox}:9000"
     image: egarchive/lega-inbox:latest
     volumes:
-      - ./conf.ini:/etc/ega/conf.ini:ro
       - inbox:/ega/inbox
       - ../bootstrap/certs/data/inbox.cert.pem:/etc/ega/ssl.cert
       - ../bootstrap/certs/data/inbox.sec.pem:/etc/ega/ssl.key

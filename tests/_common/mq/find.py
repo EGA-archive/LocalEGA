@@ -85,7 +85,7 @@ connection.close()
 res = messages.get(args.correlation_id)
 
 if res is None:
-    sys.exit(2)
+    sys.exit(101)
 
 message_id, message = res
 print( f'Message id: {message_id} | {message}' )
