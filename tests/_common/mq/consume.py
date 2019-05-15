@@ -17,9 +17,6 @@ import pika
 # Command-line arguments
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--connection', help="of the form 'amqp://<user>:<password>@<host>:<port>/<vhost>'")
-parser.add_argument('--cacertfile', help="path the CA certificate")
-parser.add_argument('--certfile', help="path the certificate")
-parser.add_argument('--keyfile', help="path the secret key")
 parser.add_argument('queue', help="Queue to read")
 parser.add_argument('user')
 parser.add_argument('filepaths', metavar='filepath', nargs='+')

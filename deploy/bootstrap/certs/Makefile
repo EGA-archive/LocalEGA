@@ -18,17 +18,17 @@ COMPONENTS=ingest \
            inbox-s3-backend
 
 
-all: $(COMPONENTS:%=data/%.cert.pem)
+all: $(COMPONENTS:%=data/%.cert.pem) $(COMPONENTS:%=data/CA.%.cert.pem)
 	chmod 444 data/{ingest,verify,finalize}.sec.pem
 
-testsuite: data/testsuite.cert.pem
+testsuite: data/testsuite.cert.pem data/CA.testsuite.cert.pem
 
-cega: data/cega-mq.cert.pem \
-      data/cega-users.cert.pem
+cega: data/cega-mq.cert.pem data/cega-users.cert.pem \
+      data/CA.cega-mq.cert.pem data/CA.cega-users.cert.pem
 	chmod 444 data/cega-mq.sec.pem
 
-data-out: data/outgest.cert.pem \
-	  data/streamer.cert.pem
+data-out: data/outgest.cert.pem data/streamer.cert.pem \
+          data/CA.outgest.cert.pem data/CA.streamer.cert.pem
 
 prepare:
 	@mkdir -p data
@@ -71,12 +71,6 @@ data/streamer.cert.pem: data/streamer.csr.pem
 
 data/testsuite.cert.pem: data/testsuite.csr.pem
 
-data/ingest.cert.pem data/verify.cert.pem data/finalize.cert.pem: data/CA.cert.pem
-data/db.cert.pem data/mq.cert.pem data/inbox.cert.pem data/archive.cert.pem: data/CA.cert.pem
-data/inbox-s3-backend.cert.pem data/keys.cert.pem: data/CA.cert.pem
-data/cega-mq.cert.pem data/cega-users.cert.pem: data/CA.cert.pem
-data/outgest.cert.pem data/streamer.cert.pem: data/CA.cert.pem
-data/testsuite.cert.pem: data/CA.cert.pem
 
 data/ingest.cert.pem data/verify.cert.pem data/finalize.cert.pem: EXT=client_cert
 data/mq.cert.pem data/inbox.cert.pem: EXT=server_client_cert
@@ -97,6 +91,7 @@ data/ingest.cert.pem data/verify.cert.pem data/finalize.cert.pem data/db.cert.pe
 ## CSR - Certificate Signing Request
 ###############################################
 
+
 data/ingest.csr.pem: data/ingest.sec.pem
 data/verify.csr.pem: data/verify.sec.pem
 data/finalize.csr.pem: data/finalize.sec.pem
@@ -114,6 +109,9 @@ data/outgest.csr.pem: data/outgest.sec.pem
 data/streamer.csr.pem: data/streamer.sec.pem
 
 data/testsuite.csr.pem: data/testsuite.sec.pem
+
+# All need that one
+data/ingest.csr.pem data/verify.csr.pem data/finalize.csr.pem data/db.csr.pem data/mq.csr.pem data/inbox.csr.pem data/keys.csr.pem data/archive.csr.pem data/inbox-s3-backend.csr.pem data/cega-mq.csr.pem data/cega-users.csr.pem data/outgest.csr.pem data/streamer.csr.pem data/testsuite.csr.pem: data/CA.cert.pem
 
 data/ingest.csr.pem: COMPONENT=ingest
 data/verify.csr.pem: COMPONENT=verify
@@ -161,9 +159,5 @@ data/%.sec.pem:
 clean:
 	@rm -rf data
 
-
-NAMES=$(COMPONENTS) testsuite cega-mq cega-users outgest streamer
-CA_NAMES=$(NAMES:%=data/CA.cert.pem-%)
-cheat: $(CA_NAMES)
-data/CA.cert.pem-%:
-	cp data/CA.cert.pem $@
+data/CA.%.cert.pem: data/CA.cert.pem
+	cp $< $@

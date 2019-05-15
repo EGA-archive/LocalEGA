@@ -51,7 +51,7 @@ jobs:
         - cd deploy
         - make -C images
         - make install-bootstrap-packages prepare
-        - make bootstrap
+        - make bootstrap ARGS='--archive-backend posix'
         - make up
         - make preflight-check
       script:
