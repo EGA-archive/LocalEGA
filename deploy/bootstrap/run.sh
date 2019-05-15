@@ -78,7 +78,7 @@ exec 2>${PRIVATE}/.err
 if [[ ${REAL_CEGA} != 'yes' ]]; then
     # Reset the variables here
     CEGA_CONNECTION_PARAMS=$(python -c "from urllib.parse import urlencode;                               \
-	  			        print(urlencode({ 'heartbeat': 30,                                 \
+	  			        print(urlencode({ 'heartbeat': 0,                                 \
 				                          'connection_attempts': 30,                      \
 				                          'retry_delay': 10,                              \
 							  'server_name_indication': 'cega-mq${HOSTNAME_DOMAIN}',   \
@@ -184,7 +184,7 @@ EOF
 
 # Local broker connection
 MQ_CONNECTION_PARAMS=$(python -c "from urllib.parse import urlencode;                   \
-			          print(urlencode({ 'heartbeat': 30,                     \
+			          print(urlencode({ 'heartbeat': 0,                     \
 				                    'connection_attempts': 30,          \
 				                    'retry_delay': 10,                  \
 				                  }))")
@@ -324,7 +324,7 @@ services:
       - mq:/var/lib/rabbitmq
       - ../bootstrap/certs/data/mq.cert.pem:/etc/rabbitmq/ssl.cert
       - ../bootstrap/certs/data/mq.sec.pem:/etc/rabbitmq/ssl.key
-      - ../bootstrap/certs/data/CA.cert.pem:/etc/rabbitmq/CA.cert
+      - ../bootstrap/certs/data/CA.cert.pem-mq:/etc/rabbitmq/CA.cert
 
   # Local Database
   db:
@@ -345,7 +345,7 @@ services:
       - db:/ega/data
       - ../bootstrap/certs/data/db.cert.pem:/etc/ega/pg.cert
       - ../bootstrap/certs/data/db.sec.pem:/etc/ega/pg.key
-      - ../bootstrap/certs/data/CA.cert.pem:/etc/ega/CA.cert
+      - ../bootstrap/certs/data/CA.cert.pem-db:/etc/ega/CA.cert
     restart: on-failure:3
     networks:
       - lega
@@ -377,9 +377,6 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     image: nbisweden/ega-mina-inbox
     volumes:
       - inbox:/ega/inbox
-      - ../bootstrap/certs/data/inbox.cert.pem:/etc/ega/ssl.cert
-      - ../bootstrap/certs/data/inbox.sec.pem:/etc/ega/ssl.key
-      - ../bootstrap/certs/data/CA.cert.pem:/etc/ega/CA.cert
 EOF
 else
 cat >> ${PRIVATE}/lega.yml <<EOF  # SFTP inbox
@@ -407,7 +404,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF  # SFTP inbox
       - inbox:/ega/inbox
       - ../bootstrap/certs/data/inbox.cert.pem:/etc/ega/ssl.cert
       - ../bootstrap/certs/data/inbox.sec.pem:/etc/ega/ssl.key
-      - ../bootstrap/certs/data/CA.cert.pem:/etc/ega/CA.cert
+      - ../bootstrap/certs/data/CA.cert.pem-inbox:/etc/ega/CA.cert
 EOF
 fi
 
@@ -433,7 +430,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - ./conf.ini:/etc/ega/conf.ini:ro
       - ../bootstrap/certs/data/ingest.cert.pem:/etc/ega/ssl.cert
       - ../bootstrap/certs/data/ingest.sec.pem:/etc/ega/ssl.key
-      - ../bootstrap/certs/data/CA.cert.pem:/etc/ega/CA.cert
+      - ../bootstrap/certs/data/CA.cert.pem-ingest:/etc/ega/CA.cert
 EOF
 if [[ ${ARCHIVE_BACKEND} == 'posix' ]]; then
 cat >> ${PRIVATE}/lega.yml <<EOF
@@ -469,7 +466,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - ./conf.ini:/etc/ega/conf.ini:ro
       - ../bootstrap/certs/data/verify.cert.pem:/etc/ega/ssl.cert
       - ../bootstrap/certs/data/verify.sec.pem:/etc/ega/ssl.key
-      - ../bootstrap/certs/data/CA.cert.pem:/etc/ega/CA.cert
+      - ../bootstrap/certs/data/CA.cert.pem-verify:/etc/ega/CA.cert
 EOF
 if [[ ${ARCHIVE_BACKEND} == 'posix' ]]; then
 cat >> ${PRIVATE}/lega.yml <<EOF
@@ -498,7 +495,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - ./conf.ini:/etc/ega/conf.ini:ro
       - ../bootstrap/certs/data/finalize.cert.pem:/etc/ega/ssl.cert
       - ../bootstrap/certs/data/finalize.sec.pem:/etc/ega/ssl.key
-      - ../bootstrap/certs/data/CA.cert.pem:/etc/ega/CA.cert
+      - ../bootstrap/certs/data/CA.cert.pem-finalize:/etc/ega/CA.cert
     restart: on-failure:3
     networks:
       - lega
@@ -530,7 +527,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - ./pgp/ega.shared.pass:/etc/ega/pgp/ega.shared.pass:ro
       - ../bootstrap/certs/data/keys.cert.pem:/etc/ega/ssl.cert
       - ../bootstrap/certs/data/keys.sec.pem:/etc/ega/ssl.key
-      - ../bootstrap/certs/data/CA.cert.pem:/etc/ega/CA.cert
+      - ../bootstrap/certs/data/CA.cert.pem-keys:/etc/ega/CA.cert
 EOF
 
 if [[ ${ARCHIVE_BACKEND} == 's3' ]]; then
@@ -550,7 +547,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - archive:/data
       - ../bootstrap/certs/data/archive.cert.pem:/home/.minio/public.crt
       - ../bootstrap/certs/data/archive.sec.pem:/home/.minio/private.key
-      - ../bootstrap/certs/data/CA.cert.pem:/home/.minio/CAs/LocalEGA.crt
+      - ../bootstrap/certs/data/CA.cert.pem-archive:/home/.minio/CAs/LocalEGA.crt
     restart: on-failure:3
     networks:
       - lega
@@ -575,7 +572,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - MINIO_SECRET_KEY=${S3_SECRET_KEY_INBOX}
       - ../bootstrap/certs/data/inbox-s3-backend.cert.pem:/home/.minio/public.crt
       - ../bootstrap/certs/data/inbox-s3-backend.sec.pem:/home/.minio/private.key
-      - ../bootstrap/certs/data/CA.cert.pem:/home/.minio/CAs/LocalEGA.crt
+      - ../bootstrap/certs/data/CA.cert.pem-inbox-s3-backend:/home/.minio/CAs/LocalEGA.crt
     volumes:
       - inbox-s3:/data
     restart: on-failure:3
@@ -615,7 +612,7 @@ services:
       - ../../tests/_common/users.json:/cega/users.json
       - ../bootstrap/certs/data/cega-users.cert.pem:/cega/ssl.crt
       - ../bootstrap/certs/data/cega-users.sec.pem:/cega/ssl.key
-      - ../bootstrap/certs/data/CA.cert.pem:/cega/CA.crt
+      - ../bootstrap/certs/data/CA.cert.pem-cega-users:/cega/CA.crt
     networks:
       - lega
     user: root
@@ -636,7 +633,7 @@ services:
       - ./cega-entrypoint.sh:/usr/local/bin/cega-entrypoint.sh
       - ../bootstrap/certs/data/cega-mq.cert.pem:/etc/rabbitmq/ssl.cert
       - ../bootstrap/certs/data/cega-mq.sec.pem:/etc/rabbitmq/ssl.key
-      - ../bootstrap/certs/data/CA.cert.pem:/etc/rabbitmq/CA.cert
+      - ../bootstrap/certs/data/CA.cert.pem-cega-mq:/etc/rabbitmq/CA.cert
     restart: on-failure:3
     networks:
       - lega
@@ -748,3 +745,6 @@ EOF
 fi
 
 task_complete "Bootstrap complete"
+
+
+make -C ${HERE}/certs cheat &>${PRIVATE}/.err

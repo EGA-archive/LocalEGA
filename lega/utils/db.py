@@ -132,8 +132,13 @@ def set_error(file_id, error, from_user=False):
     hostname = gethostname()
     with connect() as conn:
         with conn.cursor() as cur:
-            cur.execute('SELECT local_ega.insert_error(%(file_id)s,%(h)s,%(etype)s,%(msg)s,%(from_user)s);',
-                        {'h': hostname, 'etype': error.__class__.__name__, 'msg': repr(error), 'file_id': file_id, 'from_user': from_user})
+            cur.execute('SELECT * FROM local_ega.insert_error(%(file_id)s,%(h)s,%(etype)s,%(msg)s,%(from_user)s);',
+                        {'h': hostname,
+                         'etype': error.__class__.__name__,
+                         'msg': repr(error),
+                         'file_id': file_id,
+                         'from_user': from_user})
+            return cur.fetchall()
 
 
 def get_info(file_id):

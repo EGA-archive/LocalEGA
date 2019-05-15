@@ -7,15 +7,18 @@ DOMAIN_EMAIL := -dev.ega@crg.eu
 
 .PHONY: all prepare clean cega
 
-all: data/ingest.cert.pem \
-     data/verify.cert.pem \
-     data/finalize.cert.pem \
-     data/db.cert.pem \
-     data/mq.cert.pem \
-     data/keys.cert.pem \
-     data/inbox.cert.pem \
-     data/archive.cert.pem \
-     data/inbox-s3-backend.cert.pem
+COMPONENTS=ingest \
+           verify \
+           finalize \
+           db \
+           mq \
+           keys \
+           inbox \
+           archive \
+           inbox-s3-backend
+
+
+all: $(COMPONENTS:%=data/%.cert.pem)
 	chmod 444 data/{ingest,verify,finalize}.sec.pem
 
 testsuite: data/testsuite.cert.pem
@@ -158,3 +161,9 @@ data/%.sec.pem:
 clean:
 	@rm -rf data
 
+
+NAMES=$(COMPONENTS) testsuite cega-mq cega-users outgest streamer
+CA_NAMES=$(NAMES:%=data/CA.cert.pem-%)
+cheat: $(CA_NAMES)
+data/CA.cert.pem-%:
+	cp data/CA.cert.pem $@
