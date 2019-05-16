@@ -45,9 +45,5 @@ RUN mkdir -p /etc/ega && \
     chmod 2770 /etc/ega
 VOLUME /etc/ega
 
-COPY extras/entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN chmod +x /usr/local/bin/entrypoint.sh
-ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
-
 USER lega
 

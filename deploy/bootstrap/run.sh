@@ -137,6 +137,37 @@ echo -n ${LEGA_PASSWORD} > ${PRIVATE}/pgp/ega.shared.pass
 
 #########################################################################
 
+echomsg "\t* Entrypoint"
+
+# This script is used to go around a feature (bug?) of docker.
+# When the /etc/ega/ssl.key is injected,
+# it is owned by the host user that injected it.
+# On Travis, it's the travis (2000) user.
+# It needs to be 600 or less, meaning no group nor world access.
+#
+# In other words, the lega user cannot read that file.
+#
+# So we use the following trick.
+# We make:
+#     * /etc/ega/ssl.key world-readable.
+#     * /etc/ega owned by the lega group (so we can write a file in it)
+# and then, we copy /etc/ega/ssl.key to /etc/ega/ssl.key.lega
+# But this time, owned by lega, and with 400 permissions
+#
+# This should not be necessary for the deployment
+# as they are capable of injecting a file with given owner and permissions.
+#
+
+cat > ${PRIVATE}/entrypoint.sh <<'EOF'
+#!/bin/sh
+set -e
+cp /etc/ega/ssl.key /etc/ega/ssl.key.lega
+chmod 400 /etc/ega/ssl.key.lega
+exec $@
+EOF
+chmod +x ${PRIVATE}/entrypoint.sh
+
+#########################################################################
 echomsg "\t* the SSL certificates"
 
 make -C ${HERE}/certs clean prepare OPENSSL=${OPENSSL} &>${PRIVATE}/.err
@@ -428,6 +459,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     volumes:
       - inbox:/ega/inbox
       - ./conf.ini:/etc/ega/conf.ini:ro
+      - ./entrypoint.sh:/usr/local/bin/lega-entrypoint.sh
       - ../bootstrap/certs/data/ingest.cert.pem:/etc/ega/ssl.cert
       - ../bootstrap/certs/data/ingest.sec.pem:/etc/ega/ssl.key
       - ../bootstrap/certs/data/CA.ingest.cert.pem:/etc/ega/CA.cert
@@ -443,6 +475,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     networks:
       - lega
     user: lega
+    entrypoint: ["lega-entrypoint.sh"]
     command: ["ega-ingest"]
 
   # Consistency Control
@@ -464,6 +497,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - AWS_SECRET_ACCESS_KEY=${S3_SECRET_KEY}
     volumes:
       - ./conf.ini:/etc/ega/conf.ini:ro
+      - ./entrypoint.sh:/usr/local/bin/lega-entrypoint.sh
       - ../bootstrap/certs/data/verify.cert.pem:/etc/ega/ssl.cert
       - ../bootstrap/certs/data/verify.sec.pem:/etc/ega/ssl.key
       - ../bootstrap/certs/data/CA.verify.cert.pem:/etc/ega/CA.cert
@@ -479,6 +513,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     networks:
       - lega
     user: lega
+    entrypoint: ["lega-entrypoint.sh"]
     command: ["ega-verify"]
 
   # Stable ID mapper
@@ -493,6 +528,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
         lega_label: "finalize"
     volumes:
       - ./conf.ini:/etc/ega/conf.ini:ro
+      - ./entrypoint.sh:/usr/local/bin/lega-entrypoint.sh
       - ../bootstrap/certs/data/finalize.cert.pem:/etc/ega/ssl.cert
       - ../bootstrap/certs/data/finalize.sec.pem:/etc/ega/ssl.key
       - ../bootstrap/certs/data/CA.finalize.cert.pem:/etc/ega/CA.cert
@@ -500,6 +536,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     networks:
       - lega
     user: lega
+    entrypoint: ["lega-entrypoint.sh"]
     command: ["ega-finalize"]
 
   # Key server
