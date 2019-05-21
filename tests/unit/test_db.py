@@ -5,7 +5,7 @@ from lega.utils.db import (insert_file,
                            store_header, set_archived,
                            mark_in_progress, mark_completed,
                            set_stable_id,
-                           fetch_args, connect)
+                           connect)
 from unittest import mock
 import asyncio
 
@@ -21,12 +21,20 @@ class DBTest(unittest.TestCase):
         self._loop = asyncio.get_event_loop()
         self._query_result = [("example", "result"), ("more", "results")]
 
-    @mock.patch('lega.utils.db.fetch_args')
+    @mock.patch('lega.utils.amqp.CONF')
     @mock.patch('lega.utils.db.psycopg2')
-    def test_connect(self, mock_db_connect, mock_args):
+    def test_connect(self, mock_db_connect, mock_conf):
         """Test that connection is returning a connection."""
+
+        # For CONF.get_value(....)
+        def values(domain, value, conv=str, default=None, raw=True):
+            if value == 'connection':
+                return r'postgresql://user:passwd@db:5432/lega'
+            else:
+                pass
+        mock_conf.get_value = mock.MagicMock(side_effect=values)
+
         connect()
-        mock_args.assert_called()
         mock_db_connect.connect.assert_called()
 
     @mock.patch('lega.utils.db.connect')
@@ -104,14 +112,3 @@ class DBTest(unittest.TestCase):
         set_stable_id("file_id", 'EGAF00001')
         mock_connect().__enter__().cursor().__enter__().execute.assert_called()
 
-    def test_fetch_args(self):
-        """Test fetching arguments."""
-        data_object = mock.MagicMock(name='get_value')
-        data_object.get_value.return_value = 'value'
-        result = fetch_args(data_object)
-        assert {'user': 'value',
-                'password': 'value',
-                'database': 'value',
-                'host': 'value',
-                'port': 'value',
-                'sslmode': 'value'} == result

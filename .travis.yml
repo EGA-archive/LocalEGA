@@ -30,13 +30,12 @@ jobs:
       if: type = pull_request
       services: docker
       before_script:
-        - pip3 install -r requirements.txt
         - git clone https://github.com/bats-core/bats-core.git
         - pushd bats-core && git checkout v1.1.0 && sudo ./install.sh /usr/local && popd
         - cd deploy
         - make -C images
-        - make prepare
-        - make bootstrap ARGS="--keyserver ega"
+        - make install-bootstrap-packages prepare
+        - make bootstrap
         - make up
         - make preflight-check
       script:
@@ -47,13 +46,12 @@ jobs:
       if: type = pull_request
       services: docker
       before_script:
-        - pip3 install -r requirements.txt
         - git clone https://github.com/bats-core/bats-core.git
         - pushd bats-core && git checkout v1.1.0 && sudo ./install.sh /usr/local && popd
         - cd deploy
         - make -C images
-        - make prepare
-        - make bootstrap ARGS="--keyserver ega --archive-backend posix"
+        - make install-bootstrap-packages prepare
+        - make bootstrap ARGS='--archive-backend posix'
         - make up
         - make preflight-check
       script:
@@ -64,13 +62,12 @@ jobs:
       if: type = pull_request
       services: docker
       before_script:
-        - pip3 install -r requirements.txt
         - git clone https://github.com/bats-core/bats-core.git
         - pushd bats-core && git checkout v1.1.0 && sudo ./install.sh /usr/local && popd
         - cd deploy
         - make -C images
-        - make prepare
-        - make bootstrap ARGS="--keyserver ega"
+        - make install-bootstrap-packages prepare
+        - make bootstrap
         - make up
         - make preflight-check
       script:
@@ -81,49 +78,48 @@ jobs:
       if: type = pull_request
       services: docker
       before_script:
-        - pip3 install -r requirements.txt
         - git clone https://github.com/bats-core/bats-core.git
         - pushd bats-core && git checkout v1.1.0 && sudo ./install.sh /usr/local && popd
         - cd deploy
         - make -C images
-        - make prepare
-        - make bootstrap ARGS="--keyserver ega"
+        - make install-bootstrap-packages prepare
+        - make bootstrap
         - make up
         - make preflight-check
       script:
         - cd ../tests
         - bats security
-    #
-    # Cucumber Tests
-    #
-    - stage: tests
-      name: "Cucumber Ingestion Tests"
-      if: type = pull_request
-      before_script:
-        - pip3 install -r requirements.txt
-        - cd deploy
-        - make -C images
-        - make prepare
-        - make bootstrap ARGS='--inbox mina --keyserver ega'
-        - make up
-        - make preflight-check
-      script:
-        - cd tests
-        - mvn test -Dtest=IngestionTests
-    - stage: tests
-      name: "Cucumber Robustness Tests"
-      if: type = pull_request
-      before_script:
-        - pip3 install -r requirements.txt
-        - cd deploy
-        - make -C images
-        - make prepare
-        - make bootstrap ARGS='--inbox mina --keyserver ega'
-        - make up
-        - make preflight-check
-      script:
-        - cd tests
-        - mvn test -Dtest=RobustnessTests
+    # #
+    # # Cucumber Tests
+    # #
+    # - stage: tests
+    #   name: "Cucumber Ingestion Tests"
+    #   if: type = pull_request
+    #   before_script:
+    #     - pip3 install -r requirements.txt
+    #     - cd deploy
+    #     - make -C images
+    #     - make prepare
+    #     - make bootstrap ARGS='--inbox mina'
+    #     - make up
+    #     - make preflight-check
+    #   script:
+    #     - cd tests
+    #     - mvn test -Dtest=IngestionTests
+    # - stage: tests
+    #   name: "Cucumber Robustness Tests"
+    #   if: type = pull_request
+    #   before_script:
+    #     - pip3 install -r requirements.txt
+    #     - cd deploy
+    #     - make -C images
+    #     - make prepare
+    #     - make bootstrap ARGS='--inbox mina'
+    #     - make up
+    #     - make preflight-check
+    #   script:
+    #     - cd tests
+    #     - mvn test -Dtest=RobustnessTests
 
 
 notifications:

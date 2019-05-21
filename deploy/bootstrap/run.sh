@@ -15,8 +15,8 @@ OPENSSL=openssl
 INBOX=openssh
 INBOX_BACKEND=posix
 ARCHIVE_BACKEND=s3
-KEYSERVER=lega
 REAL_CEGA=no
+HOSTNAME_DOMAIN='' #".localega"
 
 GEN_KEY=${EXTRAS}/generate_pgp_key.py
 PYTHONEXEC=python
@@ -26,12 +26,12 @@ function usage {
     echo -e "\nOptions are:"
     echo -e "\t--openssl <value>     \tPath to the Openssl executable [Default: ${OPENSSL}]"
     echo -e "\t--inbox <value>       \tSelect inbox \"openssh\" or \"mina\" [Default: ${INBOX}]"
-    echo -e "\t--keyserver <value>   \tSelect keyserver \"lega\" or \"ega\" [Default: ${KEYSERVER}]"
     echo -e "\t--inbox-backend <value>   \tSelect the inbox backend: S3 or POSIX [Default: ${INBOX_BACKEND}]"
     echo -e "\t--archive-backend <value> \tSelect the archive backend: S3 or POSIX [Default: ${ARCHIVE_BACKEND}]"
     echo -e "\t--genkey <value>      \tPath to PGP key generator [Default: ${GEN_KEY}]"
     echo -e "\t--pythonexec <value>  \tPython execute command [Default: ${PYTHONEXEC}]"
     echo -e "\t--with-real-cega      \tUse the real Central EGA Message broker and Authentication Service"
+    echo -e "\t--domain <value>      \tDomain for the hostnames [Default: '${HOSTNAME_DOMAIN}']"
     echo ""
     echo -e "\t--verbose, -v     \tShow verbose output"
     echo -e "\t--polite, -p      \tDo not force the re-creation of the subfolders. Ask instead"
@@ -51,10 +51,10 @@ while [[ $# -gt 0 ]]; do
         --inbox) INBOX=${2,,}; shift;;
         --inbox-backend) INBOX_BACKEND=${2,,}; shift;;
         --archive-backend) ARCHIVE_BACKEND=${2,,}; shift;;
-        --keyserver) KEYSERVER=${2,,}; shift;;
         --genkey) GEN_KEY=$2; shift;;
         --pythonexec) PYTHONEXEC=$2; shift;;
         --with-real-cega) REAL_CEGA=yes;;
+        --domain) HOSTNAME_DOMAIN=${2,,}; shift;;
         --) shift; break;;
         *) echo "$0: error - unrecognized option $1" 1>&2; usage; exit 1;;
     esac
@@ -62,7 +62,6 @@ while [[ $# -gt 0 ]]; do
 done
 
 #########################################################################
-
 
 [[ $VERBOSE == 'no' ]] && echo -en "Bootstrapping "
 
@@ -78,8 +77,20 @@ exec 2>${PRIVATE}/.err
 
 if [[ ${REAL_CEGA} != 'yes' ]]; then
     # Reset the variables here
-    CEGA_CONNECTION=$'amqp://legatest:legatest@cega-mq:5672/lega'
-    CEGA_USERS_ENDPOINT=$'http://cega-users/lega/v1/legas/users'
+    CEGA_CONNECTION_PARAMS=$(python -c "from urllib.parse import urlencode;                               \
+	  			        print(urlencode({ 'heartbeat': 0,                                 \
+				                          'connection_attempts': 30,                      \
+				                          'retry_delay': 10,                              \
+							  'server_name_indication': 'cega-mq${HOSTNAME_DOMAIN}',   \
+							  'verify': 'verify_peer',                        \
+							  'fail_if_no_peer_cert': 'true',                 \
+							  'cacertfile': '/etc/rabbitmq/CA.cert',          \
+							  'certfile': '/etc/rabbitmq/ssl.cert',           \
+							  'keyfile': '/etc/rabbitmq/ssl.key',             \
+				                  }, safe='/-_.'))")
+
+    CEGA_CONNECTION="amqps://legatest:legatest@cega-mq${HOSTNAME_DOMAIN}:5671/lega?${CEGA_CONNECTION_PARAMS}"
+    CEGA_USERS_ENDPOINT="https://cega-users${HOSTNAME_DOMAIN}/lega/v1/legas/users"
     CEGA_USERS_CREDS=$'legatest:legatest'
 fi
 
@@ -109,8 +120,8 @@ fi
 
 #########################################################################
 
-mkdir -p $PRIVATE/{pgp,certs,logs}
-chmod 700 $PRIVATE/{pgp,certs,logs}
+mkdir -p $PRIVATE/{pgp,logs}
+chmod 700 $PRIVATE/{pgp,logs}
 
 echomsg "\t* the PGP key"
 
@@ -126,8 +137,45 @@ echo -n ${LEGA_PASSWORD} > ${PRIVATE}/pgp/ega.shared.pass
 
 #########################################################################
 
+echomsg "\t* Entrypoint"
+
+# This script is used to go around a feature (bug?) of docker.
+# When the /etc/ega/ssl.key is injected,
+# it is owned by the host user that injected it.
+# On Travis, it's the travis (2000) user.
+# It needs to be 600 or less, meaning no group nor world access.
+#
+# In other words, the lega user cannot read that file.
+#
+# So we use the following trick.
+# We make:
+#     * /etc/ega/ssl.key world-readable.
+#     * /etc/ega owned by the lega group (so we can write a file in it)
+# and then, we copy /etc/ega/ssl.key to /etc/ega/ssl.key.lega
+# But this time, owned by lega, and with 400 permissions
+#
+# This should not be necessary for the deployment
+# as they are capable of injecting a file with given owner and permissions.
+#
+
+cat > ${PRIVATE}/entrypoint.sh <<'EOF'
+#!/bin/sh
+set -e
+cp /etc/ega/ssl.key /etc/ega/ssl.key.lega
+chmod 400 /etc/ega/ssl.key.lega
+exec $@
+EOF
+chmod +x ${PRIVATE}/entrypoint.sh
+
+#########################################################################
 echomsg "\t* the SSL certificates"
-${OPENSSL} req -x509 -newkey rsa:2048 -keyout ${PRIVATE}/certs/ssl.key -nodes -out ${PRIVATE}/certs/ssl.cert -sha256 -days 1000 -subj ${SSL_SUBJ}
+
+make -C ${HERE}/certs clean prepare OPENSSL=${OPENSSL} &>${PRIVATE}/.err
+yes | make -C ${HERE}/certs OPENSSL=${OPENSSL} DOMAIN="${HOSTNAME_DOMAIN}" &>${PRIVATE}/.err
+
+if [[ ${REAL_CEGA} != 'yes' ]]; then
+    yes | make -C ${HERE}/certs cega testsuite OPENSSL=${OPENSSL} DOMAIN="${HOSTNAME_DOMAIN}" &>${PRIVATE}/.err
+fi
 
 #########################################################################
 
@@ -154,60 +202,70 @@ cat > ${PRIVATE}/conf.ini <<EOF
 log = debug
 #log = silent
 
-EOF
-if [[ $KEYSERVER == 'ega' ]]; then
-cat >> ${PRIVATE}/conf.ini <<EOF
-
 [keyserver]
 port = 8080
 
 [quality_control]
-keyserver_endpoint = http://keys:8080/keys/retrieve/%s/private/bin?idFormat=hex
+keyserver_endpoint = http://keys${HOSTNAME_DOMAIN}:8080/keys/retrieve/%s/private/bin?idFormat=hex
 
 [outgestion]
 # Just for test
-keyserver_endpoint = http://keys:8080/keys/retrieve/%s/private/bin?idFormat=hex
+keyserver_endpoint = http://keys${HOSTNAME_DOMAIN}:8080/keys/retrieve/%s/private/bin?idFormat=hex
 EOF
-else
-cat >> ${PRIVATE}/conf.ini <<EOF
-[keyserver]
-port = 8443
 
-[quality_control]
-keyserver_endpoint = https://keys:8443/retrieve/%s/private
+# Local broker connection
+MQ_CONNECTION_PARAMS=$(python -c "from urllib.parse import urlencode;                   \
+			          print(urlencode({ 'heartbeat': 0,                     \
+				                    'connection_attempts': 30,          \
+				                    'retry_delay': 10,                  \
+				                  }))")
 
-[outgestion]
-# Just for test
-keyserver_endpoint = https://keys:8443/retrieve/%s/private
-EOF
-fi
+# Pika is not parsing the URL the way RabbitMQ likes.
+# So we add the parameters on the configuration file and
+# create the SSL socket ourselves
+# Some parameters can be passed in the URL, though.
+MQ_CONNECTION="amqps://${MQ_USER}:${MQ_PASSWORD}@mq${HOSTNAME_DOMAIN}:5671/%2F"
+
+# Database connection
+DB_CONNECTION_PARAMS=$(python -c "from urllib.parse import urlencode;                   \
+			          print(urlencode({ 'application_name': 'LocalEGA',     \
+				                    'sslmode': 'verify-full',           \
+				                    'sslcert': '/etc/ega/ssl.cert',     \
+				                    'sslkey': '/etc/ega/ssl.key.lega',  \
+				                    'sslrootcert': '/etc/ega/CA.cert',  \
+				                  }, safe='/-_.'))")
+
+DB_CONNECTION="postgres://lega_in:${DB_LEGA_IN_PASSWORD}@db${HOSTNAME_DOMAIN}:5432/lega"
+
+#
+# Configuration file
+#
 
 cat >> ${PRIVATE}/conf.ini <<EOF
 
 ## Connecting to Local EGA
 [broker]
-host = mq
-username = ${MQ_USER}
-password = ${MQ_PASSWORD}
-connection_attempts = 30
-# delay in seconds
-retry_delay = 10
+connection = ${MQ_CONNECTION}?${MQ_CONNECTION_PARAMS}
 
-[postgres]
-host = db
-port = 5432
-user = lega_in
-password = ${DB_LEGA_IN_PASSWORD}
-database = lega
+enable_ssl = yes
+verify_peer = yes
+verify_hostname = no
+
+cacertfile = /etc/ega/CA.cert
+certfile = /etc/ega/ssl.cert
+keyfile = /etc/ega/ssl.key
+
+[db]
+connection = ${DB_CONNECTION}?${DB_CONNECTION_PARAMS}
 try = 30
-sslmode = require
+try_interval = 1
 
 [archive]
 EOF
 if [[ ${ARCHIVE_BACKEND} == 's3' ]]; then
     cat >> ${PRIVATE}/conf.ini <<EOF
 storage_driver = S3Storage
-s3_url = http://archive:9000
+s3_url = http://archive${HOSTNAME_DOMAIN}:9000
 s3_access_key = ${S3_ACCESS_KEY}
 s3_secret_key = ${S3_SECRET_KEY}
 #region = lega
@@ -225,7 +283,7 @@ if [[ ${INBOX_BACKEND} == 's3' ]]; then
 
 [inbox]
 storage_driver = S3Storage
-url = http://inbox-s3-backend:9000
+url = http://inbox-s3-backend${HOSTNAME_DOMAIN}:9000
 access_key = ${S3_ACCESS_KEY_INBOX}
 secret_key = ${S3_SECRET_KEY_INBOX}
 #region = lega
@@ -279,13 +337,15 @@ services:
     environment:
       - CEGA_CONNECTION=${CEGA_CONNECTION}
       - MQ_USER=${MQ_USER}
-      - MQ_PASSWORD=${MQ_PASSWORD}
       - MQ_PASSWORD_HASH=${MQ_PASSWORD_HASH}
-    hostname: mq
+      - MQ_CA=/etc/rabbitmq/CA.cert
+      - MQ_SERVER_CERT=/etc/rabbitmq/ssl.cert
+      - MQ_SERVER_KEY=/etc/rabbitmq/ssl.key
+    hostname: mq${HOSTNAME_DOMAIN}
     ports:
       - "${DOCKER_PORT_mq}:15672"
     image: egarchive/lega-mq:latest
-    container_name: mq
+    container_name: mq${HOSTNAME_DOMAIN}
     labels:
         lega_label: "mq"
     restart: on-failure:3
@@ -293,6 +353,9 @@ services:
       - lega
     volumes:
       - mq:/var/lib/rabbitmq
+      - ../bootstrap/certs/data/mq.cert.pem:/etc/rabbitmq/ssl.cert
+      - ../bootstrap/certs/data/mq.sec.pem:/etc/rabbitmq/ssl.key
+      - ../bootstrap/certs/data/CA.mq.cert.pem:/etc/rabbitmq/CA.cert
 
   # Local Database
   db:
@@ -300,25 +363,31 @@ services:
       - DB_LEGA_IN_PASSWORD=${DB_LEGA_IN_PASSWORD}
       - DB_LEGA_OUT_PASSWORD=${DB_LEGA_OUT_PASSWORD}
       - PGDATA=/ega/data
-      - SSL_SUBJ=${SSL_SUBJ}
-    hostname: db
-    container_name: db
+      - PG_SERVER_CERT=/etc/ega/pg.cert
+      - PG_SERVER_KEY=/etc/ega/pg.key
+      - PG_CA=/etc/ega/CA.cert
+      - PG_VERIFY_PEER=1
+    hostname: db${HOSTNAME_DOMAIN}
+    container_name: db${HOSTNAME_DOMAIN}
     labels:
         lega_label: "db"
     image: egarchive/lega-db:latest
     volumes:
       - db:/ega/data
+      - ../bootstrap/certs/data/db.cert.pem:/etc/ega/pg.cert
+      - ../bootstrap/certs/data/db.sec.pem:/etc/ega/pg.key
+      - ../bootstrap/certs/data/CA.db.cert.pem:/etc/ega/CA.cert
     restart: on-failure:3
     networks:
       - lega
 
   # SFTP inbox
   inbox:
-    hostname: ega-inbox
+    hostname: inbox${HOSTNAME_DOMAIN}
     depends_on:
       - mq
     # Required external link
-    container_name: inbox
+    container_name: inbox${HOSTNAME_DOMAIN}
     labels:
         lega_label: "inbox"
     restart: on-failure:3
@@ -341,21 +410,32 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - inbox:/ega/inbox
 EOF
 else
-# SSL support is temporarily off
 cat >> ${PRIVATE}/lega.yml <<EOF  # SFTP inbox
     environment:
       - CEGA_ENDPOINT=${CEGA_USERS_ENDPOINT}
       - CEGA_ENDPOINT_CREDS=${CEGA_USERS_CREDS}
       - CEGA_ENDPOINT_JSON_PREFIX=response.result
-      - MQ_CONNECTION=amqp://${MQ_USER}:${MQ_PASSWORD}@mq:5672/%2F
+      - MQ_CONNECTION=${MQ_CONNECTION}
       - MQ_EXCHANGE=cega
       - MQ_ROUTING_KEY=files.inbox
+      - MQ_VERIFY_PEER=yes
+      - MQ_VERIFY_HOSTNAME=no
+      - MQ_CA=/etc/ega/CA.cert
+      - MQ_CLIENT_CERT=/etc/ega/ssl.cert
+      - MQ_CLIENT_KEY=/etc/ega/ssl.key
+      - AUTH_VERIFY_PEER=yes
+      - AUTH_VERIFY_HOSTNAME=yes
+      - AUTH_CA=/etc/ega/CA.cert
+      - AUTH_CLIENT_CERT=/etc/ega/ssl.cert
+      - AUTH_CLIENT_KEY=/etc/ega/ssl.key
     ports:
       - "${DOCKER_PORT_inbox}:9000"
     image: egarchive/lega-inbox:latest
     volumes:
-      - ./conf.ini:/etc/ega/conf.ini:ro
       - inbox:/ega/inbox
+      - ../bootstrap/certs/data/inbox.cert.pem:/etc/ega/ssl.cert
+      - ../bootstrap/certs/data/inbox.sec.pem:/etc/ega/ssl.key
+      - ../bootstrap/certs/data/CA.inbox.cert.pem:/etc/ega/CA.cert
 EOF
 fi
 
@@ -363,11 +443,12 @@ cat >> ${PRIVATE}/lega.yml <<EOF
 
   # Ingestion Workers
   ingest:
+    hostname: ingest${HOSTNAME_DOMAIN}
     depends_on:
       - db
       - mq
     image: egarchive/lega-base:latest
-    container_name: ingest
+    container_name: ingest${HOSTNAME_DOMAIN}
     labels:
         lega_label: "ingest"
     environment:
@@ -378,6 +459,10 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     volumes:
       - inbox:/ega/inbox
       - ./conf.ini:/etc/ega/conf.ini:ro
+      - ./entrypoint.sh:/usr/local/bin/lega-entrypoint.sh
+      - ../bootstrap/certs/data/ingest.cert.pem:/etc/ega/ssl.cert
+      - ../bootstrap/certs/data/ingest.sec.pem:/etc/ega/ssl.key
+      - ../bootstrap/certs/data/CA.ingest.cert.pem:/etc/ega/CA.cert
 EOF
 if [[ ${ARCHIVE_BACKEND} == 'posix' ]]; then
 cat >> ${PRIVATE}/lega.yml <<EOF
@@ -390,7 +475,8 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     networks:
       - lega
     user: lega
-    entrypoint: ["ega-ingest"]
+    entrypoint: ["lega-entrypoint.sh"]
+    command: ["ega-ingest"]
 
   # Consistency Control
   verify:
@@ -398,8 +484,8 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - db
       - mq
       - keys
-    hostname: verify
-    container_name: verify
+    hostname: verify${HOSTNAME_DOMAIN}
+    container_name: verify${HOSTNAME_DOMAIN}
     labels:
         lega_label: "verify"
     image: egarchive/lega-base:latest
@@ -411,6 +497,10 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - AWS_SECRET_ACCESS_KEY=${S3_SECRET_KEY}
     volumes:
       - ./conf.ini:/etc/ega/conf.ini:ro
+      - ./entrypoint.sh:/usr/local/bin/lega-entrypoint.sh
+      - ../bootstrap/certs/data/verify.cert.pem:/etc/ega/ssl.cert
+      - ../bootstrap/certs/data/verify.sec.pem:/etc/ega/ssl.key
+      - ../bootstrap/certs/data/CA.verify.cert.pem:/etc/ega/CA.cert
 EOF
 if [[ ${ARCHIVE_BACKEND} == 'posix' ]]; then
 cat >> ${PRIVATE}/lega.yml <<EOF
@@ -423,34 +513,41 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     networks:
       - lega
     user: lega
-    entrypoint: ["ega-verify"]
+    entrypoint: ["lega-entrypoint.sh"]
+    command: ["ega-verify"]
 
   # Stable ID mapper
   finalize:
+    hostname: finalize${HOSTNAME_DOMAIN}
     depends_on:
       - db
       - mq
     image: egarchive/lega-base:latest
-    container_name: finalize
+    container_name: finalize${HOSTNAME_DOMAIN}
     labels:
         lega_label: "finalize"
     volumes:
       - ./conf.ini:/etc/ega/conf.ini:ro
+      - ./entrypoint.sh:/usr/local/bin/lega-entrypoint.sh
+      - ../bootstrap/certs/data/finalize.cert.pem:/etc/ega/ssl.cert
+      - ../bootstrap/certs/data/finalize.sec.pem:/etc/ega/ssl.key
+      - ../bootstrap/certs/data/CA.finalize.cert.pem:/etc/ega/CA.cert
     restart: on-failure:3
     networks:
       - lega
     user: lega
-    entrypoint: ["ega-finalize"]
+    entrypoint: ["lega-entrypoint.sh"]
+    command: ["ega-finalize"]
 
   # Key server
-EOF
-if [[ $KEYSERVER == 'ega' ]]; then
-cat >> ${PRIVATE}/lega.yml <<EOF
   keys:
-    hostname: keys
-    container_name: keys
+    hostname: keys${HOSTNAME_DOMAIN}
+    container_name: keys${HOSTNAME_DOMAIN}
     labels:
         lega_label: "keys"
+    restart: on-failure:3
+    networks:
+      - lega
     image: cscfi/ega-keyserver
     environment:
       - SPRING_PROFILES_ACTIVE=no-oss
@@ -460,49 +557,23 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - EGA_PUBLICKEY_URL=
       - EGA_LEGACY_PATH=
     volumes:
-       - ./pgp/ega.sec:/etc/ega/pgp/ega.sec:ro
-       - ./pgp/ega.sec.pass:/etc/ega/pgp/ega.sec.pass:ro
-       - ./pgp/ega2.sec:/etc/ega/pgp/ega2.sec:ro
-       - ./pgp/ega2.sec.pass:/etc/ega/pgp/ega2.sec.pass:ro
-       - ./pgp/ega.shared.pass:/etc/ega/pgp/ega.shared.pass:ro
-    restart: on-failure:3
-    networks:
-      - lega
+      - ./pgp/ega.sec:/etc/ega/pgp/ega.sec:ro
+      - ./pgp/ega.sec.pass:/etc/ega/pgp/ega.sec.pass:ro
+      - ./pgp/ega2.sec:/etc/ega/pgp/ega2.sec:ro
+      - ./pgp/ega2.sec.pass:/etc/ega/pgp/ega2.sec.pass:ro
+      - ./pgp/ega.shared.pass:/etc/ega/pgp/ega.shared.pass:ro
+      - ../bootstrap/certs/data/keys.cert.pem:/etc/ega/ssl.cert
+      - ../bootstrap/certs/data/keys.sec.pem:/etc/ega/ssl.key
+      - ../bootstrap/certs/data/CA.keys.cert.pem:/etc/ega/CA.cert
 EOF
-else
-cat >> ${PRIVATE}/lega.yml <<EOF
-  keys:
-    hostname: keys
-    container_name: keys
-    labels:
-        lega_label: "keys"
-    image: egarchive/lega-base:latest
-    expose:
-      - "8443"
-    environment:
-      - LEGA_PASSWORD=${LEGA_PASSWORD}
-      - KEYS_PASSWORD=${KEYS_PASSWORD}
-    volumes:
-       - ./conf.ini:/etc/ega/conf.ini:ro
-       - ./keys.ini.enc:/etc/ega/keys.ini.enc:ro
-       - ./certs/ssl.cert:/etc/ega/ssl.cert:ro
-       - ./certs/ssl.key:/etc/ega/ssl.key:ro
-       - ./pgp/ega.sec:/etc/ega/pgp/ega.sec:ro
-       - ./pgp/ega2.sec:/etc/ega/pgp/ega2.sec:ro
-    restart: on-failure:3
-    networks:
-      - lega
-    user: lega
-    entrypoint: ["ega-keyserver","--keys","/etc/ega/keys.ini.enc"]
-EOF
-fi
 
 if [[ ${ARCHIVE_BACKEND} == 's3' ]]; then
 cat >> ${PRIVATE}/lega.yml <<EOF
+
   # Storage backend: S3
   archive:
-    hostname: archive
-    container_name: archive
+    hostname: archive${HOSTNAME_DOMAIN}
+    container_name: archive${HOSTNAME_DOMAIN}
     labels:
         lega_label: "archive"
     image: minio/minio:RELEASE.2018-12-19T23-46-24Z
@@ -511,12 +582,15 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - MINIO_SECRET_KEY=${S3_SECRET_KEY}
     volumes:
       - archive:/data
+      - ../bootstrap/certs/data/archive.cert.pem:/home/.minio/public.crt
+      - ../bootstrap/certs/data/archive.sec.pem:/home/.minio/private.key
+      - ../bootstrap/certs/data/CA.archive.cert.pem:/home/.minio/CAs/LocalEGA.crt
     restart: on-failure:3
     networks:
       - lega
     # ports:
     #   - "${DOCKER_PORT_s3}:9000"
-    command: server /data
+    command: ["server", "/data"]
 EOF
 fi
 
@@ -525,14 +599,17 @@ cat >> ${PRIVATE}/lega.yml <<EOF
 
   # Inbox S3 Backend Storage
   inbox-s3-backend:
-    hostname: inbox-s3-backend
-    container_name: inbox-s3-backend
+    hostname: inbox-s3-backend${HOSTNAME_DOMAIN}
+    container_name: inbox-s3-backend${HOSTNAME_DOMAIN}
     labels:
         lega_label: "inbox-s3-backend"
     image: minio/minio:RELEASE.2018-12-19T23-46-24Z
     environment:
       - MINIO_ACCESS_KEY=${S3_ACCESS_KEY_INBOX}
       - MINIO_SECRET_KEY=${S3_SECRET_KEY_INBOX}
+      - ../bootstrap/certs/data/inbox-s3-backend.cert.pem:/home/.minio/public.crt
+      - ../bootstrap/certs/data/inbox-s3-backend.sec.pem:/home/.minio/private.key
+      - ../bootstrap/certs/data/CA.inbox-s3-backend.cert.pem:/home/.minio/CAs/LocalEGA.crt
     volumes:
       - inbox-s3:/data
     restart: on-failure:3
@@ -540,7 +617,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - lega
     ports:
       - "${DOCKER_PORT_s3_inbox}:9000"
-    command: server /data
+    command: ["server", "/data"]
 EOF
 fi
 
@@ -558,42 +635,51 @@ if [[ ${REAL_CEGA} != 'yes' ]]; then
 version: '3.2'
 
 services:
-  cega-mq:
-    hostname: cega-mq
-    ports:
-      - "15670:15672"
-      - "5670:5672"
-    image: rabbitmq:3.6.14-management
-    container_name: cega-mq
-    labels:
-        lega_label: "cega-mq"
-    volumes:
-       - ./cega-mq-defs.json:/etc/rabbitmq/defs.json:ro
-       - ./cega-mq-rabbitmq.config:/etc/rabbitmq/rabbitmq.config:ro
-    restart: on-failure:3
-    networks:
-      - lega
 
   cega-users:
-    hostname: cega-users
+    hostname: cega-users${HOSTNAME_DOMAIN}
     ports:
-      - "15671:80"
+      - "15671:443"
     image: egarchive/lega-base:latest
-    container_name: cega-users
+    container_name: cega-users${HOSTNAME_DOMAIN}
     labels:
         lega_label: "cega-users"
     volumes:
-       - ../../tests/_common/users.py:/cega/users.py
-       - ../../tests/_common/users.json:/cega/users.json
+      - ../../tests/_common/users.py:/cega/users.py
+      - ../../tests/_common/users.json:/cega/users.json
+      - ../bootstrap/certs/data/cega-users.cert.pem:/cega/ssl.crt
+      - ../bootstrap/certs/data/cega-users.sec.pem:/cega/ssl.key
+      - ../bootstrap/certs/data/CA.cega-users.cert.pem:/cega/CA.crt
     networks:
       - lega
     user: root
-    entrypoint: ["python", "/cega/users.py", "0.0.0.0", "80", "/cega/users.json"]
+    entrypoint: ["python", "/cega/users.py", "0.0.0.0", "443", "/cega/users.json"]
+
+  cega-mq:
+    hostname: cega-mq${HOSTNAME_DOMAIN}
+    ports:
+      - "15670:15672"
+      - "5670:5671"
+    image: rabbitmq:3.7.8-management-alpine
+    container_name: cega-mq${HOSTNAME_DOMAIN}
+    labels:
+        lega_label: "cega-mq"
+    volumes:
+      - ./cega-mq-defs.json:/etc/rabbitmq/defs.json
+      - ./cega-mq-rabbitmq.config:/etc/rabbitmq/rabbitmq.config
+      - ./cega-entrypoint.sh:/usr/local/bin/cega-entrypoint.sh
+      - ../bootstrap/certs/data/cega-mq.cert.pem:/etc/rabbitmq/ssl.cert
+      - ../bootstrap/certs/data/cega-mq.sec.pem:/etc/rabbitmq/ssl.key
+      - ../bootstrap/certs/data/CA.cega-mq.cert.pem:/etc/rabbitmq/CA.cert
+    restart: on-failure:3
+    networks:
+      - lega
+    entrypoint: ["/usr/local/bin/cega-entrypoint.sh"]
 EOF
 
     # The user/password is legatest:legatest
     cat > ${PRIVATE}/cega-mq-defs.json <<EOF
-{"rabbit_version":"3.6.14",
+{"rabbit_version":"3.7.8",
  "users":[{"name":"legatest","password_hash":"P9snZluoiHj2JeGqrDYmUHGLu637Qo7Fjgn5wakpk4jCyvcO","hashing_algorithm":"rabbit_password_hashing_sha256","tags":"administrator"}],
  "vhosts":[{"name":"lega"}],
  "permissions":[{"user":"legatest", "vhost":"lega", "configure":".*", "write":".*", "read":".*"}],
@@ -620,10 +706,25 @@ EOF
 %% -*- mode: erlang -*-
 %%
 [{rabbit,[{loopback_users, [ ] },
-	  {disk_free_limit, "1GB"}]},
+	  {tcp_listeners, [ ]},
+	  {ssl_listeners, [5671]},
+	  {ssl_options, [{cacertfile, "/etc/rabbitmq/CA.cert"},
+                         {certfile,   "/etc/rabbitmq/ssl.cert"},
+          		 {keyfile,    "/etc/rabbitmq/ssl.key"},
+			 {verify,     verify_peer},
+			 {fail_if_no_peer_cert, true}]}
+ 	  ]},
  {rabbitmq_management, [ {load_definitions, "/etc/rabbitmq/defs.json"} ]}
 ].
 EOF
+
+    cat > ${PRIVATE}/cega-entrypoint.sh <<EOF
+#!/bin/bash
+chown rabbitmq:rabbitmq /etc/rabbitmq/*
+find /var/lib/rabbitmq \! -user rabbitmq -exec chown rabbitmq '{}' +
+exec docker-entrypoint.sh rabbitmq-server
+EOF
+    chmod +x ${PRIVATE}/cega-entrypoint.sh
 fi
 
 
@@ -642,7 +743,6 @@ PGP_PASSPHRASE            = ${PGP_PASSPHRASE}
 PGP_NAME                  = ${PGP_NAME}
 PGP_COMMENT               = ${PGP_COMMENT}
 PGP_EMAIL                 = ${PGP_EMAIL}
-SSL_SUBJ                  = ${SSL_SUBJ}
 #
 # Database users are 'lega_in' and 'lega_out'
 DB_LEGA_IN_PASSWORD       = ${DB_LEGA_IN_PASSWORD}
@@ -666,7 +766,7 @@ KEYS_PASSWORD             = ${KEYS_PASSWORD}
 # Local Message Broker (used by mq and inbox)
 MQ_USER                   = ${MQ_USER}
 MQ_PASSWORD               = ${MQ_PASSWORD}
-MQ_CONNECTION             = amqp://${MQ_USER}:${MQ_PASSWORD}@mq:5672/%2F
+MQ_CONNECTION             = ${MQ_CONNECTION}?${MQ_CONNECTION_PARAMS}
 MQ_EXCHANGE               = cega
 MQ_ROUTING_KEY            = files.inbox
 EOF

@@ -22,18 +22,6 @@ LOG = logging.getLogger(__name__)
 ######################################
 #          DB connection             #
 ######################################
-def fetch_args(d):
-    """Fetch arguments for initializing a connection to db."""
-    db_args = {'user': d.get_value('postgres', 'user'),
-               'password': d.get_value('postgres', 'password'),
-               'database': d.get_value('postgres', 'database'),
-               'host': d.get_value('postgres', 'host'),
-               'port': d.get_value('postgres', 'port', conv=int),
-               'sslmode': d.get_value('postgres', 'sslmode'),
-               }
-    LOG.info(f"Initializing a connection to: {db_args['host']}:{db_args['port']}/{db_args['database']}")
-    return db_args
-
 
 def retry_loop(on_failure=None, exception=psycopg2.OperationalError):
     """Retry function decorator, ``try`` times every ``try_interval`` seconds.
@@ -44,8 +32,8 @@ def retry_loop(on_failure=None, exception=psycopg2.OperationalError):
         @wraps(func)
         def wrapper(*args, **kwargs):
             """Retry loop."""
-            nb_try = CONF.get_value('postgres', 'try', conv=int, default=1)
-            try_interval = CONF.get_value('postgres', 'try_interval', conv=int, default=1)
+            nb_try = CONF.get_value('db', 'try', conv=int, default=1)
+            try_interval = CONF.get_value('db', 'try_interval', conv=int, default=1)
             LOG.debug(f"{nb_try} attempts (every {try_interval} seconds)")
             count = 0
             backoff = try_interval
@@ -106,8 +94,9 @@ def connect():
 
     Before success, we try to connect ``try`` times every ``try_interval`` seconds (defined in CONF)
     """
-    db_args = fetch_args(CONF)
-    return psycopg2.connect(**db_args)
+    db_args = CONF.get_value('db', 'connection', raw=True)
+    LOG.info(f"Initializing a connection to: {db_args}")
+    return psycopg2.connect(db_args)
 
 
 def insert_file(filename, user_id):
@@ -143,8 +132,13 @@ def set_error(file_id, error, from_user=False):
     hostname = gethostname()
     with connect() as conn:
         with conn.cursor() as cur:
-            cur.execute('SELECT local_ega.insert_error(%(file_id)s,%(h)s,%(etype)s,%(msg)s,%(from_user)s);',
-                        {'h': hostname, 'etype': error.__class__.__name__, 'msg': repr(error), 'file_id': file_id, 'from_user': from_user})
+            cur.execute('SELECT * FROM local_ega.insert_error(%(file_id)s,%(h)s,%(etype)s,%(msg)s,%(from_user)s);',
+                        {'h': hostname,
+                         'etype': error.__class__.__name__,
+                         'msg': repr(error),
+                         'file_id': file_id,
+                         'from_user': from_user})
+            return cur.fetchall()
 
 
 def get_info(file_id):

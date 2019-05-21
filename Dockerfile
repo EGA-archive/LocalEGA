@@ -35,12 +35,15 @@ COPY --from=BUILD /usr/local/bin/lega-cryptor /usr/local/bin/
 
 COPY --from=BUILD /usr/local/bin/ega-* /usr/local/bin/
 
-VOLUME /etc/ega
-
 RUN mkdir -p /ega/archive && \
     chgrp lega /ega/archive && \
     chmod 2770 /ega/archive
-
 VOLUME /ega/archive
 
+RUN mkdir -p /etc/ega && \
+    chgrp lega /etc/ega && \
+    chmod 2770 /etc/ega
+VOLUME /etc/ega
+
 USER lega
+

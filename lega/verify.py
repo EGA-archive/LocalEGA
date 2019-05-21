@@ -33,19 +33,42 @@ def get_records(header):
     keyid = get_key_id(header)
     LOG.info(f'Key ID {keyid}')
     keyurl = CONF.get_value('quality_control', 'keyserver_endpoint', raw=True) % keyid
-    verify = CONF.get_value('quality_control', 'verify_certificate', conv=bool)
-    LOG.info(f'Retrieving the Private Key from {keyurl} (verify certificate: {verify})')
+    LOG.info('Retrieving the Private Key from %s', keyurl)
 
-    if verify:
-        ctx = None  # nothing to be done: done by default in urlopen
-    else:  # no verification
+    context = None
+    if keyurl.startswith('https'):
         import ssl
-        ctx = ssl.create_default_context()
-        ctx.check_hostname = False
-        ctx.verify_mode = ssl.CERT_NONE
+
+        LOG.debug("Enforcing a TLS context")
+        context = ssl.SSLContext(protocol=ssl.PROTOCOL_TLS)  # Enforcing (highest) TLS version (so... 1.2?)
+
+        context.verify_mode = ssl.CERT_NONE
+        # Require server verification
+        if CONF.get_value('quality_control', 'verify_peer', conv=bool, default=False):
+            LOG.debug("Require server verification")
+            context.verify_mode = ssl.CERT_REQUIRED
+            cacertfile = CONF.get_value('quality_control', 'cacertfile', default=None)
+            if cacertfile:
+                context.load_verify_locations(cafile=cacertfile)
+
+        # Check the server's hostname
+        server_hostname = CONF.get_value('quality_control', 'server_hostname', default=None)
+        verify_hostname = CONF.get_value('quality_control', 'verify_hostname', conv=bool, default=False)
+        if verify_hostname:
+            LOG.debug("Require hostname verification")
+            assert server_hostname, "server_hostname must be set if verify_hostname is"
+            context.check_hostname = True
+            context.verify_mode = ssl.CERT_REQUIRED
+
+        # If client verification is required
+        certfile = CONF.get_value('quality_control', 'certfile', default=None)
+        if certfile:
+            LOG.debug("Prepare for client verification")
+            keyfile = CONF.get_value('quality_control', 'keyfile')
+            context.load_cert_chain(certfile, keyfile=keyfile)
 
     try:
-        with urlopen(keyurl, context=ctx) as response:
+        with urlopen(keyurl, context=context) as response:
             assert(response.status == 200)
             privkey = response.read()
             if not privkey:  # Correcting a bug in the EGA keyserver

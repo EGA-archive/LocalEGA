@@ -2,14 +2,14 @@ SHELL := /bin/bash
 
 ARGS=
 
-.PHONY: help bootstrap private network up down clean ps clean-volumes clean-all prepare
+.PHONY: help bootstrap private network up down clean ps clean-volumes clean-all prepare images install-bootstrap-packages
 
 help:
 	@echo "Usage: make <target>\n"
 	@echo "where <target> is: 'bootstrap', 'up' 'ps', 'down', 'network' or 'clean'\n"
 
 # If DEPLOY_DEV is yes, we use dummy passwords
-bootstrap-dev: DEPLOY_DEV=yes
+bootstrap-dev: export DEPLOY_DEV=yes
 .env private/lega.yml private bootstrap bootstrap-dev:
 	@bootstrap/run.sh ${ARGS} || { cat private/.err; exit 1; }
 
@@ -29,23 +29,23 @@ down: #.env
 
 clean:
 	rm -rf .env private
+	make -C bootstrap/certs clean
 
 clean-all: clean clean-volumes
 
 preflight-check:
 	@echo "Ensure the system is up"
-	sleep 120
+	sleep 80
 
-# Note: "sleep 120" will be replaced with a script that checks for open port, mq settings, etc.
+# Note: "sleep 80" will be replaced with a script that checks for open port, mq settings, etc.
 # It might be a good idea to run it in the same network as the containers.
 # docker run --rm -it --network=lega_lega \
-#        -v ${PWD}/integration/ensure_system_up.sh:/ensure_system_up.sh \
-#        nbisweden/ega-base /ensure_system_up.sh
+#        -v ${PWD}/bootstrap/ensure_system_up.sh:/ensure_system_up.sh \
+#        egarchive/lega-base /ensure_system_up.sh
 
 # For the moment, we simply do sleep 60, because we need
-# - the inbox notification server up
 # - the rabbitmq shovel to CentralEGA (the federated queue can be late, it doesn't hurt)
-# - the key server (the java spring needs 97 seconds, 10 are enough for the other)
+# - the key server (slow setup with java spring)
 
 
 # Decrypt the encoded data from the repository
@@ -59,3 +59,10 @@ prepare: ../tests/_common/dummy.sec ../tests/_common/john.sec ../tests/_common/j
 %.json: %.json.enc
 	openssl enc -aes-256-cbc -d -in $< -out $@ -k ${REPO_PASSWORD}
 
+images:
+	make -C images
+
+# That's for Travis
+install-bootstrap-packages:
+	pip3 install git+https://github.com/NBISweden/LocalEGA-cryptor.git
+	pip3 install pgpy pika==1.0.1

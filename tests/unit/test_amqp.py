@@ -13,14 +13,17 @@ class BrokerTest(unittest.TestCase):
     @mock.patch('lega.utils.amqp.pika')
     def test_connection_blocking(self, mock_pika, mock_conf):
         """Test if the pika BlockingConnection is called."""
-        sections = {'broker': {'hearbeat': 0, 'ssl': True}, 'other': {}}
+
+        # For CONF.sections()
+        sections = {'broker': {'hearbeat': 0, 'connection': 'amqp://user:passwd@localhost:5672/%2F'}, 'other': {}}
         mock_conf.sections = mock.Mock(return_value=sections.keys())
 
-        def values(domain, value, conv=str, default=None):
+        # For CONF.get_value(....)
+        def values(domain, value, conv=str, default=None, raw=True):
             if value == 'heartbeat_interval':
                 return 1
-            elif value == 'ssl':
-                return True
+            elif value == 'connection':
+                return r'amqp://user:passwd@localhost:5672/%2F'
             else:
                 pass
         mock_conf.get_value = mock.MagicMock(side_effect=values)
@@ -31,8 +34,19 @@ class BrokerTest(unittest.TestCase):
     @mock.patch('lega.utils.amqp.pika')
     def test_connection_select(self, mock_pika, mock_conf):
         """Test if the pika SelectConnection is called with paramters."""
-        sections = {'broker': {'hearbeat': 0, 'ssl': True}, 'other': {}}
+        # For CONF.sections()
+        sections = {'broker': {'hearbeat': 0, 'connection': 'amqp://user:passwd@localhost:5672/%2F'}, 'other': {}}
         mock_conf.sections = mock.Mock(return_value=sections.keys())
+
+        # For CONF.get_value(....)
+        def values(domain, value, conv=str, default=None, raw=True):
+            if value == 'heartbeat_interval':
+                return 1
+            elif value == 'connection':
+                return r'amqp://user:passwd@localhost:5672/%2F'
+            else:
+                pass
+        mock_conf.get_value = mock.MagicMock(side_effect=values)
         get_connection('broker', False)
         mock_pika.SelectConnection.assert_called()
 
@@ -51,5 +65,4 @@ class BrokerTest(unittest.TestCase):
         work = mock.Mock()
         work.return_value = mock.MagicMock()
         consume(work, mock_pika, 'queue', 'routing')
-        print(dir(mock_pika))
         mock_pika.channel.assert_called()

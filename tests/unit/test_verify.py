@@ -66,14 +66,16 @@ class testVerify(unittest.TestCase):
         self.env = EnvironmentVarGuard()
         self.env.set('ARCHIVE_LOCATION', self.outputdir + '/%s/')
         self.env.set('LEGA_PASSWORD', 'value')
-        self.env.set('QUALITY_CONTROL_VERIFY_CERTIFICATE', 'True')
+        self.env.set('QUALITY_CONTROL_VERIFY_PEER', 'True')
+        self.env.set('QUALITY_CONTROL_VERIFY_HOSTNAME', 'False')
 
     def tearDown(self):
         """Remove setup variables."""
         self.env.unset('ARCHIVE_LOCATION')
         self._dir.cleanup_all()
         self.env.unset('LEGA_PASSWORD')
-        self.env.unset('QUALITY_CONTROL_VERIFY_CERTIFICATE')
+        self.env.unset('QUALITY_CONTROL_VERIFY_PEER')
+        self.env.unset('QUALITY_CONTROL_VERIFY_HOSTNAME')
 
     @tempdir()
     @mock.patch('lega.verify.header_to_records')
@@ -94,7 +96,8 @@ class testVerify(unittest.TestCase):
     @mock.patch('lega.verify.get_key_id')
     def test_get_records_no_verify(self, mock_key, mock_records, filedir):
         """Should call the url in order to provide the records even without a verify turned off."""
-        self.env.set('QUALITY_CONTROL_VERIFY_CERTIFICATE', 'False')
+        self.env.set('QUALITY_CONTROL_VERIFY_PEER', 'False')
+        self.env.set('QUALITY_CONTROL_VERIFY_HOSTNAME', 'False')
         infile = filedir.write('infile.in', bytearray.fromhex(pgp_data.ENC_FILE))
         returned_data = KeyServerResponse(200, io.BytesIO(pgp_data.PGP_PRIVKEY.encode()))
         with PatchContextManager('lega.verify.urlopen', returned_data) as mocked:
@@ -134,7 +137,8 @@ class testVerify(unittest.TestCase):
     @mock.patch('lega.verify.get_key_id')
     def test_get_records_error(self, mock_key, mock_records, filedir):
         """Some general error occured, should raise Exception error."""
-        self.env.set('QUALITY_CONTROL_VERIFY_CERTIFICATE', 'False')
+        self.env.set('QUALITY_CONTROL_VERIFY_PEER', 'False')
+        self.env.set('QUALITY_CONTROL_VERIFY_HOSTNAME', 'False')
         infile = filedir.write('infile.in', bytearray.fromhex(pgp_data.ENC_FILE))
         with mock.patch('lega.verify.urlopen') as urlopen_mock:
             urlopen_mock.side_effect = Exception

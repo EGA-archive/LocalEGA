@@ -20,8 +20,13 @@ TESTDATA_DIR=$HERE
 # then it is against the fake one, which is deployed on the same network
 # as LocalEGA components, and accessible from the localhost via a port mapping
 if [[ "${CEGA_CONNECTION}" != *hellgate* ]]; then
-    export CEGA_CONNECTION="amqp://legatest:legatest@localhost:5670/lega"
+    export CEGA_CONNECTION="amqps://legatest:legatest@localhost:5670/lega"
 fi
+
+# Create certfile/keyfile for testsuite
+#yes | make --silent -C ${MAIN_REPO}/deploy/bootstrap/certs testsuite OPENSSL=${OPENSSL:-openssl} &>/dev/null
+cp -f ${MAIN_REPO}/deploy/bootstrap/certs/data/testsuite.{cert,sec}.pem ${HERE}/mq/.
+cp -f ${MAIN_REPO}/deploy/bootstrap/certs/data/CA.cert.pem ${HERE}/mq/.
 
 # Utilities to scan the Message Queues
 MQ_CONSUME="python ${HERE}/mq/consume.py --connection ${CEGA_CONNECTION}"

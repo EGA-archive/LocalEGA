@@ -144,6 +144,8 @@ class Configuration(configparser.ConfigParser):
             else:
                 raise ValueError(f"Invalid truth value: {val}")
         else:
+            if value is None:
+                return None
             return conv(value)  # raise error in case we can't convert an empty value
 
 

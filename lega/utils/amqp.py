@@ -1,9 +1,11 @@
 """Ensures communication with RabbitMQ Message Broker."""
 
 import logging
-import pika
 import json
 import uuid
+import ssl
+
+import pika
 
 from ..conf import CONF
 
@@ -19,48 +21,56 @@ def get_connection(domain, blocking=True):
     """
     assert domain in CONF.sections(), "Section not found in config file"
 
-    params = {
-        'host': CONF.get_value(domain, 'host', default='localhost'),
-        'port': CONF.get_value(domain, 'port', conv=int, default=5672),
-        'virtual_host': CONF.get_value(domain, 'vhost', default='/'),
-        'credentials': pika.PlainCredentials(
-            CONF.get_value(domain, 'username', default='guest'),
-            CONF.get_value(domain, 'password', default='guest')
-        ),
-        'connection_attempts': CONF.get_value(domain, 'connection_attempts', conv=int, default=10),
-        'retry_delay': CONF.get_value(domain, 'retry_delay', conv=int, default=10),  # seconds
-    }
-    heartbeat = CONF.get_value(domain, 'heartbeat', conv=int, default=0)
-    if heartbeat is not None:  # can be 0
-        # heartbeat_interval instead of heartbeat like they say in the doc
-        # https://pika.readthedocs.io/en/latest/modules/parameters.html#connectionparameters
-        params['heartbeat_interval'] = heartbeat
-        LOG.debug(f'Setting hearbeat to {heartbeat}')
-
-    # SSL configuration
-    if CONF.get_value(domain, 'enable_ssl', conv=bool, default=False):
-        params['ssl'] = True
-        params['ssl_options'] = {
-            'ca_certs': CONF.get_value(domain, 'cacert'),
-            'certfile': CONF.get_value(domain, 'cert'),
-            'keyfile': CONF.get_value(domain, 'keyfile'),
-            'cert_reqs': 2,  # ssl.CERT_REQUIRED is actually <VerifyMode.CERT_REQUIRED: 2>
-        }
-
     LOG.info(f'Getting a connection to {domain}')
-    LOG.debug(params)
+    params = CONF.get_value(domain, 'connection', raw=True)
+    LOG.debug(f"Initializing a connection to: {params}")
+    connection_params = pika.connection.URLParameters(params)
 
-    if blocking:
-        return pika.BlockingConnection(pika.ConnectionParameters(**params))
-    return pika.SelectConnection(pika.ConnectionParameters(**params))
+    # Handling the SSL options
+    # Note: We re-create the SSL context, so don't pass any ssl_options in the above connection URI.
+    if params.startswith('amqps'):
+
+        LOG.debug("Enforcing a TLS context")
+        context = ssl.SSLContext(protocol=ssl.PROTOCOL_TLS)  # Enforcing (highest) TLS version (so... 1.2?)
+
+        context.verify_mode = ssl.CERT_NONE
+        # Require server verification
+        if CONF.get_value(domain, 'verify_peer', conv=bool, default=False):
+            LOG.debug("Require server verification")
+            context.verify_mode = ssl.CERT_REQUIRED
+            cacertfile = CONF.get_value(domain, 'cacertfile', default=None)
+            if cacertfile:
+                context.load_verify_locations(cafile=cacertfile)
+
+        # Check the server's hostname
+        server_hostname = CONF.get_value(domain, 'server_hostname', default=None)
+        verify_hostname = CONF.get_value(domain, 'verify_hostname', conv=bool, default=False)
+        if verify_hostname:
+            LOG.debug("Require hostname verification")
+            assert server_hostname, "server_hostname must be set if verify_hostname is"
+            context.check_hostname = True
+            context.verify_mode = ssl.CERT_REQUIRED
+
+        # If client verification is required
+        certfile = CONF.get_value(domain, 'certfile', default=None)
+        if certfile:
+            LOG.debug("Prepare for client verification")
+            keyfile = CONF.get_value(domain, 'keyfile')
+            context.load_cert_chain(certfile, keyfile=keyfile)
+
+        # Finally, the pika ssl options
+        connection_params.ssl_options = pika.SSLOptions(context=context, server_hostname=server_hostname)
+
+    connection_factory = pika.BlockingConnection if blocking else pika.SelectConnection
+    return connection_factory(connection_params)
 
 
 def publish(message, channel, exchange, routing, correlation_id=None):
     """Send a message to the local broker with ``path`` was updated."""
     LOG.debug(f'Sending to exchange: {exchange} [routing key: {routing}]')
-    channel.basic_publish(exchange=exchange,
-                          routing_key=routing,
-                          body=json.dumps(message),
+    channel.basic_publish(exchange,             # exchange
+                          routing,              # routing_key
+                          json.dumps(message),  # body
                           properties=pika.BasicProperties(correlation_id=correlation_id or str(uuid.uuid4()),
                                                           content_type='application/json',
                                                           delivery_mode=2))
@@ -106,7 +116,7 @@ def consume(work, connection, from_queue, to_routing):
 
     # Let's do this
     try:
-        from_channel.basic_consume(process_request, queue=from_queue)
+        from_channel.basic_consume(from_queue, on_message_callback=process_request)
         from_channel.start_consuming()
     except KeyboardInterrupt:
         from_channel.stop_consuming()
