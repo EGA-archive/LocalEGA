@@ -18,10 +18,20 @@ jobs:
     # Unit Tests and Image Build
     #
     - stage: tests
+      name: "Python Code Style Check"
+      python: 3.6
+      before_script: pip install tox-travis
+      script: tox -e flake8
+  - stage: tests
       name: "Unit Tests"
       python: 3.6
       before_script: pip install tox-travis
-      script: tox
+      script: tox -e unit_tests
+    - stage: tests
+      name: "Python Common Code Security Tests"
+      python: 3.6
+      before_script: pip install tox-travis
+      script: tox -e bandit
     #
     # BATS Tests
     #
