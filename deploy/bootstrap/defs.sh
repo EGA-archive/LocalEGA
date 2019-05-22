@@ -58,7 +58,7 @@ function generate_password {
     fi
     # Otherwise
     local size=${1:-16} # defaults to 16 characters
-    ${PYTHONEXEC:-python3.6} -c "import secrets,string;print(''.join(secrets.choice(string.ascii_letters + string.digits) for i in range(${size})))"
+    ${PYTHONEXEC} -c "import secrets,string;print(''.join(secrets.choice(string.ascii_letters + string.digits) for i in range(${size})))"
 }
 
 function generate_mq_hash {
