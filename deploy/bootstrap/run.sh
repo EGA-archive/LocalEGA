@@ -77,7 +77,7 @@ exec 2>${PRIVATE}/.err
 
 if [[ ${REAL_CEGA} != 'yes' ]]; then
     # Reset the variables here
-    CEGA_CONNECTION_PARAMS=$(python -c "from urllib.parse import urlencode;                               \
+    CEGA_CONNECTION_PARAMS=$(${PYTHONEXEC} -c "from urllib.parse import urlencode;                               \
 	  			        print(urlencode({ 'heartbeat': 0,                                 \
 				                          'connection_attempts': 30,                      \
 				                          'retry_delay': 10,                              \
@@ -214,7 +214,7 @@ keyserver_endpoint = http://keys${HOSTNAME_DOMAIN}:8080/keys/retrieve/%s/private
 EOF
 
 # Local broker connection
-MQ_CONNECTION_PARAMS=$(python -c "from urllib.parse import urlencode;                   \
+MQ_CONNECTION_PARAMS=$(${PYTHONEXEC} -c "from urllib.parse import urlencode;                   \
 			          print(urlencode({ 'heartbeat': 0,                     \
 				                    'connection_attempts': 30,          \
 				                    'retry_delay': 10,                  \
@@ -227,7 +227,7 @@ MQ_CONNECTION_PARAMS=$(python -c "from urllib.parse import urlencode;           
 MQ_CONNECTION="amqps://${MQ_USER}:${MQ_PASSWORD}@mq${HOSTNAME_DOMAIN}:5671/%2F"
 
 # Database connection
-DB_CONNECTION_PARAMS=$(python -c "from urllib.parse import urlencode;                   \
+DB_CONNECTION_PARAMS=$(${PYTHONEXEC} -c "from urllib.parse import urlencode;                   \
 			          print(urlencode({ 'application_name': 'LocalEGA',     \
 				                    'sslmode': 'verify-full',           \
 				                    'sslcert': '/etc/ega/ssl.cert',     \
