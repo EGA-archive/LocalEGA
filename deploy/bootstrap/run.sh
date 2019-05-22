@@ -582,9 +582,9 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - MINIO_SECRET_KEY=${S3_SECRET_KEY}
     volumes:
       - archive:/data
-      - ../bootstrap/certs/data/archive.cert.pem:/home/.minio/public.crt
-      - ../bootstrap/certs/data/archive.sec.pem:/home/.minio/private.key
-      - ../bootstrap/certs/data/CA.archive.cert.pem:/home/.minio/CAs/LocalEGA.crt
+      - ../bootstrap/certs/data/archive.cert.pem:/root/.minio/certs/public.crt
+      - ../bootstrap/certs/data/archive.sec.pem:/root/.minio/certs/private.key
+      - ../bootstrap/certs/data/CA.archive.cert.pem:/root/.minio/CAs/LocalEGA.crt
     restart: on-failure:3
     networks:
       - lega
@@ -607,8 +607,8 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     environment:
       - MINIO_ACCESS_KEY=${S3_ACCESS_KEY_INBOX}
       - MINIO_SECRET_KEY=${S3_SECRET_KEY_INBOX}
-      - ../bootstrap/certs/data/inbox-s3-backend.cert.pem:/home/.minio/public.crt
-      - ../bootstrap/certs/data/inbox-s3-backend.sec.pem:/home/.minio/private.key
+      - ../bootstrap/certs/data/inbox-s3-backend.cert.pem:/root/.minio/certs/public.crt
+      - ../bootstrap/certs/data/inbox-s3-backend.sec.pem:/root/.minio/certs/private.key
       - ../bootstrap/certs/data/CA.inbox-s3-backend.cert.pem:/home/.minio/CAs/LocalEGA.crt
     volumes:
       - inbox-s3:/data
