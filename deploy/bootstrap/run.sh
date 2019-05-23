@@ -265,7 +265,7 @@ EOF
 if [[ ${ARCHIVE_BACKEND} == 's3' ]]; then
     cat >> ${PRIVATE}/conf.ini <<EOF
 storage_driver = S3Storage
-s3_url = http://archive${HOSTNAME_DOMAIN}:9000
+s3_url = https://archive${HOSTNAME_DOMAIN}:9000
 s3_access_key = ${S3_ACCESS_KEY}
 s3_secret_key = ${S3_SECRET_KEY}
 #region = lega
@@ -283,7 +283,7 @@ if [[ ${INBOX_BACKEND} == 's3' ]]; then
 
 [inbox]
 storage_driver = S3Storage
-url = http://inbox-s3-backend${HOSTNAME_DOMAIN}:9000
+url = https://inbox-s3-backend${HOSTNAME_DOMAIN}:9000
 access_key = ${S3_ACCESS_KEY_INBOX}
 secret_key = ${S3_SECRET_KEY_INBOX}
 #region = lega
