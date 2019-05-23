@@ -102,6 +102,39 @@ class TestS3Storage(unittest.TestCase):
         with storage.open(path) as resource:
             self.assertEqual(S3FileReader, type(resource))
 
+class TestS3Storage(unittest.TestCase):
+    """S3Storage.
+
+    Testing storage on S3 solution over TLS.
+    """
+
+    def setUp(self):
+        """Initialise fixtures."""
+        self._dir = TempDirectory()
+        self.env = EnvironmentVarGuard()
+        self.env.set('ARCHIVE_S3_URL', 'https://localhost:5000')
+        self.env.set('ARCHIVE_S3_REGION', 'lega')
+        self.env.set('ARCHIVE_S3_ACCESS_KEY', 'test')
+        self.env.set('ARCHIVE_S3_SECRET_KEY', 'test')
+
+    def tearDown(self):
+        """Remove setup variables."""
+        self.env.unset('ARCHIVE_S3_URL')
+        self.env.unset('ARCHIVE_S3_REGION')
+        self.env.unset('ARCHIVE_S3_ACCESS_KEY')
+        self.env.unset('ARCHIVE_S3_SECRET_KEY')
+        self._dir.cleanup_all()
+
+    @mock.patch.object(boto3, 'client')
+    def test_upload(self, mock_boto):
+        """Test copy to S3, should call boto3 client."""
+        path = self._dir.write('test.file', 'data1'.encode('utf-8'))
+        storage = S3Storage('archive', 'lega')
+        storage.copy(path, 'lega')
+        mock_boto.assert_called_with('s3', aws_access_key_id='test', aws_secret_access_key='test',
+                                     endpoint_url='https://localhost:5000', region_name='lega',
+                                     use_ssl=True, verify=False)
+
 
 class TestS3FileReader(unittest.TestCase):
     """S3FileReader.
