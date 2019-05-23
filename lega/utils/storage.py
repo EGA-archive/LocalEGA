@@ -201,11 +201,12 @@ class S3Storage():
         region = CONF.get_value(config_section, 's3_region')
         access_key = CONF.get_value(config_section, 's3_access_key')
         secret_key = CONF.get_value(config_section, 's3_secret_key')
+        verify = CONF.get_value(config_section, 'cacertfile', default=None) or False
         self.s3 = boto3.client('s3',
                                endpoint_url=self.endpoint,
                                region_name=region,
-                               use_ssl=False,
-                               verify=False,
+                               use_ssl=self.endpoint.startswith('https'),
+                               verify=verify,
                                aws_access_key_id=access_key,
                                aws_secret_access_key=secret_key)
         # LOG.debug(f'S3 client: {self.s3!r}')
