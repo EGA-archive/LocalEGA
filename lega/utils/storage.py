@@ -197,18 +197,28 @@ class S3Storage():
     def __init__(self, config_section, user):
         """Initialize S3 object Storage."""
         import boto3
+        import botocore
         self.endpoint = CONF.get_value(config_section, 's3_url')
         region = CONF.get_value(config_section, 's3_region')
         access_key = CONF.get_value(config_section, 's3_access_key')
         secret_key = CONF.get_value(config_section, 's3_secret_key')
         verify = CONF.get_value(config_section, 'cacertfile', default=None) or False
+        config_params = {
+            'connect_timeout': CONF.get_value(config_section, 'connect_timeout', conv=int, default=60),
+        }
+        certfile = CONF.get_value(config_section, 'certfile', default=None)
+        keyfile = CONF.get_value(config_section, 'keyfile', default=None)
+        if certfile and keyfile:
+            config_params['client_cert'] = (certfile, keyfile)
+        config = botocore.client.Config(**config_params)
         self.s3 = boto3.client('s3',
                                endpoint_url=self.endpoint,
                                region_name=region,
                                use_ssl=self.endpoint.startswith('https'),
                                verify=verify,
                                aws_access_key_id=access_key,
-                               aws_secret_access_key=secret_key)
+                               aws_secret_access_key=secret_key,
+                               config=config)
         # LOG.debug(f'S3 client: {self.s3!r}')
         try:
             LOG.debug('Creating "%s" bucket', user)
