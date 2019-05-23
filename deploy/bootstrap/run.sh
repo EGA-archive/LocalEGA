@@ -265,10 +265,11 @@ EOF
 if [[ ${ARCHIVE_BACKEND} == 's3' ]]; then
     cat >> ${PRIVATE}/conf.ini <<EOF
 storage_driver = S3Storage
-s3_url = http://archive${HOSTNAME_DOMAIN}:9000
+s3_url = https://archive${HOSTNAME_DOMAIN}:9000
 s3_access_key = ${S3_ACCESS_KEY}
 s3_secret_key = ${S3_SECRET_KEY}
 #region = lega
+cacertfile = /etc/ega/CA.cert
 EOF
 else
     # POSIX file system
@@ -283,7 +284,7 @@ if [[ ${INBOX_BACKEND} == 's3' ]]; then
 
 [inbox]
 storage_driver = S3Storage
-url = http://inbox-s3-backend${HOSTNAME_DOMAIN}:9000
+url = https://inbox-s3-backend${HOSTNAME_DOMAIN}:9000
 access_key = ${S3_ACCESS_KEY_INBOX}
 secret_key = ${S3_SECRET_KEY_INBOX}
 #region = lega
@@ -582,9 +583,9 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - MINIO_SECRET_KEY=${S3_SECRET_KEY}
     volumes:
       - archive:/data
-      - ../bootstrap/certs/data/archive.cert.pem:/home/.minio/public.crt
-      - ../bootstrap/certs/data/archive.sec.pem:/home/.minio/private.key
-      - ../bootstrap/certs/data/CA.archive.cert.pem:/home/.minio/CAs/LocalEGA.crt
+      - ../bootstrap/certs/data/archive.cert.pem:/root/.minio/certs/public.crt
+      - ../bootstrap/certs/data/archive.sec.pem:/root/.minio/certs/private.key
+      - ../bootstrap/certs/data/CA.archive.cert.pem:/root/.minio/CAs/LocalEGA.crt
     restart: on-failure:3
     networks:
       - lega
@@ -607,9 +608,9 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     environment:
       - MINIO_ACCESS_KEY=${S3_ACCESS_KEY_INBOX}
       - MINIO_SECRET_KEY=${S3_SECRET_KEY_INBOX}
-      - ../bootstrap/certs/data/inbox-s3-backend.cert.pem:/home/.minio/public.crt
-      - ../bootstrap/certs/data/inbox-s3-backend.sec.pem:/home/.minio/private.key
-      - ../bootstrap/certs/data/CA.inbox-s3-backend.cert.pem:/home/.minio/CAs/LocalEGA.crt
+      - ../bootstrap/certs/data/inbox-s3-backend.cert.pem:/root/.minio/certs/public.crt
+      - ../bootstrap/certs/data/inbox-s3-backend.sec.pem:/root/.minio/certs/private.key
+      - ../bootstrap/certs/data/CA.inbox-s3-backend.cert.pem:/root/.minio/CAs/LocalEGA.crt
     volumes:
       - inbox-s3:/data
     restart: on-failure:3
