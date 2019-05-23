@@ -265,7 +265,7 @@ EOF
 if [[ ${ARCHIVE_BACKEND} == 's3' ]]; then
     cat >> ${PRIVATE}/conf.ini <<EOF
 storage_driver = S3Storage
-s3_url = http://archive${HOSTNAME_DOMAIN}:9000
+s3_url = https://archive${HOSTNAME_DOMAIN}:9000
 s3_access_key = ${S3_ACCESS_KEY}
 s3_secret_key = ${S3_SECRET_KEY}
 #region = lega
@@ -283,7 +283,7 @@ if [[ ${INBOX_BACKEND} == 's3' ]]; then
 
 [inbox]
 storage_driver = S3Storage
-url = http://inbox-s3-backend${HOSTNAME_DOMAIN}:9000
+url = https://inbox-s3-backend${HOSTNAME_DOMAIN}:9000
 access_key = ${S3_ACCESS_KEY_INBOX}
 secret_key = ${S3_SECRET_KEY_INBOX}
 #region = lega
@@ -609,7 +609,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - MINIO_SECRET_KEY=${S3_SECRET_KEY_INBOX}
       - ../bootstrap/certs/data/inbox-s3-backend.cert.pem:/root/.minio/certs/public.crt
       - ../bootstrap/certs/data/inbox-s3-backend.sec.pem:/root/.minio/certs/private.key
-      - ../bootstrap/certs/data/CA.inbox-s3-backend.cert.pem:/home/.minio/CAs/LocalEGA.crt
+      - ../bootstrap/certs/data/CA.inbox-s3-backend.cert.pem:/root/.minio/CAs/LocalEGA.crt
     volumes:
       - inbox-s3:/data
     restart: on-failure:3
