@@ -269,6 +269,7 @@ s3_url = https://archive${HOSTNAME_DOMAIN}:9000
 s3_access_key = ${S3_ACCESS_KEY}
 s3_secret_key = ${S3_SECRET_KEY}
 #region = lega
+cacertfile = /etc/ega/CA.cert
 EOF
 else
     # POSIX file system
