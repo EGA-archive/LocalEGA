@@ -270,6 +270,8 @@ s3_access_key = ${S3_ACCESS_KEY}
 s3_secret_key = ${S3_SECRET_KEY}
 #region = lega
 cacertfile = /etc/ega/CA.cert
+certfile = /etc/ega/ssl.cert
+keyfile = /etc/ega/ssl.key
 EOF
 else
     # POSIX file system

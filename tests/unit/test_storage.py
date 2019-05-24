@@ -6,6 +6,7 @@ import os
 from io import UnsupportedOperation, BufferedReader
 from unittest import mock
 import boto3
+import botocore
 
 
 class TestFileStorage(unittest.TestCase):
@@ -116,6 +117,9 @@ class TestS3Storage(unittest.TestCase):
         self.env.set('ARCHIVE_S3_REGION', 'lega')
         self.env.set('ARCHIVE_S3_ACCESS_KEY', 'test')
         self.env.set('ARCHIVE_S3_SECRET_KEY', 'test')
+        self.env.set('ARCHIVE_CACERTFILE', '/etc/ega/CA.cert')
+        self.env.set('ARCHIVE_CERTFILE', '/etc/ega/ssl.cert')
+        self.env.set('ARCHIVE_KEYFILE', '/etc/ega/ssl.key')
 
     def tearDown(self):
         """Remove setup variables."""
@@ -123,17 +127,22 @@ class TestS3Storage(unittest.TestCase):
         self.env.unset('ARCHIVE_S3_REGION')
         self.env.unset('ARCHIVE_S3_ACCESS_KEY')
         self.env.unset('ARCHIVE_S3_SECRET_KEY')
+        self.env.unset('ARCHIVE_CACERTFILE')
+        self.env.unset('ARCHIVE_CERTFILE')
+        self.env.unset('ARCHIVE_KEYFILE')
         self._dir.cleanup_all()
 
+    @mock.patch.object(botocore.client, 'Config')
     @mock.patch.object(boto3, 'client')
-    def test_upload(self, mock_boto):
+    def test_upload(self, mock_boto, mock_botocore):
         """Test copy to S3, should call boto3 client."""
         path = self._dir.write('test.file', 'data1'.encode('utf-8'))
         storage = S3Storage('archive', 'lega')
         storage.copy(path, 'lega')
+        mock_botocore.assert_called_with(connect_timeout=60, client_cert=('/etc/ega/ssl.cert', '/etc/ega/ssl.key'))
         mock_boto.assert_called_with('s3', aws_access_key_id='test', aws_secret_access_key='test',
                                      endpoint_url='https://localhost:5000', region_name='lega',
-                                     use_ssl=True, verify=False)
+                                     use_ssl=True, verify='/etc/ega/CA.cert', config=mock_botocore())
 
 
 class TestS3FileReader(unittest.TestCase):
