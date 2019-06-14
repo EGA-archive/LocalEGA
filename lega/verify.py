@@ -105,17 +105,21 @@ def work(chunk_size, mover, channel, data):
     # If you can decrypt... the checksum is valid
 
     # Calculate the checksum of the original content
-    md = hashlib.sha256()
+    md_md5 = hashlib.md5()
+    md_sha256 = hashlib.sha256()
 
     def checksum_content(data):
-        md.update(data)
+        md_md5.update(data)
+        md_sha256.update(data)
 
     with mover.open(archive_path, 'rb') as infile:
         LOG.info('Decrypting (chunk size: %s)', chunk_size)
         body_decrypt(r, infile, process_output=checksum_content, chunk_size=chunk_size)
 
-    digest = md.hexdigest()
-    LOG.info('Verification completed [sha256: %s]', digest)
+    digest_md5 = md_md5.hexdigest()
+    digest_sha256 = md_sha256.hexdigest()
+    LOG.info('Verification completed [md5: %s]', digest_md5)
+    LOG.info('Verification completed [sha256: %s]', digest_sha256)
 
     # Updating the database
     db.mark_completed(file_id)
@@ -124,7 +128,8 @@ def work(chunk_size, mover, channel, data):
     org_msg = data['org_msg']
     org_msg.pop('file_id', None)
     org_msg['reference'] = file_id
-    org_msg['checksum'] = {'value': digest, 'algorithm': 'sha256'}
+    org_msg['decrypted_checksums'] = [{'value': digest_sha256, 'type': 'sha256'},
+                                      {'value': digest_md5, 'type': 'md5'}]
     LOG.debug(f"Reply message: {org_msg}")
     return org_msg
 
