@@ -200,6 +200,7 @@ class S3Storage():
         import botocore
         self.endpoint = CONF.get_value(config_section, 's3_url')
         region = CONF.get_value(config_section, 's3_region')
+        bucket = CONF.get_value(config_section, 's3_bucket')
         access_key = CONF.get_value(config_section, 's3_access_key')
         secret_key = CONF.get_value(config_section, 's3_secret_key')
         verify = CONF.get_value(config_section, 'cacertfile', default=None) or False
@@ -221,8 +222,8 @@ class S3Storage():
                                config=config)
         # LOG.debug(f'S3 client: {self.s3!r}')
         try:
-            LOG.debug('Creating "%s" bucket', user)
-            self.bucket = user
+            LOG.debug('Creating "%s" bucket', bucket)
+            self.bucket = bucket
             self.s3.create_bucket(Bucket=self.bucket)
         except self.s3.exceptions.BucketAlreadyOwnedByYou as e:
             LOG.debug(f'Ignoring ({type(e)}): {e}')
