@@ -551,7 +551,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     restart: on-failure:3
     networks:
       - lega
-    image: cscfi/ega-keyserver
+    image: egarchive/lega-keyserver:release.v0.0.1
     environment:
       - SPRING_PROFILES_ACTIVE=no-oss
       - EGA_KEY_PATH=/etc/ega/pgp/ega.sec,/etc/ega/pgp/ega2.sec
