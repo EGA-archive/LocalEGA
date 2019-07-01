@@ -1,8 +1,10 @@
-# Local EGA main repository
+# NeIC Local EGA
 
-[![Build Status](https://travis-ci.org/EGA-archive/LocalEGA.svg?branch=master)](https://travis-ci.org/EGA-archive/LocalEGA)
+This is a fork of https://github.com/EGA-archive/LocalEGA adapted for NeIC use case.
+
+[![Build Status](https://travis-ci.org/neicnordic/LocalEGA.svg?branch=master)](https://travis-ci.org/neicnordic/LocalEGA)
 [![Documentation Status](https://readthedocs.org/projects/localega/badge/?version=latest)](https://localega.readthedocs.io/en/latest/?badge=latest)
-[![Coverage Status](https://coveralls.io/repos/github/EGA-archive/LocalEGA/badge.svg?branch=master)](https://coveralls.io/github/EGA-archive/LocalEGA?branch=master)
+[![Coverage Status](https://coveralls.io/repos/github/neicnordic/LocalEGA/badge.svg?branch=master)](https://coveralls.io/github/neicnordic/LocalEGA?branch=master)
 
 The [code](lega) is written in Python (3.6+).
 
@@ -10,9 +12,8 @@ You can provision and deploy the different components, locally, using [docker-co
 
 Other provisioning methods are provided by our partners:
 
-* on an [OpenStack cluster](https://github.com/NBISweden/LocalEGA-deploy-terraform), using `terraform`;
-* on a [Kubernetes/OpenShift cluster](https://github.com/NBISweden/LocalEGA-deploy-k8s), using `kubernetes`;
-* on a [Docker Swarm cluster](https://github.com/NBISweden/LocalEGA-deploy-swarm), using `gradle`.
+* on a [Kubernetes/OpenShift cluster](https://github.com/NBISweden/LocalEGA-helm), using `kubernetes`;
+* on a [Docker Swarm cluster](https://github.com/NBISweden/LocalEGA-deploy-swarm), using `gradle` and `docker swarm`.
 
 # Architecture
 
@@ -27,7 +28,5 @@ LocalEGA is divided into several components, as docker containers.
 | verifiers   | Decrypt the stored files and checksum them against their embedded checksum. |
 | archive     | Storage backend: as a regular file system or as a S3 object store. |
 | finalizers  | Handle the so-called _Stable ID_ filename mappings from CentralEGA. |
-| outgesters  | Front-facing checks for download permissions. |
-| streamers   | Fetch the files from the archive and re-encrypt its header for the given requester. |
 
-Find the [LocalEGA documentation](http://localega.readthedocs.io) hosted on [ReadTheDocs.org](https://readthedocs.org/).
+Find the [NeIC LocalEGA documentation](https://neic-localega.readthedocs.io) hosted on [ReadTheDocs.org](https://readthedocs.org/).
