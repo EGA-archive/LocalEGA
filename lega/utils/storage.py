@@ -194,7 +194,7 @@ class S3FileReader(object):
 class S3Storage():
     """S3 object storage and related I/O."""
 
-    def __init__(self, config_section, user):
+    def __init__(self, config_section, bucket):
         """Initialize S3 object Storage."""
         import boto3
         import botocore
@@ -221,8 +221,8 @@ class S3Storage():
                                config=config)
         # LOG.debug(f'S3 client: {self.s3!r}')
         try:
-            LOG.debug('Creating "%s" bucket', user)
-            self.bucket = user
+            LOG.debug('Creating "%s" bucket', bucket)
+            self.bucket = bucket
             self.s3.create_bucket(Bucket=self.bucket)
         except self.s3.exceptions.BucketAlreadyOwnedByYou as e:
             LOG.debug(f'Ignoring ({type(e)}): {e}')
