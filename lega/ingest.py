@@ -99,8 +99,15 @@ def main(args=None):
 
     inbox_fs = getattr(storage, CONF.get_value('inbox', 'storage_driver', default='FileStorage'))
     fs = getattr(storage, CONF.get_value('archive', 'storage_driver', default='FileStorage'))
+    fs_path = None
+    if fs is storage.FileStorage:
+        # we retrieve the user folder name for the archive
+        fs_path = CONF.get_value('archive', 'user')
+    elif fs is storage.S3Storage:
+        # we retrieve the s3 bucket name for the archive
+        fs_path = CONF.get_value('archive', 's3_bucket')
     broker = get_connection('broker')
-    do_work = partial(work, fs('archive', 'lega'), partial(inbox_fs, 'inbox'), broker.channel())
+    do_work = partial(work, fs('archive', fs_path), partial(inbox_fs, 'inbox'), broker.channel())
 
     # upstream link configured in local broker
     consume(do_work, broker, 'files', 'archived')

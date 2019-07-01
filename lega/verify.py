@@ -144,9 +144,15 @@ def main(args=None):
 
     store = getattr(storage, CONF.get_value('archive', 'storage_driver', default='FileStorage'))
     chunk_size = CONF.get_value('archive', 's3_chunk_size', conv=int, default=1 << 22)  # 4 MB
-
+    path = None
+    if store is storage.FileStorage:
+        # we retrieve the user folder name for the archive
+        path = CONF.get_value('archive', 'user')
+    elif store is storage.S3Storage:
+        # we retrieve the s3 bucket name for the archive
+        path = CONF.get_value('archive', 's3_bucket')
     broker = get_connection('broker')
-    do_work = partial(work, chunk_size, store('archive', 'lega'), broker.channel())
+    do_work = partial(work, chunk_size, store('archive', path), broker.channel())
 
     consume(do_work, broker, 'archived', 'completed')
 
