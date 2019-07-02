@@ -268,6 +268,7 @@ storage_driver = S3Storage
 s3_url = https://archive${HOSTNAME_DOMAIN}:9000
 s3_access_key = ${S3_ACCESS_KEY}
 s3_secret_key = ${S3_SECRET_KEY}
+s3_bucket = lega
 #region = lega
 cacertfile = /etc/ega/CA.cert
 certfile = /etc/ega/ssl.cert
@@ -278,6 +279,7 @@ else
     cat >> ${PRIVATE}/conf.ini <<EOF
 storage_driver = FileStorage
 location = /ega/archive/%s/
+user = lega
 EOF
 fi
 
@@ -289,6 +291,7 @@ storage_driver = S3Storage
 url = https://inbox-s3-backend${HOSTNAME_DOMAIN}:9000
 access_key = ${S3_ACCESS_KEY_INBOX}
 secret_key = ${S3_SECRET_KEY_INBOX}
+s3_bucket = lega
 #region = lega
 EOF
 else
@@ -298,6 +301,7 @@ else
 [inbox]
 location = /ega/inbox/%s/
 chroot_sessions = True
+user = lega
 EOF
 fi
 
