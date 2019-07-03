@@ -98,24 +98,29 @@ def work(chunk_size, mover, channel, data):
     archive_path = data['archive_path']
 
     # Get it from the header and the keyserver
-    records, key_id = get_records(header)  # might raise exception
+    # key id is not used thus not using it (2nd argument below)
+    records, _ = get_records(header)  # might raise exception
     r = records[0]  # only first one
 
     LOG.info('Opening archive file: %s', archive_path)
     # If you can decrypt... the checksum is valid
 
     # Calculate the checksum of the original content
-    md = hashlib.sha256()
+    sha256_checksum = hashlib.sha256()
+    md5_checksum = hashlib.md5()
 
     def checksum_content(data):
-        md.update(data)
+        sha256_checksum.update(data)
+        md5_checksum.update(data)
 
     with mover.open(archive_path, 'rb') as infile:
         LOG.info('Decrypting (chunk size: %s)', chunk_size)
         body_decrypt(r, infile, process_output=checksum_content, chunk_size=chunk_size)
 
-    digest = md.hexdigest()
-    LOG.info('Verification completed [sha256: %s]', digest)
+    digest_md5 = md5_checksum.hexdigest()
+    digest_sha256 = sha256_checksum.hexdigest()
+    LOG.info('Verification completed [md5: %s]', digest_md5)
+    LOG.info('Verification completed [sha256: %s]', digest_sha256)
 
     # Updating the database
     db.mark_completed(file_id)
@@ -124,7 +129,8 @@ def work(chunk_size, mover, channel, data):
     org_msg = data['org_msg']
     org_msg.pop('file_id', None)
     org_msg['reference'] = file_id
-    org_msg['checksum'] = {'value': digest, 'algorithm': 'sha256'}
+    org_msg['decrypted_checksums'] = [{'value': digest_sha256, 'type': 'sha256'},
+                                      {'value': digest_md5, 'type': 'md5'}]
     LOG.debug(f"Reply message: {org_msg}")
     return org_msg
 
@@ -138,9 +144,15 @@ def main(args=None):
 
     store = getattr(storage, CONF.get_value('archive', 'storage_driver', default='FileStorage'))
     chunk_size = CONF.get_value('archive', 's3_chunk_size', conv=int, default=1 << 22)  # 4 MB
-
+    path = None
+    if store is storage.FileStorage:
+        # we retrieve the user folder name for the archive
+        path = CONF.get_value('archive', 'user')
+    elif store is storage.S3Storage:
+        # we retrieve the s3 bucket name for the archive
+        path = CONF.get_value('archive', 's3_bucket')
     broker = get_connection('broker')
-    do_work = partial(work, chunk_size, store('archive', 'lega'), broker.channel())
+    do_work = partial(work, chunk_size, store('archive', path), broker.channel())
 
     consume(do_work, broker, 'archived', 'completed')
 
