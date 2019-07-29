@@ -1,6 +1,6 @@
 #!/bin/bash
 docker build \
-       --cache-from egarchive/lega-base:stable \
+       --cache-from nbisweden/ega-base:m7 \
        --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
        --build-arg SOURCE_COMMIT=$(git rev-parse --short HEAD) \
        --tag $IMAGE_NAME .
