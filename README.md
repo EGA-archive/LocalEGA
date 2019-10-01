@@ -3,7 +3,7 @@
 This is a fork of https://github.com/EGA-archive/LocalEGA adapted for NeIC Tryggve2 use cases.
 
 [![Build Status](https://travis-ci.org/neicnordic/LocalEGA.svg?branch=master)](https://travis-ci.org/neicnordic/LocalEGA)
-[![Documentation Status](https://readthedocs.org/projects/localega/badge/?version=latest)](https://localega.readthedocs.io/en/latest/?badge=latest)
+[![Documentation Status](https://readthedocs.org/projects/neic-localega/badge/?version=latest)](https://neic-localega.readthedocs.io/en/latest/?badge=latest)
 [![Coverage Status](https://coveralls.io/repos/github/neicnordic/LocalEGA/badge.svg?branch=master)](https://coveralls.io/github/neicnordic/LocalEGA?branch=master)
 
 The [code](lega) is written in Python (3.6+).
