@@ -11,5 +11,5 @@ labels: Support
 ### Related issues
 <!-- Related issues to this question go here -->
 
-### Mentions
+<!-- ### Mentions -->
 <!-- Should you want to direct the question to any of our developers, do it here -->
