@@ -1,5 +1,4 @@
 ---
-name: Question
 name: Support Issue
 about: Ask for support on running and/or developing LocalEGA
 labels: Support
