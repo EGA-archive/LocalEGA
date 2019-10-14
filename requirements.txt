@@ -1,7 +1,7 @@
 pika==1.0.1
 aiohttp==3.3.2
 sphinx_rtd_theme
-cryptography==2.3.1
+cryptography==2.6.1
 pgpy
 psycopg2-binary==2.7.5
 PyYaml
