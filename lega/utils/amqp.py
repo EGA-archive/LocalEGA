@@ -19,8 +19,6 @@ def get_connection(domain, blocking=True):
     heartbeat values are read from the CONF argument.
     So are the SSL options.
     """
-    assert domain in CONF.sections(), "Section not found in config file"
-
     LOG.info(f'Getting a connection to {domain}')
     params = CONF.get_value(domain, 'connection', raw=True)
     LOG.debug(f"Initializing a connection to: {params}")
