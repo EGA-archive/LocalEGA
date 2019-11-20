@@ -7,7 +7,7 @@ MAIN_REPO=${HERE}/../..
 
 # Some variables for these tests
 DOCKER_PATH=${MAIN_REPO}/deploy
-EGA_PUB_KEY=${DOCKER_PATH}/private/pgp/ega.pub
+EGA_PUBKEY=${DOCKER_PATH}/private/keys/ega.pub
 
 # Default log file, in case the bats file does not overwrite its location.
 #DEBUG_LOG=${HERE}/output.debug
@@ -15,13 +15,12 @@ DEBUG_LOG=${BATS_TEST_FILENAME}.debug
 
 # Data directory
 TESTDATA_DIR=$HERE
+USERS_FILE=${DOCKER_PATH}/private/.users
 
 # If the CEGA_CONNECTION is not against hellgate (ie Central EGA)
 # then it is against the fake one, which is deployed on the same network
 # as LocalEGA components, and accessible from the localhost via a port mapping
-if [[ "${CEGA_CONNECTION}" != *hellgate* ]]; then
-    export CEGA_CONNECTION="amqps://legatest:legatest@localhost:5670/lega"
-fi
+export CEGA_CONNECTION="amqps://legatest:legatest@localhost:5670/lega"
 
 # Create certfile/keyfile for testsuite
 #yes | make --silent -C ${MAIN_REPO}/deploy/bootstrap/certs testsuite OPENSSL=${OPENSSL:-openssl} &>/dev/null
@@ -73,3 +72,49 @@ function retry_until {
 	echo -e "Command \"$@\" failed $attempts times. Output: $output" >> $DEBUG_LOG
 	false
 }
+
+
+function load_into_ssh_agent {
+    local user=$1
+
+    [[ -z "${SSH_AGENT_PID}" ]] && echo "The ssh-agent was not started" >&2 && return 2
+
+    while IFS=: read -a info; do
+	echo "Compare with ${info[0]} == ${user}" >&3
+	if [[ "${info[0]}" == "${user}" ]]; then
+	    expect &>/dev/null <<EOF
+set timeout -1
+spawn ssh-add ${info[1]}
+expect "Enter passphrase for *"
+send -- "${info[2]}\r"
+expect eof
+EOF
+	    #break
+	    return 0
+	fi
+    done < ${USERS_FILE}
+    return 1
+}
+
+function _get_user_info {
+    local pos=$1
+    local user=$2
+
+    while IFS=: read -a info; do
+	if [[ "${info[0]}" == "${user}" ]]; then
+	    echo -n "${info[$pos]}"
+	    #break
+	    return 0
+	fi
+    done < ${USERS_FILE}
+    return 1
+}
+
+
+function get_user_seckey {
+    _get_user_info 1 $1
+}
+function get_user_passphrase {
+    _get_user_info 2 $1
+}
+
