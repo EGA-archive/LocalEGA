@@ -48,17 +48,6 @@ preflight-check:
 # - the key server (slow setup with java spring)
 
 
-# Decrypt the encoded data from the repository
-# That is, some users private ssh keys and the database of fake CentralEGA Users
-prepare: ../tests/_common/dummy.sec ../tests/_common/john.sec ../tests/_common/jane.sec ../tests/_common/users.json
-
-%.sec: %.sec.enc
-	${OPENSSL} enc -aes-256-cbc -d -in $< -out $@ -k ${REPO_PASSWORD}
-	chmod 400 $@
-
-%.json: %.json.enc
-	${OPENSSL} enc -aes-256-cbc -d -in $< -out $@ -k ${REPO_PASSWORD}
-
 images:
 	make -C images
 
