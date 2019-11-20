@@ -10,8 +10,6 @@ import psycopg2
 from socket import gethostname
 from time import sleep
 
-from legacryptor import exceptions as crypt_exc
-
 from ..conf import CONF
 from .exceptions import FromUser, KeyserverError, PGPKeyError
 from .amqp import publish, get_connection
@@ -275,7 +273,7 @@ def crypt4gh_to_user_errors(func):
     def wrapper(*args):
         try:
             return func(*args)
-        except (crypt_exc.InvalidFormatError, crypt_exc.VersionError, crypt_exc.MDCError, PGPKeyError) as e:
+        except ValueError as e:
             LOG.error(f'Converting {e!r} to a FromUser error')
             raise FromUser() from e
         except KeyserverError as e:
