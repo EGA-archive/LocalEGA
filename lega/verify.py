@@ -19,102 +19,94 @@ from urllib.request import urlopen
 from urllib.error import HTTPError
 import hashlib
 
-from legacryptor.crypt4gh import get_key_id, header_to_records, body_decrypt
+from crypt4gh.engine import decrypt
 
 from .conf import CONF
-from .utils import db, exceptions, storage
+from .utils import db, exceptions, storage, key
 from .utils.amqp import consume, get_connection
 
 LOG = logging.getLogger(__name__)
 
+class ChecksumFile():
+    '''Fake IO writer, accepting bytes to checksum but not writing them anywhere'''
+    def __init__(self):
+        self.md = hashlib.sha256()
 
-def get_records(header):
-    """Retrieve Crypt4GH header information (records) from Keyserver."""
-    keyid = get_key_id(header)
-    LOG.info(f'Key ID {keyid}')
-    keyurl = CONF.get_value('quality_control', 'keyserver_endpoint', raw=True) % keyid
-    LOG.info('Retrieving the Private Key from %s', keyurl)
+    def write(self, data):
+        self.md.update(data)
 
-    context = None
-    if keyurl.startswith('https'):
-        import ssl
+    def hexdigest(self):
+        return self.md.hexdigest()
 
-        LOG.debug("Enforcing a TLS context")
-        context = ssl.SSLContext(protocol=ssl.PROTOCOL_TLS)  # Enforcing (highest) TLS version (so... 1.2?)
+class PrependHeaderFile():
+    def __init__(self, header, bulk):
+        assert(header)
+        self.header = header
+        self.file = bulk
+        self.header_pos = 0
+        self.header_length = len(header)
 
-        context.verify_mode = ssl.CERT_NONE
-        # Require server verification
-        if CONF.get_value('quality_control', 'verify_peer', conv=bool, default=False):
-            LOG.debug("Require server verification")
-            context.verify_mode = ssl.CERT_REQUIRED
-            cacertfile = CONF.get_value('quality_control', 'cacertfile', default=None)
-            if cacertfile:
-                context.load_verify_locations(cafile=cacertfile)
+    def seek(self, offset, whence):
+        # Not needed because we decrypt all of it, and not only a range
+        raise NotImplementedError(f'Moving file pointer to {offset}: Unused case')
 
-        # Check the server's hostname
-        server_hostname = CONF.get_value('quality_control', 'server_hostname', default=None)
-        verify_hostname = CONF.get_value('quality_control', 'verify_hostname', conv=bool, default=False)
-        if verify_hostname:
-            LOG.debug("Require hostname verification")
-            assert server_hostname, "server_hostname must be set if verify_hostname is"
-            context.check_hostname = True
-            context.verify_mode = ssl.CERT_REQUIRED
+    def read(self, size=-1):
+        # if size < 0: # read all
+        #     if self.header_pos >= self.length: # heade consumed already
+        #         return self.file.read()
+        #     return self.header[self.header_pos:] + self.file.read()
+        if size < 1:
+            raise NotImplementedError(f'Reading {size} bytes: Unused case')
 
-        # If client verification is required
-        certfile = CONF.get_value('quality_control', 'certfile', default=None)
-        if certfile:
-            LOG.debug("Prepare for client verification")
-            keyfile = CONF.get_value('quality_control', 'keyfile')
-            context.load_cert_chain(certfile, keyfile=keyfile)
+        if self.header_pos + size <= self.header_length:
+            res = self.header[self.header_pos:self.header_pos+size]
+            self.header_pos += size
+            return res
 
-    try:
-        with urlopen(keyurl, context=context) as response:
-            assert(response.status == 200)
-            privkey = response.read()
-            if not privkey:  # Correcting a bug in the EGA keyserver
-                # When key not found, it returns a 200 and an empty payload.
-                # It should probably be changed to a 404
-                raise exceptions.PGPKeyError('No PGP key found')
-            return header_to_records(privkey, header, os.environ['LEGA_PASSWORD']), keyid
-    except HTTPError as e:
-        LOG.error(e)
-        msg = str(e)
-        if e.code == 404:  # If key not found, then probably wrong key.
-            raise exceptions.PGPKeyError(msg)
-        # Otherwise
-        raise exceptions.KeyserverError(msg)
-    # except Exception as e:
-    #     raise exceptions.KeyserverError(str(e))
+        if self.header_pos + size > self.header_length:
+            if self.header_pos >= self.header_length: # already 
+                return self.file.read(size)
+
+            assert(self.header_length - self.header_pos > 0)
+            res = self.header[self.header_pos:]
+            self.header_pos += size
+            return res + self.file.read(size-(self.header_length - self.header_pos))
+
+    def readinto(self, b):
+        assert( isinstance(b, bytearray) )
+        data = self.read(len(b))
+        n = len(data)
+        b[:n] = data
+        return n
+
+    # def readinto(self, b):
+    #     m = memoryview(b).cast('B')
+    #     data = self.read(len(m))
+    #     n = len(data)
+    #     m[:n] = data
+    #     return n
 
 
 @db.catch_error
 @db.crypt4gh_to_user_errors
-def work(chunk_size, mover, channel, data):
+def work(key, mover, channel, data):
     """Verify that the file in the archive can be properly decrypted."""
     LOG.info('Verification | message: %s', data)
 
     file_id = data['file_id']
-    header = bytes.fromhex(data['header'])[16:]  # in hex -> bytes, and take away 16 bytes
+    header = bytes.fromhex(data['header'])
     archive_path = data['archive_path']
-
-    # Get it from the header and the keyserver
-    records, key_id = get_records(header)  # might raise exception
-    r = records[0]  # only first one
-
     LOG.info('Opening archive file: %s', archive_path)
     # If you can decrypt... the checksum is valid
 
     # Calculate the checksum of the original content
-    md = hashlib.sha256()
-
-    def checksum_content(data):
-        md.update(data)
+    cf = ChecksumFile()
 
     with mover.open(archive_path, 'rb') as infile:
-        LOG.info('Decrypting (chunk size: %s)', chunk_size)
-        body_decrypt(r, infile, process_output=checksum_content, chunk_size=chunk_size)
+        LOG.info('Decrypting')
+        decrypt([(0,key.private(),None)], PrependHeaderFile(header, infile), cf)
 
-    digest = md.hexdigest()
+    digest = cf.hexdigest()
     LOG.info('Verification completed [sha256: %s]', digest)
 
     # Updating the database
@@ -137,10 +129,16 @@ def main(args=None):
     CONF.setup(args)  # re-conf
 
     store = getattr(storage, CONF.get_value('archive', 'storage_driver', default='FileStorage'))
-    chunk_size = CONF.get_value('archive', 's3_chunk_size', conv=int, default=1 << 22)  # 4 MB
+
+    # Loading the key from its storage (be it from file, or from a remote location)
+    # the key_config section in the config file should describe how
+    # We don't use default values: bark if not supplied
+    key_section = CONF.get_value('DEFAULT', 'master_key')
+    key_loader = getattr(key, CONF.get_value(key_section, 'loader_class'))
+    key_config = CONF[key_section] # the whole section
 
     broker = get_connection('broker')
-    do_work = partial(work, chunk_size, store('archive', 'lega'), broker.channel())
+    do_work = partial(work, key_loader(key_config), store('archive', 'lega'), broker.channel())
 
     consume(do_work, broker, 'archived', 'completed')
 
