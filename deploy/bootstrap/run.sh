@@ -15,10 +15,8 @@ OPENSSL=openssl
 INBOX=openssh
 INBOX_BACKEND=posix
 ARCHIVE_BACKEND=s3
-REAL_CEGA=no
 HOSTNAME_DOMAIN='' #".localega"
 
-GEN_KEY=${EXTRAS}/generate_pgp_key.py
 PYTHONEXEC=python
 
 function usage {
@@ -28,9 +26,7 @@ function usage {
     echo -e "\t--inbox <value>       \tSelect inbox \"openssh\" or \"mina\" [Default: ${INBOX}]"
     echo -e "\t--inbox-backend <value>   \tSelect the inbox backend: S3 or POSIX [Default: ${INBOX_BACKEND}]"
     echo -e "\t--archive-backend <value> \tSelect the archive backend: S3 or POSIX [Default: ${ARCHIVE_BACKEND}]"
-    echo -e "\t--genkey <value>      \tPath to PGP key generator [Default: ${GEN_KEY}]"
     echo -e "\t--pythonexec <value>  \tPython execute command [Default: ${PYTHONEXEC}]"
-    echo -e "\t--with-real-cega      \tUse the real Central EGA Message broker and Authentication Service"
     echo -e "\t--domain <value>      \tDomain for the hostnames [Default: '${HOSTNAME_DOMAIN}']"
     echo ""
     echo -e "\t--verbose, -v     \tShow verbose output"
@@ -51,9 +47,7 @@ while [[ $# -gt 0 ]]; do
         --inbox) INBOX=${2,,}; shift;;
         --inbox-backend) INBOX_BACKEND=${2,,}; shift;;
         --archive-backend) ARCHIVE_BACKEND=${2,,}; shift;;
-        --genkey) GEN_KEY=$2; shift;;
         --pythonexec) PYTHONEXEC=$2; shift;;
-        --with-real-cega) REAL_CEGA=yes;;
         --domain) HOSTNAME_DOMAIN=${2,,}; shift;;
         --) shift; break;;
         *) echo "$0: error - unrecognized option $1" 1>&2; usage; exit 1;;
@@ -63,77 +57,71 @@ done
 
 #########################################################################
 
-[[ $VERBOSE == 'no' ]] && echo -en "Bootstrapping "
-
 source ${HERE}/defs.sh
 
 [[ -x $(readlink ${OPENSSL}) ]] && echo "${OPENSSL} is not executable. Adjust the setting with --openssl" && exit 3
+[[ -x $(readlink ${PYTHONEXEC}) ]] && echo "${PYTHONEXEC} is not executable. Adjust the setting with --pythonexec" && exit 3
 
 rm_politely ${PRIVATE}
 mkdir -p ${PRIVATE}
 exec 2>${PRIVATE}/.err
 
 #########################################################################
+echo -n "Bootstrapping "
+[[ "${VERBOSE}" == 'yes' ]] && echo "" # new line
 
-if [[ ${REAL_CEGA} != 'yes' ]]; then
-    # Reset the variables here
-    CEGA_CONNECTION_PARAMS=$(${PYTHONEXEC} -c "from urllib.parse import urlencode;                               \
-	  			        print(urlencode({ 'heartbeat': 0,                                 \
-				                          'connection_attempts': 30,                      \
-				                          'retry_delay': 10,                              \
-							  'server_name_indication': 'cega-mq${HOSTNAME_DOMAIN}',   \
-							  'verify': 'verify_peer',                        \
-							  'fail_if_no_peer_cert': 'true',                 \
-							  'cacertfile': '/etc/rabbitmq/CA.cert',          \
-							  'certfile': '/etc/rabbitmq/ssl.cert',           \
-							  'keyfile': '/etc/rabbitmq/ssl.key',             \
-				                  }, safe='/-_.'))")
-
-    CEGA_CONNECTION="amqps://legatest:legatest@cega-mq${HOSTNAME_DOMAIN}:5671/lega?${CEGA_CONNECTION_PARAMS}"
-    CEGA_USERS_ENDPOINT="https://cega-users${HOSTNAME_DOMAIN}/lega/v1/legas/users"
-    CEGA_USERS_CREDS=$'legatest:legatest'
-fi
-
+echomsg "\t* Loading the settings"
 source ${HERE}/settings.rc
 
-# Make sure the variables are set
-[[ -z "${CEGA_USERS_ENDPOINT}" ]] && echo 'Environment CEGA_USERS_ENDPOINT is empty' 1>&2 && exit 1
-[[ -z "${CEGA_USERS_CREDS}" ]] && echo 'Environment CEGA_USERS_CREDS is empty' 1>&2 && exit 1
-[[ -z "${CEGA_CONNECTION}" ]] && echo 'Environment CEGA_CONNECTION is empty' 1>&2 && exit 1
+echomsg "\t* Fake Central EGA parameters"
+# For the fake CEGA
+CEGA_CONNECTION_PARAMS=$(${PYTHONEXEC} -c "from urllib.parse import urlencode;                               \
+	  			           print(urlencode({ 'heartbeat': 0,                                 \
+				                             'connection_attempts': 30,                      \
+				                             'retry_delay': 10,                              \
+						   	     'server_name_indication': 'cega-mq${HOSTNAME_DOMAIN}',   \
+							     'verify': 'verify_peer',                        \
+							     'fail_if_no_peer_cert': 'true',                 \
+							     'cacertfile': '/etc/rabbitmq/CA.cert',          \
+							     'certfile': '/etc/rabbitmq/ssl.cert',           \
+							     'keyfile': '/etc/rabbitmq/ssl.key',             \
+				                           }, safe='/-_.'))")
+
+CEGA_CONNECTION="amqps://legatest:legatest@cega-mq${HOSTNAME_DOMAIN}:5671/lega?${CEGA_CONNECTION_PARAMS}"
+CEGA_USERS_ENDPOINT="https://cega-users${HOSTNAME_DOMAIN}/lega/v1/legas/users"
+CEGA_USERS_CREDS=$'legatest:legatest'
+
+echomsg "\t* Fake Central EGA users"
+# For the fake Users
+source ${HERE}/users.sh
 
 #########################################################################
 
 backup ${DOT_ENV}
 
-if [[ {REAL_CEGA} == 'yes' ]]; then
-    cat > ${DOT_ENV} <<EOF
-COMPOSE_PROJECT_NAME=lega
-COMPOSE_FILE=${PRIVATE}/lega.yml
-EOF
-else
-    cat > ${DOT_ENV} <<EOF
+cat > ${DOT_ENV} <<EOF
 COMPOSE_PROJECT_NAME=lega
 COMPOSE_FILE=${PRIVATE}/lega.yml:${PRIVATE}/cega.yml
 COMPOSE_PATH_SEPARATOR=:
 EOF
-fi
 
 #########################################################################
 
-mkdir -p $PRIVATE/{pgp,logs}
-chmod 700 $PRIVATE/{pgp,logs}
+mkdir -p $PRIVATE/{keys,logs}
+chmod 700 $PRIVATE/{keys,logs}
 
-echomsg "\t* the PGP key"
+echomsg "\t* the C4GH key"
 
-${PYTHONEXEC} ${GEN_KEY} "${PGP_NAME}" "${PGP_EMAIL}" "${PGP_COMMENT}" --passphrase "${PGP_PASSPHRASE}" --pub ${PRIVATE}/pgp/ega.pub --priv ${PRIVATE}/pgp/ega.sec --armor
-chmod 644 ${PRIVATE}/pgp/ega.pub
-
-${PYTHONEXEC} ${GEN_KEY} "${PGP_NAME}" "${PGP_EMAIL}" "${PGP_COMMENT}" --passphrase "${PGP_PASSPHRASE}" --pub ${PRIVATE}/pgp/ega2.pub --priv ${PRIVATE}/pgp/ega2.sec --armor
-chmod 644 ${PRIVATE}/pgp/ega2.pub
-
-echo -n ${PGP_PASSPHRASE} > ${PRIVATE}/pgp/ega.sec.pass
-echo -n ${PGP_PASSPHRASE} > ${PRIVATE}/pgp/ega2.sec.pass
-echo -n ${LEGA_PASSWORD} > ${PRIVATE}/pgp/ega.shared.pass
+# C4GH_PASSPHRASE is an env var
+cat > ${PRIVATE}/keys/c4gh_keygen.sh <<EOF
+set timeout -1
+spawn crypt4gh-keygen -f --pk ${PRIVATE}/keys/ega.pub --sk ${PRIVATE}/keys/ega.sec
+expect "Passphrase for *"
+send -- "${C4GH_PASSPHRASE}\r"
+expect eof
+EOF
+expect -f ${PRIVATE}/keys/c4gh_keygen.sh &>/dev/null
+rm -f ${PRIVATE}/keys/c4gh_keygen.sh
 
 #########################################################################
 
@@ -179,38 +167,19 @@ fi
 
 #########################################################################
 
-echomsg "\t* keys.ini"
-${OPENSSL} enc -aes-256-cbc -salt -out ${PRIVATE}/keys.ini.enc -md md5 -k ${KEYS_PASSWORD} <<EOF
-[DEFAULT]
-active : key.1
-
-[key.1]
-path : /etc/ega/pgp/ega.sec
-passphrase : ${PGP_PASSPHRASE}
-expire: 30/MAR/19 08:00:00
-
-[key.2]
-path : /etc/ega/pgp/ega2.sec
-passphrase : ${PGP_PASSPHRASE}
-expire: 30/MAR/18 08:00:00
-EOF
-
-
 echomsg "\t* conf.ini"
 cat > ${PRIVATE}/conf.ini <<EOF
 [DEFAULT]
 log = debug
 #log = silent
 
-[keyserver]
-port = 8080
+master_key = c4gh_file
 
-[quality_control]
-keyserver_endpoint = http://keys${HOSTNAME_DOMAIN}:8080/keys/retrieve/%s/private/bin?idFormat=hex
+[c4gh_file]
+loader_class = C4GHFileKey
+passphrase = ${C4GH_PASSPHRASE}
+filepath = /etc/ega/ega.sec
 
-[outgestion]
-# Just for test
-keyserver_endpoint = http://keys${HOSTNAME_DOMAIN}:8080/keys/retrieve/%s/private/bin?idFormat=hex
 EOF
 
 # Local broker connection
@@ -460,6 +429,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - AWS_ACCESS_KEY_ID=${S3_ACCESS_KEY}
       - AWS_SECRET_ACCESS_KEY=${S3_SECRET_KEY}
     volumes:
+      - ../../lega:/home/lega/.local/lib/python3.6/site-packages/lega
       - inbox:/ega/inbox
       - ./conf.ini:/etc/ega/conf.ini:ro
       - ./entrypoint.sh:/usr/local/bin/lega-entrypoint.sh
@@ -480,26 +450,27 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     user: lega
     entrypoint: ["lega-entrypoint.sh"]
     command: ["ega-ingest"]
+    # entrypoint: ["/bin/sleep", "1000000000000"]
 
   # Consistency Control
   verify:
     depends_on:
       - db
       - mq
-      - keys
     hostname: verify${HOSTNAME_DOMAIN}
     container_name: verify${HOSTNAME_DOMAIN}
     labels:
         lega_label: "verify"
     image: egarchive/lega-base:latest
     environment:
-      - LEGA_PASSWORD=${LEGA_PASSWORD}
       - S3_ACCESS_KEY=${S3_ACCESS_KEY}
       - S3_SECRET_KEY=${S3_SECRET_KEY}
       - AWS_ACCESS_KEY_ID=${S3_ACCESS_KEY}
       - AWS_SECRET_ACCESS_KEY=${S3_SECRET_KEY}
     volumes:
+      - ../../lega:/home/lega/.local/lib/python3.6/site-packages/lega
       - ./conf.ini:/etc/ega/conf.ini:ro
+      - ./keys/ega.sec:/etc/ega/ega.sec
       - ./entrypoint.sh:/usr/local/bin/lega-entrypoint.sh
       - ../bootstrap/certs/data/verify.cert.pem:/etc/ega/ssl.cert
       - ../bootstrap/certs/data/verify.sec.pem:/etc/ega/ssl.key
@@ -518,6 +489,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     user: lega
     entrypoint: ["lega-entrypoint.sh"]
     command: ["ega-verify"]
+    # entrypoint: ["/bin/sleep", "1000000000000"]
 
   # Stable ID mapper
   finalize:
@@ -530,6 +502,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     labels:
         lega_label: "finalize"
     volumes:
+      - ../../lega:/home/lega/.local/lib/python3.6/site-packages/lega
       - ./conf.ini:/etc/ega/conf.ini:ro
       - ./entrypoint.sh:/usr/local/bin/lega-entrypoint.sh
       - ../bootstrap/certs/data/finalize.cert.pem:/etc/ega/ssl.cert
@@ -541,33 +514,8 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     user: lega
     entrypoint: ["lega-entrypoint.sh"]
     command: ["ega-finalize"]
+    # entrypoint: ["/bin/sleep", "1000000000000"]
 
-  # Key server
-  keys:
-    hostname: keys${HOSTNAME_DOMAIN}
-    container_name: keys${HOSTNAME_DOMAIN}
-    labels:
-        lega_label: "keys"
-    restart: on-failure:3
-    networks:
-      - lega
-    image: cscfi/ega-keyserver
-    environment:
-      - SPRING_PROFILES_ACTIVE=no-oss
-      - EGA_KEY_PATH=/etc/ega/pgp/ega.sec,/etc/ega/pgp/ega2.sec
-      - EGA_KEYPASS_PATH=/etc/ega/pgp/ega.sec.pass,/etc/ega/pgp/ega2.sec.pass
-      - EGA_SHAREDPASS_PATH=/etc/ega/pgp/ega.shared.pass
-      - EGA_PUBLICKEY_URL=
-      - EGA_LEGACY_PATH=
-    volumes:
-      - ./pgp/ega.sec:/etc/ega/pgp/ega.sec:ro
-      - ./pgp/ega.sec.pass:/etc/ega/pgp/ega.sec.pass:ro
-      - ./pgp/ega2.sec:/etc/ega/pgp/ega2.sec:ro
-      - ./pgp/ega2.sec.pass:/etc/ega/pgp/ega2.sec.pass:ro
-      - ./pgp/ega.shared.pass:/etc/ega/pgp/ega.shared.pass:ro
-      - ../bootstrap/certs/data/keys.cert.pem:/etc/ega/ssl.cert
-      - ../bootstrap/certs/data/keys.sec.pem:/etc/ega/ssl.key
-      - ../bootstrap/certs/data/CA.keys.cert.pem:/etc/ega/CA.cert
 EOF
 
 if [[ ${ARCHIVE_BACKEND} == 's3' ]]; then
@@ -649,14 +597,14 @@ services:
         lega_label: "cega-users"
     volumes:
       - ../../tests/_common/users.py:/cega/users.py
-      - ../../tests/_common/users.json:/cega/users.json
+      - ../../tests/_common/users:/cega/users
       - ../bootstrap/certs/data/cega-users.cert.pem:/cega/ssl.crt
       - ../bootstrap/certs/data/cega-users.sec.pem:/cega/ssl.key
       - ../bootstrap/certs/data/CA.cega-users.cert.pem:/cega/CA.crt
     networks:
       - lega
     user: root
-    entrypoint: ["python", "/cega/users.py", "0.0.0.0", "443", "/cega/users.json"]
+    entrypoint: ["python", "/cega/users.py", "0.0.0.0", "443", "/cega/users"]
 
   cega-mq:
     hostname: cega-mq${HOSTNAME_DOMAIN}
@@ -742,10 +690,7 @@ cat >> ${PRIVATE}/.trace <<EOF
 #
 #####################################################################
 #
-PGP_PASSPHRASE            = ${PGP_PASSPHRASE}
-PGP_NAME                  = ${PGP_NAME}
-PGP_COMMENT               = ${PGP_COMMENT}
-PGP_EMAIL                 = ${PGP_EMAIL}
+C4GH_PASSPHRASE           = ${C4GH_PASSPHRASE}
 #
 # Database users are 'lega_in' and 'lega_out'
 DB_LEGA_IN_PASSWORD       = ${DB_LEGA_IN_PASSWORD}
@@ -761,10 +706,6 @@ S3_SECRET_KEY             = ${S3_SECRET_KEY}
 DOCKER_PORT_inbox         = ${DOCKER_PORT_inbox}
 DOCKER_PORT_mq            = ${DOCKER_PORT_mq}
 DOCKER_PORT_s3            = ${DOCKER_PORT_s3}
-DOCKER_PORT_res           = ${DOCKER_PORT_res}
-#
-LEGA_PASSWORD             = ${LEGA_PASSWORD}
-KEYS_PASSWORD             = ${KEYS_PASSWORD}
 #
 # Local Message Broker (used by mq and inbox)
 MQ_USER                   = ${MQ_USER}

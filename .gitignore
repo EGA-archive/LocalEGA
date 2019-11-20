@@ -8,7 +8,7 @@ deploy/bootstrap/settings.rc.private
 tests/**/*.sec
 tests/**/*.debug
 tests/**/*.d
-tests/_common/users.json
+tests/_common/users/
 tests/_common/backup
 tests/_common/mq/*.pem
 
