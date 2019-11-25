@@ -31,6 +31,8 @@ from .utils.amqp import consume, publish, get_connection
 LOG = logging.getLogger(__name__)
 
 def get_header(input_file):
+    '''This function returns the header bytes, and leaves the
+    ``input_file`` file handle at the beginning of the data portion'''
     header_packets = list(header.parse(input_file))
     pos = input_file.tell()
     input_file.seek(0, io.SEEK_SET) # rewind
