@@ -43,7 +43,7 @@ class PrependHeaderFile():
         assert(header)
         self.header = header
         self.file = bulk
-        self.header_pos = 0
+        self.pos = 0
         self.header_length = len(header)
 
     def seek(self, offset, whence):
@@ -52,25 +52,25 @@ class PrependHeaderFile():
 
     def read(self, size=-1):
         # if size < 0: # read all
-        #     if self.header_pos >= self.length: # heade consumed already
+        #     if self.pos >= self.length: # heade consumed already
         #         return self.file.read()
-        #     return self.header[self.header_pos:] + self.file.read()
+        #     return self.header[self.pos:] + self.file.read()
         if size < 1:
             raise NotImplementedError(f'Reading {size} bytes: Unused case')
 
-        if self.header_pos + size <= self.header_length:
-            res = self.header[self.header_pos:self.header_pos+size]
-            self.header_pos += size
+        if self.pos + size <= self.header_length:
+            res = self.header[self.pos:self.pos+size]
+            self.pos += size
             return res
 
-        if self.header_pos + size > self.header_length:
-            if self.header_pos >= self.header_length: # already 
+        if self.pos + size > self.header_length:
+            if self.pos >= self.header_length: # already 
                 return self.file.read(size)
 
-            assert(self.header_length - self.header_pos > 0)
-            res = self.header[self.header_pos:]
-            self.header_pos += size
-            return res + self.file.read(size-(self.header_length - self.header_pos))
+            assert(self.header_length - self.pos > 0)
+            res = self.header[self.pos:]
+            self.pos += size
+            return res + self.file.read(size-(self.header_length - self.pos))
 
     def readinto(self, b):
         assert( isinstance(b, bytearray) )
@@ -105,6 +105,9 @@ def work(key, mover, channel, data):
     with mover.open(archive_path, 'rb') as infile:
         LOG.info('Decrypting')
         decrypt([(0,key.private(),None)], PrependHeaderFile(header, infile), cf)
+        # decrypt will loop through the segments and send the output to the `cf` file handle.
+        # The `cf` will only checksum the content (ie build the checksum of the unencrypted (original) file)
+        # and never leave a trace on disk.
 
     digest = cf.hexdigest()
     LOG.info('Verification completed [sha256: %s]', digest)

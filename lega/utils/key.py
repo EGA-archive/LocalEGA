@@ -26,7 +26,7 @@ class Key():
 
 
 
-class C4GHFileKey():
+class C4GHFileKey(Key):
     '''Loading a Crypt4GH-formatted file, and unlocking it using a passphrase.
 
     See https://crypt4gh.readthedocs.io/en/latest/keys.html'''
@@ -57,11 +57,11 @@ class C4GHFileKey():
         return self.seckey
 
 
-class HashiCorpVaultKey():
+class HashiCorpVaultKey(Key):
     pass
 
 
-class HTTPSKey():
+class HTTPSKey(Key):
     '''Retrive a public/private keypair from a remote server.'''
 
     def _convert_to_bool(value):
