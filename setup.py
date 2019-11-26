@@ -28,7 +28,7 @@ Users are handled throught Central EGA, directly.
           ]
       },
       platforms='any',
-      install_requires = [
+      install_requires=[
           'pika',
           'aiohttp',
           'psycopg2>=2.8.4',
