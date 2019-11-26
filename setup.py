@@ -30,11 +30,11 @@ Users are handled throught Central EGA, directly.
       platforms='any',
       install_requires = [
           'pika',
-          'aiohttp>=3.3.2',
+          'aiohttp',
           'psycopg2>=2.8.4',
           'PyYaml',
           'boto3',
           'requests',
-          #'crypt4gh', 'git+https://github.com/NBISweden/LocalEGA-cryptor.git'
+          'crypt4gh @ git+https://github.com/EGA-archive/crypt4gh.git'
       ]
 )
