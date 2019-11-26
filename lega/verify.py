@@ -12,34 +12,43 @@ with the routing key: ``completed``.
 """
 
 import sys
-import os
 import logging
 from functools import partial
-from urllib.request import urlopen
-from urllib.error import HTTPError
 import hashlib
 
 from crypt4gh.engine import decrypt
 
 from .conf import CONF
-from .utils import db, exceptions, storage, key
+from .utils import db, storage, key
 from .utils.amqp import consume, get_connection
 
 LOG = logging.getLogger(__name__)
 
+
 class ChecksumFile():
-    '''Fake IO writer, accepting bytes to checksum but not writing them anywhere'''
+    """Fake IO writer, accepting bytes to checksum but not writing them anywhere."""
+
     def __init__(self):
+        """Initiliaze this IO writer for checksuming.
+
+        The chosen checksum is `hashlib.sha256`.
+        """
         self.md = hashlib.sha256()
 
     def write(self, data):
+        """Send data to the checksum."""
         self.md.update(data)
 
     def hexdigest(self):
+        """Get the checksum value in hex format."""
         return self.md.hexdigest()
 
+
 class PrependHeaderFile():
+    """IO reader to inject header bytes in front of file."""
+
     def __init__(self, header, bulk):
+        """Initiliaze an IO reader with header prepended."""
         assert(header)
         self.header = header
         self.file = bulk
@@ -47,10 +56,15 @@ class PrependHeaderFile():
         self.header_length = len(header)
 
     def seek(self, offset, whence):
+        """Seek within the file."""
         # Not needed because we decrypt all of it, and not only a range
         raise NotImplementedError(f'Moving file pointer to {offset}: Unused case')
 
     def read(self, size=-1):
+        """Read `size` bytes.
+
+        If size<-1, raise NotImplementedError, because it is an unused case.
+        """
         # if size < 0: # read all
         #     if self.pos >= self.length: # heade consumed already
         #         return self.file.read()
@@ -64,7 +78,7 @@ class PrependHeaderFile():
             return res
 
         if self.pos + size > self.header_length:
-            if self.pos >= self.header_length: # already 
+            if self.pos >= self.header_length:  # already
                 return self.file.read(size)
 
             assert(self.header_length - self.pos > 0)
@@ -73,7 +87,11 @@ class PrependHeaderFile():
             return res + self.file.read(size-(self.header_length - self.pos))
 
     def readinto(self, b):
-        assert( isinstance(b, bytearray) )
+        """Fill the buffer `b`.
+
+        Returns the number of bytes read.
+        """
+        assert(isinstance(b, bytearray))
         data = self.read(len(b))
         n = len(data)
         b[:n] = data
@@ -104,7 +122,9 @@ def work(key, mover, channel, data):
 
     with mover.open(archive_path, 'rb') as infile:
         LOG.info('Decrypting')
-        decrypt([(0,key.private(),None)], PrependHeaderFile(header, infile), cf)
+        decrypt([(0, key.private(), None)],
+                PrependHeaderFile(header, infile),
+                cf)
         # decrypt will loop through the segments and send the output to the `cf` file handle.
         # The `cf` will only checksum the content (ie build the checksum of the unencrypted (original) file)
         # and never leave a trace on disk.
@@ -139,7 +159,7 @@ def main(args=None):
     # We don't use default values: bark if not supplied
     key_section = CONF.get_value('DEFAULT', 'master_key')
     key_loader = getattr(key, CONF.get_value(key_section, 'loader_class'))
-    key_config = CONF[key_section] # the whole section
+    key_config = CONF[key_section]  # the whole section
 
     broker = get_connection('broker')
     do_work = partial(work, key_loader(key_config), store('archive', 'lega'), broker.channel())

@@ -11,7 +11,7 @@ from socket import gethostname
 from time import sleep
 
 from ..conf import CONF
-from .exceptions import FromUser, KeyserverError, PGPKeyError
+from .exceptions import FromUser, KeyserverError
 from .amqp import publish, get_connection
 
 LOG = logging.getLogger(__name__)

@@ -36,5 +36,4 @@ Users are handled throught Central EGA, directly.
           'boto3',
           'requests',
           'crypt4gh @ git+https://github.com/EGA-archive/crypt4gh.git'
-      ]
-)
+      ])

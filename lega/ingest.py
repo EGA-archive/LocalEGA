@@ -30,12 +30,12 @@ from .utils.amqp import consume, publish, get_connection
 
 LOG = logging.getLogger(__name__)
 
+
 def get_header(input_file):
-    '''This function returns the header bytes, and leaves the
-    ``input_file`` file handle at the beginning of the data portion'''
-    header_packets = list(header.parse(input_file))
+    """Extract the header bytes, and leave the ``input_file`` file handle at the beginning of the data portion."""
+    _ = list(header.parse(input_file))
     pos = input_file.tell()
-    input_file.seek(0, io.SEEK_SET) # rewind
+    input_file.seek(0, io.SEEK_SET)  # rewind
     return input_file.read(pos)
     # That's ok to rewind, we are not reading a stream
     # Alternatively, get the packets and recombine them
