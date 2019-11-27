@@ -123,6 +123,10 @@ EOF
 expect -f ${PRIVATE}/keys/c4gh_keygen.sh &>/dev/null
 rm -f ${PRIVATE}/keys/c4gh_keygen.sh
 
+# Making the key readable, because when it's injected inside the container
+# it retains the permissions. Therefore, originally 400, will make it unreadable to the lega user.
+chmod 444 ${PRIVATE}/keys/ega.sec
+
 #########################################################################
 
 echomsg "\t* Entrypoint"
