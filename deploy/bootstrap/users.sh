@@ -15,7 +15,7 @@
     declare -A PASSPHRASES
 
     # check that bcrypt is installed for this python version
-    if ! ${PYTHONEXEC} -c 'import importlib; import sys; sys.exit(0 if importlib.util.find_spec("bcrypt") is not None else 1)'; then
+    if ! ${PYTHONEXEC} -c 'from importlib.util import find_spec; import sys; sys.exit(0 if find_spec("bcrypt") is not None else 1)'; then
 	echo 'The python bcrypt package is not found for this python version'
 	exit 1
     fi
