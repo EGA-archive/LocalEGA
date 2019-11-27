@@ -60,7 +60,7 @@ function teardown() {
 
     # Generate a random file (1 MB)
     export C4GH_PASSPHRASE=${TESTUSER_PASSPHRASE}
-    dd if=/dev/urandom bs=1m count=1 | crypt4gh encrypt --sk ${TESTUSER_SECKEY} --recipient_pk ${EGA_PUBKEY} > ${TESTFILES}/${TESTFILE}.c4ga
+    dd if=/dev/urandom bs=1048576 count=1 | crypt4gh encrypt --sk ${TESTUSER_SECKEY} --recipient_pk ${EGA_PUBKEY} > ${TESTFILES}/${TESTFILE}.c4ga
     unset C4GH_PASSPHRASE
 
     # Upload it
