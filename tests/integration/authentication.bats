@@ -22,24 +22,48 @@ function teardown() {
 
 @test "Ingest a file for a user that does not exist in CentralEGA" {
 
-    legarun ${LEGA_SFTP} -oBatchMode=yes nonexistant@localhost <<< $"ls"
-    # -oBatchMode=yes for not prompting password
-    [ "$status" -eq 255 ]
-    #[[ "${lines[2]}" == *"Permission denied"* ]]
-    [[ "${output}" == *"Permission denied"* ]]
+    cat > ${TESTFILES}/wrong_user.sh <<EOF
+set timeout -1
+spawn ${LEGA_SFTP} -oBatchMode=yes nonexistant@localhost
+
+expect {
+    "*sftp>*"                           { exit 1 }
+    "Please, enter your EGA password: " { exit 2 }
+    "*Permission denied*"               { exit 3 }
+    "*Connection closed*"               { exit 3 }
+    eof
+}
+EOF
+    legarun expect -f ${TESTFILES}/wrong_user.sh &>/dev/null
+    [ "$status" -eq 2 ] || [ "$status" -eq 3 ]
+
 }
 
 @test "Ingest a file using the wrong user password" {
-    skip "We have to see how to pass a password to sftp server, sshpass, expect..."
 
     TESTUSER=jane
     USER_PASS=nonsense_password
 
-    legarun lftp -u $TESTUSER,$USER_PASS sftp://localhost:${INBOX_PORT} <<< $"ls"
-    #run ${LEGA_SFTP} ${TESTUSER}@localhost
-    [ "$status" -eq 255 ]
-    #[[ "${lines[2]}" == *"Permission denied"* ]]
-    [[ "${output}" == *"Permission denied"* ]]
+    cat > ${TESTFILES}/sftp_password.sh <<EOF
+set timeout -1
+spawn ${LEGA_SFTP} ${TESTUSER}@localhost
+expect "Please, enter your EGA password: "
+send -- "${USER_PASS}\r"
+expect "Please, enter your EGA password: "
+send -- "${USER_PASS}\r"
+expect "Please, enter your EGA password: "
+send -- "${USER_PASS}\r"
+
+expect {
+    "*Permission denied*" { exit 2 }
+    "*Connection closed*" { exit 2 }
+    eof
+}
+EOF
+    legarun expect -f ${TESTFILES}/sftp_password.sh &>/dev/null
+    [ "$status" -eq 2 ]
+
+    #rm -f ${TESTFILES}/sftp_password.sh
 }
 
 @test "Ingest a file using the wrong user sshkey" {
@@ -47,10 +71,20 @@ function teardown() {
     TESTUSER=jane
     ssh-keygen -f $TESTFILES/fake.sshkey -N ''
     chmod 400 $TESTFILES/fake.sshkey
+    
+    cat > ${TESTFILES}/fake_key.sh <<EOF
+set timeout -1
+spawn ${LEGA_SFTP} -oBatchMode=yes -i ${TESTFILES}/fake.sshkey ${TESTUSER}@localhost
+expect {
+    "*sftp>*"                           { exit 1 }
+    "Please, enter your EGA password: " { exit 2 }
+    "*Permission denied*"               { exit 3 }
+    "*Connection closed*"               { exit 3 }
+    eof
+}
+EOF
+    legarun expect -f ${TESTFILES}/fake_key.sh
+    [ "$status" -eq 3 ]
 
-    legarun ${LEGA_SFTP} -oBatchMode=yes -i $TESTFILES/fake.sshkey ${TESTUSER}@localhost
-    # -oBatchMode=yes for not prompting password
-    [ "$status" -eq 255 ]
-    #[[ "${lines[2]}" == *"Permission denied"* ]]
-    [[ "${output}" == *"Permission denied"* ]]
+    #rm -f ${TESTFILES}/fake_key.sh
 }
