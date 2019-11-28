@@ -53,6 +53,7 @@ images:
 
 # That's for Travis
 install-bootstrap-packages:
+	pip3 install --upgrade pip
 	pip3 install git+https://github.com/EGA-archive/crypt4gh.git
 	pip3 install pika==1.0.1
-	sudo apt-get install expect
+	apt-get install expect
