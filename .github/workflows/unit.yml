@@ -25,8 +25,9 @@ jobs:
       uses: actions/setup-python@master
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Install required python packages
+    - name: Install required tools
       run: |
+        sudo apt-get install postgresql postgresql-contrib
         pip install --upgrade pip
         pip install tox
     - name: tox
