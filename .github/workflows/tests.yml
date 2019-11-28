@@ -1,0 +1,64 @@
+name: "Testsuite"
+
+on:
+  pull_request:
+    branches:
+      - master
+  push:
+    branches:
+      - 'tests/*'
+      - 'cleanup'
+
+jobs:
+  testsuite:
+    strategy:
+      max-parallel: 4
+      matrix:
+        # os: [ubuntu-latest, macOS-latest]
+        os: [ubuntu-latest]
+        bootstrap: ['', '--archive-backend posix']
+        bats: ['integration', 'security', 'robustness']
+
+    runs-on: ${{ matrix.os }}
+
+    name: |
+      ${{ matrix.bats }} tests (bootstrap options: '${{ matrix.bootstrap }}')
+
+    steps:
+    - uses: actions/checkout@master
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@master
+      with:
+        python-version: 3.6
+    - name: (re)Build docker image
+      run: |
+        docker build -f Dockerfile \
+                     --build-arg LEGA_GID=1000 \
+                     --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
+                     --build-arg SOURCE_COMMIT=$(git rev-parse --short HEAD) \
+                     --tag egarchive/lega-base:latest \
+                     .
+    - name: Install required tools
+      run: |
+        git clone https://github.com/bats-core/bats-core.git
+        pushd bats-core
+        git checkout v1.1.0
+        sudo ./install.sh /usr/local
+        popd
+        pip install git+https://github.com/EGA-archive/crypt4gh.git
+        pip install pika==1.0.1
+        sudo apt-get install expect
+    - name: Bootstrap a LocalEGA (connected to a fake CentralEGA) with '${{ matrix.bootstrap }}'
+      run: |
+        pushd deploy
+        bootstrap/run.sh ${{ matrix.bootstrap }} || { cat private/.err; exit 1; }
+        docker-compose up -d
+        docker-compose ps
+        echo "Ensure the system is up"
+        sleep 80
+        popd
+    - name: Running ${{ matrix.bats }} testsuite
+      run: |
+        bats tests/${{ matrix.bats }}
+
+

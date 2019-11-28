@@ -80,7 +80,7 @@ function load_into_ssh_agent {
     [[ -z "${SSH_AGENT_PID}" ]] && echo "The ssh-agent was not started" >&2 && return 2
 
     while IFS=: read -a info; do
-	echo "Compare with ${info[0]} == ${user}" >&3
+	# echo "Compare with ${info[0]} == ${user}" >&3
 	if [[ "${info[0]}" == "${user}" ]]; then
 	    expect &>/dev/null <<EOF
 set timeout -1
