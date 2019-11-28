@@ -55,3 +55,4 @@ images:
 install-bootstrap-packages:
 	pip3 install git+https://github.com/EGA-archive/crypt4gh.git
 	pip3 install pika==1.0.1
+	sudo apt-get install expect
