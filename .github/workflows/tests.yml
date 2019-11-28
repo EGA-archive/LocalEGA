@@ -17,7 +17,8 @@ jobs:
         # os: [ubuntu-latest, macOS-latest]
         os: [ubuntu-latest]
         bootstrap: ['', '--archive-backend posix']
-        bats: ['integration', 'security', 'robustness']
+        # bats: ['integration', 'security', 'robustness']
+        bats: ['integration']
 
     runs-on: ${{ matrix.os }}
 
@@ -54,7 +55,6 @@ jobs:
         bootstrap/run.sh ${{ matrix.bootstrap }} || { cat private/.err; exit 1; }
         docker-compose up -d
         docker-compose ps
-        echo "Ensure the system is up"
         sleep 80
         popd
     - name: Running ${{ matrix.bats }} testsuite

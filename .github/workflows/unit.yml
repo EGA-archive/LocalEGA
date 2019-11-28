@@ -1,30 +1,36 @@
-name: "unit tests"
+name: "Unit Tests"
 
 on:
   push:
     branches:
+      - 'tests/*'
       - 'cleanup'
 
 jobs:
-  build:
+  unit_tests:
     strategy:
       max-parallel: 4
       matrix:
         #os: [ubuntu-latest, macOS-latest]
+        os: [ubuntu-latest]
         python-version: [3.6, 3.7, 3.8]
 
     runs-on: ${{ matrix.os }}
 
     name: Unit tests with Python ${{ matrix.python-version }}
+
     steps:
     - uses: actions/checkout@master
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@master
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Install required packages
+    - name: Install required python packages
       run: |
-        python -m pip install --upgrade pip
+        pip install --upgrade pip
         pip install tox
     - name: tox
-      run: tox
+      run: |
+        tox
+
+
