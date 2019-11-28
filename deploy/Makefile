@@ -1,5 +1,5 @@
 SHELL := /bin/bash
-
+OPENSSL=openssl
 ARGS=
 
 .PHONY: help bootstrap private network up down clean ps clean-volumes clean-all prepare images install-bootstrap-packages
@@ -48,21 +48,12 @@ preflight-check:
 # - the key server (slow setup with java spring)
 
 
-# Decrypt the encoded data from the repository
-# That is, some users private ssh keys and the database of fake CentralEGA Users
-prepare: ../tests/_common/dummy.sec ../tests/_common/john.sec ../tests/_common/jane.sec ../tests/_common/users.json
-
-%.sec: %.sec.enc
-	openssl enc -aes-256-cbc -d -in $< -out $@ -k ${REPO_PASSWORD}
-	chmod 400 $@
-
-%.json: %.json.enc
-	openssl enc -aes-256-cbc -d -in $< -out $@ -k ${REPO_PASSWORD}
-
 images:
 	make -C images
 
 # That's for Travis
 install-bootstrap-packages:
-	pip3 install git+https://github.com/NBISweden/LocalEGA-cryptor.git
-	pip3 install pgpy pika==1.0.1
+	pip3 install --upgrade pip
+	pip3 install git+https://github.com/EGA-archive/crypt4gh.git
+	pip3 install pika==1.0.1
+	apt-get install expect

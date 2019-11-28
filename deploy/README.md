@@ -8,8 +8,10 @@ You can then [generate the private data](bootstrap), with:
 
 	make bootstrap
 
+This requires `openssl` (>=1.0), `ssh-keygen` (=>6.5), `expect` and [`crypt4gh-keygen`](https://github.com/EGA-archive/crypt4gh).
+
 The command will create a `.env` file and a `private` folder holding
-the necessary data (ie the PGP key, the Main LEGA password, the SSL
+the necessary data (ie the master keypair, the SSL
 certificates for internal communication, passwords, default users,
 etc...)
 
@@ -20,26 +22,15 @@ These networks are reflected in their corresponding YML files
 * `private/cega.yml`
 * `private/lega.yml`
 
-The passwords are in `private/lega/.trace` and the errors (if any) are in `private/.err`.
+The passwords are in `private/.trace` and the errors (if any) are in `private/.err`.
 
-### Bootstrapping with advanced options
-
-If one would want to make use of the [keyserver from
-ega-data-api](https://github.com/EGA-archive/ega-data-api/tree/master/ega-data-api-key) instead of the [LocalEGA keyserver](https://github.com/NBISweden/LocalEGA/blob/dev/lega/keyserver.py), bootstrap with:
-
-	make "ARGS=--keyserver ega" bootstrap
-
-In order to make use of [Apache Mina Inbox](https://github.com/NBISweden/LocalEGA-inbox) use:
-
-	make bootstrap ARGS='--inbox mina'
-
-Multiple bootstrapping options can be used at the same time:
-
-	make bootstrap ARGS='--inbox mina --keyserver ega'
+The test user credentials are found in `private/.users`.
 
 ## Running
 
-	docker-compose up -d
+	make up
+
+This is just a shortcut for `docker-compose up -d`
 
 Use `docker-compose up -d --scale ingest=3 --scale verify=5` instead,
 if you want to start 3 ingestion and 5 verification workers.
@@ -50,17 +41,21 @@ will be created on-the-fly by docker-compose.
 
 ## Stopping
 
-	docker-compose down -v
+	make down
+
+This is just a shortcut for `docker-compose down -v` (removing networks and volumes).
 
 ## Status
 
-	docker-compose ps
+	make down
+
+This is just a shortcut for `docker-compose ps`
 
 ## Cleaning
 
 To clean up everything you can use the following commands
 
-Remove the bootstrap stuff (including network):
+Remove the bootstrap stuff (including private data and certificates):
 
     make clean
 

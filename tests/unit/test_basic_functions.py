@@ -8,7 +8,7 @@ from unittest import mock
 from lega.utils import get_file_content, sanitize_user_id
 import io
 from testfixtures import tempdir
-from . import pgp_data
+from . import c4gh_data
 from io import StringIO
 
 
@@ -33,7 +33,7 @@ class TestBasicFunctions(unittest.TestCase):
     @tempdir()
     def test_calculate(self, filedir):
         """Compute the checksum of the file-object."""
-        path = filedir.write('priv.pgp', pgp_data.PGP_PRIVKEY.encode('utf-8'))
+        path = filedir.write('file.c4gh', c4gh_data.ENC_FILE.encode('utf-8'))
         with open(path, 'rb') as file_data:
             data = file_data.read()
             file_hash = (hashlib.md5)(data).hexdigest()

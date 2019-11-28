@@ -29,6 +29,9 @@ def work(data):
     stable_id = data['stable_id']
     LOG.info(f"Mapping {file_id} to stable_id {stable_id}")
 
+    # Remove file from the inbox
+    # TODO
+
     db.set_stable_id(file_id, stable_id)  # That will flag the entry as 'Ready'
 
     LOG.info(f"Stable ID {stable_id} mapped to {file_id}")

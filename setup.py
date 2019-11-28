@@ -23,10 +23,17 @@ Users are handled throught Central EGA, directly.
           'console_scripts': [
               'ega-ingest = lega.ingest:main',
               'ega-verify = lega.verify:main',
-              'ega-keyserver = lega.keyserver:main',
               'ega-finalize = lega.finalize:main',
               'ega-conf = lega.conf.__main__:main',
           ]
       },
       platforms='any',
-      )
+      install_requires=[
+          'pika',
+          'aiohttp',
+          'psycopg2>=2.8.4',
+          'PyYaml',
+          'boto3',
+          'requests',
+          'crypt4gh @ git+https://github.com/EGA-archive/crypt4gh.git'
+      ])
