@@ -139,8 +139,7 @@ def work(key, mover, channel, data):
     org_msg = data['org_msg']
     org_msg.pop('file_id', None)
     org_msg['reference'] = file_id
-    org_msg['decrypted_checksums'] = [{'value': digest_sha256, 'type': 'sha256'},
-                                      {'value': digest_md5, 'type': 'md5'}]
+    org_msg['checksum'] = {'value': digest, 'algorithm': 'sha256'}
     LOG.debug(f"Reply message: {org_msg}")
     return org_msg
 
