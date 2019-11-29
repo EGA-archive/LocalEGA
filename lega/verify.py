@@ -160,8 +160,16 @@ def main(args=None):
     key_loader = getattr(key, CONF.get_value(key_section, 'loader_class'))
     key_config = CONF[key_section]  # the whole section
 
+    path = None
+    if store is storage.FileStorage:
+        # we retrieve the user folder name for the archive
+        path = CONF.get_value('archive', 'user')
+    elif store is storage.S3Storage:
+        # we retrieve the s3 bucket name for the archive
+        path = CONF.get_value('archive', 's3_bucket')
+
     broker = get_connection('broker')
-    do_work = partial(work, key_loader(key_config), store('archive', 'lega'), broker.channel())
+    do_work = partial(work, key_loader(key_config), store('archive', path), broker.channel())
 
     consume(do_work, broker, 'archived', 'completed')
 
