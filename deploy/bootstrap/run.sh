@@ -162,11 +162,11 @@ chmod +x ${PRIVATE}/entrypoint.sh
 #########################################################################
 echomsg "\t* the SSL certificates"
 
-make -C ${HERE}/certs clean prepare OPENSSL=${OPENSSL} &>${PRIVATE}/.err
-yes | make -C ${HERE}/certs OPENSSL=${OPENSSL} DOMAIN="${HOSTNAME_DOMAIN}" &>${PRIVATE}/.err
-
-if [[ ${REAL_CEGA} != 'yes' ]]; then
-    yes | make -C ${HERE}/certs cega testsuite OPENSSL=${OPENSSL} DOMAIN="${HOSTNAME_DOMAIN}" &>${PRIVATE}/.err
+if command -v legainit &>/dev/null; then
+  legainit --cega --config-path  ${PRIVATE}/config &>${PRIVATE}/.err
+else 
+  pip install git+https://github.com/neicnordic/LocalEGA-deploy-init.git &>${PRIVATE}/.err
+  legainit --cega --config-path  ${PRIVATE}/config &>${PRIVATE}/.err
 fi
 
 #########################################################################
