@@ -15,7 +15,7 @@ OPENSSL=openssl
 INBOX=openssh
 INBOX_BACKEND=posix
 ARCHIVE_BACKEND=s3
-HOSTNAME_DOMAIN='' #".localega"
+HOSTNAME_DOMAIN='.default' #".localega"
 
 PYTHONEXEC=python
 
@@ -197,7 +197,7 @@ MQ_CONNECTION_PARAMS=$(${PYTHONEXEC} -c "from urllib.parse import urlencode;    
 # So we add the parameters on the configuration file and
 # create the SSL socket ourselves
 # Some parameters can be passed in the URL, though.
-MQ_CONNECTION="amqps://${MQ_USER}:${MQ_PASSWORD}@mq${HOSTNAME_DOMAIN}:5671/%2F"
+MQ_CONNECTION="amqps://${MQ_USER}:${MQ_PASSWORD}@localega-mq-server${HOSTNAME_DOMAIN}:5671/%2F"
 
 # Database connection
 DB_CONNECTION_PARAMS=$(${PYTHONEXEC} -c "from urllib.parse import urlencode;                   \
@@ -208,7 +208,7 @@ DB_CONNECTION_PARAMS=$(${PYTHONEXEC} -c "from urllib.parse import urlencode;    
 				                    'sslrootcert': '/etc/ega/CA.cert',  \
 				                  }, safe='/-_.'))")
 
-DB_CONNECTION="postgres://lega_in:${DB_LEGA_IN_PASSWORD}@db${HOSTNAME_DOMAIN}:5432/lega"
+DB_CONNECTION="postgres://lega_in:${DB_LEGA_IN_PASSWORD}@localega-db${HOSTNAME_DOMAIN}:5432/lega"
 
 #
 # Configuration file
@@ -238,7 +238,7 @@ EOF
 if [[ ${ARCHIVE_BACKEND} == 's3' ]]; then
     cat >> ${PRIVATE}/conf.ini <<EOF
 storage_driver = S3Storage
-s3_url = https://archive${HOSTNAME_DOMAIN}:9000
+s3_url = https://minio${HOSTNAME_DOMAIN}:9000
 s3_access_key = ${S3_ACCESS_KEY}
 s3_secret_key = ${S3_SECRET_KEY}
 s3_bucket = lega
@@ -313,7 +313,7 @@ services:
   ############################################
 
   # Local Message broker
-  mq:
+  localega-mq-server:
     environment:
       - CEGA_CONNECTION=${CEGA_CONNECTION}
       - MQ_USER=${MQ_USER}
@@ -325,20 +325,20 @@ services:
     ports:
       - "${DOCKER_PORT_mq}:15672"
     image: egarchive/lega-mq:latest
-    container_name: mq${HOSTNAME_DOMAIN}
+    container_name: localega-mq-server${HOSTNAME_DOMAIN}
     labels:
-        lega_label: "mq"
+        lega_label: "localega-mq-server"
     restart: on-failure:3
     networks:
       - lega
     volumes:
       - mq:/var/lib/rabbitmq
-      - ../bootstrap/certs/data/mq.cert.pem:/etc/rabbitmq/ssl.cert
-      - ../bootstrap/certs/data/mq.sec.pem:/etc/rabbitmq/ssl.key
-      - ../bootstrap/certs/data/CA.mq.cert.pem:/etc/rabbitmq/CA.cert
+      - ./config/certs/mq-server.ca.crt:/etc/rabbitmq/ssl.cert
+      - ./config/certs/mq-server.ca.key:/etc/rabbitmq/ssl.key
+      - ./config/certs/root.ca.crt:/etc/rabbitmq/CA.cert
 
   # Local Database
-  db:
+  localega-db:
     environment:
       - DB_LEGA_IN_PASSWORD=${DB_LEGA_IN_PASSWORD}
       - DB_LEGA_OUT_PASSWORD=${DB_LEGA_OUT_PASSWORD}
@@ -347,16 +347,16 @@ services:
       - PG_SERVER_KEY=/etc/ega/pg.key
       - PG_CA=/etc/ega/CA.cert
       - PG_VERIFY_PEER=1
-    hostname: db${HOSTNAME_DOMAIN}
-    container_name: db${HOSTNAME_DOMAIN}
+    hostname: localega-db${HOSTNAME_DOMAIN}
+    container_name: localega-db${HOSTNAME_DOMAIN}
     labels:
         lega_label: "db"
     image: egarchive/lega-db:latest
     volumes:
       - db:/ega/data
-      - ../bootstrap/certs/data/db.cert.pem:/etc/ega/pg.cert
-      - ../bootstrap/certs/data/db.sec.pem:/etc/ega/pg.key
-      - ../bootstrap/certs/data/CA.db.cert.pem:/etc/ega/CA.cert
+      - ./config/certs/db.ca.crt:/etc/ega/pg.cert
+      - ./config/certs/db.ca.key:/etc/ega/pg.key
+      - ./config/certs/root.ca.crt:/etc/ega/CA.cert
     restart: on-failure:3
     networks:
       - lega
@@ -365,7 +365,7 @@ services:
   inbox:
     hostname: inbox${HOSTNAME_DOMAIN}
     depends_on:
-      - mq
+      - localega-mq-server
     # Required external link
     container_name: inbox${HOSTNAME_DOMAIN}
     labels:
@@ -382,12 +382,17 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - S3_ACCESS_KEY=${S3_ACCESS_KEY_INBOX}
       - S3_SECRET_KEY=${S3_SECRET_KEY_INBOX}
       - S3_ENDPOINT=inbox-s3-backend:9000
-      - USE_SSL=false
+      - KEYSTORE_TYPE=PKCS12
+      - KEYSTORE_PASSWORD=changeit
+      - KEYSTORE_PATH=/ega/tls/inbox.p12
+      - USE_SSL=true
     ports:
       - "${DOCKER_PORT_inbox}:2222"
     image: nbisweden/ega-mina-inbox
     volumes:
       - inbox:/ega/inbox
+      - ./config/certs/htsget.p12:/ega/tls/inbox.p12
+      - ./config/certs/root.ca.crt:/etc/ega/CA.cert
 EOF
 else
 cat >> ${PRIVATE}/lega.yml <<EOF  # SFTP inbox
@@ -413,9 +418,9 @@ cat >> ${PRIVATE}/lega.yml <<EOF  # SFTP inbox
     image: egarchive/lega-inbox:latest
     volumes:
       - inbox:/ega/inbox
-      - ../bootstrap/certs/data/inbox.cert.pem:/etc/ega/ssl.cert
-      - ../bootstrap/certs/data/inbox.sec.pem:/etc/ega/ssl.key
-      - ../bootstrap/certs/data/CA.inbox.cert.pem:/etc/ega/CA.cert
+      - ./config/certs/inbox.ca.crt:/etc/ega/ssl.cert
+      - ./config/certs/inbox.ca.key:/etc/ega/ssl.key
+      - ./config/certs/root.ca.crt:/etc/ega/CA.cert
 EOF
 fi
 
@@ -425,8 +430,8 @@ cat >> ${PRIVATE}/lega.yml <<EOF
   ingest:
     hostname: ingest${HOSTNAME_DOMAIN}
     depends_on:
-      - db
-      - mq
+      - localega-db
+      - localega-mq-server
     image: egarchive/lega-base:latest
     container_name: ingest${HOSTNAME_DOMAIN}
     labels:
@@ -441,9 +446,9 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - inbox:/ega/inbox
       - ./conf.ini:/etc/ega/conf.ini:ro
       - ./entrypoint.sh:/usr/local/bin/lega-entrypoint.sh
-      - ../bootstrap/certs/data/ingest.cert.pem:/etc/ega/ssl.cert
-      - ../bootstrap/certs/data/ingest.sec.pem:/etc/ega/ssl.key
-      - ../bootstrap/certs/data/CA.ingest.cert.pem:/etc/ega/CA.cert
+      - ./config/certs/ingest.ca.crt:/etc/ega/ssl.cert
+      - ./config/certs/ingest.ca.key:/etc/ega/ssl.key
+      - ./config/certs/root.ca.crt:/etc/ega/CA.cert
 EOF
 if [[ ${ARCHIVE_BACKEND} == 'posix' ]]; then
 cat >> ${PRIVATE}/lega.yml <<EOF
@@ -463,8 +468,8 @@ cat >> ${PRIVATE}/lega.yml <<EOF
   # Consistency Control
   verify:
     depends_on:
-      - db
-      - mq
+      - localega-db
+      - localega-mq-server
     hostname: verify${HOSTNAME_DOMAIN}
     container_name: verify${HOSTNAME_DOMAIN}
     labels:
@@ -480,9 +485,9 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - ./conf.ini:/etc/ega/conf.ini:ro
       - ./keys/ega.sec:/etc/ega/ega.sec
       - ./entrypoint.sh:/usr/local/bin/lega-entrypoint.sh
-      - ../bootstrap/certs/data/verify.cert.pem:/etc/ega/ssl.cert
-      - ../bootstrap/certs/data/verify.sec.pem:/etc/ega/ssl.key
-      - ../bootstrap/certs/data/CA.verify.cert.pem:/etc/ega/CA.cert
+      - ./config/certs/verify.ca.crt:/etc/ega/ssl.cert
+      - ./config/certs/verify.ca.key:/etc/ega/ssl.key
+      - ./config/certs/root.ca.crt:/etc/ega/CA.cert
 EOF
 if [[ ${ARCHIVE_BACKEND} == 'posix' ]]; then
 cat >> ${PRIVATE}/lega.yml <<EOF
@@ -503,8 +508,8 @@ cat >> ${PRIVATE}/lega.yml <<EOF
   finalize:
     hostname: finalize${HOSTNAME_DOMAIN}
     depends_on:
-      - db
-      - mq
+      - localega-db
+      - localega-mq-server
     image: egarchive/lega-base:latest
     container_name: finalize${HOSTNAME_DOMAIN}
     labels:
@@ -513,9 +518,9 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - ../../lega:/home/lega/.local/lib/python3.6/site-packages/lega
       - ./conf.ini:/etc/ega/conf.ini:ro
       - ./entrypoint.sh:/usr/local/bin/lega-entrypoint.sh
-      - ../bootstrap/certs/data/finalize.cert.pem:/etc/ega/ssl.cert
-      - ../bootstrap/certs/data/finalize.sec.pem:/etc/ega/ssl.key
-      - ../bootstrap/certs/data/CA.finalize.cert.pem:/etc/ega/CA.cert
+      - ./config/certs/finalize.ca.crt:/etc/ega/ssl.cert
+      - ./config/certs/finalize.ca.key:/etc/ega/ssl.key
+      - ./config/certs/root.ca.crt:/etc/ega/CA.cert
     restart: on-failure:3
     networks:
       - lega
@@ -530,9 +535,9 @@ if [[ ${ARCHIVE_BACKEND} == 's3' ]]; then
 cat >> ${PRIVATE}/lega.yml <<EOF
 
   # Storage backend: S3
-  archive:
-    hostname: archive${HOSTNAME_DOMAIN}
-    container_name: archive${HOSTNAME_DOMAIN}
+  minio:
+    hostname: minio${HOSTNAME_DOMAIN}
+    container_name: minio${HOSTNAME_DOMAIN}
     labels:
         lega_label: "archive"
     image: minio/minio:RELEASE.2018-12-19T23-46-24Z
@@ -541,9 +546,9 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - MINIO_SECRET_KEY=${S3_SECRET_KEY}
     volumes:
       - archive:/data
-      - ../bootstrap/certs/data/archive.cert.pem:/root/.minio/certs/public.crt
-      - ../bootstrap/certs/data/archive.sec.pem:/root/.minio/certs/private.key
-      - ../bootstrap/certs/data/CA.archive.cert.pem:/root/.minio/CAs/LocalEGA.crt
+      - ./config/certs/s3.ca.crt:/root/.minio/certs/public.crt
+      - ./config/certs/s3.ca.key:/root/.minio/certs/private.key
+      - ./config/certs/root.ca.crt:/root/.minio/CAs/LocalEGA.crt
     restart: on-failure:3
     networks:
       - lega
@@ -566,9 +571,9 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     environment:
       - MINIO_ACCESS_KEY=${S3_ACCESS_KEY_INBOX}
       - MINIO_SECRET_KEY=${S3_SECRET_KEY_INBOX}
-      - ../bootstrap/certs/data/inbox-s3-backend.cert.pem:/root/.minio/certs/public.crt
-      - ../bootstrap/certs/data/inbox-s3-backend.sec.pem:/root/.minio/certs/private.key
-      - ../bootstrap/certs/data/CA.inbox-s3-backend.cert.pem:/root/.minio/CAs/LocalEGA.crt
+      - ./config/certs/s3.ca.crt:/root/.minio/certs/public.crt
+      - ./config/certs/s3.ca.key:/root/.minio/certs/private.key
+      - ./config/certs/root.ca.crt:/root/.minio/CAs/LocalEGA.crt
     volumes:
       - inbox-s3:/data
     restart: on-failure:3
@@ -606,9 +611,9 @@ services:
     volumes:
       - ../../tests/_common/users.py:/cega/users.py
       - ../../tests/_common/users:/cega/users
-      - ../bootstrap/certs/data/cega-users.cert.pem:/cega/ssl.crt
-      - ../bootstrap/certs/data/cega-users.sec.pem:/cega/ssl.key
-      - ../bootstrap/certs/data/CA.cega-users.cert.pem:/cega/CA.crt
+      - ./config/certs/cega-users.ca.crt:/cega/ssl.crt
+      - ./config/certs/cega-users.ca.key:/cega/ssl.key
+      - ./config/certs/root.ca.crt:/cega/CA.crt
     networks:
       - lega
     user: root
@@ -627,9 +632,9 @@ services:
       - ./cega-mq-defs.json:/etc/rabbitmq/defs.json
       - ./cega-mq-rabbitmq.config:/etc/rabbitmq/rabbitmq.config
       - ./cega-entrypoint.sh:/usr/local/bin/cega-entrypoint.sh
-      - ../bootstrap/certs/data/cega-mq.cert.pem:/etc/rabbitmq/ssl.cert
-      - ../bootstrap/certs/data/cega-mq.sec.pem:/etc/rabbitmq/ssl.key
-      - ../bootstrap/certs/data/CA.cega-mq.cert.pem:/etc/rabbitmq/CA.cert
+      - ./config/certs/cega-mq.ca.crt:/etc/rabbitmq/ssl.cert
+      - ./config/certs/cega-mq.ca.key:/etc/rabbitmq/ssl.key
+      - ./config/certs/root.ca.crt:/etc/rabbitmq/CA.cert
     restart: on-failure:3
     networks:
       - lega
