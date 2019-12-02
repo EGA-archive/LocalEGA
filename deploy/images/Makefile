@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 
-TARGET_PREFIX=egarchive/lega-
+TARGET_PREFIX=nbisweden/ega-
 
 LEGA_GID=1000
 

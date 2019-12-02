@@ -169,6 +169,8 @@ else
   legainit --cega --config-path  ${PRIVATE}/config &>${PRIVATE}/.err
 fi
 
+chmod 0600 ${PRIVATE}/config/certs/db.ca.key
+
 #########################################################################
 
 echomsg "\t* conf.ini"
@@ -324,7 +326,7 @@ services:
     hostname: mq${HOSTNAME_DOMAIN}
     ports:
       - "${DOCKER_PORT_mq}:15672"
-    image: egarchive/lega-mq:latest
+    image: nbisweden/ega-mq:latest
     container_name: localega-mq-server${HOSTNAME_DOMAIN}
     labels:
         lega_label: "localega-mq-server"
@@ -343,33 +345,33 @@ services:
       - DB_LEGA_IN_PASSWORD=${DB_LEGA_IN_PASSWORD}
       - DB_LEGA_OUT_PASSWORD=${DB_LEGA_OUT_PASSWORD}
       - PGDATA=/ega/data
-      - PG_SERVER_CERT=/etc/ega/pg.cert
-      - PG_SERVER_KEY=/etc/ega/pg.key
-      - PG_CA=/etc/ega/CA.cert
-      - PG_VERIFY_PEER=1
+      - PG_SERVER_CERT=/tls/db.ca.crt
+      - PG_SERVER_KEY=/tls/db.ca.key
+      - PG_CA=/tls/root.ca.crt
+      - PG_VERIFY_PEER=0
     hostname: localega-db${HOSTNAME_DOMAIN}
     container_name: localega-db${HOSTNAME_DOMAIN}
     labels:
-        lega_label: "db"
-    image: egarchive/lega-db:latest
+        lega_label: "localega-db"
+    image: nbisweden/ega-db:latest
     volumes:
       - db:/ega/data
-      - ./config/certs/db.ca.crt:/etc/ega/pg.cert
-      - ./config/certs/db.ca.key:/etc/ega/pg.key
-      - ./config/certs/root.ca.crt:/etc/ega/CA.cert
+      - ./config/certs/db.ca.crt:/tls/db.ca.crt
+      - ./config/certs/db.ca.key:/tls/db.ca.key:ro
+      - ./config/certs/root.ca.crt:/tls/root.ca.crt
     restart: on-failure:3
     networks:
       - lega
 
   # SFTP inbox
-  inbox:
-    hostname: inbox${HOSTNAME_DOMAIN}
+  localega-inbox:
+    hostname: localega-inbox${HOSTNAME_DOMAIN}
     depends_on:
       - localega-mq-server
     # Required external link
-    container_name: inbox${HOSTNAME_DOMAIN}
+    container_name: localega-inbox${HOSTNAME_DOMAIN}
     labels:
-        lega_label: "inbox"
+        lega_label: "localega-inbox"
     restart: on-failure:3
     networks:
       - lega
@@ -432,7 +434,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     depends_on:
       - localega-db
       - localega-mq-server
-    image: egarchive/lega-base:latest
+    image: nbisweden/ega-base:latest
     container_name: ingest${HOSTNAME_DOMAIN}
     labels:
         lega_label: "ingest"
@@ -474,7 +476,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     container_name: verify${HOSTNAME_DOMAIN}
     labels:
         lega_label: "verify"
-    image: egarchive/lega-base:latest
+    image: nbisweden/ega-base:latest
     environment:
       - S3_ACCESS_KEY=${S3_ACCESS_KEY}
       - S3_SECRET_KEY=${S3_SECRET_KEY}
@@ -510,7 +512,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     depends_on:
       - localega-db
       - localega-mq-server
-    image: egarchive/lega-base:latest
+    image: nbisweden/ega-base:latest
     container_name: finalize${HOSTNAME_DOMAIN}
     labels:
         lega_label: "finalize"
@@ -604,7 +606,7 @@ services:
     hostname: cega-users${HOSTNAME_DOMAIN}
     ports:
       - "15671:443"
-    image: egarchive/lega-base:latest
+    image: nbisweden/ega-base:latest
     container_name: cega-users${HOSTNAME_DOMAIN}
     labels:
         lega_label: "cega-users"
@@ -739,3 +741,5 @@ EOF
 fi
 
 task_complete "Bootstrap complete"
+echo "Run: sudo chown 70 ${PRIVATE}/config/certs/db.ca.key"
+echo "to fix ownership of db.ca.key file"
