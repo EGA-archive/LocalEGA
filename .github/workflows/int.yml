@@ -29,7 +29,7 @@ jobs:
         pushd bats-core && git checkout v1.1.0 && sudo ./install.sh /usr/local && popd
     - name: Bootstrap requirements
       run: |
-        pip install git+https://github.com/EGA-archive/crypt4gh.git
+        pip install git+https://github.com/EGA-archive/crypt4gh.git@v1.0
         pip install pika==1.0.1
         sudo apt-get install expect
     - name: Build image
