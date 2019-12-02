@@ -2,7 +2,9 @@
 
 This is a fork of https://github.com/EGA-archive/LocalEGA adapted for NeIC Tryggve2 use cases.
 
-[![Build Status](https://travis-ci.org/neicnordic/LocalEGA.svg?branch=master)](https://travis-ci.org/neicnordic/LocalEGA)
+![](https://github.com/neicnordic/LocalEGA/workflows/Python%20unit%20tests/badge.svg)
+![](https://github.com/neicnordic/LocalEGA/workflows/Python%20style%20check/badge.svg)
+![](https://github.com/neicnordic/LocalEGA/workflows/Integration%20Tests/badge.svg)
 [![Documentation Status](https://readthedocs.org/projects/neic-localega/badge/?version=latest)](https://neic-localega.readthedocs.io/en/latest/?badge=latest)
 [![Coverage Status](https://coveralls.io/repos/github/neicnordic/LocalEGA/badge.svg?branch=master)](https://coveralls.io/github/neicnordic/LocalEGA?branch=master)
 

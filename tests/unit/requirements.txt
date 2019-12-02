@@ -3,4 +3,4 @@ pytest-cov
 aioresponses
 testfixtures
 coveralls
-git+https://github.com/NBISweden/LocalEGA-cryptor.git
+git+https://github.com/EGA-archive/crypt4gh.git@v1.0

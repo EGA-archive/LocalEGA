@@ -20,14 +20,27 @@ routing key :``archived``.
 import sys
 import logging
 from functools import partial
+import io
 
-from legacryptor.crypt4gh import get_header
+from crypt4gh import header
 
 from .conf import CONF
 from .utils import db, exceptions, sanitize_user_id, storage
 from .utils.amqp import consume, publish, get_connection
 
 LOG = logging.getLogger(__name__)
+
+
+def get_header(input_file):
+    """Extract the header bytes, and leave the ``input_file`` file handle at the beginning of the data portion."""
+    _ = list(header.parse(input_file))
+    pos = input_file.tell()
+    input_file.seek(0, io.SEEK_SET)  # rewind
+    return input_file.read(pos)
+    # That's ok to rewind, we are not reading a stream
+    # Alternatively, get the packets and recombine them
+    # header_packets = header.parse(input_file)
+    # return header.serialize(header_packets)
 
 
 @db.catch_error
@@ -72,9 +85,8 @@ def work(fs, inbox_fs, channel, data):
     LOG.debug('Opening %s', filepath)
     with inbox.open(filepath, 'rb') as infile:
         LOG.debug(f'Reading header | file_id: {file_id}')
-        beginning, header = get_header(infile)
-
-        header_hex = (beginning+header).hex()
+        header_bytes = get_header(infile)
+        header_hex = header_bytes.hex()
         data['header'] = header_hex
         db.store_header(file_id, header_hex)  # header bytes will be .hex()
 

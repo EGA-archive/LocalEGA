@@ -11,9 +11,21 @@ function setup() {
     TESTFILES=${BATS_TEST_FILENAME}.d
     mkdir -p $TESTFILES
 
+
+    # Start an SSH-agent for this env
+    eval $(ssh-agent) &>/dev/null
+    # That adds SSH_AUTH_SOCK and SSH_AUTH_PID to this env
+
+    [[ -z "${SSH_AGENT_PID}" ]] && echo "Could not start the local ssh-agent" 2>/dev/null && exit 2
+
     # Test user
     TESTUSER=dummy
+    load_into_ssh_agent ${TESTUSER}
+    [[ $? != 0 ]] && echo "Error loading the test user into the local ssh-agent" >&2 && exit 3
 
+    TESTUSER_SECKEY=$(get_user_seckey ${TESTUSER})
+    TESTUSER_PASSPHRASE=$(get_user_passphrase ${TESTUSER})
+    
     # Find inbox port mapping. Usually 2222:9000
     INBOX_PORT="2222"
     # legarun docker port inbox 9000
@@ -24,6 +36,9 @@ function setup() {
 
 function teardown() {
     rm -rf ${TESTFILES}
+
+    # Kill an SSH-agent for this env
+    [[ -n "${SSH_AGENT_PID}" ]] && kill -TERM "${SSH_AGENT_PID}"
 }
 
 # Upload a batch of files
@@ -46,8 +61,8 @@ function teardown() {
 	TESTFILES_NAMES+=( "/$t" )
     done
 
-    # Upload them
-    legarun ${LEGA_SFTP} -i ${TESTDATA_DIR}/${TESTUSER}.sec ${TESTUSER}@localhost <<< $"put -r ${TESTFILES}/batch"
+    # Upload them (sshkey in agent already)
+    legarun ${LEGA_SFTP} ${TESTUSER}@localhost <<< $"put -r ${TESTFILES}/batch"
     [ "$status" -eq 0 ]
 
     # Find inbox messages for each file
@@ -73,7 +88,8 @@ function teardown() {
     [ "$status" -eq 0 ]
 
     # Encrypt it in the Crypt4GH format
-    legarun lega-cryptor encrypt --pk ${EGA_PUB_KEY} -i ${TESTFILES}/${TESTFILE} -o ${TESTFILES}/${TESTFILE}.c4ga
+    export C4GH_PASSPHRASE=${TESTUSER_PASSPHRASE}
+    crypt4gh encrypt --sk ${TESTUSER_SECKEY} --recipient_pk ${EGA_PUBKEY} < ${TESTFILES}/${TESTFILE} > ${TESTFILES}/${TESTFILE}.c4ga
     [ "$status" -eq 0 ]
 
     # Upload it

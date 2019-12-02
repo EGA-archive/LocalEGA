@@ -5,17 +5,10 @@ DOCKER_PORT_inbox=2222
 DOCKER_PORT_mq=15672
 DOCKER_PORT_kibana=5601
 DOCKER_PORT_s3=9000
-DOCKER_PORT_keyserver=8443
-DOCKER_PORT_res=8081
 
 # Database users are lega_in and lega_out
 DB_LEGA_IN_PASSWORD=$(generate_password 16)
 DB_LEGA_OUT_PASSWORD=$(generate_password 16)
-
-PGP_NAME="LocalEGA"
-PGP_COMMENT="@lega"
-PGP_EMAIL="local-ega@ega.eu"
-PGP_PASSPHRASE=$(generate_password 16)
 
 S3_ACCESS_KEY=$(generate_password 16)
 S3_SECRET_KEY=$(generate_password 32)
@@ -34,17 +27,13 @@ fi
 
 LOG_LEVEL=DEBUG
 
-LEGA_PASSWORD=$(generate_password 32)
-KEYS_PASSWORD=$(generate_password 32)
-
-## Central EGA connections
-# Must be defined in environment variables
-# Otherwise use the local non git-tracked file
-if [[ -z ${CEGA_CONNECTION+x} ]] && [[ -z ${CEGA_USERS_CREDS+x} ]]; then
-    source ${HERE}/settings.rc.private
-fi
+## For the master key
+C4GH_PASSPHRASE=$(generate_password 32)
 
 # For Local Broker connections
 MQ_USER=admin
 MQ_PASSWORD=$(generate_password 16)
 MQ_PASSWORD_HASH=$(generate_mq_hash ${MQ_PASSWORD})
+
+
+

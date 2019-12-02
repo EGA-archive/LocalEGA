@@ -1,7 +1,6 @@
 #!/usr/bin/env bats
 
 load ../_common/helpers
-load ../_common/c4gh_generate
 
 # CEGA_CONNECTION and CEGA_USERS_CREDS should be already set,
 # when this script runs
@@ -12,8 +11,20 @@ function setup() {
     TESTFILES=${BATS_TEST_FILENAME}.d
     mkdir -p "$TESTFILES"
 
+    # Start an SSH-agent for this env
+    eval $(ssh-agent) &>/dev/null
+    # That adds SSH_AUTH_SOCK and SSH_AUTH_PID to this env
+
+    [[ -z "${SSH_AGENT_PID}" ]] && echo "Could not start the local ssh-agent" 2>/dev/null && exit 2
+
     # Test user
     TESTUSER=dummy
+    load_into_ssh_agent ${TESTUSER}
+    [[ $? != 0 ]] && echo "Error loading the test user into the local ssh-agent" >&2 && exit 3
+
+    TESTUSER_SECKEY=$(get_user_seckey ${TESTUSER})
+    TESTUSER_PASSPHRASE=$(get_user_passphrase ${TESTUSER})
+
 
     # Find inbox port mapping. Usually 2222:9000
     INBOX_PORT="2222"
@@ -25,22 +36,30 @@ function setup() {
 
 function teardown() {
     rm -rf ${TESTFILES}
+
+    # Kill an SSH-agent for this env
+    [[ -n "${SSH_AGENT_PID}" ]] && kill -TERM "${SSH_AGENT_PID}"
 }
 
 # Utility to ingest successfully a file
 function lega_ingest {
     local TESTFILE=$1
-    local size=$2
+    local size=$2 # in MB
     local queue=$3
     local inputsource=${4:-/dev/urandom}
 
+    [ -n "${TESTUSER}" ]
+    [ -n "${TESTUSER_SECKEY}" ]
+    [ -n "${TESTUSER_PASSPHRASE}" ]
+
     # Generate a random file
-    legarun c4gh_generate $size $inputsource ${TESTFILES}/${TESTFILE}
-    [ "$status" -eq 0 ]
+    export C4GH_PASSPHRASE=${TESTUSER_PASSPHRASE}
+    dd if=$inputsource bs=1048576 count=$size | crypt4gh encrypt --sk ${TESTUSER_SECKEY} --recipient_pk ${EGA_PUBKEY} > ${TESTFILES}/${TESTFILE}.c4ga
+    unset C4GH_PASSPHRASE
 
     # Upload it
     UPLOAD_CMD="put ${TESTFILES}/${TESTFILE}.c4ga /${TESTFILE}.c4ga"
-    legarun ${LEGA_SFTP} -i ${TESTDATA_DIR}/${TESTUSER}.sec ${TESTUSER}@localhost <<< ${UPLOAD_CMD}
+    legarun ${LEGA_SFTP} ${TESTUSER}@localhost <<< ${UPLOAD_CMD}
     [ "$status" -eq 0 ]
 
     # Fetch the correlation id for that file (Hint: with user/filepath combination)
@@ -54,8 +73,8 @@ function lega_ingest {
     [ "$status" -eq 0 ]
 
     # Check that a message with the above correlation id arrived in the expected queue
-    # Waiting 20 seconds.
-    retry_until 0 10 10 ${MQ_GET} $queue "${TESTUSER}" "/${TESTFILE}.c4ga"
+    # Waiting 200 seconds.
+    retry_until 0 20 10 ${MQ_GET} $queue "${TESTUSER}" "/${TESTFILE}.c4ga"
     [ "$status" -eq 0 ]
 }
 
@@ -98,7 +117,8 @@ function lega_ingest {
     lega_ingest ${TESTFILE} 1 v1.files.completed
 
     # Second time
-    legarun ${LEGA_SFTP} -i ${TESTDATA_DIR}/${TESTUSER}.sec ${TESTUSER}@localhost <<< $"put ${TESTFILES}/${TESTFILE}.c4ga /${TESTFILE}.c4ga.2"
+    UPLOAD_CMD="put ${TESTFILES}/${TESTFILE}.c4ga /${TESTFILE}.c4ga.2"
+    legarun ${LEGA_SFTP} ${TESTUSER}@localhost <<< ${UPLOAD_CMD}
     [ "$status" -eq 0 ]
 
     # Fetch the correlation id for that file (Hint: with user/filepath combination)
@@ -113,7 +133,7 @@ function lega_ingest {
     [ "$status" -eq 0 ]
 
     # Check that a message with the above correlation id arrived in the error queue
-    retry_until 0 100 1 ${MQ_GET} v1.files.error "${TESTUSER}" "/${TESTFILE}.c4ga.2"
+    retry_until 0 10 10 ${MQ_GET} v1.files.error "${TESTUSER}" "/${TESTFILE}.c4ga.2"
     [ "$status" -eq 0 ]
 }
 
@@ -124,7 +144,6 @@ function lega_ingest {
 # A message should be found in the error queue
 
 @test "Do not ingest a file not in Crypt4GH format" {
-
     TESTFILE=$(uuidgen)
 
     # Create a random file of 1 MB
@@ -136,7 +155,8 @@ function lega_ingest {
     [ "$status" -eq 0 ]
 
     # Upload it
-    legarun ${LEGA_SFTP} -i ${TESTDATA_DIR}/${TESTUSER}.sec ${TESTUSER}@localhost <<< $"put ${TESTFILES}/${TESTFILE}.c4ga /${TESTFILE}.c4ga"
+    UPLOAD_CMD="put ${TESTFILES}/${TESTFILE}.c4ga /${TESTFILE}.c4ga"
+    legarun ${LEGA_SFTP} ${TESTUSER}@localhost <<< ${UPLOAD_CMD}
     [ "$status" -eq 0 ]
 
     # Fetch the correlation id for that file (Hint: with user/filepath combination)
@@ -150,7 +170,7 @@ function lega_ingest {
     [ "$status" -eq 0 ]
 
     # Check that a message with the above correlation id arrived in the completed queue
-    retry_until 0 100 1 ${MQ_GET} v1.files.error "${TESTUSER}" "/${TESTFILE}.c4ga"
+    retry_until 0 10 10 ${MQ_GET} v1.files.error "${TESTUSER}" "/${TESTFILE}.c4ga"
     [ "$status" -eq 0 ]
 }
 
@@ -159,13 +179,12 @@ function lega_ingest {
 # A message should be found in the completed queue.
 
 @test "Ingest a file from a subdirectory" {
-
     mkdir -p ${TESTFILES}/dir1/dir2/dir3
     # SFTP requires that the remote directory be existing.
     # However the sftp commands are very limited (mkdir -p dir1/dir2/dir3 in invalid, and mkdir takes one dir at a time)
-    legarun ${LEGA_SFTP} -i ${TESTDATA_DIR}/${TESTUSER}.sec ${TESTUSER}@localhost <<< $"mkdir dir1"
-    legarun ${LEGA_SFTP} -i ${TESTDATA_DIR}/${TESTUSER}.sec ${TESTUSER}@localhost <<< $"mkdir dir1/dir2"
-    legarun ${LEGA_SFTP} -i ${TESTDATA_DIR}/${TESTUSER}.sec ${TESTUSER}@localhost <<< $"mkdir dir1/dir2/dir3"
+    legarun ${LEGA_SFTP} ${TESTUSER}@localhost <<< $"mkdir dir1"
+    legarun ${LEGA_SFTP} ${TESTUSER}@localhost <<< $"mkdir dir1/dir2"
+    legarun ${LEGA_SFTP} ${TESTUSER}@localhost <<< $"mkdir dir1/dir2/dir3"
     lega_ingest dir1/dir2/dir3/$(uuidgen) 1 v1.files.completed
 }
 
@@ -182,16 +201,21 @@ function lega_ingest {
 
 @test "Do not ingest file destined for another LocalEGA" {
 
-    # Create another PGP key
-    python ${MAIN_REPO}/extras/generate_pgp_key.py \
-	   "LocalEGA-wrong" "local-ega.wrong@ega.eu" "Not-the-right-one" \
-	   --passphrase "hi" \
-	   --pub ${TESTFILES}/fake.pgp --priv /dev/null --armor
-    chmod 644 ${TESTFILES}/fake.pgp
+    # Create another key, and make the utility use it
+    FAKE_PASSPHRASE=fake
+    EGA_SECKEY=${TESTFILES}/fake.sec
+    EGA_PUBKEY=${TESTFILES}/fake.pub
+    cat > ${TESTFILES}/fake_keygen.sh <<EOF
+set timeout -1
+spawn crypt4gh-keygen --sk ${EGA_SECKEY} --pk ${EGA_PUBKEY} -f
+expect "Passphrase for *"
+send -- "${FAKE_PASSPHRASE}\r"
+expect eof
+EOF
+    expect -f ${TESTFILES}/fake_keygen.sh &>/dev/null
+    rm -f ${TESTFILES}/fake_keygen.sh
     
-    # Make the utility use that key
-    EGA_PUB_KEY=${TESTFILES}/fake.pgp
-
+    # This will use EGA_PUBKEY
     lega_ingest $(uuidgen) 1 v1.files.error
 }
 
