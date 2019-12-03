@@ -10,7 +10,7 @@ load ../_common/helpers
 # Note: Even if the key is locked
 
 @test "Unable to retrieve the decryption key from the inbox" {
-    skip
+    skip "Needs keyserver"
 
     PRIVATE_DATA=${MAIN_REPO}/deploy/private/pgp
     legarun python ${MAIN_REPO}/extras/get_pgp_keyid.py ${PRIVATE_DATA}/ega.sec $(<${PRIVATE_DATA}/ega2.sec.pass)
