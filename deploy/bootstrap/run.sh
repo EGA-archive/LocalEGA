@@ -607,74 +607,27 @@ services:
 
   cega-mq:
     hostname: cega-mq${HOSTNAME_DOMAIN}
+    environment:
+      - RABBITMQ_CONFIG_FILE=/etc/rabbitmq/conf/cega
+      - RABBITMQ_ENABLED_PLUGINS_FILE=/etc/rabbitmq/conf/cega.plugins
     ports:
-      - "15670:15672"
+      - "15670:15671"
       - "5670:5671"
     image: rabbitmq:3.7.8-management-alpine
     container_name: cega-mq${HOSTNAME_DOMAIN}
     labels:
         lega_label: "cega-mq"
     volumes:
-      - ./cega-mq-defs.json:/etc/rabbitmq/defs.json
-      - ./cega-mq-rabbitmq.config:/etc/rabbitmq/rabbitmq.config
-      - ./cega-entrypoint.sh:/usr/local/bin/cega-entrypoint.sh
-      - ./config/certs/cega-mq.ca.crt:/etc/rabbitmq/ssl.cert
-      - ./config/certs/cega-mq.ca.key:/etc/rabbitmq/ssl.key
-      - ./config/certs/root.ca.crt:/etc/rabbitmq/CA.cert
+      - ./config/cega.json:/etc/rabbitmq/conf/cega.json
+      - ./config/cega.conf:/etc/rabbitmq/conf/cega.conf
+      - ./config/cega.plugins:/etc/rabbitmq/conf/cega.plugins
+      - ./config/certs/root.ca.crt:/etc/rabbitmq/ssl/root.ca.crt
+      - ./config/certs/cega-mq.ca.crt:/etc/rabbitmq/ssl/cega-mq.ca.crt
+      - ./config/certs/cega-mq.ca.key:/etc/rabbitmq/ssl/cega-mq.ca.key
     restart: on-failure:3
     networks:
       - lega
-    entrypoint: ["/usr/local/bin/cega-entrypoint.sh"]
 EOF
-
-    # The user/password is legatest:legatest
-    cat > ${PRIVATE}/cega-mq-defs.json <<EOF
-{"rabbit_version":"3.7.8",
- "users":[{"name":"legatest","password_hash":"P9snZluoiHj2JeGqrDYmUHGLu637Qo7Fjgn5wakpk4jCyvcO","hashing_algorithm":"rabbit_password_hashing_sha256","tags":"administrator"}],
- "vhosts":[{"name":"lega"}],
- "permissions":[{"user":"legatest", "vhost":"lega", "configure":".*", "write":".*", "read":".*"}],
- "parameters":[],
- "global_parameters":[{"name":"cluster_name", "value":"rabbit@localhost"}],
- "policies":[],
- "queues":[{"name":"v1.files",            "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{}},
-	   {"name":"v1.files.inbox",      "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{}},
-           {"name":"v1.stableIDs",        "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{}},
-	   {"name":"v1.files.completed",  "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{}},
-	   {"name":"v1.files.processing", "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{}},
-	   {"name":"v1.files.error",      "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{}}],
- "exchanges":[{"name":"localega.v1", "vhost":"lega", "type":"topic", "durable":true, "auto_delete":false, "internal":false, "arguments":{}}],
- "bindings":[{"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{},"destination":"v1.stableIDs"       ,"routing_key":"stableIDs"},
-	     {"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{},"destination":"v1.files"           ,"routing_key":"files"},
-	     {"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{},"destination":"v1.files.inbox"     ,"routing_key":"files.inbox"},
-	     {"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{},"destination":"v1.files.error"     ,"routing_key":"files.error"},
-	     {"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{},"destination":"v1.files.processing","routing_key":"files.processing"},
-	     {"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{},"destination":"v1.files.completed" ,"routing_key":"files.completed"}]
-}
-EOF
-
-    cat > ${PRIVATE}/cega-mq-rabbitmq.config <<EOF
-%% -*- mode: erlang -*-
-%%
-[{rabbit,[{loopback_users, [ ] },
-	  {tcp_listeners, [ ]},
-	  {ssl_listeners, [5671]},
-	  {ssl_options, [{cacertfile, "/etc/rabbitmq/CA.cert"},
-                         {certfile,   "/etc/rabbitmq/ssl.cert"},
-          		 {keyfile,    "/etc/rabbitmq/ssl.key"},
-			 {verify,     verify_peer},
-			 {fail_if_no_peer_cert, true}]}
- 	  ]},
- {rabbitmq_management, [ {load_definitions, "/etc/rabbitmq/defs.json"} ]}
-].
-EOF
-
-    cat > ${PRIVATE}/cega-entrypoint.sh <<EOF
-#!/bin/bash
-chown rabbitmq:rabbitmq /etc/rabbitmq/*
-find /var/lib/rabbitmq \! -user rabbitmq -exec chown rabbitmq '{}' +
-exec docker-entrypoint.sh rabbitmq-server
-EOF
-    chmod +x ${PRIVATE}/cega-entrypoint.sh
 fi
 
 
