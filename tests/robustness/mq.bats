@@ -12,8 +12,20 @@ function setup() {
     TESTFILES=${BATS_TEST_FILENAME}.d
     mkdir -p "$TESTFILES"
 
+    # Start an SSH-agent for this env
+    eval $(ssh-agent) &>/dev/null
+    # That adds SSH_AUTH_SOCK and SSH_AUTH_PID to this env
+
+    [[ -z "${SSH_AGENT_PID}" ]] && echo "Could not start the local ssh-agent" 2>/dev/null && exit 2
+
     # Test user
     TESTUSER=dummy
+    load_into_ssh_agent ${TESTUSER}
+    [[ $? != 0 ]] && echo "Error loading the test user into the local ssh-agent" >&2 && exit 3
+
+    TESTUSER_SECKEY=$(get_user_seckey ${TESTUSER})
+    TESTUSER_PASSPHRASE=$(get_user_passphrase ${TESTUSER})
+
 
     # Find inbox port mapping. Usually 2222:9000
     INBOX_PORT="2222"
@@ -25,6 +37,9 @@ function setup() {
 
 function teardown() {
     rm -rf ${TESTFILES}
+
+    # Kill an SSH-agent for this env
+    [[ -n "${SSH_AGENT_PID}" ]] && kill -TERM "${SSH_AGENT_PID}"
 }
 
 # MQ federated queue
@@ -33,12 +48,15 @@ function teardown() {
 # When restarted, no messages are lost
 
 @test "MQ federation" {
-    skip "Used after the update for MQ connection retries"
+    # skip "Used after the update for MQ connection retries"
     
     TESTFILE=$(uuidgen)
+    [ -n "${TESTUSER}" ]
+    [ -n "${TESTUSER_SECKEY}" ]
+    [ -n "${TESTUSER_PASSPHRASE}" ]
 
     # Create a random file Crypt4GH file of 1 MB
-    legarun c4gh_generate 1 /dev/urandom ${TESTFILES}/${TESTFILE}
+    legarun c4gh_generate 1 ${TESTFILES}/${TESTFILE} ${TESTUSER_SECKEY} ${TESTUSER_PASSPHRASE}
     [ "$status" -eq 0 ]
 
     # Upload it
@@ -52,7 +70,7 @@ function teardown() {
     CORRELATION_ID=$output
 
     # Stop the local broker
-    legarun docker stop mq
+    legarun docker stop localega-mq-server.default
 
     # Publish the file to simulate a CentralEGA trigger
     MESSAGE="{ \"user\": \"${TESTUSER}\", \"filepath\": \"/${TESTFILE}.c4ga\"}"
@@ -60,7 +78,7 @@ function teardown() {
     [ "$status" -eq 0 ]
 
     # Restart the local broker
-    legarun docker start mq
+    legarun docker start localega-mq-server.default
     legarun sleep 20
 
     # Check that a message with the above correlation id arrived in the expected queue
@@ -76,15 +94,18 @@ function teardown() {
 # When restarted, no messages are lost
 
 @test "MQ delivery mode" {
-    skip "Used after the update for MQ connection retries"
+    # skip "Used after the update for MQ connection retries"
 
     TESTFILE=$(uuidgen)
+    [ -n "${TESTUSER}" ]
+    [ -n "${TESTUSER_SECKEY}" ]
+    [ -n "${TESTUSER_PASSPHRASE}" ]
 
     # Stop the verify component, so only ingest works
-    legarun docker stop verify
+    legarun docker stop verify.default
 
-    # Create a random file Crypt4GH file of 1 MB
-    legarun c4gh_generate 1 /dev/urandom ${TESTFILES}/${TESTFILE}
+    # Create a random file of { size } MB
+    legarun c4gh_generate 1 ${TESTFILES}/${TESTFILE} ${TESTUSER_SECKEY} ${TESTUSER_PASSPHRASE}
     [ "$status" -eq 0 ]
 
     # Upload it
@@ -104,8 +125,8 @@ function teardown() {
 
 
     # Restart database
-    legarun docker stop mq
-    legarun docker start mq
+    legarun docker stop localega-mq-server.default
+    legarun docker start localega-mq-server.default
     legarun sleep 15
 
     # Check now that the delivery mode is still 2
@@ -113,7 +134,7 @@ function teardown() {
     # Let it run its course
     
     # Restart verify
-    legarun docker restart verify
+    legarun docker restart verify.default
     legarun sleep 15
 
     # Check that a message with the above correlation id arrived in the expected queue
