@@ -88,6 +88,12 @@ function url_encode {
 }
 
 
+function get_trace_value {
+	local value=${1}
+	cat $TRACE_FILE | shyaml get-value "$1"
+}
+
+
 function do_user_credentials {
 	local user=${1}
 	echomsg "\t\t - User ${user}"

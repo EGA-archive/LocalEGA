@@ -7,6 +7,7 @@ HERE=$(dirname ${BASH_SOURCE[0]})
 PRIVATE=${HERE}/../private
 DOT_ENV=${HERE}/../.env
 EXTRAS=${HERE}/../../extras
+TRACE_FILE=${PRIVATE}/config/trace.yml
 
 # Defaults
 VERBOSE=no
@@ -66,8 +67,22 @@ rm_politely ${PRIVATE}
 mkdir -p ${PRIVATE}
 exec 2>${PRIVATE}/.err
 
+check_python_module shyaml &>${PRIVATE}/.err
+
 #########################################################################
 echo -n "Bootstrapping "
+echomsg "\t* configuration and the SSL certificates"
+
+if command -v legainit &>/dev/null; then
+  legainit --cega --config-path  ${PRIVATE}/config &>${PRIVATE}/.err
+else 
+  pip install git+https://github.com/neicnordic/LocalEGA-deploy-init.git &>${PRIVATE}/.err
+  legainit --cega --config-path  ${PRIVATE}/config &>${PRIVATE}/.err
+fi
+
+chmod 0600 ${PRIVATE}/config/certs/db.ca.key
+
+#########################################################################
 [[ "${VERBOSE}" == 'yes' ]] && echo "" # new line
 
 echomsg "\t* Loading the settings"
@@ -76,8 +91,8 @@ source ${HERE}/settings.rc
 echomsg "\t* Fake Central EGA parameters"
 # For the fake CEGA
 CEGA_CONNECTION_PARAMS=$(url_encode ${HOSTNAME_DOMAIN} cega)
-
-CEGA_CONNECTION="amqps://legatest:legatest@cega-mq${HOSTNAME_DOMAIN}:5671/lega?${CEGA_CONNECTION_PARAMS}"
+CEGA_PASSWORD=$(get_trace_value secrets.cega_mq_pass)
+CEGA_CONNECTION="amqps://lega:${CEGA_PASSWORD}@cega-mq${HOSTNAME_DOMAIN}:5671/lega?${CEGA_CONNECTION_PARAMS}"
 CEGA_USERS_ENDPOINT="https://cega-users${HOSTNAME_DOMAIN}/lega/v1/legas/users"
 CEGA_USERS_CREDS=$'legatest:legatest'
 
@@ -149,17 +164,6 @@ exec $@
 EOF
 chmod +x ${PRIVATE}/entrypoint.sh
 
-#########################################################################
-echomsg "\t* the SSL certificates"
-
-if command -v legainit &>/dev/null; then
-  legainit --cega --config-path  ${PRIVATE}/config &>${PRIVATE}/.err
-else 
-  pip install git+https://github.com/neicnordic/LocalEGA-deploy-init.git &>${PRIVATE}/.err
-  legainit --cega --config-path  ${PRIVATE}/config &>${PRIVATE}/.err
-fi
-
-chmod 0600 ${PRIVATE}/config/certs/db.ca.key
 
 #########################################################################
 

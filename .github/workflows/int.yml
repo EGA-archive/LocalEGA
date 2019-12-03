@@ -31,6 +31,7 @@ jobs:
       run: |
         pip install git+https://github.com/EGA-archive/crypt4gh.git@v1.0
         pip install pika==1.0.1
+        pip install shyaml
         sudo apt-get install expect
     - name: Build image
       run:  |

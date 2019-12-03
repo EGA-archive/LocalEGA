@@ -7,11 +7,11 @@ DOCKER_PORT_kibana=5601
 DOCKER_PORT_s3=9000
 
 # Database users are lega_in and lega_out
-DB_LEGA_IN_PASSWORD=$(generate_password 16)
-DB_LEGA_OUT_PASSWORD=$(generate_password 16)
+DB_LEGA_IN_PASSWORD=$(get_trace_value secrets.pg_in_password)
+DB_LEGA_OUT_PASSWORD=$(get_trace_value secrets.pg_out_password)
 
-S3_ACCESS_KEY=$(generate_password 16)
-S3_SECRET_KEY=$(generate_password 32)
+S3_ACCESS_KEY=$(get_trace_value secrets.s3_access_key)
+S3_SECRET_KEY=$(get_trace_value secrets.s3_secret_key)
 
 if [[ "${force}" != "force" ]] && [[ "${DEPLOY_DEV}" = "yes" ]]; then
     S3_ACCESS_KEY=dummyaccesskey
@@ -31,9 +31,9 @@ LOG_LEVEL=DEBUG
 C4GH_PASSPHRASE=$(generate_password 32)
 
 # For Local Broker connections
-MQ_USER=admin
-MQ_PASSWORD=$(generate_password 16)
-MQ_PASSWORD_HASH=$(generate_mq_hash ${MQ_PASSWORD})
+MQ_USER=lega
+MQ_PASSWORD=$(get_trace_value secrets.mq_password)
+MQ_PASSWORD_HASH=$(get_trace_value secrets.mq_password_hash)
 
 
 
