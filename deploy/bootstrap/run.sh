@@ -75,17 +75,7 @@ source ${HERE}/settings.rc
 
 echomsg "\t* Fake Central EGA parameters"
 # For the fake CEGA
-CEGA_CONNECTION_PARAMS=$(${PYTHONEXEC} -c "from urllib.parse import urlencode;                               \
-	  			           print(urlencode({ 'heartbeat': 0,                                 \
-				                             'connection_attempts': 30,                      \
-				                             'retry_delay': 10,                              \
-						   	     'server_name_indication': 'cega-mq${HOSTNAME_DOMAIN}',   \
-							     'verify': 'verify_peer',                        \
-							     'fail_if_no_peer_cert': 'true',                 \
-							     'cacertfile': '/etc/rabbitmq/CA.cert',          \
-							     'certfile': '/etc/rabbitmq/ssl.cert',           \
-							     'keyfile': '/etc/rabbitmq/ssl.key',             \
-				                           }, safe='/-_.'))")
+CEGA_CONNECTION_PARAMS=$(url_encode ${HOSTNAME_DOMAIN} cega)
 
 CEGA_CONNECTION="amqps://legatest:legatest@cega-mq${HOSTNAME_DOMAIN}:5671/lega?${CEGA_CONNECTION_PARAMS}"
 CEGA_USERS_ENDPOINT="https://cega-users${HOSTNAME_DOMAIN}/lega/v1/legas/users"
@@ -189,11 +179,7 @@ filepath = /etc/ega/ega.sec
 EOF
 
 # Local broker connection
-MQ_CONNECTION_PARAMS=$(${PYTHONEXEC} -c "from urllib.parse import urlencode;                   \
-			          print(urlencode({ 'heartbeat': 0,                     \
-				                    'connection_attempts': 30,          \
-				                    'retry_delay': 10,                  \
-				                  }))")
+MQ_CONNECTION_PARAMS=$(url_encode ${HOSTNAME_DOMAIN} mq)
 
 # Pika is not parsing the URL the way RabbitMQ likes.
 # So we add the parameters on the configuration file and
@@ -202,13 +188,7 @@ MQ_CONNECTION_PARAMS=$(${PYTHONEXEC} -c "from urllib.parse import urlencode;    
 MQ_CONNECTION="amqps://${MQ_USER}:${MQ_PASSWORD}@localega-mq-server${HOSTNAME_DOMAIN}:5671/%2F"
 
 # Database connection
-DB_CONNECTION_PARAMS=$(${PYTHONEXEC} -c "from urllib.parse import urlencode;                   \
-			          print(urlencode({ 'application_name': 'LocalEGA',     \
-				                    'sslmode': 'verify-full',           \
-				                    'sslcert': '/etc/ega/ssl.cert',     \
-				                    'sslkey': '/etc/ega/ssl.key.lega',  \
-				                    'sslrootcert': '/etc/ega/CA.cert',  \
-				                  }, safe='/-_.'))")
+DB_CONNECTION_PARAMS=$(url_encode ${HOSTNAME_DOMAIN} db)
 
 DB_CONNECTION="postgres://lega_in:${DB_LEGA_IN_PASSWORD}@localega-db${HOSTNAME_DOMAIN}:5432/lega"
 
