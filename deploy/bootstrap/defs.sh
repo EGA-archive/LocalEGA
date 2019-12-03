@@ -61,13 +61,6 @@ function generate_password {
 	${PYTHONEXEC} $HERE/pass_gen.py "$1"
 }
 
-function generate_mq_hash {
-    local pass=${1}
-    [[ -n $1 ]] || { echo 'Missing argument' 1>&2; exit 1; }  # fail
-    ${PYTHONEXEC} $HERE/mq_hash.py "$1"
-}
-
-
 function check_python_module {
     local module=${1}
     ${PYTHONEXEC} -c "import ${module}" > /dev/null 2>&1
