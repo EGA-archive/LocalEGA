@@ -52,9 +52,12 @@ function lega_ingest {
     [ -n "${TESTUSER_SECKEY}" ]
     [ -n "${TESTUSER_PASSPHRASE}" ]
 
-    # Generate a random file
+    # Create a random file of 1 MB
+    legarun dd if=/dev/urandom of=${TESTFILES}/${TESTFILE} count=1 bs=1048576
+    [ "$status" -eq 0 ]
+
     export C4GH_PASSPHRASE=${TESTUSER_PASSPHRASE}
-    dd if=$inputsource bs=1048576 count=$size | crypt4gh encrypt --sk ${TESTUSER_SECKEY} --recipient_pk ${EGA_PUBKEY} > ${TESTFILES}/${TESTFILE}.c4ga
+    crypt4gh encrypt --sk ${TESTUSER_SECKEY} --recipient_pk ${EGA_PUBKEY} < ${TESTFILES}/${TESTFILE} > ${TESTFILES}/${TESTFILE}.c4ga
     unset C4GH_PASSPHRASE
 
     # Upload it
