@@ -1,10 +1,12 @@
 name: "Unit Tests"
 
 on:
+  pull_request:
+    branches:
+      - master
   push:
     branches:
       - 'tests/*'
-      - 'cleanup'
 
 jobs:
   unit_tests:
