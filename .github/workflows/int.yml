@@ -12,7 +12,6 @@ jobs:
         tests: ['integration', 'security', 'robustness']
         python-version: [3.6]
         exclude:
-          # excludes node 4 on macOS
           - backend: ''
             tests: 'security'
           - backend: ''
