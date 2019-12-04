@@ -1,0 +1,56 @@
+name: "Publish to Docker Hub"
+
+on:
+  push:
+    branches:
+      - master
+  tags:
+      - v*.*.*
+
+env:
+  base_image: ${{ 'egarchive/lega-base' }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: Docker image build
+    steps:
+    - uses: actions/checkout@master
+    - name: Build docker image
+      if: github.ref == 'master'
+      run: |
+        docker build -f Dockerfile \
+                     --build-arg LEGA_GID=1000 \
+                     --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
+                     --build-arg SOURCE_COMMIT=$(git rev-parse --short HEAD) \
+                     --tag ${{ env.base_image }}:latest .
+    - name: Push to Docker Hub
+      if: success()
+      run: |
+        echo ${{ secrets.DOCKER_PASSWORD }} | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
+        docker push ${{ env.base_image }}:latest
+
+  release:
+    runs-on: ubuntu-latest
+    name: Docker image release
+    steps:
+    - uses: actions/checkout@master
+    - name: Build docker image
+      if: startsWith( github.ref, '/refs/tags/' )
+      run: |
+        REF=${{ github.ref }}
+	TAG=${REF/\/refs\/tags\//}
+        docker build -f Dockerfile \
+                     --build-arg LEGA_GID=1000 \
+                     --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
+                     --build-arg SOURCE_COMMIT=$(git rev-parse --short HEAD) \
+                     --tag ${{ env.base_image }}:${TAG} .
+    - name: Release to Docker Hub
+      if: success()
+      run: |
+        REF=${{ github.ref }}
+	TAG=${REF/\/refs\/tags\//}
+        echo ${{ secrets.DOCKER_PASSWORD }} | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
+        docker push ${{ env.base_image }}:${TAG}
+
+
