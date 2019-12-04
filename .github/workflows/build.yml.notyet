@@ -1,0 +1,36 @@
+name: "Publish to Docker Hub"
+
+on:
+  pull_request:
+    branches:
+      - master
+  push:
+    branches:
+      - 'master'
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        image_name: ['egarchive/lega-base:latest']
+
+    runs-on: ${{ ubuntu-latest }}
+
+    name: Docker image build
+
+    steps:
+    - uses: actions/checkout@master
+    - name: Build docker image
+      run: |
+        docker build -f Dockerfile \
+                     --build-arg LEGA_GID=1000 \
+                     --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
+                     --build-arg SOURCE_COMMIT=$(git rev-parse --short HEAD) \
+                     --tag ${{ matrix.image_name }} .
+
+    - name: Pushingto Docker Hub
+      run: |
+        echo ${{ secrets.DOCKER_PASSWORD }} | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
+        docker push ${{ matrix.image_name }}
+
+
