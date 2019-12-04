@@ -1,6 +1,7 @@
 SHELL := /bin/bash
 OPENSSL=openssl
 ARGS=
+SELECTED=
 
 .PHONY: help bootstrap private network up down clean ps clean-volumes clean-all erase purge
 
@@ -15,7 +16,7 @@ bootstrap-dev: export DEPLOY_DEV=yes
 
 
 up: .env private/lega.yml
-	@docker-compose up -d ${OMIT}
+	@docker-compose up -d ${SELECTED}
 
 clean-volumes:
 	docker volume rm lega_db lega_inbox lega_s3
@@ -44,8 +45,7 @@ preflight-check:
 #        egarchive/lega-base /ensure_system_up.sh
 
 # For the moment, we simply do sleep 60, because we need
-# - the rabbitmq shovel to CentralEGA (the federated queue can be late, it doesn't hurt)
-# - the key server (slow setup with java spring)
+# the rabbitmq shovel to CentralEGA (the federated queue can be late, it doesn't hurt)
 
 
 
