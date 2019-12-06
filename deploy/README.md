@@ -2,13 +2,11 @@
 
 ## Bootstrap
 
-First [create the EGA docker images](images) beforehand, with `make -C images`.
-
 You can then [generate the private data](bootstrap), with:
 
 	make bootstrap
 
-This requires `openssl` (>=1.0), `ssh-keygen` (=>6.5), `expect` and [`crypt4gh-keygen`](https://github.com/EGA-archive/crypt4gh).
+This requires `openssl` (>=1.1), `ssh-keygen` (=>6.5), `expect` and [`crypt4gh-keygen`](https://github.com/EGA-archive/crypt4gh).
 
 The command will create a `.env` file and a `private` folder holding
 the necessary data (ie the master keypair, the SSL
@@ -47,7 +45,7 @@ This is just a shortcut for `docker-compose down -v` (removing networks and volu
 
 ## Status
 
-	make down
+	make ps
 
 This is just a shortcut for `docker-compose ps`
 
@@ -66,3 +64,34 @@ Remove the volumes:
 Remove everything:
 
     make clean-all
+
+
+----
+
+# LocalEGA docker image
+
+Create the base image by executing:
+
+	make image
+
+It takes some time. The result is an image, named `egarchive/lega-base`, and containing `python 3.6` and the LocalEGA services.
+
+The following images are pulled from Docker Hub:
+
+* `egarchive/lega-mq` (based on `rabbitmq:3.6.14-management`)
+* `egarchive/lega-db` (based on `postgres:11.2`)
+* `egarchive/lega-inbox` (based on OpenSSH version 7.8p1 and CentOS7)
+* `python:3.6-alpine3.10` 
+
+The [`egarchive/lega-inbox`](https://github.com/EGA-archive/LocalEGA-inbox) is an inbox, fetching user credentials from CentralEGA and sending file events notifications to the configured message broker. It is based on OpenSSH SFTP server version `7.8p1` 
+
+----
+
+# Fake Central EGA
+
+We use 2 stubbing services in order to fake the necessary Central EGA components (mostly for local or Travis tests).
+
+| Container    | Role |
+|--------------|------|
+| `cega-users` | Sets up a small list of test users |
+| `cega-mq`    | Sets up a RabbitMQ message broker with appropriate accounts, exchanges, queues and bindings |

@@ -73,8 +73,8 @@ function lega_ingest {
     [ "$status" -eq 0 ]
 
     # Check that a message with the above correlation id arrived in the expected queue
-    # Waiting 200 seconds.
-    retry_until 0 20 10 ${MQ_GET} $queue "${TESTUSER}" "/${TESTFILE}.c4ga"
+    # Waiting 300 seconds.
+    retry_until 0 30 10 ${MQ_GET} $queue "${TESTUSER}" "/${TESTFILE}.c4ga"
     [ "$status" -eq 0 ]
 }
 

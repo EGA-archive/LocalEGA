@@ -12,8 +12,6 @@ EXTRAS=${HERE}/../../extras
 VERBOSE=no
 FORCE=yes
 OPENSSL=openssl
-INBOX=openssh
-INBOX_BACKEND=posix
 ARCHIVE_BACKEND=s3
 HOSTNAME_DOMAIN='' #".localega"
 
@@ -23,8 +21,6 @@ function usage {
     echo "Usage: $0 [options]"
     echo -e "\nOptions are:"
     echo -e "\t--openssl <value>     \tPath to the Openssl executable [Default: ${OPENSSL}]"
-    echo -e "\t--inbox <value>       \tSelect inbox \"openssh\" or \"mina\" [Default: ${INBOX}]"
-    echo -e "\t--inbox-backend <value>   \tSelect the inbox backend: S3 or POSIX [Default: ${INBOX_BACKEND}]"
     echo -e "\t--archive-backend <value> \tSelect the archive backend: S3 or POSIX [Default: ${ARCHIVE_BACKEND}]"
     echo -e "\t--pythonexec <value>  \tPython execute command [Default: ${PYTHONEXEC}]"
     echo -e "\t--domain <value>      \tDomain for the hostnames [Default: '${HOSTNAME_DOMAIN}']"
@@ -44,8 +40,6 @@ while [[ $# -gt 0 ]]; do
         --verbose|-v) VERBOSE=yes;;
         --polite|-p) FORCE=no;;
         --openssl) OPENSSL=$2; shift;;
-        --inbox) INBOX=${2,,}; shift;;
-        --inbox-backend) INBOX_BACKEND=${2,,}; shift;;
         --archive-backend) ARCHIVE_BACKEND=${2,,}; shift;;
         --pythonexec) PYTHONEXEC=$2; shift;;
         --domain) HOSTNAME_DOMAIN=${2,,}; shift;;
@@ -55,16 +49,19 @@ while [[ $# -gt 0 ]]; do
     shift
 done
 
+[[ -x $(readlink ${OPENSSL}) ]] && echo "${OPENSSL} is not executable. Adjust the setting with --openssl" && exit 3
+[[ -x $(readlink ${PYTHONEXEC}) ]] && echo "${PYTHONEXEC} is not executable. Adjust the setting with --pythonexec" && exit 3
+
 #########################################################################
 
 source ${HERE}/defs.sh
 
-[[ -x $(readlink ${OPENSSL}) ]] && echo "${OPENSSL} is not executable. Adjust the setting with --openssl" && exit 3
-[[ -x $(readlink ${PYTHONEXEC}) ]] && echo "${PYTHONEXEC} is not executable. Adjust the setting with --pythonexec" && exit 3
-
 rm_politely ${PRIVATE}
 mkdir -p ${PRIVATE}
 exec 2>${PRIVATE}/.err
+
+mkdir -p ${PRIVATE}/{keys,logs}
+chmod 700 ${PRIVATE}/{keys,logs}
 
 #########################################################################
 echo -n "Bootstrapping "
@@ -72,6 +69,8 @@ echo -n "Bootstrapping "
 
 echomsg "\t* Loading the settings"
 source ${HERE}/settings.rc
+
+#########################################################################
 
 echomsg "\t* Fake Central EGA parameters"
 # For the fake CEGA
@@ -91,8 +90,9 @@ CEGA_CONNECTION="amqps://legatest:legatest@cega-mq${HOSTNAME_DOMAIN}:5671/lega?$
 CEGA_USERS_ENDPOINT="https://cega-users${HOSTNAME_DOMAIN}/lega/v1/legas/users"
 CEGA_USERS_CREDS=$'legatest:legatest'
 
+#########################################################################
+
 echomsg "\t* Fake Central EGA users"
-# For the fake Users
 source ${HERE}/users.sh
 
 #########################################################################
@@ -106,9 +106,6 @@ COMPOSE_PATH_SEPARATOR=:
 EOF
 
 #########################################################################
-
-mkdir -p $PRIVATE/{keys,logs}
-chmod 700 $PRIVATE/{keys,logs}
 
 echomsg "\t* the C4GH key"
 
@@ -160,31 +157,19 @@ EOF
 chmod +x ${PRIVATE}/entrypoint.sh
 
 #########################################################################
+
 echomsg "\t* the SSL certificates"
 
 make -C ${HERE}/certs clean prepare OPENSSL=${OPENSSL} &>${PRIVATE}/.err
+
 yes | make -C ${HERE}/certs OPENSSL=${OPENSSL} DOMAIN="${HOSTNAME_DOMAIN}" &>${PRIVATE}/.err
 
-if [[ ${REAL_CEGA} != 'yes' ]]; then
-    yes | make -C ${HERE}/certs cega testsuite OPENSSL=${OPENSSL} DOMAIN="${HOSTNAME_DOMAIN}" &>${PRIVATE}/.err
-fi
+# For the fake CentralEGA and the testsuite
+yes | make -C ${HERE}/certs cega testsuite OPENSSL=${OPENSSL} DOMAIN="${HOSTNAME_DOMAIN}" &>${PRIVATE}/.err
 
 #########################################################################
 
 echomsg "\t* conf.ini"
-cat > ${PRIVATE}/conf.ini <<EOF
-[DEFAULT]
-log = debug
-#log = silent
-
-master_key = c4gh_file
-
-[c4gh_file]
-loader_class = C4GHFileKey
-passphrase = ${C4GH_PASSPHRASE}
-filepath = /etc/ega/ega.sec
-
-EOF
 
 # Local broker connection
 MQ_CONNECTION_PARAMS=$(${PYTHONEXEC} -c "from urllib.parse import urlencode;                   \
@@ -215,6 +200,16 @@ DB_CONNECTION="postgres://lega_in:${DB_LEGA_IN_PASSWORD}@db${HOSTNAME_DOMAIN}:54
 #
 
 cat >> ${PRIVATE}/conf.ini <<EOF
+[DEFAULT]
+log = debug
+#log = silent
+
+master_key = c4gh_file
+
+[c4gh_file]
+loader_class = C4GHFileKey
+passphrase = ${C4GH_PASSPHRASE}
+filepath = /etc/ega/ega.sec
 
 ## Connecting to Local EGA
 [broker]
@@ -233,10 +228,15 @@ connection = ${DB_CONNECTION}?${DB_CONNECTION_PARAMS}
 try = 30
 try_interval = 1
 
-[archive]
+[inbox]
+location = /ega/inbox/%s/
+chroot_sessions = True
 EOF
+
 if [[ ${ARCHIVE_BACKEND} == 's3' ]]; then
     cat >> ${PRIVATE}/conf.ini <<EOF
+
+[archive]
 storage_driver = S3Storage
 s3_url = https://archive${HOSTNAME_DOMAIN}:9000
 s3_access_key = ${S3_ACCESS_KEY}
@@ -245,34 +245,19 @@ s3_secret_key = ${S3_SECRET_KEY}
 cacertfile = /etc/ega/CA.cert
 certfile = /etc/ega/ssl.cert
 keyfile = /etc/ega/ssl.key
+
 EOF
 else
     # POSIX file system
     cat >> ${PRIVATE}/conf.ini <<EOF
+
+[archive]
 storage_driver = FileStorage
 location = /ega/archive/%s/
+
 EOF
 fi
 
-if [[ ${INBOX_BACKEND} == 's3' ]]; then
-    cat >> ${PRIVATE}/conf.ini <<EOF
-
-[inbox]
-storage_driver = S3Storage
-url = https://inbox-s3-backend${HOSTNAME_DOMAIN}:9000
-access_key = ${S3_ACCESS_KEY_INBOX}
-secret_key = ${S3_SECRET_KEY_INBOX}
-#region = lega
-EOF
-else
-    # Default: POSIX file system
-    cat >> ${PRIVATE}/conf.ini <<EOF
-
-[inbox]
-location = /ega/inbox/%s/
-chroot_sessions = True
-EOF
-fi
 
 #########################################################################
 # Specifying the LocalEGA components in the docke-compose file
@@ -292,15 +277,6 @@ volumes:
   db:
   inbox:
   archive:
-EOF
-
-if [[ ${INBOX_BACKEND} == 's3' ]]; then
-cat >> ${PRIVATE}/lega.yml <<EOF
-  inbox-s3:
-EOF
-fi
-
-cat >> ${PRIVATE}/lega.yml <<EOF
 
 services:
 
@@ -369,24 +345,6 @@ services:
     restart: on-failure:3
     networks:
       - lega
-EOF
-if [[ $INBOX == 'mina' ]]; then
-cat >> ${PRIVATE}/lega.yml <<EOF
-    environment:
-      - CEGA_ENDPOINT=${CEGA_USERS_ENDPOINT%/}/%s?idType=username
-      - CEGA_ENDPOINT_CREDS=${CEGA_USERS_CREDS}
-      - S3_ACCESS_KEY=${S3_ACCESS_KEY_INBOX}
-      - S3_SECRET_KEY=${S3_SECRET_KEY_INBOX}
-      - S3_ENDPOINT=inbox-s3-backend:9000
-      - USE_SSL=false
-    ports:
-      - "${DOCKER_PORT_inbox}:2222"
-    image: nbisweden/ega-mina-inbox
-    volumes:
-      - inbox:/ega/inbox
-EOF
-else
-cat >> ${PRIVATE}/lega.yml <<EOF  # SFTP inbox
     environment:
       - CEGA_ENDPOINT=${CEGA_USERS_ENDPOINT}
       - CEGA_ENDPOINT_CREDS=${CEGA_USERS_CREDS}
@@ -412,10 +370,6 @@ cat >> ${PRIVATE}/lega.yml <<EOF  # SFTP inbox
       - ../bootstrap/certs/data/inbox.cert.pem:/etc/ega/ssl.cert
       - ../bootstrap/certs/data/inbox.sec.pem:/etc/ega/ssl.key
       - ../bootstrap/certs/data/CA.inbox.cert.pem:/etc/ega/CA.cert
-EOF
-fi
-
-cat >> ${PRIVATE}/lega.yml <<EOF
 
   # Ingestion Workers
   ingest:
@@ -427,13 +381,8 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     container_name: ingest${HOSTNAME_DOMAIN}
     labels:
         lega_label: "ingest"
-    environment:
-      - S3_ACCESS_KEY=${S3_ACCESS_KEY}
-      - S3_SECRET_KEY=${S3_SECRET_KEY}
-      - AWS_ACCESS_KEY_ID=${S3_ACCESS_KEY}
-      - AWS_SECRET_ACCESS_KEY=${S3_SECRET_KEY}
     volumes:
-      - ../../lega:/home/lega/.local/lib/python3.6/site-packages/lega
+      # - ../../lega:/home/lega/.local/lib/python3.6/site-packages/lega
       - inbox:/ega/inbox
       - ./conf.ini:/etc/ega/conf.ini:ro
       - ./entrypoint.sh:/usr/local/bin/lega-entrypoint.sh
@@ -466,13 +415,8 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     labels:
         lega_label: "verify"
     image: egarchive/lega-base:latest
-    environment:
-      - S3_ACCESS_KEY=${S3_ACCESS_KEY}
-      - S3_SECRET_KEY=${S3_SECRET_KEY}
-      - AWS_ACCESS_KEY_ID=${S3_ACCESS_KEY}
-      - AWS_SECRET_ACCESS_KEY=${S3_SECRET_KEY}
     volumes:
-      - ../../lega:/home/lega/.local/lib/python3.6/site-packages/lega
+      # - ../../lega:/home/lega/.local/lib/python3.6/site-packages/lega
       - ./conf.ini:/etc/ega/conf.ini:ro
       - ./keys/ega.sec:/etc/ega/ega.sec
       - ./entrypoint.sh:/usr/local/bin/lega-entrypoint.sh
@@ -481,8 +425,16 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - ../bootstrap/certs/data/CA.verify.cert.pem:/etc/ega/CA.cert
 EOF
 if [[ ${ARCHIVE_BACKEND} == 'posix' ]]; then
-cat >> ${PRIVATE}/lega.yml <<EOF
+    cat >> ${PRIVATE}/lega.yml <<EOF
       - archive:/ega/archive
+EOF
+else
+    cat >> ${PRIVATE}/lega.yml <<EOF
+    environment:
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY}
+      - S3_SECRET_KEY=${S3_SECRET_KEY}
+      - AWS_ACCESS_KEY_ID=${S3_ACCESS_KEY}
+      - AWS_SECRET_ACCESS_KEY=${S3_SECRET_KEY}
 EOF
 fi
 
@@ -506,7 +458,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     labels:
         lega_label: "finalize"
     volumes:
-      - ../../lega:/home/lega/.local/lib/python3.6/site-packages/lega
+      # - ../../lega:/home/lega/.local/lib/python3.6/site-packages/lega
       - ./conf.ini:/etc/ega/conf.ini:ro
       - ./entrypoint.sh:/usr/local/bin/lega-entrypoint.sh
       - ../bootstrap/certs/data/finalize.cert.pem:/etc/ega/ssl.cert
@@ -549,39 +501,10 @@ cat >> ${PRIVATE}/lega.yml <<EOF
 EOF
 fi
 
-if [[ ${INBOX_BACKEND} == 's3' ]]; then
-cat >> ${PRIVATE}/lega.yml <<EOF
-
-  # Inbox S3 Backend Storage
-  inbox-s3-backend:
-    hostname: inbox-s3-backend${HOSTNAME_DOMAIN}
-    container_name: inbox-s3-backend${HOSTNAME_DOMAIN}
-    labels:
-        lega_label: "inbox-s3-backend"
-    image: minio/minio:RELEASE.2018-12-19T23-46-24Z
-    environment:
-      - MINIO_ACCESS_KEY=${S3_ACCESS_KEY_INBOX}
-      - MINIO_SECRET_KEY=${S3_SECRET_KEY_INBOX}
-      - ../bootstrap/certs/data/inbox-s3-backend.cert.pem:/root/.minio/certs/public.crt
-      - ../bootstrap/certs/data/inbox-s3-backend.sec.pem:/root/.minio/certs/private.key
-      - ../bootstrap/certs/data/CA.inbox-s3-backend.cert.pem:/root/.minio/CAs/LocalEGA.crt
-    volumes:
-      - inbox-s3:/data
-    restart: on-failure:3
-    networks:
-      - lega
-    ports:
-      - "${DOCKER_PORT_s3_inbox}:9000"
-    command: ["server", "/data"]
-EOF
-fi
-
-if [[ ${REAL_CEGA} != 'yes' ]]; then
-
-    #########################################################################
-    # Specifying a fake Central EGA broker if requested
-    #########################################################################
-    cat > ${PRIVATE}/cega.yml <<EOF
+#########################################################################
+# Specifying a fake Central EGA broker if requested
+#########################################################################
+cat > ${PRIVATE}/cega.yml <<EOF
 ############################################
 # Faking Central EGA MQ and Users 
 # on the lega network, for simplicity
@@ -632,8 +555,8 @@ services:
     entrypoint: ["/usr/local/bin/cega-entrypoint.sh"]
 EOF
 
-    # The user/password is legatest:legatest
-    cat > ${PRIVATE}/cega-mq-defs.json <<EOF
+# The user/password is legatest:legatest
+cat > ${PRIVATE}/cega-mq-defs.json <<EOF
 {"rabbit_version":"3.7.8",
  "users":[{"name":"legatest","password_hash":"P9snZluoiHj2JeGqrDYmUHGLu637Qo7Fjgn5wakpk4jCyvcO","hashing_algorithm":"rabbit_password_hashing_sha256","tags":"administrator"}],
  "vhosts":[{"name":"lega"}],
@@ -657,7 +580,7 @@ EOF
 }
 EOF
 
-    cat > ${PRIVATE}/cega-mq-rabbitmq.config <<EOF
+cat > ${PRIVATE}/cega-mq-rabbitmq.config <<EOF
 %% -*- mode: erlang -*-
 %%
 [{rabbit,[{loopback_users, [ ] },
@@ -673,21 +596,20 @@ EOF
 ].
 EOF
 
-    cat > ${PRIVATE}/cega-entrypoint.sh <<EOF
+cat > ${PRIVATE}/cega-entrypoint.sh <<EOF
 #!/bin/bash
 chown rabbitmq:rabbitmq /etc/rabbitmq/*
 find /var/lib/rabbitmq \! -user rabbitmq -exec chown rabbitmq '{}' +
 exec docker-entrypoint.sh rabbitmq-server
 EOF
-    chmod +x ${PRIVATE}/cega-entrypoint.sh
-fi
+chmod +x ${PRIVATE}/cega-entrypoint.sh
 
 
 #########################################################################
 # Keeping a trace of if
 #########################################################################
 
-cat >> ${PRIVATE}/.trace <<EOF
+cat > ${PRIVATE}/.trace <<EOF
 #####################################################################
 #
 # Generated by bootstrap/boot.sh
@@ -704,28 +626,24 @@ DB_LEGA_OUT_PASSWORD      = ${DB_LEGA_OUT_PASSWORD}
 CEGA_CONNECTION           = ${CEGA_CONNECTION}
 CEGA_ENDPOINT_CREDS       = ${CEGA_USERS_CREDS}
 #
-S3_ACCESS_KEY             = ${S3_ACCESS_KEY}
-S3_SECRET_KEY             = ${S3_SECRET_KEY}
-#
-DOCKER_PORT_inbox         = ${DOCKER_PORT_inbox}
-DOCKER_PORT_mq            = ${DOCKER_PORT_mq}
-DOCKER_PORT_s3            = ${DOCKER_PORT_s3}
-#
 # Local Message Broker (used by mq and inbox)
 MQ_USER                   = ${MQ_USER}
 MQ_PASSWORD               = ${MQ_PASSWORD}
 MQ_CONNECTION             = ${MQ_CONNECTION}?${MQ_CONNECTION_PARAMS}
 MQ_EXCHANGE               = cega
 MQ_ROUTING_KEY            = files.inbox
+#
+# Port mappings
+DOCKER_PORT_inbox         = ${DOCKER_PORT_inbox}
+DOCKER_PORT_mq            = ${DOCKER_PORT_mq}
 EOF
 
-if [[ ${INBOX_BACKEND} == 's3' ]]; then
-cat >> ${PRIVATE}/.trace <<EOF
+if [[ ${ARCHIVE_BACKEND} == 's3' ]]; then
+cat >>  ${PRIVATE}/.trace <<EOF
+DOCKER_PORT_s3            = ${DOCKER_PORT_s3}
 #
-# Inbox S3 backend
-DOCKER_PORT_s3_inbox      = ${DOCKER_PORT_s3_inbox}
-S3_ACCESS_KEY_INBOX       = ${S3_ACCESS_KEY_INBOX}
-S3_SECRET_KEY_INBOX       = ${S3_SECRET_KEY_INBOX}
+S3_ACCESS_KEY             = ${S3_ACCESS_KEY}
+S3_SECRET_KEY             = ${S3_SECRET_KEY}
 EOF
 fi
 

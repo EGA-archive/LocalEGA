@@ -16,7 +16,7 @@ import logging
 from functools import partial
 import hashlib
 
-from crypt4gh.engine import decrypt
+from crypt4gh.lib import decrypt
 
 from .conf import CONF
 from .utils import db, storage, key
