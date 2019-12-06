@@ -19,14 +19,9 @@ RUN pip install /root/LocalEGA
 ##########################
 FROM python:3.6-alpine3.10
 
-ARG BUILD_DATE
-ARG SOURCE_COMMIT
-
 LABEL maintainer "EGA System Developers"
 LABEL org.label-schema.schema-version="1.0"
-LABEL org.label-schema.build-date=$BUILD_DATE
 LABEL org.label-schema.vcs-url="https://github.com/EGA-archive/LocalEGA"
-LABEL org.label-schema.vcs-ref=$SOURCE_COMMIT
 
 
 RUN apk add --no-cache --update libressl postgresql-libs
