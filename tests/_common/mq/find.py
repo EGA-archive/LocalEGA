@@ -32,9 +32,9 @@ if mq_connection.startswith('amqps'):
 
     context.check_hostname = False
 
-    cacertfile = Path(__file__).parent / 'CA.cert.pem'
-    certfile = Path(__file__).parent / 'testsuite.cert.pem'
-    keyfile = Path(__file__).parent / 'testsuite.sec.pem'
+    cacertfile = Path(__file__).parent / 'root.ca.crt'
+    certfile = Path(__file__).parent / 'tester.ca.crt'
+    keyfile = Path(__file__).parent / 'tester.ca.key'
 
     context.verify_mode = ssl.CERT_NONE
     # Require server verification

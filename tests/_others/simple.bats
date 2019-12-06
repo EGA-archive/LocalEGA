@@ -1,6 +1,7 @@
 #!/usr/bin/env bats
 
 load ../_common/helpers
+load ../_common/c4gh_generate
 
 # CEGA_CONNECTION and CEGA_USERS_CREDS should be already set,
 # when this script runs
@@ -58,10 +59,8 @@ function teardown() {
     [ -n "${TESTUSER_SECKEY}" ]
     [ -n "${TESTUSER_PASSPHRASE}" ]
 
-    # Generate a random file (1 MB)
-    export C4GH_PASSPHRASE=${TESTUSER_PASSPHRASE}
-    dd if=/dev/urandom bs=1048576 count=1 | crypt4gh encrypt --sk ${TESTUSER_SECKEY} --recipient_pk ${EGA_PUBKEY} > ${TESTFILES}/${TESTFILE}.c4ga
-    unset C4GH_PASSPHRASE
+    legarun c4gh_generate 1 ${TESTFILES}/${TESTFILE} ${TESTUSER_SECKEY} ${TESTUSER_PASSPHRASE}
+    [ "$status" -eq 0 ]
 
     # Upload it
     UPLOAD_CMD="put ${TESTFILES}/${TESTFILE}.c4ga /${TESTFILE}.c4ga"

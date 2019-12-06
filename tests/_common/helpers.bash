@@ -16,16 +16,17 @@ DEBUG_LOG=${BATS_TEST_FILENAME}.debug
 # Data directory
 TESTDATA_DIR=$HERE
 USERS_FILE=${DOCKER_PATH}/private/.users
+TRACE_FILE=${DOCKER_PATH}/private/config/trace.yml
 
 # If the CEGA_CONNECTION is not against hellgate (ie Central EGA)
 # then it is against the fake one, which is deployed on the same network
 # as LocalEGA components, and accessible from the localhost via a port mapping
-export CEGA_CONNECTION="amqps://legatest:legatest@localhost:5670/lega"
+CEGA_PASSWORD=$(cat ${TRACE_FILE} | shyaml get-value secrets.cega_mq_pass)
+export CEGA_CONNECTION="amqps://lega:${CEGA_PASSWORD}@localhost:5670/lega"
 
 # Create certfile/keyfile for testsuite
-#yes | make --silent -C ${MAIN_REPO}/deploy/bootstrap/certs testsuite OPENSSL=${OPENSSL:-openssl} &>/dev/null
-cp -f ${MAIN_REPO}/deploy/bootstrap/certs/data/testsuite.{cert,sec}.pem ${HERE}/mq/.
-cp -f ${MAIN_REPO}/deploy/bootstrap/certs/data/CA.cert.pem ${HERE}/mq/.
+cp -f ${MAIN_REPO}/deploy/private/config/certs/tester.ca.{key,crt} ${HERE}/mq/.
+cp -f ${MAIN_REPO}/deploy/private/config/certs/root.ca.crt ${HERE}/mq/.
 
 # Utilities to scan the Message Queues
 MQ_CONSUME="python ${HERE}/mq/consume.py --connection ${CEGA_CONNECTION}"

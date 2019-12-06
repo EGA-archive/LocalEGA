@@ -58,11 +58,45 @@ function generate_password {
     fi
     # Otherwise
     local size=${1:-16} # defaults to 16 characters
-    ${PYTHONEXEC} -c "import secrets,string;print(''.join(secrets.choice(string.ascii_letters + string.digits) for i in range(${size})))"
+	${PYTHONEXEC} $HERE/pass_gen.py "$1"
 }
 
-function generate_mq_hash {
-    local pass=${1}
-    [[ -n $1 ]] || { echo 'Missing argument' 1>&2; exit 1; }  # fail
-    ${PYTHONEXEC} $HERE/mq_hash.py "$1"
+function check_python_module {
+    local module=${1}
+    ${PYTHONEXEC} -c "import ${module}" > /dev/null 2>&1
+    retval=$?
+    # do_something $retval
+    if [ $retval -ne 0 ]; then
+        echo "${module} is required and is missing."
+        exit 1
+    fi
+}
+
+function url_encode {
+    local domain=${1}
+	local option=${2}
+    [[ -n $1 ]] || { echo 'Missing domain' 1>&2; exit 1; }  # fail
+	[[ -n $2 ]] || { echo 'Missing option' 1>&2; exit 1; }  # fail
+    ${PYTHONEXEC} $HERE/url_encode.py "$1" "$2"
+}
+
+
+function get_trace_value {
+	local value=${1}
+	cat $TRACE_FILE | shyaml get-value "$1"
+}
+
+
+function do_user_credentials {
+	local user=${1}
+	echomsg "\t\t - User ${user}"
+	pushd ../../deploy/ &>/dev/null
+	passphrase=$(generate_password 8)
+	popd &>/dev/null
+	PASSPHRASES[$user]=$passphrase
+	rm -rf $user
+	ssh-keygen -t ed25519 -f ${USERS_DIR}/$user -N "$passphrase" -C "$user"@LocalEGA &>/dev/null
+	pubkey=$(cat ${USERS_DIR}/${user}.pub)
+	uid=${USERS[${user}]}
+	${PYTHONEXEC} ../../deploy/$HERE/user_data.py "$passphrase" "$user" "$uid" "$pubkey" "${USERS_DIR}"
 }

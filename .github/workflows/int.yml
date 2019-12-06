@@ -11,6 +11,11 @@ jobs:
         backend: ['', '--archive-backend posix']
         tests: ['integration', 'security', 'robustness']
         python-version: [3.6]
+        exclude:
+          - backend: ''
+            tests: 'security'
+          - backend: ''
+            tests: 'robustness'
     
     runs-on: ${{ matrix.os }}
     
@@ -31,6 +36,7 @@ jobs:
       run: |
         pip install git+https://github.com/EGA-archive/crypt4gh.git@v1.0
         pip install pika==1.0.1
+        pip install shyaml
         sudo apt-get install expect
     - name: Build image
       run:  |
@@ -38,13 +44,14 @@ jobs:
                      --build-arg LEGA_GID=1000 \
                      --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
                      --build-arg SOURCE_COMMIT=$(git rev-parse --short HEAD) \
-                     --tag egarchive/lega-base:latest \
+                     --tag nbisweden/ega-base:latest \
                      .
     - name: Bootstrap with backend '${{ matrix.backend }}' and Start Services
       run: |
         pushd deploy
         pip install bcrypt
         make bootstrap ARGS="${{ matrix.backend }}"
+        sudo chown 70 private/config/certs/db.ca.key
         make up
         docker-compose ps
         sleep 80

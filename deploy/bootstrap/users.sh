@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-
 ( # run in subshell
     set -e
 
@@ -15,34 +14,12 @@
     declare -A PASSPHRASES
 
     # check that bcrypt is installed for this python version
-    if ! ${PYTHONEXEC} -c 'from importlib.util import find_spec; import sys; sys.exit(0 if find_spec("bcrypt") is not None else 1)'; then
-	echo 'The python bcrypt package is not found for this python version'
-	exit 1
-    fi
+    check_python_module bcrypt
 
     # Generate key with passphrase for all users
     for user in ${!USERS[@]}
     do
-	echomsg "\t\t - User ${user}"
-	passphrase=$(generate_password 8)
-	PASSPHRASES[$user]=$passphrase
-	rm -rf $user
-	ssh-keygen -t ed25519 -f ${USERS_DIR}/$user -N "$passphrase" -C "$user"@LocalEGA &>/dev/null
-	
-	# Bcrypt hash
-	passphrase_hash=$(echo -n $passphrase | \
-	${PYTHONEXEC} -c 'import bcrypt; import sys; sys.stdout.buffer.write(bcrypt.hashpw(sys.stdin.buffer.read(), bcrypt.gensalt()))')
-
-	cat > ${USERS_DIR}/${user}.json <<EOF
-{
-	"username" : "${user}",
-	"uid" : ${USERS[${user}]},
-	"passwordHash" : "${passphrase_hash}",
-        "gecos" : "LocalEGA user ${user}",
-  	"sshPublicKey" : "$(cat ${USERS_DIR}/${user}.pub)",
-	"enabled" : null
-}
-EOF
+        do_user_credentials ${user}
     done
 
 
