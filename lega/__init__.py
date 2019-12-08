@@ -11,7 +11,6 @@ __copyright__ = 'Local EGA @ NBIS Sweden'
 
 # Set default logging handler to avoid "No handler found" warnings.
 import logging
-#logging.getLogger(__name__).addHandler(logging.NullHandler())
 
 # This updates the logging class from all loggers used in this package.
 # The new logging class injects a correlation id to the log record.

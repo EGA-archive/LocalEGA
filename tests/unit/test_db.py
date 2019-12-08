@@ -1,6 +1,6 @@
 import unittest
 from lega.utils.db import (insert_file,
-                           get_errors, set_error,
+                           set_error,
                            get_info,
                            store_header, set_archived,
                            mark_in_progress, mark_completed,
@@ -50,13 +50,6 @@ class DBTest(unittest.TestCase):
         mock_connect().__enter__().cursor().__enter__().fetchone.return_value = [()]
         with self.assertRaises(Exception):
             insert_file('filename', 'user_id', 'stable_id')
-
-    @mock.patch('lega.utils.db.connect')
-    def test_get_errors(self, mock_connect):
-        """DB get errors."""
-        mock_connect().__enter__().cursor().__enter__().fetchall.return_value = self._query_result
-        result = get_errors()
-        assert result == self._query_result
 
     @mock.patch('lega.utils.db.connect')
     def test_get_details(self, mock_connect):

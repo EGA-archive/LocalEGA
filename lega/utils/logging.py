@@ -63,9 +63,9 @@ class JSONFormatter(Formatter):
         return json.dumps(log_record)
 
 
-
 def get_correlation_id(stacklevel=10):
     """Retrieve the correlation id from caller's frame.
+
     We inspect ``stacklevel`` levels in the stack of callers.
 
     :returns: None if not found, the correlation id if found
@@ -94,7 +94,6 @@ class LEGALogger(Logger):
 
     def makeRecord(self, *args, **kwargs):
         """Specialized record with correlation_id."""
-
         rv = super(LEGALogger, self).makeRecord(*args, **kwargs)
 
         # Adding correlation_id if not already there

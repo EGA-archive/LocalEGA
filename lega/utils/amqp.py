@@ -67,7 +67,7 @@ def publish(message, channel, exchange, routing, correlation_id=None):
     """Send a message to the local broker with ``path`` was updated."""
     correlation_id = correlation_id or get_correlation_id()
     assert(correlation_id), "You should not publish without a correlation id"
-    LOG.debug('Sending to exchange: %s [routing key: %s]', exchange, routing, extra={'correlation_id':correlation_id})
+    LOG.debug('Sending to exchange: %s [routing key: %s]', exchange, routing, extra={'correlation_id': correlation_id})
     channel.basic_publish(exchange,             # exchange
                           routing,              # routing_key
                           json.dumps(message),  # body
@@ -100,7 +100,7 @@ def consume(work, connection, from_queue, to_routing):
     def process_request(channel, method_frame, props, body):
         correlation_id = props.correlation_id
         message_id = method_frame.delivery_tag
-        LOG.debug('Consuming message %s', message_id, extra={'correlation_id':correlation_id})
+        LOG.debug('Consuming message %s', message_id, extra={'correlation_id': correlation_id})
 
         # Process message in JSON format
         answer = work(json.loads(body))  # Exceptions should be already caught
