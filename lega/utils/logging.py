@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 """Logs Formatter."""
 
-from logging import Formatter
+from logging import Formatter, Logger, currentframe
 from logging.handlers import SocketHandler as handler  # or DatagramHandler ?
 import json
 import re
+# import inspect
 
 
 class LEGAHandler(handler):
@@ -61,3 +62,44 @@ class JSONFormatter(Formatter):
             log_record['stack_info'] = self.formatStack(record.stack_info)
 
         return json.dumps(log_record)
+
+
+
+def get_correlation_id(stacklevel=10):
+    """Retrieve the correlation id from caller's frame.
+    We inspect ``stacklevel`` levels in the stack of callers.
+
+    :returns: None if not found, the correlation id if found
+    :rtype: str or None
+    """
+    f = currentframe()
+    while f and stacklevel > 0:
+        locs = f.f_locals
+        cid = locs.get('correlation_id')
+        if cid:  # gotcha
+            return cid
+        f = f.f_back  # caller frame
+        stacklevel -= 1
+    return None
+
+
+class LEGALogger(Logger):
+    """Logger with a correlation id injected in the log records.
+
+    If the correlation id is specified in the ``extra`` dictionary, we
+    inject its value. If not, we try to find it in the local variables
+    of the calling frames. If none of the previous cases happen, we
+    use the value '--------'.
+
+    """
+
+    def makeRecord(self, *args, **kwargs):
+        """Specialized record with correlation_id."""
+
+        rv = super(LEGALogger, self).makeRecord(*args, **kwargs)
+
+        # Adding correlation_id if not already there
+        if 'correlation_id' in rv.__dict__.keys():
+            return rv
+        rv.__dict__['correlation_id'] = get_correlation_id() or '--------'
+        return rv

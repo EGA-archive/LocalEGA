@@ -9,6 +9,9 @@ loggers:
     handlers: [debugFile,console]
     propagate: True
     qualname: lega
+  py.warnings:
+    level: WARNING
+    handlers: [debugFile]
 
 
 handlers:
@@ -31,5 +34,8 @@ formatters:
     style: '{'
     datefmt: '%Y-%m-%d %H:%M:%S'
   simple:
+    format: '[{correlation_id}][{name:^10}][{levelname:^6}] (L{lineno}) {message}'
+    style: '{'
+  simple_no_correlation:
     format: '[{name:^10}][{levelname:^6}] (L{lineno}) {message}'
     style: '{'

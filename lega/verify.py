@@ -12,9 +12,11 @@ with the routing key: ``completed``.
 """
 
 import sys
-import logging
 from functools import partial
 import hashlib
+import logging
+import math
+import time
 
 from crypt4gh.lib import decrypt
 
@@ -34,6 +36,7 @@ class ChecksumFile():
         The chosen checksum is `hashlib.sha256`.
         """
         self.md = hashlib.sha256()
+
 
     def write(self, data):
         """Send data to the checksum."""
@@ -117,6 +120,7 @@ def work(key, mover, channel, data):
     LOG.info('Opening archive file: %s', archive_path)
     # If you can decrypt... the checksum is valid
 
+    start_time = time.time()
     # Calculate the checksum of the original content
     cf = ChecksumFile()
 
@@ -128,6 +132,8 @@ def work(key, mover, channel, data):
         # decrypt will loop through the segments and send the output to the `cf` file handle.
         # The `cf` will only checksum the content (ie build the checksum of the unencrypted (original) file)
         # and never leave a trace on disk.
+
+    LOG.debug('Elpased time: %.2f seconds', time.time() - start_time)
 
     digest = cf.hexdigest()
     LOG.info('Verification completed [sha256: %s]', digest)

@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """Computes the checksum."""
 
-import logging
 import hashlib
+import logging
 
 from .exceptions import UnsupportedHashAlgorithm, CompanionNotFound
 

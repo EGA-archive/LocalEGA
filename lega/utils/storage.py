@@ -3,13 +3,13 @@
 """File I/O for disk or S3 Object storage."""
 
 import os
+import io
 import logging
 from contextlib import contextmanager
 import shutil
 from pathlib import Path
 
 from ..conf import CONF
-import io
 
 LOG = logging.getLogger(__name__)
 
