@@ -5,7 +5,6 @@ from logging import Formatter, Logger, currentframe
 from logging.handlers import SocketHandler as handler  # or DatagramHandler ?
 import json
 import re
-# import inspect
 
 
 class LEGAHandler(handler):

@@ -1,8 +1,8 @@
 """Ensures communication with RabbitMQ Message Broker."""
 
+import logging
 import json
 import ssl
-import logging
 
 import pika
 
@@ -66,6 +66,7 @@ def get_connection(domain, blocking=True):
 def publish(message, channel, exchange, routing, correlation_id=None):
     """Send a message to the local broker with ``path`` was updated."""
     correlation_id = correlation_id or get_correlation_id()
+    assert(correlation_id), "You should not publish without a correlation id"
     LOG.debug('Sending to exchange: %s [routing key: %s]', exchange, routing, extra={'correlation_id':correlation_id})
     channel.basic_publish(exchange,             # exchange
                           routing,              # routing_key

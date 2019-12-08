@@ -18,9 +18,9 @@ routing key :``archived``.
 """
 
 import sys
+import logging
 from functools import partial
 import io
-import logging
 
 from crypt4gh import header
 
@@ -29,6 +29,7 @@ from .utils import db, exceptions, sanitize_user_id, storage
 from .utils.amqp import consume, publish, get_connection
 
 LOG = logging.getLogger(__name__)
+
 
 def get_header(input_file):
     """Extract the header bytes, and leave the ``input_file`` file handle at the beginning of the data portion."""

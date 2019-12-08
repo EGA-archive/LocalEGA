@@ -12,10 +12,9 @@ with the routing key: ``completed``.
 """
 
 import sys
+import logging
 from functools import partial
 import hashlib
-import logging
-import math
 import time
 
 from crypt4gh.lib import decrypt
@@ -36,7 +35,6 @@ class ChecksumFile():
         The chosen checksum is `hashlib.sha256`.
         """
         self.md = hashlib.sha256()
-
 
     def write(self, data):
         """Send data to the checksum."""
