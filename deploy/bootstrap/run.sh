@@ -12,7 +12,7 @@ EXTRAS=${HERE}/../../extras
 VERBOSE=no
 FORCE=yes
 OPENSSL=openssl
-ARCHIVE_BACKEND=s3
+ARCHIVE_BACKEND=posix
 HOSTNAME_DOMAIN='' #".localega"
 
 PYTHONEXEC=python
