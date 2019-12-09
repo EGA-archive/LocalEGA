@@ -63,8 +63,6 @@ image:
 	cd $(MAIN_REPO) && \
 	docker build -f Dockerfile $(IMAGE_ARGS) \
 		   --build-arg LEGA_GID=1000 \
-		   --build-arg BUILD_DATE=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ') \
-		   --build-arg SOURCE_COMMIT=$(shell git rev-parse --short HEAD) \
 		   --tag egarchive/lega-base:latest \
 		   .
 

@@ -15,7 +15,7 @@ registered upstream queue.
 import sys
 import logging
 
-from .conf import CONF
+from .conf import CONF, configure
 from .utils import db
 from .utils.amqp import consume, get_connection
 
@@ -38,13 +38,9 @@ def work(data):
     return None
 
 
+@configure
 def main(args=None):
-    """Run mapper service."""
-    if not args:
-        args = sys.argv[1:]
-
-    CONF.setup(args)  # re-conf
-
+    """Listen for incoming stable IDs."""
     broker = get_connection('broker')
 
     # upstream link configured in local broker

@@ -19,7 +19,7 @@ import time
 
 from crypt4gh.lib import decrypt
 
-from .conf import CONF
+from .conf import CONF, configure
 from .utils import db, storage, key
 from .utils.amqp import consume, get_connection
 
@@ -148,13 +148,9 @@ def work(key, mover, channel, data):
     return org_msg
 
 
+@configure
 def main(args=None):
     """Run verify service."""
-    if not args:
-        args = sys.argv[1:]
-
-    CONF.setup(args)  # re-conf
-
     store = getattr(storage, CONF.get_value('archive', 'storage_driver', default='FileStorage'))
 
     # Loading the key from its storage (be it from file, or from a remote location)

@@ -60,8 +60,8 @@ rm_politely ${PRIVATE}
 mkdir -p ${PRIVATE}
 exec 2>${PRIVATE}/.err
 
-mkdir -p ${PRIVATE}/{keys,logs}
-chmod 700 ${PRIVATE}/{keys,logs}
+mkdir -p ${PRIVATE}/{keys,logs,confs}
+chmod 700 ${PRIVATE}/{keys,logs,confs}
 
 #########################################################################
 echo -n "Bootstrapping "
@@ -169,7 +169,7 @@ yes | make -C ${HERE}/certs cega testsuite OPENSSL=${OPENSSL} DOMAIN="${HOSTNAME
 
 #########################################################################
 
-echomsg "\t* conf.ini"
+echomsg "\t* Configuration files"
 
 # Local broker connection
 MQ_CONNECTION_PARAMS=$(${PYTHONEXEC} -c "from urllib.parse import urlencode;                   \
@@ -195,14 +195,58 @@ DB_CONNECTION_PARAMS=$(${PYTHONEXEC} -c "from urllib.parse import urlencode;    
 
 DB_CONNECTION="postgres://lega_in:${DB_LEGA_IN_PASSWORD}@db${HOSTNAME_DOMAIN}:5432/lega"
 
-#
-# Configuration file
-#
 
-cat >> ${PRIVATE}/conf.ini <<EOF
+
+cat > ${PRIVATE}/confs/ingest.ini <<EOF
 [DEFAULT]
-log = debug
-#log = silent
+
+[inbox]
+location = /ega/inbox/%s/
+chroot_sessions = True
+
+## Connecting to Local EGA
+[broker]
+connection = ${MQ_CONNECTION}?${MQ_CONNECTION_PARAMS}
+
+enable_ssl = yes
+verify_peer = yes
+verify_hostname = no
+
+cacertfile = /etc/ega/CA.cert
+certfile = /etc/ega/ssl.cert
+keyfile = /etc/ega/ssl.key
+
+[db]
+connection = ${DB_CONNECTION}?${DB_CONNECTION_PARAMS}
+try = 30
+try_interval = 1
+EOF
+
+if [[ ${ARCHIVE_BACKEND} == 's3' ]]; then
+    cat >> ${PRIVATE}/confs/ingest.ini <<EOF
+
+[archive]
+storage_driver = S3Storage
+s3_url = https://archive${HOSTNAME_DOMAIN}:9000
+s3_access_key = ${S3_ACCESS_KEY}
+s3_secret_key = ${S3_SECRET_KEY}
+#region = lega
+cacertfile = /etc/ega/CA.cert
+certfile = /etc/ega/ssl.cert
+keyfile = /etc/ega/ssl.key
+EOF
+else
+    # POSIX file system
+    cat >> ${PRIVATE}/confs/ingest.ini <<EOF
+
+[archive]
+storage_driver = FileStorage
+location = /ega/archive/%s/
+EOF
+fi
+
+cat > ${PRIVATE}/confs/verify.ini <<EOF
+[DEFAULT]
 
 master_key = c4gh_file
 
@@ -227,14 +271,10 @@ keyfile = /etc/ega/ssl.key
 connection = ${DB_CONNECTION}?${DB_CONNECTION_PARAMS}
 try = 30
 try_interval = 1
-
-[inbox]
-location = /ega/inbox/%s/
-chroot_sessions = True
 EOF
 
 if [[ ${ARCHIVE_BACKEND} == 's3' ]]; then
-    cat >> ${PRIVATE}/conf.ini <<EOF
+    cat >> ${PRIVATE}/confs/verify.ini <<EOF
 
 [archive]
 storage_driver = S3Storage
@@ -249,7 +289,7 @@ keyfile = /etc/ega/ssl.key
 EOF
 else
     # POSIX file system
-    cat >> ${PRIVATE}/conf.ini <<EOF
+    cat >> ${PRIVATE}/confs/verify.ini <<EOF
 
 [archive]
 storage_driver = FileStorage
@@ -257,6 +297,29 @@ location = /ega/archive/%s/
 
 EOF
 fi
+
+
+cat > ${PRIVATE}/confs/finalize.ini <<EOF
+[DEFAULT]
+
+## Connecting to Local EGA
+[broker]
+connection = ${MQ_CONNECTION}?${MQ_CONNECTION_PARAMS}
+
+enable_ssl = yes
+verify_peer = yes
+verify_hostname = no
+
+cacertfile = /etc/ega/CA.cert
+certfile = /etc/ega/ssl.cert
+keyfile = /etc/ega/ssl.key
+
+[db]
+connection = ${DB_CONNECTION}?${DB_CONNECTION_PARAMS}
+try = 30
+try_interval = 1
+EOF
+
 
 
 #########################################################################
@@ -298,8 +361,6 @@ services:
       - "${DOCKER_PORT_mq}:15672"
     image: egarchive/lega-mq:latest
     container_name: mq${HOSTNAME_DOMAIN}
-    labels:
-        lega_label: "mq"
     restart: on-failure:3
     networks:
       - lega
@@ -321,8 +382,6 @@ services:
       - PG_VERIFY_PEER=1
     hostname: db${HOSTNAME_DOMAIN}
     container_name: db${HOSTNAME_DOMAIN}
-    labels:
-        lega_label: "db"
     image: egarchive/lega-db:latest
     volumes:
       - db:/ega/data
@@ -340,8 +399,6 @@ services:
       - mq
     # Required external link
     container_name: inbox${HOSTNAME_DOMAIN}
-    labels:
-        lega_label: "inbox"
     restart: on-failure:3
     networks:
       - lega
@@ -373,18 +430,18 @@ services:
 
   # Ingestion Workers
   ingest:
+    environment:
+      - LEGA_LOG=debug
     hostname: ingest${HOSTNAME_DOMAIN}
     depends_on:
       - db
       - mq
     image: egarchive/lega-base:latest
     container_name: ingest${HOSTNAME_DOMAIN}
-    labels:
-        lega_label: "ingest"
     volumes:
       # - ../../lega:/home/lega/.local/lib/python3.6/site-packages/lega
       - inbox:/ega/inbox
-      - ./conf.ini:/etc/ega/conf.ini:ro
+      - ./confs/ingest.ini:/etc/ega/conf.ini:ro
       - ./entrypoint.sh:/usr/local/bin/lega-entrypoint.sh
       - ../bootstrap/certs/data/ingest.cert.pem:/etc/ega/ssl.cert
       - ../bootstrap/certs/data/ingest.sec.pem:/etc/ega/ssl.key
@@ -410,14 +467,14 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     depends_on:
       - db
       - mq
+    environment:
+      - LEGA_LOG=debug
     hostname: verify${HOSTNAME_DOMAIN}
     container_name: verify${HOSTNAME_DOMAIN}
-    labels:
-        lega_label: "verify"
     image: egarchive/lega-base:latest
     volumes:
       # - ../../lega:/home/lega/.local/lib/python3.6/site-packages/lega
-      - ./conf.ini:/etc/ega/conf.ini:ro
+      - ./confs/verify.ini:/etc/ega/conf.ini:ro
       - ./keys/ega.sec:/etc/ega/ega.sec
       - ./entrypoint.sh:/usr/local/bin/lega-entrypoint.sh
       - ../bootstrap/certs/data/verify.cert.pem:/etc/ega/ssl.cert
@@ -449,17 +506,17 @@ cat >> ${PRIVATE}/lega.yml <<EOF
 
   # Stable ID mapper
   finalize:
+    environment:
+      - LEGA_LOG=debug
     hostname: finalize${HOSTNAME_DOMAIN}
     depends_on:
       - db
       - mq
     image: egarchive/lega-base:latest
     container_name: finalize${HOSTNAME_DOMAIN}
-    labels:
-        lega_label: "finalize"
     volumes:
       # - ../../lega:/home/lega/.local/lib/python3.6/site-packages/lega
-      - ./conf.ini:/etc/ega/conf.ini:ro
+      - ./confs/finalize.ini:/etc/ega/conf.ini:ro
       - ./entrypoint.sh:/usr/local/bin/lega-entrypoint.sh
       - ../bootstrap/certs/data/finalize.cert.pem:/etc/ega/ssl.cert
       - ../bootstrap/certs/data/finalize.sec.pem:/etc/ega/ssl.key
@@ -481,8 +538,6 @@ cat >> ${PRIVATE}/lega.yml <<EOF
   archive:
     hostname: archive${HOSTNAME_DOMAIN}
     container_name: archive${HOSTNAME_DOMAIN}
-    labels:
-        lega_label: "archive"
     image: minio/minio:RELEASE.2018-12-19T23-46-24Z
     environment:
       - MINIO_ACCESS_KEY=${S3_ACCESS_KEY}
@@ -520,8 +575,6 @@ services:
       - "15671:443"
     image: egarchive/lega-base:latest
     container_name: cega-users${HOSTNAME_DOMAIN}
-    labels:
-        lega_label: "cega-users"
     volumes:
       - ../../tests/_common/users.py:/cega/users.py
       - ../../tests/_common/users:/cega/users
@@ -540,8 +593,6 @@ services:
       - "5670:5671"
     image: rabbitmq:3.7.8-management-alpine
     container_name: cega-mq${HOSTNAME_DOMAIN}
-    labels:
-        lega_label: "cega-mq"
     volumes:
       - ./cega-mq-defs.json:/etc/rabbitmq/defs.json
       - ./cega-mq-rabbitmq.config:/etc/rabbitmq/rabbitmq.config
