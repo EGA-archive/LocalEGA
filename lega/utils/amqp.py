@@ -7,7 +7,7 @@ import ssl
 import pika
 
 from ..conf import CONF
-from .logging import get_correlation_id
+from .logging import _cid
 
 LOG = logging.getLogger(__name__)
 
@@ -65,7 +65,7 @@ def get_connection(domain, blocking=True):
 
 def publish(message, channel, exchange, routing, correlation_id=None):
     """Send a message to the local broker with ``path`` was updated."""
-    correlation_id = correlation_id or get_correlation_id()
+    correlation_id = correlation_id or _cid.get()
     assert(correlation_id), "You should not publish without a correlation id"
     LOG.debug('Sending to exchange: %s [routing key: %s]', exchange, routing, extra={'correlation_id': correlation_id})
     channel.basic_publish(exchange,             # exchange
@@ -98,21 +98,25 @@ def consume(work, connection, from_queue, to_routing):
     to_channel = connection.channel()
 
     def process_request(channel, method_frame, props, body):
-        correlation_id = props.correlation_id
-        message_id = method_frame.delivery_tag
-        LOG.debug('Consuming message %s', message_id, extra={'correlation_id': correlation_id})
+        try:
+            correlation_id = props.correlation_id
+            _cid.set(correlation_id)
+            message_id = method_frame.delivery_tag
+            LOG.debug('Consuming message %s', message_id, extra={'correlation_id': correlation_id})
+            
+            # Process message in JSON format
+            answer = work(json.loads(body))  # Exceptions should be already caught
+            
+            # Publish the answer
+            if answer:
+                assert(to_routing)
+                publish(answer, to_channel, 'lega', to_routing, correlation_id=correlation_id)
 
-        # Process message in JSON format
-        answer = work(json.loads(body))  # Exceptions should be already caught
-
-        # Publish the answer
-        if answer:
-            assert(to_routing)
-            publish(answer, to_channel, 'lega', to_routing, correlation_id=correlation_id)
-
-        # Acknowledgment: Cancel the message resend in case MQ crashes
-        LOG.debug('Sending ACK for message %s', message_id)
-        channel.basic_ack(delivery_tag=method_frame.delivery_tag)
+            # Acknowledgment: Cancel the message resend in case MQ crashes
+            LOG.debug('Sending ACK for message %s', message_id)
+            channel.basic_ack(delivery_tag=method_frame.delivery_tag)
+        finally:
+            _cid.set(None)
 
     # Let's do this
     try:

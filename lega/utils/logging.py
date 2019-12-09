@@ -63,24 +63,15 @@ class JSONFormatter(Formatter):
         return json.dumps(log_record)
 
 
-def get_correlation_id(stacklevel=10):
-    """Retrieve the correlation id from caller's frame.
+class _wrapper():
+    """Wrapper class for the correlation id."""
+    value = None
+    def get(self):
+        return self.value
+    def set(self, v):
+        self.value = v
 
-    We inspect ``stacklevel`` levels in the stack of callers.
-
-    :returns: None if not found, the correlation id if found
-    :rtype: str or None
-    """
-    f = currentframe()
-    while f and stacklevel > 0:
-        locs = f.f_locals
-        cid = locs.get('correlation_id')
-        if cid:  # gotcha
-            return cid
-        f = f.f_back  # caller frame
-        stacklevel -= 1
-    return None
-
+_cid = _wrapper()
 
 class LEGALogger(Logger):
     """Logger with a correlation id injected in the log records.
@@ -99,5 +90,5 @@ class LEGALogger(Logger):
         # Adding correlation_id if not already there
         if 'correlation_id' in rv.__dict__.keys():
             return rv
-        rv.__dict__['correlation_id'] = get_correlation_id() or '--------'
+        rv.__dict__['correlation_id'] = _cid.get() or '--------'
         return rv
