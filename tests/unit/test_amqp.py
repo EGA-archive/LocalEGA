@@ -50,14 +50,12 @@ class BrokerTest(unittest.TestCase):
         get_connection('broker', False)
         mock_pika.SelectConnection.assert_called()
 
-    @mock.patch('lega.utils.logging.get_correlation_id')
     @mock.patch('lega.utils.amqp.get_connection')
-    def test_publish(self, mock_channel, mock_get_correlation_id):
+    def test_publish(self, mock_channel):
         """Test if publish actually calls the publish to channel."""
         mock_channel = mock.MagicMock(name='basic_publish')
         mock_channel.basic_publish.return_value = mock.Mock()
-        mock_get_correlation_id.return_value = '1234'
-        publish('message', mock_channel, 'exchange', 'routing')
+        publish('message', mock_channel, 'exchange', 'routing', correlation_id='1234')
         mock_channel.basic_publish.assert_called()
 
     @mock.patch('lega.utils.amqp.pika')
