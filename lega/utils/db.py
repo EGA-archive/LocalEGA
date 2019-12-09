@@ -11,7 +11,7 @@ from socket import gethostname
 from time import sleep
 
 from ..conf import CONF
-from .exceptions import FromUser, KeyserverError
+from .exceptions import FromUser
 from .amqp import publish, get_connection
 
 LOG = logging.getLogger(__name__)
@@ -268,9 +268,6 @@ def crypt4gh_to_user_errors(func):
         except ValueError as e:
             LOG.error('Converting %r to a FromUser error', e)
             raise FromUser() from e
-        except KeyserverError as e:
-            LOG.critical(repr(e))
-            raise
     return wrapper
 
 
