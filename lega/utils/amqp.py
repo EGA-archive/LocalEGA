@@ -19,9 +19,9 @@ def get_connection(domain, blocking=True):
     heartbeat values are read from the CONF argument.
     So are the SSL options.
     """
-    LOG.info(f'Getting a connection to {domain}')
+    LOG.info('Getting a connection to %s', domain)
     params = CONF.get_value(domain, 'connection', raw=True)
-    LOG.debug(f"Initializing a connection to: {params}")
+    LOG.debug("Initializing a connection to: %s", params)
     connection_params = pika.connection.URLParameters(params)
 
     # Handling the SSL options
@@ -91,7 +91,7 @@ def consume(work, connection, from_queue, to_routing):
     """
     assert(from_queue)
 
-    LOG.debug(f'Consuming message from {from_queue}')
+    LOG.debug('Consuming message from %s', from_queue)
 
     from_channel = connection.channel()
     from_channel.basic_qos(prefetch_count=1)  # One job per worker

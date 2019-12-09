@@ -117,7 +117,7 @@ def set_error(file_id, error, from_user=False):
     """Store error related to ``file_id`` in database."""
     assert file_id, 'Eh? No file_id?'
     assert error, 'Eh? No error?'
-    LOG.debug(f'Setting error for {file_id}: {error!s} | Cause: {error.__cause__}')
+    LOG.debug('Setting error for %s: %s | Cause: %s', file_id, error, error.__cause__)
     hostname = gethostname()
     with connect() as conn:
         with conn.cursor() as cur:
@@ -233,10 +233,10 @@ def catch_error(func):  # noqa: C901
                 pass  # In case the trace is too short
 
             fname = frame.f_code.co_filename
-            LOG.error(f'Exception: {exc_type} in {fname} on line: {lineno}')
+            LOG.error('Exception: %s in %s on line: %s', exc_type, fname, lineno)
             from_user = isinstance(e, FromUser)
             cause = e.__cause__ or e
-            LOG.error(f'{cause!r} (from user: {from_user})')  # repr = Technical
+            LOG.error('%r (from user: %s)', cause, from_user)  # repr = Technical
 
             try:
                 data = args[-1]  # data is the last argument
@@ -247,13 +247,13 @@ def catch_error(func):  # noqa: C901
                 if from_user:  # Send to CentralEGA
                     org_msg = data.pop('org_msg', None)  # should be there
                     org_msg['reason'] = str(cause)  # str = Informal
-                    LOG.info(f'Sending user error to local broker: {org_msg}')
+                    LOG.info('Sending user error to local broker: %s', org_msg)
                     global _channel
                     if _channel is None:
                         _channel = get_connection('broker').channel()
                     publish(org_msg, _channel, 'cega', 'files.error')
             except Exception as e2:
-                LOG.error(f'While treating "{e}", we caught "{e2!r}"')
+                LOG.error('While treating "%s", we caught "%r"', e, e2)
                 print(repr(e), 'caused', repr(e2), file=sys.stderr)
             return None
     return wrapper
@@ -266,7 +266,7 @@ def crypt4gh_to_user_errors(func):
         try:
             return func(*args)
         except ValueError as e:
-            LOG.error(f'Converting {e!r} to a FromUser error')
+            LOG.error('Converting %r to a FromUser error', e)
             raise FromUser() from e
         except KeyserverError as e:
             LOG.critical(repr(e))

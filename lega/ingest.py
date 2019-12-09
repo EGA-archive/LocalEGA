@@ -88,11 +88,11 @@ def work(fs, inbox_fs, channel, data):
         LOG.info('[%s] Moving the rest of %s to %s', fs.__class__.__name__, filepath, target)
         target_size = fs.copy(infile, target)  # It will copy the rest only
 
-        LOG.info(f'Archive copying completed. Updating database')
+        LOG.info('Archive copying completed. Updating database')
         db.set_archived(file_id, target, target_size)
         data['archive_path'] = target
 
-    LOG.debug(f"Reply message: {data}")
+    LOG.debug("Reply message: %s", data)
     return data
 
 

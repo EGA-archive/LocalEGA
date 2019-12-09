@@ -219,13 +219,13 @@ class S3Storage():
                                aws_access_key_id=access_key,
                                aws_secret_access_key=secret_key,
                                config=config)
-        # LOG.debug(f'S3 client: {self.s3!r}')
+        # LOG.debug('S3 client: %r', self.s3)
         try:
             LOG.debug('Creating "%s" bucket', user)
             self.bucket = user
             self.s3.create_bucket(Bucket=self.bucket)
         except self.s3.exceptions.BucketAlreadyOwnedByYou as e:
-            LOG.debug(f'Ignoring ({type(e)}): {e}')
+            LOG.debug('Ignoring (%s): %s', type(e), e)
         # No need to close anymore?
 
     def location(self, file_id):
