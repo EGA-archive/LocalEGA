@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Logs Formatter."""
 
-from logging import Formatter, Logger, currentframe
+from logging import Formatter, Logger
 from logging.handlers import SocketHandler as handler  # or DatagramHandler ?
 import json
 import re
@@ -65,13 +65,18 @@ class JSONFormatter(Formatter):
 
 class _wrapper():
     """Wrapper class for the correlation id."""
+
     value = None
+
     def get(self):
         return self.value
+
     def set(self, v):
         self.value = v
 
+
 _cid = _wrapper()
+
 
 class LEGALogger(Logger):
     """Logger with a correlation id injected in the log records.

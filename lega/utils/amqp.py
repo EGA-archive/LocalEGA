@@ -103,10 +103,10 @@ def consume(work, connection, from_queue, to_routing):
             _cid.set(correlation_id)
             message_id = method_frame.delivery_tag
             LOG.debug('Consuming message %s', message_id, extra={'correlation_id': correlation_id})
-            
+
             # Process message in JSON format
             answer = work(json.loads(body))  # Exceptions should be already caught
-            
+
             # Publish the answer
             if answer:
                 assert(to_routing)
