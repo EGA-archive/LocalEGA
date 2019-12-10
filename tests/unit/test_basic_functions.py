@@ -5,7 +5,7 @@ from lega.utils.db import _do_exit
 import hashlib
 import unittest
 from unittest import mock
-from lega.utils import get_file_content, sanitize_user_id
+from lega.utils import sanitize_user_id
 import io
 from testfixtures import tempdir
 from . import c4gh_data
@@ -66,19 +66,6 @@ class TestBasicFunctions(unittest.TestCase):
         result = get_from_companion(path)
         self.assertEqual(('md5content', 'md5'), result)
         filedir.cleanup()
-
-    @mock.patch('lega.utils.open')
-    def test_get_file_content(self, mocked: mock.MagicMock):
-        """Reading file contents, should get the proper contents."""
-        testStream = io.BytesIO()
-        testStream.write(b'T.M.')
-        testStream.seek(0)
-        mocked.return_value = io.TextIOWrapper(io.BytesIO(b'T.M.'))
-        assert 'T.M.' == get_file_content('data/file')
-
-    def test_get_file_fail(self):
-        """Reading file error, file should not exist."""
-        assert get_file_content('data/notexists.file') is None
 
     def test_sanitize_user_id(self):
         """Sanitize User ID, should get just the user ID."""

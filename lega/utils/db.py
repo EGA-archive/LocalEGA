@@ -3,15 +3,15 @@
 """Database Connection."""
 
 import sys
+import logging
 import traceback
 from functools import wraps
-import logging
 import psycopg2
 from socket import gethostname
 from time import sleep
 
 from ..conf import CONF
-from .exceptions import FromUser, KeyserverError
+from .exceptions import FromUser
 from .amqp import publish, get_connection
 
 LOG = logging.getLogger(__name__)
@@ -107,26 +107,17 @@ def insert_file(filename, user_id):
                          })
             file_id = (cur.fetchone())[0]
             if file_id:
-                LOG.debug(f'Created id {file_id} for {filename}')
+                LOG.debug('Created id %s for %s', file_id, filename)
                 return file_id
             else:
                 raise Exception('Database issue with insert_file')
-
-
-def get_errors(from_user=False):
-    """Retrieve error from database."""
-    query = 'SELECT * from local_ega.errors WHERE from_user = true;' if from_user else 'SELECT * from local_ega.errors;'
-    with connect() as conn:
-        with conn.cursor() as cur:
-            cur.execute(query)
-            return cur.fetchall()
 
 
 def set_error(file_id, error, from_user=False):
     """Store error related to ``file_id`` in database."""
     assert file_id, 'Eh? No file_id?'
     assert error, 'Eh? No error?'
-    LOG.debug(f'Setting error for {file_id}: {error!s} | Cause: {error.__cause__}')
+    LOG.debug('Setting error for %s: %s | Cause: %s', file_id, error, error.__cause__)
     hostname = gethostname()
     with connect() as conn:
         with conn.cursor() as cur:
@@ -151,7 +142,6 @@ def get_info(file_id):
 def _set_status(file_id, status):
     """Update status for file with id ``file_id``."""
     assert file_id, 'Eh? No file_id?'
-    LOG.debug(f'Updating status file_id {file_id} with "{status}"')
     with connect() as conn:
         with conn.cursor() as cur:
             cur.execute('UPDATE local_ega.files SET status = %(status)s WHERE id = %(file_id)s;',
@@ -161,18 +151,20 @@ def _set_status(file_id, status):
 
 def mark_in_progress(file_id):
     """Mark file in progress."""
+    LOG.debug('Marking file_id %s with "IN_INGESTION"', file_id)
     return _set_status(file_id, 'IN_INGESTION')
 
 
 def mark_completed(file_id):
     """Mark file as completed."""
+    LOG.debug('Marking file_id %s with "COMPLETED"', file_id)
     return _set_status(file_id, 'COMPLETED')
 
 
 def set_stable_id(file_id, stable_id):
     """Update File ``file_id`` stable ID."""
     assert file_id, 'Eh? No file_id?'
-    LOG.debug(f'Updating file_id {file_id} with stable ID "{stable_id}"')
+    LOG.debug('Updating file_id %s with stable ID "%s"', file_id, stable_id)
     with connect() as conn:
         with conn.cursor() as cur:
             cur.execute('UPDATE local_ega.files '
@@ -188,7 +180,7 @@ def store_header(file_id, header):
     """Store header for ``file_id``."""
     assert file_id, 'Eh? No file_id?'
     assert header, 'Eh? No header?'
-    LOG.debug(f'Store header for file_id {file_id}')
+    LOG.debug('Store header for file_id %s', file_id)
     with connect() as conn:
         with conn.cursor() as cur:
             cur.execute('UPDATE local_ega.files '
@@ -202,7 +194,7 @@ def set_archived(file_id, archive_path, archive_filesize):
     """Archive ``file_id``."""
     assert file_id, 'Eh? No file_id?'
     assert archive_path, 'Eh? No archive name?'
-    LOG.debug(f'Setting status to archived for file_id {file_id}')
+    LOG.debug('Setting status to archived for file_id %s', file_id)
     with connect() as conn:
         with conn.cursor() as cur:
             cur.execute('UPDATE local_ega.files '
@@ -225,9 +217,9 @@ _channel = None
 def catch_error(func):  # noqa: C901
     """Store the raised exception in the database decorator."""
     @wraps(func)
-    def wrapper(*args):
+    def wrapper(*args, **kwargs):
         try:
-            return func(*args)
+            return func(*args, **kwargs)
         except Exception as e:
             if isinstance(e, AssertionError):
                 raise e
@@ -241,10 +233,10 @@ def catch_error(func):  # noqa: C901
                 pass  # In case the trace is too short
 
             fname = frame.f_code.co_filename
-            LOG.error(f'Exception: {exc_type} in {fname} on line: {lineno}')
+            LOG.error('Exception: %s in %s on line: %s', exc_type, fname, lineno)
             from_user = isinstance(e, FromUser)
             cause = e.__cause__ or e
-            LOG.error(f'{cause!r} (from user: {from_user})')  # repr = Technical
+            LOG.error('%r (from user: %s)', cause, from_user)  # repr = Technical
 
             try:
                 data = args[-1]  # data is the last argument
@@ -255,13 +247,13 @@ def catch_error(func):  # noqa: C901
                 if from_user:  # Send to CentralEGA
                     org_msg = data.pop('org_msg', None)  # should be there
                     org_msg['reason'] = str(cause)  # str = Informal
-                    LOG.info(f'Sending user error to local broker: {org_msg}')
+                    LOG.info('Sending user error to local broker: %s', org_msg)
                     global _channel
                     if _channel is None:
                         _channel = get_connection('broker').channel()
                     publish(org_msg, _channel, 'cega', 'files.error')
             except Exception as e2:
-                LOG.error(f'While treating "{e}", we caught "{e2!r}"')
+                LOG.error('While treating "%s", we caught "%r"', e, e2)
                 print(repr(e), 'caused', repr(e2), file=sys.stderr)
             return None
     return wrapper
@@ -274,11 +266,8 @@ def crypt4gh_to_user_errors(func):
         try:
             return func(*args)
         except ValueError as e:
-            LOG.error(f'Converting {e!r} to a FromUser error')
+            LOG.error('Converting %r to a FromUser error', e)
             raise FromUser() from e
-        except KeyserverError as e:
-            LOG.critical(repr(e))
-            raise
     return wrapper
 
 

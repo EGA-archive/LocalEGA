@@ -15,7 +15,7 @@ jobs:
       matrix:
         # os: [ubuntu-latest, macOS-latest]
         os: [ubuntu-latest]
-        bootstrap: ['', '--archive-backend posix']
+        bootstrap: ['', '--archive-backend s3']
         # bats: ['integration', 'security', 'robustness']
         bats: ['integration']
 
