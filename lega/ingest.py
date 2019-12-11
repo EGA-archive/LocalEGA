@@ -24,7 +24,7 @@ import io
 from crypt4gh import header
 
 from .conf import CONF, configure
-from .utils import db, exceptions, sanitize_user_id, storage
+from .utils import db, exceptions, errors, sanitize_user_id, storage
 from .utils.amqp import consume, get_connection
 
 LOG = logging.getLogger(__name__)
@@ -42,8 +42,7 @@ def get_header(input_file):
     # return header.serialize(header_packets)
 
 
-@db.catch_error
-@db.crypt4gh_to_user_errors
+@errors.catch(ret_on_error=(None, True))
 def work(fs, inbox_fs, channel, data):
     """Read a message, split the header and send the remainder to the backend store."""
     filepath = data['filepath']

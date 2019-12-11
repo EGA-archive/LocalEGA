@@ -236,68 +236,6 @@ def set_archived(file_id, archive_path, archive_filesize):
                      'archive_filesize': archive_filesize})
 
 
-######################################
-#            Decorator               #
-######################################
-_channel = None
-
-
-def catch_error(func):  # noqa: C901
-    """Store the raised exception in the database decorator."""
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        try:
-            return func(*args, **kwargs)
-        except Exception as e:
-            if isinstance(e, AssertionError):
-                raise e
-
-            exc_type, _, exc_tb = sys.exc_info()
-            g = traceback.walk_tb(exc_tb)
-            frame, lineno = next(g)  # that should be the decorator
-            try:
-                frame, lineno = next(g)  # that should be where is happened
-            except StopIteration:
-                pass  # In case the trace is too short
-
-            fname = frame.f_code.co_filename
-            LOG.error('Exception: %s in %s on line: %s', exc_type, fname, lineno)
-            from_user = isinstance(e, FromUser)
-            cause = e.__cause__ or e
-            LOG.error('%r (from user: %s)', cause, from_user)  # repr = Technical
-
-            try:
-                data = args[-1]  # data is the last argument
-                file_id = data.get('file_id', None)  # should be there
-                if file_id:
-                    set_error(file_id, cause, from_user)
-                LOG.debug('Catching error on file id: %s', file_id)
-                if from_user:  # Send to CentralEGA
-                    org_msg = data.pop('org_msg', None)  # should be there
-                    org_msg['reason'] = str(cause)  # str = Informal
-                    LOG.info('Sending user error to local broker: %s', org_msg)
-                    global _channel
-                    if _channel is None:
-                        _channel = get_connection('broker').channel()
-                    publish(org_msg, _channel, 'cega', 'files.error')
-            except Exception as e2:
-                LOG.error('While treating "%s", we caught "%r"', e, e2)
-                print(repr(e), 'caused', repr(e2), file=sys.stderr)
-            return None
-    return wrapper
-
-
-def crypt4gh_to_user_errors(func):
-    """Convert Crypt4GH exceptions to User Errors decorator."""
-    @wraps(func)
-    def wrapper(*args):
-        try:
-            return func(*args)
-        except ValueError as e:
-            LOG.error('Converting %r to a FromUser error', e)
-            raise FromUser() from e
-    return wrapper
-
 
 # Testing connection with `python -m lega.utils.db`
 if __name__ == '__main__':

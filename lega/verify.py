@@ -19,7 +19,7 @@ import time
 from crypt4gh.lib import decrypt
 
 from .conf import CONF, configure
-from .utils import db, storage, key
+from .utils import db, storage, key, errors
 from .utils.amqp import consume, get_connection
 
 LOG = logging.getLogger(__name__)
@@ -105,8 +105,7 @@ class PrependHeaderFile():
     #     return n
 
 
-@db.catch_error
-@db.crypt4gh_to_user_errors
+@errors.catch(ret_on_error=(None, True))
 def work(key, mover, channel, data):
     """Verify that the file in the archive can be properly decrypted."""
     LOG.info('Verification | message: %s', data)

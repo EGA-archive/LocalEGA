@@ -15,13 +15,13 @@ registered upstream queue.
 import logging
 
 from .conf import configure
-from .utils import db
+from .utils import db, errors
 from .utils.amqp import consume, get_connection
 
 LOG = logging.getLogger(__name__)
 
 
-@db.catch_error
+@errors.catch(ret_on_error=(None, True))
 def work(data):
     """Read a message containing the ids and add it to the database."""
     file_id = data['file_id']
