@@ -1,12 +1,10 @@
 # Local EGA main repository
 
 
+[![Documentation Status](https://readthedocs.org/projects/localega/badge/?version=latest)](https://localega.readthedocs.io/en/latest/?badge=latest)
 [![Unit Tests](https://github.com/EGA-archive/LocalEGA/workflows/Unit%20Tests/badge.svg)](https://github.com/EGA-archive/LocalEGA/actions)
 [![Testsuite](https://github.com/EGA-archive/LocalEGA/workflows/Testsuite/badge.svg)](https://github.com/EGA-archive/LocalEGA/actions)
-[![Documentation Status](https://readthedocs.org/projects/localega/badge/?version=latest)](https://localega.readthedocs.io/en/latest/?badge=latest)
 [![Coverage Status](https://coveralls.io/repos/github/EGA-archive/LocalEGA/badge.svg?branch=master)](https://coveralls.io/github/EGA-archive/LocalEGA?branch=master)
-
-[![Docker image](https://github.com/EGA-archive/LocalEGA/workflows/Publish%20to%20Docker%20Hub/badge.svg)](https://hub.docker.com/r/egarchive/lega-base)
 
 
 
