@@ -12,10 +12,9 @@ registered upstream queue.
 .. note:: The upstream is registered via an authenticated mechanism, and uses AMQPS.
 """
 
-import sys
 import logging
 
-from .conf import CONF, configure
+from .conf import configure
 from .utils import db
 from .utils.amqp import consume, get_connection
 

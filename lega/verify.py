@@ -11,7 +11,6 @@ with the routing key: ``completed``.
 .. note:: The header is not retrieved from the database, it is already in the message.
 """
 
-import sys
 import logging
 from functools import partial
 import hashlib

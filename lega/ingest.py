@@ -17,7 +17,6 @@ Upon completion, a message is sent to the local exchange with the
 routing key :``archived``.
 """
 
-import sys
 import logging
 from functools import partial
 import io

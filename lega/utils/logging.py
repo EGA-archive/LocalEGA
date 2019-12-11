@@ -6,6 +6,7 @@ from logging.handlers import SocketHandler as handler  # or DatagramHandler ?
 import json
 import re
 
+
 class LEGAHandler(handler):
     """Formats the record according to the formatter.
 
@@ -96,4 +97,3 @@ class LEGALogger(Logger):
             return rv
         rv.__dict__['correlation_id'] = _cid.get() or '--------'
         return rv
-

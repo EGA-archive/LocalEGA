@@ -68,7 +68,7 @@ class Configuration(configparser.ConfigParser):
         print(f"Unsupported log format for {filename}", file=sys.stderr)
 
     def setup(self):
-        """Setup, that is all."""
+        """Set up."""
         if not CONF_FILE:
             print('No configuration found', file=sys.stderr)
             print('Bailing out', file=sys.stderr)
