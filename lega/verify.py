@@ -20,7 +20,7 @@ from crypt4gh.lib import decrypt
 
 from .conf import CONF, configure
 from .utils import db, storage, key, errors
-from .utils.amqp import consume, get_connection
+from .utils.amqp import consume
 
 LOG = logging.getLogger(__name__)
 
@@ -106,7 +106,7 @@ class PrependHeaderFile():
 
 
 @errors.catch(ret_on_error=(None, True))
-def work(key, mover, channel, data):
+def work(key, mover, data):
     """Verify that the file in the archive can be properly decrypted."""
     LOG.info('Verification | message: %s', data)
 
@@ -143,11 +143,11 @@ def work(key, mover, channel, data):
     org_msg['reference'] = file_id
     org_msg['checksum'] = {'value': digest, 'algorithm': 'sha256'}
     LOG.debug(f"Reply message: {org_msg}")
-    return org_msg
+    return (org_msg, False)
 
 
 @configure
-def main(args=None):
+def main():
     """Run verify service."""
     store = getattr(storage, CONF.get_value('archive', 'storage_driver', default='FileStorage'))
 
@@ -158,10 +158,9 @@ def main(args=None):
     key_loader = getattr(key, CONF.get_value(key_section, 'loader_class'))
     key_config = CONF[key_section]  # the whole section
 
-    broker = get_connection('broker')
-    do_work = partial(work, key_loader(key_config), store('archive', 'lega'), broker.channel())
+    do_work = partial(work, key_loader(key_config), store('archive', 'lega'))
 
-    consume(do_work, broker, 'archived', 'completed')
+    consume(do_work, 'archived', 'completed')
 
 
 if __name__ == '__main__':

@@ -37,6 +37,7 @@ class Configuration(configparser.ConfigParser):
 
     def _load_log(self):
         """Try to load `filename` as configuration file."""
+        global LOG_FILE
         if not LOG_FILE:
             print('No logging supplied', file=sys.stderr)
             return
@@ -46,6 +47,7 @@ class Configuration(configparser.ConfigParser):
         if _logger.exists():
             with open(_logger, 'r') as stream:
                 dictConfig(yaml.load(stream))
+                LOG_FILE = _logger
                 return
 
         # Otherwise trying it as a path
@@ -79,9 +81,9 @@ class Configuration(configparser.ConfigParser):
 
     def __repr__(self):
         """Show the configuration files."""
-        res = 'Configuration file: {CONF_FILE}'
+        res = f'Configuration file: {CONF_FILE}'
         if LOG_FILE:
-            res += '\nLogging settings loaded from {LOG_FILE}'
+            res += f'\nLogging settings loaded from {LOG_FILE}'
         return res
 
     def get_value(self, section, option, conv=str, default=None, raw=False):
