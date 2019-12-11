@@ -17,14 +17,13 @@ Upon completion, a message is sent to the local exchange with the
 routing key :``archived``.
 """
 
-import sys
 import logging
 from functools import partial
 import io
 
 from crypt4gh import header
 
-from .conf import CONF
+from .conf import CONF, configure
 from .utils import db, exceptions, sanitize_user_id, storage
 from .utils.amqp import consume, get_connection
 
@@ -96,13 +95,9 @@ def work(fs, inbox_fs, channel, data):
     return data
 
 
+@configure
 def main(args=None):
     """Run ingest service."""
-    if not args:
-        args = sys.argv[1:]
-
-    CONF.setup(args)  # re-conf
-
     inbox_fs = getattr(storage, CONF.get_value('inbox', 'storage_driver', default='FileStorage'))
     fs = getattr(storage, CONF.get_value('archive', 'storage_driver', default='FileStorage'))
     broker = get_connection('broker')

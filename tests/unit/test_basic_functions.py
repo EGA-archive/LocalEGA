@@ -81,11 +81,11 @@ class TestBasicFunctions(unittest.TestCase):
     def test_config_main(self):
         """Testing main configuration."""
         with mock.patch('sys.stdout', new=StringIO()) as fake_stdout:
-            main(['--conf', 'fake/conf.ini'])
-            self.assertTrue(fake_stdout.getvalue(), 'Configuration files:')
+            main()
+            self.assertTrue(fake_stdout.getvalue(), 'Configuration file:')
 
         with mock.patch('sys.stdout', new=StringIO()) as fake_stdout:
-            main(['--list'])
+            main(print_values=True)
             self.assertTrue(fake_stdout.getvalue(), 'Configuration values:')
 
     def test_do_exit(self):
