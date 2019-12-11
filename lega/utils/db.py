@@ -4,8 +4,6 @@
 
 import sys
 import logging
-import traceback
-from functools import wraps
 import psycopg2
 from socket import gethostname
 from time import sleep
@@ -13,8 +11,6 @@ from contextlib import contextmanager
 
 
 from ..conf import CONF
-from .exceptions import FromUser
-from .amqp import publish, get_connection
 
 LOG = logging.getLogger(__name__)
 
@@ -60,13 +56,13 @@ class DBConnection():
 
         if not self.args:
             self.fetch_args()
-        LOG.info("Initializing a connection")
 
-        LOG.debug("%s attempts", self.attempts)
+        LOG.info("Initializing a connection (%d attempts)", self.attempts)
+
         backoff = self.interval
         for count in range(self.attempts):
             try:
-                LOG.debug("Connection attempt %d: %s", count, self.args)
+                LOG.debug("Connection attempt %d", count)
                 self.conn = psycopg2.connect(self.args)
                 # self.conn.set_session(autocommit=True) # default is False.
                 LOG.debug("Connection successful")
@@ -83,7 +79,8 @@ class DBConnection():
             # from 20 to 29, sleep 4 * self.interval secs ... etc
 
         # fail to connect
-        if self.on_failure:
+        if self.on_failure and callable(self.on_failure):
+            LOG.error("Failed to connect.")
             self.on_failure()
 
     def ping(self):
@@ -119,33 +116,31 @@ class DBConnection():
             self.conn.close()
             self.conn = None
 
-# Note, the code does not close the database connection nor the cursor
-# if everything goes fine.
-
-def _do_exit():
-    """Exit on error."""
-    LOG.error("Could not connect to the database: Exiting")
-    sys.exit(1)
+    # Note, the code does not close the database connection nor the cursor
+    # if everything goes fine.
 
 
-connection = DBConnection()
+# Instantiate the global connection
+connection = DBConnection(on_failure=lambda: sys.exit(1))
+
 
 ######################################
 #           Business logic           #
 ######################################
+
 
 def insert_file(filename, user_id):
     """Insert a new file entry and returns its id."""
     with connection.cursor() as cur:
         cur.execute('SELECT local_ega.insert_file(%(filename)s,%(user_id)s);',
                     {'filename': filename,
-                     'user_id': user_id,
-                    })
+                     'user_id': user_id})
         file_id = (cur.fetchone())[0]
         if file_id:
             LOG.debug('Created id %s for %s', file_id, filename)
             return file_id
         raise Exception('Database issue with insert_file')
+
 
 def set_error(file_id, error, from_user=False):
     """Store error related to ``file_id`` in database."""
@@ -236,7 +231,6 @@ def set_archived(file_id, archive_path, archive_filesize):
                      'archive_filesize': archive_filesize})
 
 
-
 # Testing connection with `python -m lega.utils.db`
 if __name__ == '__main__':
     CONF.setup()
@@ -245,6 +239,6 @@ if __name__ == '__main__':
         cur.execute(query)
         names = ('inbox_path', 'archive_path', 'stable_id', 'header')
         for row in cur.fetchall():
-            res = [f'{k}: {v}' for k,v in zip(names, row)]
+            res = [f'{k}: {v}' for k, v in zip(names, row)]
             print('-'*30)
             print(res)

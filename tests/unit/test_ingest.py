@@ -64,7 +64,7 @@ class testIngest(unittest.TestCase):
 
         data = {'filepath': infile, 'user': 'user_id@elixir-europe.org'}
         result = work(store, mock_broker, data)
-        self.assertEqual(None, result)
+        self.assertEqual((None, True), result)
         filedir.cleanup()
 
     @tempdir()
@@ -86,7 +86,7 @@ class testIngest(unittest.TestCase):
 
         data = {'filepath': infile, 'user': 'user_id@elixir-europe.org'}
         result = work(store, store, mock_broker, data)
-        self.assertEqual(None, result)
+        self.assertEqual((None, True), result)
         mock_set_error.assert_called()
         filedir.cleanup()
 
@@ -111,7 +111,7 @@ class testIngest(unittest.TestCase):
 
         data = {'filepath': infile, 'user': 'user_id@elixir-europe.org'}
         result = work(store, store, mock_broker, data)
-        self.assertEqual(None, result)
+        self.assertEqual((None, True), result)
         mock_set_error.assert_called()
         mock_publish.assert_called()
         mock_get_connection.assert_called()

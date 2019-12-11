@@ -1,7 +1,6 @@
 from lega.utils.checksum import instantiate, calculate, is_valid, get_from_companion, supported_algorithms
 from lega.utils.exceptions import UnsupportedHashAlgorithm, CompanionNotFound
 from lega.conf.__main__ import main
-from lega.utils.db import _do_exit
 import hashlib
 import unittest
 from unittest import mock
@@ -87,9 +86,3 @@ class TestBasicFunctions(unittest.TestCase):
         with mock.patch('sys.stdout', new=StringIO()) as fake_stdout:
             main(print_values=True)
             self.assertTrue(fake_stdout.getvalue(), 'Configuration values:')
-
-    def test_do_exit(self):
-        """Testing simple exit."""
-        # Mostly for completion.
-        with self.assertRaises(SystemExit):
-            _do_exit()

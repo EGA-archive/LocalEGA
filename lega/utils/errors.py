@@ -12,9 +12,11 @@ from .amqp import publish
 
 LOG = logging.getLogger(__name__)
 
+
 ######################################
 #         Capture Errors             #
 ######################################
+
 
 def log_trace():
     """Locate the error."""
