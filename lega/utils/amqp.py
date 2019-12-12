@@ -114,10 +114,10 @@ class AMQPConnection():
     def close(self):
         """Close MQ channel."""
         LOG.debug("Closing the AMQP connection.")
-        if self.chann and not self.chann.is_closed and not self.chann.is_closing:
+        if self.chann and not self.chann.is_closed: #and not self.chann.is_closing:
             self.chann.close()
         self.chann = None
-        if self.conn and not self.conn.is_closed and not self.conn.is_closing:
+        if self.conn and not self.conn.is_closed: #and not self.conn.is_closing:
             self.conn.close()
         self.conn = None
 
@@ -154,14 +154,29 @@ def consume(work, from_queue, to_routing, ack_on_error=True):
     LOG.debug('Consuming message from %s', from_queue)
 
     def process_request(_channel, method_frame, props, body):
+        correlation_id = props.correlation_id
+        message_id = method_frame.delivery_tag
         try:
-            correlation_id = props.correlation_id
             _cid.set(correlation_id)
-            message_id = method_frame.delivery_tag
             LOG.debug('Consuming message %s', message_id, extra={'correlation_id': correlation_id})
 
             # Process message in JSON format
-            answer, error = work(json.loads(body))  # Exceptions should be already caught
+            try:
+                content = json.loads(body)
+            except Exception as e:
+                LOG.error('Malformed JSON-message: %s', e, extra={'correlation_id': correlation_id})
+                LOG.error('Original message: %s', body, extra={'correlation_id': correlation_id})
+                err_msg = {
+                    'reason': 'Malformed JSON-message',
+                    'original_message': body.decode(errors='ignore') # or str(body) ?
+                }
+                publish(err_msg, 'cega', 'files.error', correlation_id=correlation_id)
+                # Force acknowledging the message
+                _channel.basic_ack(delivery_tag=message_id)
+                return
+
+            # Message correctly formed
+            answer, error = work(content)  # exceptions already caught by decorator
 
             # Publish the answer
             if answer:
