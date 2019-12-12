@@ -17,7 +17,7 @@ import pika
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--connection', help="of the form 'amqp://<user>:<password>@<host>:<port>/<vhost>'")
 parser.add_argument('--latest_message', action='store_true')
-parser.add_argument('queue', help="Queue to read")
+parser.add_argument('queue')
 parser.add_argument('user')
 parser.add_argument('filepath')
 args = parser.parse_args()
@@ -74,11 +74,10 @@ while True:
         user = data.get('user')
         filepath = data.get('filepath')
         assert( user and filepath ) 
-        #if user == args.user and filepath.endswith(args.filepath):  # quick hack to fix the Mina inbox issue with filepaths
-        if user == args.user and filepath == args.filepath:
+        if (user == args.user and filepath == args.filepath):
             correlation_ids.append( (props.correlation_id,message_id) )
     except:
-        pass
+        pass # ignore mal-formed JSON
 
 
 # Second loop, nack the messages

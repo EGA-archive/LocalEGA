@@ -5,6 +5,10 @@ load ../_common/helpers
 # CEGA_CONNECTION and CEGA_USERS_CREDS should be already set,
 # when this script runs
 
+# The name of the testfile can be ${BATS_TEST_NAME}, however, multiple runs of the testsuite
+# would produce multiple message in the queues and the MQ_GET/MQ_FIND would get confused.
+# We therefore use a uuid name, which can later be updated back to ${BATS_TEST_NAME}
+
 function setup() {
 
     # Defining the TMP dir
@@ -31,7 +35,6 @@ function setup() {
     # legarun docker port inbox 9000
     # [ "$status" -eq 0 ]
     # INBOX_PORT=${output##*:}
-    LEGA_SFTP="sftp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -P ${INBOX_PORT}"
 }
 
 function teardown() {
@@ -41,49 +44,12 @@ function teardown() {
     [[ -n "${SSH_AGENT_PID}" ]] && kill -TERM "${SSH_AGENT_PID}"
 }
 
-# Utility to ingest successfully a file
-function lega_ingest {
-    local TESTFILE=$1
-    local size=$2 # in MB
-    local queue=$3
-    local inputsource=${4:-/dev/urandom}
-
-    [ -n "${TESTUSER}" ]
-    [ -n "${TESTUSER_SECKEY}" ]
-    [ -n "${TESTUSER_PASSPHRASE}" ]
-
-    # Generate a random file
-    export C4GH_PASSPHRASE=${TESTUSER_PASSPHRASE}
-    dd if=$inputsource bs=1048576 count=$size | crypt4gh encrypt --sk ${TESTUSER_SECKEY} --recipient_pk ${EGA_PUBKEY} > ${TESTFILES}/${TESTFILE}.c4ga
-    unset C4GH_PASSPHRASE
-
-    # Upload it
-    UPLOAD_CMD="put ${TESTFILES}/${TESTFILE}.c4ga /${TESTFILE}.c4ga"
-    legarun ${LEGA_SFTP} ${TESTUSER}@localhost <<< ${UPLOAD_CMD}
-    [ "$status" -eq 0 ]
-
-    # Fetch the correlation id for that file (Hint: with user/filepath combination)
-    retry_until 0 100 1 ${MQ_GET} v1.files.inbox "${TESTUSER}" "/${TESTFILE}.c4ga"
-    [ "$status" -eq 0 ]
-    CORRELATION_ID=$output
-
-    # Publish the file to simulate a CentralEGA trigger
-    MESSAGE="{ \"user\": \"${TESTUSER}\", \"filepath\": \"/${TESTFILE}.c4ga\"}"
-    legarun ${MQ_PUBLISH} --correlation_id ${CORRELATION_ID} files "$MESSAGE"
-    [ "$status" -eq 0 ]
-
-    # Check that a message with the above correlation id arrived in the expected queue
-    # Waiting 300 seconds.
-    retry_until 0 30 10 ${MQ_GET} $queue "${TESTUSER}" "/${TESTFILE}.c4ga"
-    [ "$status" -eq 0 ]
-}
-
 # Ingesting a 10MB file
 # ----------------------
 # A message should be found in the completed queue
 
 @test "Ingest properly a 10MB file" {
-    lega_ingest $(uuidgen) 10 v1.files.completed
+    lega_ingest $(uuidgen) 10 v1.files.completed /dev/urandom
 }
 
 # Ingesting a "big" file
@@ -112,29 +78,21 @@ function lega_ingest {
     # and does not support this functionality
 
     TESTFILE=$(uuidgen)
-    
+    TESTFILE_ENCRYPTED="${TESTFILES}/${TESTFILE}.c4gh"
+    TESTFILE_UPLOADED="/${TESTFILE}.c4gh"
+
+    # generate a file
+    lega_generate_file "${TESTFILE}" "${TESTFILE_ENCRYPTED}" 1 /dev/urandom
+
+    # Upload twice
+    lega_upload "${TESTFILE_ENCRYPTED}" "${TESTFILE_UPLOADED}"
+    lega_upload "${TESTFILE_ENCRYPTED}" "${TESTFILE_UPLOADED}.2"
+
     # First time
-    lega_ingest ${TESTFILE} 1 v1.files.completed
-
-    # Second time
-    UPLOAD_CMD="put ${TESTFILES}/${TESTFILE}.c4ga /${TESTFILE}.c4ga.2"
-    legarun ${LEGA_SFTP} ${TESTUSER}@localhost <<< ${UPLOAD_CMD}
-    [ "$status" -eq 0 ]
-
-    # Fetch the correlation id for that file (Hint: with user/filepath combination)
-    retry_until 0 100 1 ${MQ_GET} v1.files.inbox "${TESTUSER}" "/${TESTFILE}.c4ga.2"
-    [ "$status" -eq 0 ]
-    CORRELATION_ID2=$output
-    [ "$CORRELATION_ID" != "$CORRELATION_ID2" ]
-
-    # Publish the file to simulate a CentralEGA trigger
-    MESSAGE2="{ \"user\": \"${TESTUSER}\", \"filepath\": \"/${TESTFILE}.c4ga.2\"}"
-    legarun ${MQ_PUBLISH} --correlation_id ${CORRELATION_ID2} files "$MESSAGE2"
-    [ "$status" -eq 0 ]
-
-    # Check that a message with the above correlation id arrived in the error queue
-    retry_until 0 10 10 ${MQ_GET} v1.files.error "${TESTUSER}" "/${TESTFILE}.c4ga.2"
-    [ "$status" -eq 0 ]
+    lega_trigger_ingestion "${TESTUSER}" "${TESTFILE_UPLOADED}" v1.files.completed 30 10
+    
+    # Second time goes to error
+    lega_trigger_ingestion "${TESTUSER}" "${TESTFILE_UPLOADED}.2" v1.files.error 30 10
 }
 
 # Ingesting a file not in Crypt4GH format
@@ -144,34 +102,25 @@ function lega_ingest {
 # A message should be found in the error queue
 
 @test "Do not ingest a file not in Crypt4GH format" {
+
     TESTFILE=$(uuidgen)
+    TESTFILE_ENCRYPTED="${TESTFILES}/${TESTFILE}.c4gh"
+    TESTFILE_UPLOADED="/${TESTFILE}.c4gh"
 
     # Create a random file of 1 MB
     legarun dd if=/dev/urandom of=${TESTFILES}/${TESTFILE} count=1 bs=1048576
     [ "$status" -eq 0 ]
 
     # Encrypt it with AES
-    legarun openssl enc -aes-256-cbc -e -in ${TESTFILES}/${TESTFILE} -out ${TESTFILES}/${TESTFILE}.c4ga -k 'secretpassword'
+    legarun openssl enc -aes-256-cbc -e -in ${TESTFILES}/${TESTFILE} -out ${TESTFILE_ENCRYPTED} -k 'secretpassword'
     [ "$status" -eq 0 ]
 
     # Upload it
-    UPLOAD_CMD="put ${TESTFILES}/${TESTFILE}.c4ga /${TESTFILE}.c4ga"
-    legarun ${LEGA_SFTP} ${TESTUSER}@localhost <<< ${UPLOAD_CMD}
-    [ "$status" -eq 0 ]
+    lega_upload "${TESTFILE_ENCRYPTED}" "${TESTFILE_UPLOADED}"
 
-    # Fetch the correlation id for that file (Hint: with user/filepath combination)
-    retry_until 0 100 1 ${MQ_GET} v1.files.inbox "${TESTUSER}" "/${TESTFILE}.c4ga"
-    [ "$status" -eq 0 ]
-    CORRELATION_ID=$output
+    # ingest goes to error
+    lega_trigger_ingestion "${TESTUSER}" "${TESTFILE_UPLOADED}" v1.files.error 30 10
 
-    # Publish the file to simulate a CentralEGA trigger
-    MESSAGE="{ \"user\": \"${TESTUSER}\", \"filepath\": \"/${TESTFILE}.c4ga\"}"
-    legarun ${MQ_PUBLISH} --correlation_id ${CORRELATION_ID} files "$MESSAGE"
-    [ "$status" -eq 0 ]
-
-    # Check that a message with the above correlation id arrived in the completed queue
-    retry_until 0 10 10 ${MQ_GET} v1.files.error "${TESTUSER}" "/${TESTFILE}.c4ga"
-    [ "$status" -eq 0 ]
 }
 
 # Ingesting a file from a subdirectory
@@ -182,6 +131,9 @@ function lega_ingest {
     mkdir -p ${TESTFILES}/dir1/dir2/dir3
     # SFTP requires that the remote directory be existing.
     # However the sftp commands are very limited (mkdir -p dir1/dir2/dir3 in invalid, and mkdir takes one dir at a time)
+    [ -n "${TESTUSER}" ]
+    [ -n "${INBOX_PORT}" ]
+    LEGA_SFTP="sftp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -P ${INBOX_PORT}"
     legarun ${LEGA_SFTP} ${TESTUSER}@localhost <<< $"mkdir dir1"
     legarun ${LEGA_SFTP} ${TESTUSER}@localhost <<< $"mkdir dir1/dir2"
     legarun ${LEGA_SFTP} ${TESTUSER}@localhost <<< $"mkdir dir1/dir2/dir3"
@@ -218,16 +170,3 @@ EOF
     # This will use EGA_PUBKEY
     lega_ingest $(uuidgen) 1 v1.files.error
 }
-
-###### Notes
-# Tests used to check the messages using the Correlation ID.
-# However, the codebase is old and the correlation ID update is not part of it
-# So, instead, we use the filepath and the username to filter out the messages.
-# When the update is in place, the line
-#     retry_until 0 100 1 ${MQ_GET} v1.files.error "${TESTUSER}" "${TESTFILE}.c4ga"
-# will be updated with
-#     retry_until 0 10 1 ${MQ_FIND} <queue> ${CORRELATION_ID}
-#
-# The name of the testfile can be ${BATS_TEST_NAME}, however, multiple runs of the testsuite
-# would produce multiple message in the queues and the MQ_GET/MQ_FIND would get confused.
-# We therefore use a uuid name, which can later be updated back to ${BATS_TEST_NAME}

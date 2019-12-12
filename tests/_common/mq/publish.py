@@ -26,8 +26,7 @@ args = parser.parse_args()
 
 correlation_id = args.correlation_id if args.correlation_id else str(uuid.uuid4())
 
-# Just checking the JSON-formatting
-message = json.loads(args.message)
+# Note: Not checking the JSON-formatting
 
 mq_connection = args.connection if args.connection else os.getenv('CEGA_CONNECTION',
                                                                   default="amqps://legatest:legatest@localhost:5670/%2F")
@@ -61,12 +60,16 @@ if mq_connection.startswith('amqps'):
 
 connection = pika.BlockingConnection(parameters)
 channel = connection.channel()
-channel.basic_publish(exchange='localega.v1', routing_key=args.routing_key,
-                      body=json.dumps(message),
+channel.basic_publish(exchange='localega.v1',
+                      routing_key=args.routing_key,
+                      body=args.message,
                       properties=pika.BasicProperties(correlation_id=correlation_id,
                                                       content_type='application/json',
                                                       delivery_mode=2))
 
 connection.close()
 print('Message published to CentralEGA')
-
+try:
+    json.loads(args.message)
+except:
+    print('Note: JSON-message malformed', file=sys.stderr)
