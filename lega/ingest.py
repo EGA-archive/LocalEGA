@@ -103,7 +103,7 @@ def work(fs, inbox_fs, channel, data):
 
 
 def setup_archive():
-    """Configures the archive backend."""
+    """Configure the archive backend."""
     archive_fs = getattr(storage, CONF.get_value('archive', 'storage_driver', default='FileStorage'))
     fs_path = None
     if archive_fs is storage.FileStorage:
@@ -115,7 +115,7 @@ def setup_archive():
 
 
 def setup_inbox():
-    """Configures the inbox backend."""
+    """Configure the inbox backend."""
     inbox_fs = getattr(storage, CONF.get_value('inbox', 'storage_driver', default='FileStorage'))
 
     if inbox_fs is storage.FileStorage:
