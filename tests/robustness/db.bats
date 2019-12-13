@@ -41,42 +41,6 @@ function teardown() {
     [[ -n "${SSH_AGENT_PID}" ]] && kill -TERM "${SSH_AGENT_PID}"
 }
 
-# Utility to ingest successfully a file
-function lega_ingest {
-    local TESTFILE=$1
-    local size=$2 # in MB
-    local queue=$3
-    local inputsource=${4:-/dev/urandom}
-
-    [ -n "${TESTUSER}" ]
-    [ -n "${TESTUSER_SECKEY}" ]
-    [ -n "${TESTUSER_PASSPHRASE}" ]
-
-    # Generate a random file
-    export C4GH_PASSPHRASE=${TESTUSER_PASSPHRASE}
-    dd if=$inputsource bs=1048576 count=$size | crypt4gh encrypt --sk ${TESTUSER_SECKEY} --recipient_pk ${EGA_PUBKEY} > ${TESTFILES}/${TESTFILE}.c4ga
-    unset C4GH_PASSPHRASE
-
-    # Upload it
-    UPLOAD_CMD="put ${TESTFILES}/${TESTFILE}.c4ga /${TESTFILE}.c4ga"
-    legarun ${LEGA_SFTP} ${TESTUSER}@localhost <<< ${UPLOAD_CMD}
-    [ "$status" -eq 0 ]
-
-    # Fetch the correlation id for that file (Hint: with user/filepath combination)
-    retry_until 0 100 1 ${MQ_GET} v1.files.inbox "${TESTUSER}" "/${TESTFILE}.c4ga"
-    [ "$status" -eq 0 ]
-    CORRELATION_ID=$output
-
-    # Publish the file to simulate a CentralEGA trigger
-    MESSAGE="{ \"user\": \"${TESTUSER}\", \"filepath\": \"/${TESTFILE}.c4ga\"}"
-    legarun ${MQ_PUBLISH} --correlation_id ${CORRELATION_ID} files "$MESSAGE"
-    [ "$status" -eq 0 ]
-
-    # Check that a message with the above correlation id arrived in the expected queue
-    # Waiting 300 seconds.
-    retry_until 0 30 10 ${MQ_GET} $queue "${TESTUSER}" "/${TESTFILE}.c4ga"
-    [ "$status" -eq 0 ]
-}
 
 # Ingestion after db restart
 # --------------------------
@@ -84,15 +48,16 @@ function lega_ingest {
 
 @test "Ingestion after db restart" {
 
-    lega_ingest $(uuidgen) 1 v1.files.completed
+    lega_ingest $(uuidgen) 1 v1.files.completed /dev/zero
 
     run docker stop db
     run docker start db
     [ "$status" -eq 0 ]
     #sleep 15
 
-    lega_ingest $(uuidgen) 1 v1.files.completed
+    lega_ingest $(uuidgen) 1 v1.files.completed /dev/zero
 }
+
 
 # DB restart in the middle of ingestion
 # -------------------------------------
@@ -100,22 +65,22 @@ function lega_ingest {
 @test "DB restart in the middle of ingestion" {
 
     TESTFILE=$(uuidgen)
+    TESTFILE_ENCRYPTED="${TESTFILES}/${TESTFILE}.c4gh"
+    TESTFILE_UPLOADED="/${TESTFILE}.c4gh"
 
     # Stop the verify component, so only ingest works
     run docker stop verify
 
-    # Generate a random Crypt4GH file of 1 MB
-    export C4GH_PASSPHRASE=${TESTUSER_PASSPHRASE}
-    dd if=$inputsource bs=1048576 count=1 | crypt4gh encrypt --sk ${TESTUSER_SECKEY} --recipient_pk ${EGA_PUBKEY} > ${TESTFILES}/${TESTFILE}.c4gh
-    unset C4GH_PASSPHRASE
+    # Generate a Crypt4GH file of 1 MB
+    lega_generate_file ${TESTFILE} ${TESTFILE_ENCRYPTED} 1 /dev/zero
 
     # Upload it
-    UPLOAD_CMD="put ${TESTFILES}/${TESTFILE}.c4gh /${TESTFILE}.c4gh"
-    legarun ${LEGA_SFTP} ${TESTUSER}@localhost <<< ${UPLOAD_CMD}
+    lega_upload "${TESTFILE_ENCRYPTED}" "${TESTFILE_UPLOADED}"
     [ "$status" -eq 0 ]
 
+
     # Fetch the correlation id for that file (Hint: with user/filepath combination)
-    retry_until 0 100 1 ${MQ_GET} v1.files.inbox "${TESTUSER}" "/${TESTFILE}.c4gh"
+    retry_until 0 100 1 ${MQ_GET_INBOX} "${TESTUSER}" "${TESTFILE_UPLOADED}"
     [ "$status" -eq 0 ]
     CORRELATION_ID=$output
 
@@ -123,7 +88,6 @@ function lega_ingest {
     MESSAGE="{ \"user\": \"${TESTUSER}\", \"filepath\": \"/${TESTFILE}.c4gh\"}"
     legarun ${MQ_PUBLISH} --correlation_id ${CORRELATION_ID} files "$MESSAGE"
     [ "$status" -eq 0 ]
-
 
     # Restart database
     run docker stop db
@@ -137,6 +101,6 @@ function lega_ingest {
     sleep 15
 
     # Check that a message with the above correlation id arrived in the expected queue
-    retry_until 0 10 2 ${MQ_GET} v1.files.completed "${TESTUSER}" "/${TESTFILE}.c4gh"
+    retry_until 0 20 2 ${MQ_FIND} v1.files.completed "${CORRELATION_ID}"
     [ "$status" -eq 0 ]
 }

@@ -72,7 +72,7 @@ class AMQPConnection():
             self.connection_params.ssl_options = pika.SSLOptions(context=context, server_hostname=server_hostname)
 
 
-    def connect(self, blocking=True, force=False):
+    def connect(self, force=False):
         """Make a blocking/select connection to the Message Broker supporting AMQP(S)."""
         if force:
             self.close()
@@ -83,26 +83,25 @@ class AMQPConnection():
         if not self.connection_params:
             self.fetch_args()
 
-        connection_factory = pika.BlockingConnection if blocking else pika.SelectConnection
         try:
-            self.conn = connection_factory(self.connection_params)  # this uses connection_attempts and retry_delay already
+            self.conn = pika.BlockingConnection(self.connection_params)  # this uses connection_attempts and retry_delay already
             self.chann = self.conn.channel()
             LOG.debug("Connection successful")
             return
-        except (pika.exceptions.ProbableAccessDeniedError,
-                pika.exceptions.ProbableAuthenticationError,
-                pika.exceptions.ConnectionClosed,
+        except (pika.exceptions.AMQPConnectionError, # connection
+                pika.exceptions.AMQPChannelError,    # channel
+                pika.exceptions.ChannelError,        # why did they keep that one separate?
                 socket.gaierror) as e:
+            # See https://github.com/pika/pika/blob/master/pika/exceptions.py
             LOG.debug("MQ connection error: %r", e)
         except Exception as e:
             LOG.debug("Invalid connection: %r", e)
 
         # fail to connect
         if self.on_failure and callable(self.on_failure):
-            self.on_failure()
-        else:
             LOG.error("Unable to connection to MQ")
-            sys.exit(1)
+            self.on_failure()
+
 
     @contextmanager
     def channel(self):
@@ -123,7 +122,7 @@ class AMQPConnection():
 
 
 # Instantiate a global instance
-connection = AMQPConnection()
+connection = AMQPConnection(on_failure=lambda: sys.exit(1))
 
 
 def publish(message, exchange, routing, correlation_id=None):
@@ -153,7 +152,7 @@ def consume(work, from_queue, to_routing, ack_on_error=True):
 
     LOG.debug('Consuming message from %s', from_queue)
 
-    def process_request(_channel, method_frame, props, body):
+    def process_request(channel, method_frame, props, body):
         correlation_id = props.correlation_id
         message_id = method_frame.delivery_tag
         try:
@@ -172,7 +171,7 @@ def consume(work, from_queue, to_routing, ack_on_error=True):
                 }
                 publish(err_msg, 'cega', 'files.error', correlation_id=correlation_id)
                 # Force acknowledging the message
-                _channel.basic_ack(delivery_tag=message_id)
+                channel.basic_ack(delivery_tag=message_id)
                 return
 
             # Message correctly formed
@@ -186,7 +185,7 @@ def consume(work, from_queue, to_routing, ack_on_error=True):
             # Acknowledgment: Cancel the message resend in case MQ crashes
             if not error or ack_on_error:
                 LOG.debug('Sending ACK for message: %s', message_id)
-                _channel.basic_ack(delivery_tag=method_frame.delivery_tag)
+                channel.basic_ack(delivery_tag=method_frame.delivery_tag)
         finally:
             _cid.set(None)
 
@@ -203,13 +202,10 @@ def consume(work, from_queue, to_routing, ack_on_error=True):
                 channel.stop_consuming()
                 connection.close()
                 break
-            except (pika.exceptions.ConnectionClosed,
-                    pika.exceptions.ConsumerCancelled,
-                    pika.exceptions.ChannelClosed,
-                    pika.exceptions.ChannelAlreadyClosing,
+            except (pika.exceptions.AMQPConnectionError,
                     pika.exceptions.AMQPChannelError,
                     pika.exceptions.ChannelError,
-                    pika.exceptions.IncompatibleProtocolError) as e:
+                    pika.exceptions.AMQPError) as e:
                 LOG.debug('Retrying after %s', e)
                 connection.close()
                 continue
