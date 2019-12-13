@@ -73,9 +73,6 @@ function teardown() {
 # while the second one should be in the error queue
 
 @test "Do not ingest the same file twice" {
-    skip
-    # We skip it for the moment since the codebase is old
-    # and does not support this functionality
 
     TESTFILE=$(uuidgen)
     TESTFILE_ENCRYPTED="${TESTFILES}/${TESTFILE}.c4gh"
@@ -93,6 +90,9 @@ function teardown() {
     
     # Second time goes to error
     lega_trigger_ingestion "${TESTUSER}" "${TESTFILE_UPLOADED}.2" v1.files.error 30 10
+    [[ "$output" =~ "user: dummy" ]]
+    [[ "$output" =~ "filepath: ${upload_path}" ]]
+    [[ "$output" =~ "reason: Session key (likely) already used." ]]
 }
 
 # Ingesting a file not in Crypt4GH format

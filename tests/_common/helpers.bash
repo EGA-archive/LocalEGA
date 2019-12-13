@@ -200,3 +200,4 @@ function lega_ingest {
 
     lega_trigger_ingestion "${TESTUSER}" "${TESTFILE_UPLOADED}" $queue 30 10
 }
+
