@@ -168,23 +168,16 @@ def get_info(file_id):
 
 def _set_status(file_id, status):
     """Update status for file with id ``file_id``."""
-    assert file_id, 'Eh? No file_id?'
-    with connection.cursor() as cur:
-        cur.execute('UPDATE local_ega.files SET status = %(status)s WHERE id = %(file_id)s;',
-                    {'status': status,
-                     'file_id': file_id})
 
 
 def mark_in_progress(file_id):
     """Mark file in progress."""
     LOG.debug('Marking file_id %s with "IN_INGESTION"', file_id)
-    return _set_status(file_id, 'IN_INGESTION')
-
-
-def mark_completed(file_id):
-    """Mark file as completed."""
-    LOG.debug('Marking file_id %s with "COMPLETED"', file_id)
-    return _set_status(file_id, 'COMPLETED')
+    assert file_id, 'Eh? No file_id?'
+    with connection.cursor() as cur:
+        cur.execute('UPDATE local_ega.files SET status = %(status)s WHERE id = %(file_id)s;',
+                    {'status': 'IN_INGESTION',
+                     'file_id': file_id})
 
 
 def set_stable_id(file_id, stable_id):
@@ -229,6 +222,39 @@ def set_archived(file_id, archive_path, archive_filesize):
                      'file_id': file_id,
                      'archive_path': archive_path,
                      'archive_filesize': archive_filesize})
+
+
+def check_session_keys_checksums(session_key_checksums):
+    """Check if this session key is (likely) already used."""
+    assert session_key_checksums, 'Eh? No checksum for the session keys?'
+    LOG.debug('Check if session keys (hash) are already used: %s', session_key_checksums)
+    with connection.cursor() as cur:
+        cur.execute('SELECT * FROM local_ega.check_session_keys_checksums_sha256(%(sk_checksums)s);',
+                    {'sk_checksums': session_key_checksums})
+        found = cur.fetchone()
+        LOG.debug("Check session keys: %s", found)
+        return (found and found[0])  # not none and check boolean value
+
+
+def mark_completed(file_id, session_key_checksums, digest_sha256):
+    """Mark file as completed."""
+    LOG.debug('Marking file_id %s with "COMPLETED"', file_id)
+    assert file_id, 'Eh? No file_id?'
+    with connection.cursor() as cur:
+        cur.execute('UPDATE local_ega.files '
+                    'SET status = %(status)s, '
+                    '    archive_file_checksum = %(archive_file_checksum)s, '
+                    '    archive_file_checksum_type = %(archive_file_checksum_type)s '
+                    'WHERE id = %(file_id)s;',
+                    {'status': 'COMPLETED',
+                     'file_id': file_id,
+                     'archive_file_checksum': digest_sha256,
+                     'archive_file_checksum_type': 'SHA256'})
+        cur.executemany('INSERT INTO local_ega.session_key_checksums_sha256 '
+                        '            (file_id, session_key_checksum) '
+                        'VALUES (%s, %s);',
+                        [(file_id, c) for c in session_key_checksums])
+        # Note: no data-race is file status is DISABLED or ERROR
 
 
 # Testing connection with `python -m lega.utils.db`

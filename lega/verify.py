@@ -15,33 +15,16 @@ import logging
 from functools import partial
 import hashlib
 import time
+from io import BytesIO
 
-from crypt4gh.lib import decrypt
+from crypt4gh.lib import body_decrypt, body_decrypt_parts
+from crypt4gh.header import deconstruct
 
 from .conf import CONF, configure
-from .utils import db, storage, key, errors
+from .utils import db, storage, key, errors, exceptions
 from .utils.amqp import consume
 
 LOG = logging.getLogger(__name__)
-
-
-class ChecksumFile():
-    """Fake IO writer, accepting bytes to checksum but not writing them anywhere."""
-
-    def __init__(self):
-        """Initiliaze this IO writer for checksuming.
-
-        The chosen checksum is `hashlib.sha256`.
-        """
-        self.md = hashlib.sha256()
-
-    def write(self, data):
-        """Send data to the checksum."""
-        self.md.update(data)
-
-    def hexdigest(self):
-        """Get the checksum value in hex format."""
-        return self.md.hexdigest()
 
 
 class PrependHeaderFile():
@@ -116,32 +99,61 @@ def work(key, mover, data):
     LOG.info('Opening archive file: %s', archive_path)
     # If you can decrypt... the checksum is valid
 
-    start_time = time.time()
-    # Calculate the checksum of the original content
-    cf = ChecksumFile()
+    decryption_keys = [(0, key.private(), None)]
 
+    # Calculate checksum of the session key
+    # That requires
+    session_keys, edit_list = deconstruct(BytesIO(header), decryption_keys)
+
+    if not session_keys:
+        raise exceptions.SessionKeyDecryptionError(header)
+
+    sk_checksums = [hashlib.sha256(session_key).hexdigest().lower() for session_key in session_keys]
+    if db.check_session_keys_checksums(sk_checksums):
+        raise exceptions.SessionKeyAlreadyUsedError(sk_checksums)
+
+    # Calculate the checksum of the original content
+    md_sha256 = hashlib.sha256()
+    md_md5 = hashlib.md5()  # we also calculate the md5 for the stable ID attribution (useless: Make EBI drop md5).
+
+    def process_output():
+        while True:
+            data = yield
+            md_md5.update(data)
+            md_sha256.update(data)
+    output = process_output()
+    next(output)  # start it
+
+    start_time = time.time()
+
+    # Decrypting chunk by chunk in memory.
+    # No trace on disk.
     with mover.open(archive_path, 'rb') as infile:
         LOG.info('Decrypting')
-        decrypt([(0, key.private(), None)],
-                PrependHeaderFile(header, infile),
-                cf)
-        # decrypt will loop through the segments and send the output to the `cf` file handle.
-        # The `cf` will only checksum the content (ie build the checksum of the unencrypted (original) file)
-        # and never leave a trace on disk.
+        if edit_list is None:
+            # No edit list: decrypt all segments from start to end
+            body_decrypt(infile, session_keys, output, 0)
+        else:
+            # Edit list: it drives which segments is decrypted
+            body_decrypt_parts(infile, session_keys, output, edit_list=list(edit_list))
+            # Question: Should we raise an exception cuz we should not accept that type of files?
 
     LOG.debug('Elpased time: %.2f seconds', time.time() - start_time)
 
-    digest = cf.hexdigest()
-    LOG.info('Verification completed [sha256: %s]', digest)
+    digest_sha256 = md_sha256.hexdigest()
+    LOG.info('Verification completed [sha256: %s]', digest_sha256)
+    digest_md5 = md_md5.hexdigest()
+    LOG.info('Verification completed [md5: %s]', digest_md5)
 
     # Updating the database
-    db.mark_completed(file_id)
+    db.mark_completed(file_id, sk_checksums, digest_sha256)  # sha256 only
 
     # Shape successful message
     org_msg = data['org_msg']
     org_msg.pop('file_id', None)
-    org_msg['reference'] = file_id
-    org_msg['checksum'] = {'value': digest, 'algorithm': 'sha256'}
+    org_msg['decrypted_checksums'] = [{'type': 'sha256', 'value': digest_sha256},
+                                      {'type': 'md5', 'value': digest_md5}]  # for stable id
+    # org_msg['reference'] = file_id
     LOG.debug(f"Reply message: {org_msg}")
     return (org_msg, False)
 

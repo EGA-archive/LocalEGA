@@ -83,6 +83,39 @@ class Checksum(FromUser):
         return 'Invalid {} checksum for the {} file: {}'.format(self.algo, 'original' if self.decrypted else 'encrypted', self.file)
 
 
+class SessionKeyDecryptionError(FromUser):
+    """Raised Exception when header decryption fails."""
+
+    def __init__(self, h):
+        """Initialize Checksum Exception."""
+        self.header = h.hex().upper()
+
+    def __str__(self):
+        """Return readable informal exception description."""
+        return 'Unable to decrypt header with master key'
+
+    def __repr__(self):
+        """Return readable technical exception description."""
+        return f'Unable to decrypt header with master key: {self.header}'
+
+
+# Is it really a user error?
+class SessionKeyAlreadyUsedError(FromUser):
+    """Raised Exception related a session key being already in use."""
+
+    def __init__(self, checksum):
+        """Initialize Checksum in Exception."""
+        self.checksum = checksum
+
+    def __str__(self):
+        """Return readable informal exception description."""
+        return 'Session key (likely) already used.'
+
+    def __repr__(self):
+        """Return the checksum of the session key already used."""
+        return f'Session key (likely) already used [checksum: {self.checksum}].'
+
+
 #############################################################################
 # Any other exception is caught by us
 #############################################################################
