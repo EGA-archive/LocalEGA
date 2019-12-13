@@ -103,22 +103,25 @@ def work(fs, inbox_fs, channel, data):
 
 
 def setup_archive():
+    """Setup and configure the archive"""
     archive_fs = getattr(storage, CONF.get_value('archive', 'storage_driver', default='FileStorage'))
     fs_path = None
     if archive_fs is storage.FileStorage:
-        fs_path = CONF.get_value(section, 'user')
+        fs_path = CONF.get_value('archive', 'user')
     elif archive_fs is storage.S3Storage:
-        fs_path = CONF.get_value(section, 's3_bucket')
+        fs_path = CONF.get_value('archive', 's3_bucket')
 
     return archive_fs('archive', fs_path)
 
+
 def setup_inbox():
+    """Setup and configure the inbox"""
     inbox_fs = getattr(storage, CONF.get_value('inbox', 'storage_driver', default='FileStorage'))
 
     if inbox_fs is storage.FileStorage:
         inbox = partial(inbox_fs, 'inbox')
     elif inbox_fs is storage.S3Storage:
-        inbox = partial(inbox_fs, 'inbox', CONF.get_value(section, 's3_bucket'))
+        inbox = partial(inbox_fs, 'inbox', CONF.get_value('inbox', 's3_bucket'))
 
     return inbox
 
