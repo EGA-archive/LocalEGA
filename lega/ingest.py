@@ -110,6 +110,7 @@ def setup_inbox():
     """Configure the inbox backend."""
     inbox_fs = getattr(storage, CONF.get_value('inbox', 'storage_driver', default='FileStorage'))
 
+    inbox = None
     if inbox_fs is storage.FileStorage:
         inbox = partial(inbox_fs, 'inbox')
     elif inbox_fs is storage.S3Storage:
