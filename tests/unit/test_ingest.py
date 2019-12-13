@@ -14,9 +14,8 @@ class testIngest(unittest.TestCase):
     """
 
     @mock.patch('lega.ingest.getattr')
-    @mock.patch('lega.ingest.get_connection')
     @mock.patch('lega.ingest.consume')
-    def test_main(self, mock_consume, mock_connection, mock_getattr):
+    def test_main(self, mock_consume, mock_getattr):
         """Test main verify, by mocking cosume call."""
         mock_consume.return_value = mock.MagicMock()
         main()
@@ -94,9 +93,8 @@ class testIngest(unittest.TestCase):
     @mock.patch('lega.ingest.get_header')
     @mock.patch('lega.ingest.db')
     @mock.patch('lega.utils.db.set_error')
-    @mock.patch('lega.utils.db.get_connection')
     @mock.patch('lega.utils.db.publish')
-    def test_mark_in_progress_fail_with_from_user_error(self, mock_publish, mock_get_connection, mock_set_error, mock_db, mock_header, filedir):
+    def test_mark_in_progress_fail_with_from_user_error(self, mock_publish, mock_set_error, mock_db, mock_header, filedir):
         """Test ingest worker, mark_in_progress fails."""
         # Mocking a lot of stuff, as it is previously tested
         mock_header.return_value = b'header'
@@ -114,5 +112,4 @@ class testIngest(unittest.TestCase):
         self.assertEqual((None, True), result)
         mock_set_error.assert_called()
         mock_publish.assert_called()
-        mock_get_connection.assert_called()
         filedir.cleanup()

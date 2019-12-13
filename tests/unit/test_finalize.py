@@ -25,9 +25,8 @@ class testFinalize(unittest.TestCase):
         work(data)
         mock_db.set_stable_id.assert_called_with('123', '1')
 
-    @mock.patch('lega.finalize.get_connection')
     @mock.patch('lega.finalize.consume')
-    def test_main(self, mock_consume, mock_connection):
+    def test_main(self, mock_consume):
         """Test main finalize, by mocking cosume call."""
         mock_consume.return_value = mock.MagicMock()
         main()
