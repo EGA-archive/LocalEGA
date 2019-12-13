@@ -52,7 +52,7 @@ function teardown() {
 
     lega_ingest $(uuidgen) 10 v1.files.completed /dev/urandom
 
-    pushd ../deploy
+    pushd ${DOCKER_PATH}
     legarun docker-compose restart
     legarun make preflight-check
     popd
