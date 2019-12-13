@@ -148,9 +148,8 @@ class testVerify(unittest.TestCase):
         filedir.cleanup()
 
     @mock.patch('lega.ingest.getattr')
-    @mock.patch('lega.verify.get_connection')
     @mock.patch('lega.verify.consume')
-    def test_main(self, mock_consume, mock_connection, mock_getattr):
+    def test_main(self, mock_consume, mock_getattr):
         """Test main verify, by mocking cosume call."""
         mock_consume.return_value = mock.MagicMock()
         main()

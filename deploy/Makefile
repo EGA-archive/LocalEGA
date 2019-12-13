@@ -53,18 +53,17 @@ preflight-check:
 ## Base Image
 ####################################################
 
-# Must find better, but working so far
-MAIN_REPO := $(abspath $(dir $(abspath $(lastword $(MAKEFILE_LIST))))/..)
-
 IMAGE_ARGS=
 # eg --no-cache
+# eg --build-arg LEGA_GID=1000
 
 image:
-	cd $(MAIN_REPO) && \
-	docker build -f Dockerfile $(IMAGE_ARGS) \
-		   --build-arg LEGA_GID=1000 \
-		   --tag egarchive/lega-base:latest \
-		   .
+	cd .. && \
+	docker build -f Dockerfile $(IMAGE_ARGS) --tag egarchive/lega-base:latest .
+
+
+####################################################
+# Cleaning images
 
 define remove_dangling
 	docker images $(1) -f "dangling=true" -q | uniq | while read n; do docker rmi -f $$n; done

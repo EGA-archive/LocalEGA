@@ -65,11 +65,9 @@ while True:
     correlation_id = props.correlation_id
     message_id = method_frame.delivery_tag
     try:
-        data = json.loads(body)
+        message = json.loads(body)
     except:
-        data = {'non-json message' : body.decode()}
-
-    message = '\t'.join(f'{k}: {v}' for k,v in data.items())
+        message = {'non-json message' : body.decode()}
 
     if correlation_id in messages:  # we looped
         break
@@ -87,5 +85,6 @@ res = messages.get(args.correlation_id)
 if res is None:
     sys.exit(101)
 
-message_id, message = res
-print( f'Message id: {message_id} | {message}' )
+print('# Message id:',res[0])
+for k,v in res[1].items():
+    print(f'{k}: {v}')
