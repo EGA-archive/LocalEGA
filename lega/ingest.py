@@ -94,12 +94,33 @@ def work(fs, inbox_fs, data):
     return (data, False)
 
 
+def setup_archive():
+    archive_fs = getattr(storage, CONF.get_value('archive', 'storage_driver', default='FileStorage'))
+    fs_path = None
+    if archive_fs is storage.FileStorage:
+        fs_path = CONF.get_value(section, 'user')
+    elif archive_fs is storage.S3Storage:
+        fs_path = CONF.get_value(section, 's3_bucket')
+
+    return archive_fs('archive', fs_path)
+
+def setup_inbox():
+    inbox_fs = getattr(storage, CONF.get_value('inbox', 'storage_driver', default='FileStorage'))
+
+    if inbox_fs is storage.FileStorage:
+        inbox = partial(inbox_fs, 'inbox')
+    elif inbox_fs is storage.S3Storage:
+        inbox = partial(inbox_fs, 'inbox', CONF.get_value(section, 's3_bucket'))
+
+    return inbox
+
+
 @configure
 def main():
     """Run ingest service."""
-    inbox_fs = getattr(storage, CONF.get_value('inbox', 'storage_driver', default='FileStorage'))
-    fs = getattr(storage, CONF.get_value('archive', 'storage_driver', default='FileStorage'))
-    do_work = partial(work, fs('archive', 'lega'), partial(inbox_fs, 'inbox'))
+    archive = setup_archive()
+    inbox = setup_inbox()
+    do_work = partial(work, archive, inbox)
 
     # upstream link configured in local broker
     consume(do_work, 'files', 'archived')
