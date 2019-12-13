@@ -79,40 +79,59 @@ function teardown() {
 # but the file was removed from the inbox
 # We should receive a message in the error queue
 
-@test "File not found in inbox goes to error" {
+@test "Ingestion of ghost file goes to error" {
 
     TESTFILE=$(uuidgen)
+    TESTFILE_ENCRYPTED="${TESTFILES}/${TESTFILE}.c4gh"
+    TESTFILE_UPLOADED="/${TESTFILE}.c4gh"
 
-    # Create a random file of {size} MB
-    legarun dd if=/dev/zero of=${TESTFILES}/${TESTFILE} count=1 bs=1048576
-    [ "$status" -eq 0 ]
-
-    # Encrypt it in the Crypt4GH format
-    export C4GH_PASSPHRASE=${TESTUSER_PASSPHRASE}
-    crypt4gh encrypt --sk ${TESTUSER_SECKEY} --recipient_pk ${EGA_PUBKEY} < ${TESTFILES}/${TESTFILE} > ${TESTFILES}/${TESTFILE}.c4ga
-    [ "$status" -eq 0 ]
+    # Generate a file
+    lega_generate_file ${TESTFILE} ${TESTFILE_ENCRYPTED} 1 /dev/zero
 
     # Upload it
-    legarun ${LEGA_SFTP} -i ${TESTDATA_DIR}/${TESTUSER}.sec ${TESTUSER}@localhost <<< $"put ${TESTFILES}/${TESTFILE}.c4ga ${TESTFILE}.c4ga"
+    lega_upload "${TESTFILE_ENCRYPTED}" "${TESTFILE_UPLOADED}"
     [ "$status" -eq 0 ]
 
     # Fetch the correlation id for that file (Hint: with user/filepath combination)
-    retry_until 0 100 1 ${MQ_GET} v1.files.inbox "${TESTUSER}" "/${TESTFILE}.c4ga"
+    retry_until 0 100 1 ${MQ_GET_INBOX} "${TESTUSER}" "${TESTFILE_UPLOADED}"
     [ "$status" -eq 0 ]
     CORRELATION_ID=$output
 
     # Remove the file
-    legarun ${LEGA_SFTP} -i ${TESTDATA_DIR}/${TESTUSER}.sec ${TESTUSER}@localhost <<< $"rm /${TESTFILE}.c4ga"
+    legarun ${LEGA_SFTP} ${TESTUSER}@localhost <<< $"rm ${TESTFILE_UPLOADED}"
     [ "$status" -eq 0 ]
 
     # Publish the file to simulate a CentralEGA trigger
-    MESSAGE="{ \"user\": \"${TESTUSER}\", \"filepath\": \"/${TESTFILE}.c4ga\"}"
+    MESSAGE="{ \"user\": \"${TESTUSER}\", \"filepath\": \"${TESTFILE_UPLOADED}\"}"
+    legarun ${MQ_PUBLISH} --correlation_id "${CORRELATION_ID}" files "$MESSAGE"
+    [ "$status" -eq 0 ]
+
+    # Check that a message with the above correlation id arrived in the expected queue
+    retry_until 0 30 2 ${MQ_FIND} v1.files.error "${CORRELATION_ID}"
+    [ "$status" -eq 0 ]
+
+}
+
+
+# File not found in inbox
+# -----------------------
+#
+# We upload a file, trigger an ingestion
+# but the file was removed from the inbox
+# We should receive a message in the error queue
+
+@test "File not found goes to error" {
+
+    CORRELATION_ID=$(uuidgen)
+
+    # Publish the file to simulate a CentralEGA trigger
+    MESSAGE="{ \"user\": \"${TESTUSER}\", \"filepath\": \"non.existing.file\"}"
     legarun ${MQ_PUBLISH} --correlation_id ${CORRELATION_ID} files "$MESSAGE"
     [ "$status" -eq 0 ]
 
     # Check that a message with the above correlation id arrived in the expected queue
     # Waiting 20 seconds.
-    retry_until 0 10 2 ${MQ_GET} v1.files.error "${TESTUSER}" "/${TESTFILE}.c4ga"
+    retry_until 0 10 2 ${MQ_FIND} v1.files.error "${CORRELATION_ID}"
     [ "$status" -eq 0 ]
 
 }
