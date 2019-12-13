@@ -329,9 +329,13 @@ cat > ${PRIVATE}/lega.yml <<EOF
 version: '3.2'
 
 networks:
-  lega:
-    # user overlay in swarm mode
-    # default is bridge
+  external:
+    driver: bridge
+  internal:
+    driver: bridge
+  private-db:
+    driver: bridge
+  private-vault:
     driver: bridge
 
 # Use the default driver for volume creation
@@ -363,7 +367,10 @@ services:
     container_name: mq${HOSTNAME_DOMAIN}
     restart: on-failure:3
     networks:
-      - lega
+      - internal
+      - external
+    # Only so that it is simpler to reach the cega-mq.
+    # Normally, we'd have routing to cega-mq
     volumes:
       - mq:/var/lib/rabbitmq
       - ../bootstrap/certs/data/mq.cert.pem:/etc/rabbitmq/ssl.cert
@@ -390,7 +397,7 @@ services:
       - ../bootstrap/certs/data/CA.db.cert.pem:/etc/ega/CA.cert
     restart: on-failure:3
     networks:
-      - lega
+      - private-db
 
   # SFTP inbox
   inbox:
@@ -401,7 +408,8 @@ services:
     container_name: inbox${HOSTNAME_DOMAIN}
     restart: on-failure:3
     networks:
-      - lega
+      - external
+      - internal
     environment:
       - CEGA_ENDPOINT=${CEGA_USERS_ENDPOINT}
       - CEGA_ENDPOINT_CREDS=${CEGA_USERS_CREDS}
@@ -453,7 +461,9 @@ fi
 cat >> ${PRIVATE}/lega.yml <<EOF
     restart: on-failure:3
     networks:
-      - lega
+      - internal
+      - private-db
+      - private-vault
     user: lega
     entrypoint: ["lega-entrypoint.sh"]
     command: ["ega-ingest"]
@@ -492,7 +502,9 @@ fi
 cat >> ${PRIVATE}/lega.yml <<EOF
     restart: on-failure:3
     networks:
-      - lega
+      - internal
+      - private-db
+      - private-vault
     user: lega
     entrypoint: ["lega-entrypoint.sh"]
     command: ["ega-verify"]
@@ -514,7 +526,8 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - ../bootstrap/certs/data/CA.finalize.cert.pem:/etc/ega/CA.cert
     restart: on-failure:3
     networks:
-      - lega
+      - internal
+      - private-db
     user: lega
     entrypoint: ["lega-entrypoint.sh"]
     command: ["ega-finalize"]
@@ -540,7 +553,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - ../bootstrap/certs/data/CA.archive.cert.pem:/root/.minio/CAs/LocalEGA.crt
     restart: on-failure:3
     networks:
-      - lega
+      - private-vault
     # ports:
     #   - "${DOCKER_PORT_s3}:9000"
     command: ["server", "/data"]
@@ -573,7 +586,7 @@ services:
       - ../bootstrap/certs/data/cega-users.sec.pem:/cega/ssl.key
       - ../bootstrap/certs/data/CA.cega-users.cert.pem:/cega/CA.crt
     networks:
-      - lega
+      - external
     user: root
     entrypoint: ["python", "/cega/users.py", "0.0.0.0", "443", "/cega/users"]
 
@@ -593,7 +606,7 @@ services:
       - ../bootstrap/certs/data/CA.cega-mq.cert.pem:/etc/rabbitmq/CA.cert
     restart: on-failure:3
     networks:
-      - lega
+      - external
     entrypoint: ["/usr/local/bin/cega-entrypoint.sh"]
 EOF
 
