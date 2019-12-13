@@ -102,6 +102,27 @@ def work(fs, inbox_fs, channel, data):
     return data
 
 
+def setup_archive():
+    archive_fs = getattr(storage, CONF.get_value('archive', 'storage_driver', default='FileStorage'))
+    fs_path = None
+    if archive_fs is storage.FileStorage:
+        fs_path = CONF.get_value(section, 'user')
+    elif archive_fs is storage.S3Storage:
+        fs_path = CONF.get_value(section, 's3_bucket')
+
+    return archive_fs('archive', fs_path)
+
+def setup_inbox():
+    inbox_fs = getattr(storage, CONF.get_value('inbox', 'storage_driver', default='FileStorage'))
+
+    if inbox_fs is storage.FileStorage:
+        inbox = partial(inbox_fs, 'inbox')
+    elif inbox_fs is storage.S3Storage:
+        inbox = partial(inbox_fs, 'inbox', CONF.get_value(section, 's3_bucket'))
+
+    return inbox
+
+
 def main(args=None):
     """Run ingest service."""
     if not args:
@@ -109,17 +130,11 @@ def main(args=None):
 
     CONF.setup(args)  # re-conf
 
-    inbox_fs = getattr(storage, CONF.get_value('inbox', 'storage_driver', default='FileStorage'))
-    fs = getattr(storage, CONF.get_value('archive', 'storage_driver', default='FileStorage'))
-    fs_path = None
-    if fs is storage.FileStorage:
-        # we retrieve the user folder name for the archive
-        fs_path = CONF.get_value('archive', 'user')
-    elif fs is storage.S3Storage:
-        # we retrieve the s3 bucket name for the archive
-        fs_path = CONF.get_value('archive', 's3_bucket')
     broker = get_connection('broker')
-    do_work = partial(work, fs('archive', fs_path), partial(inbox_fs, 'inbox'), broker.channel())
+    archive = setup_archive()
+    inbox = setup_inbox()
+
+    do_work = partial(work, archive, inbox, broker.channel())
 
     # upstream link configured in local broker
     consume(do_work, broker, 'files', 'archived')
