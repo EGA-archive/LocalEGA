@@ -1,5 +1,6 @@
 """Ensures communication with RabbitMQ Message Broker."""
 
+import sys
 import logging
 import json
 import ssl
@@ -26,8 +27,8 @@ class AMQPConnection():
         self.conf_section = conf_section or 'broker'
         print('Conf section', self.conf_section)
         print('CONF', CONF)
-        #assert self.conf_section in CONF.sections(), "Section not found in config file"
-        
+        # assert self.conf_section in CONF.sections(), "Section not found in config file"
+
     def fetch_args(self):
         """Retrieve AMQP connection parameters."""
         LOG.info('Getting a connection to %s', self.conf_section)
@@ -71,7 +72,6 @@ class AMQPConnection():
             # Finally, the pika ssl options
             self.connection_params.ssl_options = pika.SSLOptions(context=context, server_hostname=server_hostname)
 
-
     def connect(self, force=False):
         """Make a blocking/select connection to the Message Broker supporting AMQP(S)."""
         if force:
@@ -88,10 +88,9 @@ class AMQPConnection():
             self.chann = self.conn.channel()
             LOG.debug("Connection successful")
             return
-        except (pika.exceptions.AMQPConnectionError, # connection
-                pika.exceptions.AMQPChannelError,    # channel
-                pika.exceptions.ChannelError,        # why did they keep that one separate?
-                socket.gaierror) as e:
+        except (pika.exceptions.AMQPConnectionError,  # connection
+                pika.exceptions.AMQPChannelError,     # channel
+                pika.exceptions.ChannelError) as e:   # why did they keep that one separate?
             # See https://github.com/pika/pika/blob/master/pika/exceptions.py
             LOG.debug("MQ connection error: %r", e)
         except Exception as e:
@@ -101,7 +100,6 @@ class AMQPConnection():
         if self.on_failure and callable(self.on_failure):
             LOG.error("Unable to connection to MQ")
             self.on_failure()
-
 
     @contextmanager
     def channel(self):
@@ -113,10 +111,10 @@ class AMQPConnection():
     def close(self):
         """Close MQ channel."""
         LOG.debug("Closing the AMQP connection.")
-        if self.chann and not self.chann.is_closed: #and not self.chann.is_closing:
+        if self.chann and not self.chann.is_closed:
             self.chann.close()
         self.chann = None
-        if self.conn and not self.conn.is_closed: #and not self.conn.is_closing:
+        if self.conn and not self.conn.is_closed:
             self.conn.close()
         self.conn = None
 
@@ -142,15 +140,13 @@ def publish(message, exchange, routing, correlation_id=None):
 def consume(work, from_queue, to_routing, ack_on_error=True):
     """Register callback ``work`` to be called, blocking function.
 
-    
     If there are no message in ``from_queue``, the function blocks and waits for new messages.
- 
+
     If the function ``work`` returns a non-None message, the latter is published
     to the `lega` exchange with ``to_routing`` as the routing key.
     """
-    assert(from_queue)
-
     LOG.debug('Consuming message from %s', from_queue)
+    assert(from_queue)
 
     def process_request(channel, method_frame, props, body):
         correlation_id = props.correlation_id
@@ -167,12 +163,12 @@ def consume(work, from_queue, to_routing, ack_on_error=True):
                 LOG.error('Original message: %s', body, extra={'correlation_id': correlation_id})
                 err_msg = {
                     'reason': 'Malformed JSON-message',
-                    'original_message': body.decode(errors='ignore') # or str(body) ?
+                    'original_message': body.decode(errors='ignore')  # or str(body) ?
                 }
                 publish(err_msg, 'cega', 'files.error', correlation_id=correlation_id)
                 # Force acknowledging the message
                 channel.basic_ack(delivery_tag=message_id)
-                return
+                return  # game over
 
             # Message correctly formed
             answer, error = work(content)  # exceptions already caught by decorator
@@ -185,7 +181,7 @@ def consume(work, from_queue, to_routing, ack_on_error=True):
             # Acknowledgment: Cancel the message resend in case MQ crashes
             if not error or ack_on_error:
                 LOG.debug('Sending ACK for message: %s', message_id)
-                channel.basic_ack(delivery_tag=method_frame.delivery_tag)
+                channel.basic_ack(delivery_tag=message_id)
         finally:
             _cid.set(None)
 
