@@ -2,10 +2,7 @@
 
 
 [![Documentation Status](https://readthedocs.org/projects/localega/badge/?version=latest)](https://localega.readthedocs.io/en/latest/?badge=latest)
-[![Unit Tests](https://github.com/EGA-archive/LocalEGA/workflows/Unit%20Tests/badge.svg)](https://github.com/EGA-archive/LocalEGA/actions)
 [![Testsuite](https://github.com/EGA-archive/LocalEGA/workflows/Testsuite/badge.svg)](https://github.com/EGA-archive/LocalEGA/actions)
-[![Coverage Status](https://coveralls.io/repos/github/EGA-archive/LocalEGA/badge.svg?branch=master)](https://coveralls.io/github/EGA-archive/LocalEGA?branch=master)
-
 
 
 The [code](lega) is written in Python (3.6+).
