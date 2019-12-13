@@ -433,9 +433,6 @@ services:
     environment:
       - LEGA_LOG=debug
     hostname: ingest${HOSTNAME_DOMAIN}
-    depends_on:
-      - db
-      - mq
     image: egarchive/lega-base:latest
     container_name: ingest${HOSTNAME_DOMAIN}
     volumes:
@@ -464,9 +461,6 @@ cat >> ${PRIVATE}/lega.yml <<EOF
 
   # Consistency Control
   verify:
-    depends_on:
-      - db
-      - mq
     environment:
       - LEGA_LOG=debug
     hostname: verify${HOSTNAME_DOMAIN}
@@ -509,9 +503,6 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     environment:
       - LEGA_LOG=debug
     hostname: finalize${HOSTNAME_DOMAIN}
-    depends_on:
-      - db
-      - mq
     image: egarchive/lega-base:latest
     container_name: finalize${HOSTNAME_DOMAIN}
     volumes:
