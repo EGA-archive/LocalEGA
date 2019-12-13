@@ -41,7 +41,7 @@ def work(data):
 def main():
     """Listen for incoming stable IDs."""
     # upstream link configured in local broker
-    consume(work, broker, 'stableIDs', None)
+    consume(work, 'stableIDs', None)
 
 
 if __name__ == '__main__':
