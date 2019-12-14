@@ -237,8 +237,6 @@ class S3Storage():
 
     def filesize(self, path):
         """Return the size of the file pointed by ``path``."""
-        if self.prefix:
-            path = self.prefix + '/' + path
         resp = self.s3.head_object(Bucket=self.bucket, Key=path)
         return resp['ContentLength']
 
