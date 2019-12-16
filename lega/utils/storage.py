@@ -19,7 +19,7 @@ class FileStorage():
 
     def __init__(self, config_section, user):
         """Initialize backend storage to a POSIX file system."""
-        self.prefix = Path(CONF.get_value(config_section, 'location', raw=True) % user)
+        self.prefix = Path(CONF.get(config_section, 'location', raw=True) % user)
 
     def location(self, file_id):
         """Retrieve file location."""
@@ -198,16 +198,16 @@ class S3Storage():
         """Initialize S3 object Storage."""
         import boto3
         import botocore
-        self.endpoint = CONF.get_value(config_section, 's3_url')
-        region = CONF.get_value(config_section, 's3_region')
-        access_key = CONF.get_value(config_section, 's3_access_key')
-        secret_key = CONF.get_value(config_section, 's3_secret_key')
-        verify = CONF.get_value(config_section, 'cacertfile', default=None) or False
+        self.endpoint = CONF.get(config_section, 's3_url')
+        region = CONF.get(config_section, 's3_region')
+        access_key = CONF.getsensitive(config_section, 's3_access_key')
+        secret_key = CONF.getsensitive(config_section, 's3_secret_key')
+        verify = CONF.get(config_section, 'cacertfile', fallback=None) or False
         config_params = {
-            'connect_timeout': CONF.get_value(config_section, 'connect_timeout', conv=int, default=60),
+            'connect_timeout': CONF.getint(config_section, 'connect_timeout', fallback=60),
         }
-        certfile = CONF.get_value(config_section, 'certfile', default=None)
-        keyfile = CONF.get_value(config_section, 'keyfile', default=None)
+        certfile = CONF.get(config_section, 'certfile', fallback=None)
+        keyfile = CONF.get(config_section, 'keyfile', fallback=None)
         if certfile and keyfile:
             config_params['client_cert'] = (certfile, keyfile)
         config = botocore.client.Config(**config_params)

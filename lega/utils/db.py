@@ -11,6 +11,7 @@ from contextlib import contextmanager
 
 
 from ..conf import CONF
+from . import redact_url
 
 LOG = logging.getLogger(__name__)
 
@@ -35,9 +36,9 @@ class DBConnection():
 
     def fetch_args(self):
         """Fetch arguments for initializing a connection to db."""
-        self.args = CONF.get_value(self.conf_section, 'connection')
-        self.interval = CONF.get_value(self.conf_section, 'try_interval', conv=int, default=1)
-        self.attempts = CONF.get_value(self.conf_section, 'try', conv=int, default=1)
+        self.args = CONF.getsensitive(self.conf_section, 'connection')
+        self.interval = CONF.getint(self.conf_section, 'try_interval', fallback=1)
+        self.attempts = CONF.getint(self.conf_section, 'try', fallback=1)
         assert self.attempts > 0, "The number of reconnection should be >= 1"
 
     def connect(self, force=False):
@@ -57,7 +58,8 @@ class DBConnection():
         if not self.args:
             self.fetch_args()
 
-        LOG.info("Initializing a connection (%d attempts)", self.attempts)
+        LOG.info("Initializing a connection to %s", redact_url(self.args))
+        LOG.info("Connection attempts: %d", self.attempts)
 
         backoff = self.interval
         for count in range(self.attempts):

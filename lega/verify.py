@@ -20,7 +20,7 @@ from io import BytesIO
 from crypt4gh.lib import body_decrypt, body_decrypt_parts
 from crypt4gh.header import deconstruct
 
-from .conf import CONF, configure
+from .conf import CONF
 from .utils import db, storage, key, errors, exceptions
 from .utils.amqp import consume
 
@@ -158,19 +158,17 @@ def work(key, mover, data):
     return (org_msg, False)
 
 
-@configure
 def main():
     """Run verify service."""
-    store = getattr(storage, CONF.get_value('archive', 'storage_driver', default='FileStorage'))
+    store = getattr(storage, CONF.get('archive', 'storage_driver', fallback='FileStorage'))
 
     # Loading the key from its storage (be it from file, or from a remote location)
     # the key_config section in the config file should describe how
     # We don't use default values: bark if not supplied
-    key_section = CONF.get_value('DEFAULT', 'master_key')
-    key_loader = getattr(key, CONF.get_value(key_section, 'loader_class'))
-    key_config = CONF[key_section]  # the whole section
+    key_section = CONF.get('DEFAULT', 'master_key')
+    key_loader = getattr(key, CONF.get(key_section, 'loader_class'))
 
-    do_work = partial(work, key_loader(key_config), store('archive', 'lega'))
+    do_work = partial(work, key_loader(key_section), store('archive', 'lega'))
 
     consume(do_work, 'archived', 'completed')
 

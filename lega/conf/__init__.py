@@ -19,23 +19,96 @@ import configparser
 from pathlib import Path
 import yaml
 from functools import wraps
+import warnings
+import stat
 
 # These two imports are needed to get the logging config files to work
 import logging  # noqa: F401
-import lega.utils.logging  # noqa: F401
 from logging.config import fileConfig, dictConfig
 
-from ..utils import get_secret
+from ..utils import get_from_file, get_from_env
 
 _here = Path(__file__).parent
 LOG_FILE = os.getenv('LEGA_LOG', None)
 CONF_FILE = os.getenv('LEGA_CONF', '/etc/ega/conf.ini')
 
+LOG = logging.getLogger(__name__)
 
-class Configuration(configparser.ConfigParser):
-    """Configuration from config_files or environment variables or config server (e.g. Spring Cloud Config)."""
 
-    def _load_log(self):
+def convert_sensitive(value):
+    if value is None:  # Not found
+        return None
+
+    # Short-circuit in case the value starts with value:// (ie, it is enforced)
+    if value.startswith('value://'):
+        return value[8:]
+
+    # * If `value` starts with 'env://', we strip it out and the remainder acts as the name of an environment variable to read.
+    # If the environment variable does not exist, we raise a ValueError exception.
+    
+    # * If `value` starts with 'file://', we strip it out and the remainder acts as the filepath of a file to read.
+    # If any error occurs while read the file content, we raise a ValueError exception.
+    
+    # * If `value` starts with 'value://', we strip it out and the remainder acts as the value itself.
+    # It is used to enforce the value, in case its content starts with env:// or file:// (eg a file:// URL).
+    
+    # * Otherwise, `value` is the value content itself. 
+
+    if value.startswith('env://'):
+        envvar = value[6:]
+        LOG.debug('Loading value from env var: %s', envvar)
+        warnings.warn(
+            "Loading sensitive data from environment variable is not recommended "
+            "and might be removed in future versions."
+            " Use secret:// instead",
+            DeprecationWarning, stacklevel=4
+        )
+        return get_from_env(envvar)
+
+    if value.startswith('file://'):
+        path=value[7:]
+        LOG.debug('Loading value from path: %s', path)
+        statinfo = os.stat(path)
+        if statinfo.st_mode & stat.S_IRGRP or statinfo.st_mode & stat.S_IROTH:
+            warnings.warn(
+                "Loading sensitive data from a file that is group or world readable "
+                "is not recommended and might be removed in future versions."
+                " Use secret:// instead",
+                DeprecationWarning, stacklevel=4
+            )
+        return get_from_file(path, mode='rt')  # str
+
+    if value.startswith('secret://'):
+        path=value[9:]
+        LOG.debug('Loading secret from path: %s', path)
+        return get_from_file(path, remove_after=True)  # binary
+
+    # It's the value itself (even if it starts with postgres:// or amqp(s)://)
+    return value
+
+
+class Configuration(configparser.RawConfigParser):
+    """Configuration from a config file."""
+    
+    def __init__(self):
+        """Set up."""
+        if not CONF_FILE:
+            print('No configuration found', file=sys.stderr)
+            print('Bailing out', file=sys.stderr)
+            sys.exit(2)
+
+        configparser.RawConfigParser.__init__(self,
+                                              delimiters=('=', ':'),
+                                              comment_prefixes=('#', ';'),
+                                              default_section='DEFAULT',
+                                              interpolation=None,
+                                              converters={
+                                                  'sensitive': convert_sensitive,
+                                              })
+        self.read([CONF_FILE], encoding='utf-8')
+        self.load_log()
+
+    def load_log(self):
         """Try to load `filename` as configuration file."""
         global LOG_FILE
         if not LOG_FILE:
@@ -46,7 +119,7 @@ class Configuration(configparser.ConfigParser):
         _logger = _here / f'loggers/{LOG_FILE}.yaml'
         if _logger.exists():
             with open(_logger, 'r') as stream:
-                dictConfig(yaml.load(stream))
+                dictConfig(yaml.safe_load(stream))
                 LOG_FILE = _logger
                 return
 
@@ -59,7 +132,7 @@ class Configuration(configparser.ConfigParser):
 
         if filename.suffix in ('.yaml', '.yml'):
             with open(filename, 'r') as stream:
-                dictConfig(yaml.load(stream))
+                dictConfig(yaml.safe_load(stream))
                 return
 
         if filename.suffix in ('.ini', '.INI'):
@@ -69,15 +142,6 @@ class Configuration(configparser.ConfigParser):
         # Otherwise, fail
         print(f"Unsupported log format for {filename}", file=sys.stderr)
 
-    def setup(self):
-        """Set up."""
-        if not CONF_FILE:
-            print('No configuration found', file=sys.stderr)
-            print('Bailing out', file=sys.stderr)
-            sys.exit(2)
-
-        self.read([CONF_FILE], encoding='utf-8')
-        self._load_log()
 
     def __repr__(self):
         """Show the configuration files."""
@@ -86,43 +150,5 @@ class Configuration(configparser.ConfigParser):
             res += f'\nLogging settings loaded from {LOG_FILE}'
         return res
 
-    def get_value(self, section, option, conv=str, default=None, raw=False):
-        """Get a specific value for this paramater either as env variable or from config files."""
-        result = os.environ.get(f'{section.upper()}_{option.upper()}', None)
-        if result is not None:  # it might be empty
-            return self._convert(result, conv)
-        result = self.get(section, option, fallback=default, raw=raw)
-        if result is None:
-            return result
-        return self._convert(result, conv)
-
-    def _convert(self, value, conv):
-        """Convert value properly to ``str``, ``float`` or ``int``, also consider ``bool`` type."""
-        if conv == bool:
-            assert value, "Can not convert an empty value"
-            val = value.lower()
-            if val in ('y', 'yes', 't', 'true', 'on', '1'):
-                return True
-            elif val in ('n', 'no', 'f', 'false', 'off', '0'):
-                return False
-            else:
-                raise ValueError(f"Invalid truth value: {val}")
-        if conv == str:
-            secrets_path = os.environ.get('secrets_path', '/run/secrets/')
-            if value.startswith(secrets_path):
-                return get_secret(value, remove_after=True)  # removes file if found
-            return value
-        # else
-        return conv(value)  # raise error in case we can't convert an empty value
-
 
 CONF = Configuration()
-
-
-def configure(func):
-    """Return configuration decorator."""
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        CONF.setup()
-        return func(*args, **kwargs)
-    return wrapper

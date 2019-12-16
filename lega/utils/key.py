@@ -1,5 +1,7 @@
 import logging
 
+from ..conf import CONF
+
 LOG = logging.getLogger(__name__)
 
 
@@ -31,10 +33,10 @@ class C4GHFileKey(Key):
     See https://crypt4gh.readthedocs.io/en/latest/keys.html
     """
 
-    def __init__(self, config):
+    def __init__(self, section):
         """Initiliaze the Key object from a dict."""
-        filepath = config.get('filepath')
-        passphrase = config.get('passphrase')
+        filepath = CONF.get(section, 'filepath')
+        passphrase = CONF.getsensitive(section, 'passphrase')
         assert(filepath and passphrase)
 
         # We use the parser provided in the crypt4gh.keys module

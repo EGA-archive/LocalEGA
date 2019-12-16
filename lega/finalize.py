@@ -14,7 +14,6 @@ registered upstream queue.
 
 import logging
 
-from .conf import configure
 from .utils import db, errors
 from .utils.amqp import consume
 
@@ -37,7 +36,6 @@ def work(data):
     return (None, False)
 
 
-@configure
 def main():
     """Listen for incoming stable IDs."""
     # upstream link configured in local broker

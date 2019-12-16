@@ -10,6 +10,7 @@ import pika
 
 from ..conf import CONF
 from .logging import _cid
+from . import redact_url
 
 LOG = logging.getLogger(__name__)
 
@@ -25,16 +26,15 @@ class AMQPConnection():
         """Initialize AMQP class."""
         self.on_failure = on_failure
         self.conf_section = conf_section or 'broker'
-        print('Conf section', self.conf_section)
-        print('CONF', CONF)
+        # LOG.debug('Conf section', self.conf_section)
         # assert self.conf_section in CONF.sections(), "Section not found in config file"
 
     def fetch_args(self):
         """Retrieve AMQP connection parameters."""
-        LOG.info('Getting a connection to %s', self.conf_section)
-        params = CONF.get_value(self.conf_section, 'connection', raw=True)
+        LOG.debug('Getting a connection to "%s"', self.conf_section)
+        params = CONF.getsensitive(self.conf_section, 'connection', raw=True)
 
-        LOG.debug("Initializing a connection to: %s", params)
+        LOG.debug("Initializing a connection to: %s", redact_url(params))
         self.connection_params = pika.connection.URLParameters(params)
 
         # Handling the SSL options
@@ -46,27 +46,26 @@ class AMQPConnection():
 
             context.verify_mode = ssl.CERT_NONE
             # Require server verification
-            if CONF.get_value(self.conf_section, 'verify_peer', conv=bool, default=False):
+            if CONF.getboolean(self.conf_section, 'verify_peer', fallback=False):
                 LOG.debug("Require server verification")
                 context.verify_mode = ssl.CERT_REQUIRED
-                cacertfile = CONF.get_value(self.conf_section, 'cacertfile', default=None)
+                cacertfile = CONF.get(self.conf_section, 'cacertfile', fallback=None)
                 if cacertfile:
                     context.load_verify_locations(cafile=cacertfile)
 
             # Check the server's hostname
-            server_hostname = CONF.get_value(self.conf_section, 'server_hostname', default=None)
-            verify_hostname = CONF.get_value(self.conf_section, 'verify_hostname', conv=bool, default=False)
-            if verify_hostname:
+            server_hostname = CONF.get(self.conf_section, 'server_hostname', fallback=None)
+            if CONF.getboolean(self.conf_section, 'verify_hostname', fallback=False):
                 LOG.debug("Require hostname verification")
                 assert server_hostname, "server_hostname must be set if verify_hostname is"
                 context.check_hostname = True
                 context.verify_mode = ssl.CERT_REQUIRED
 
             # If client verification is required
-            certfile = CONF.get_value(self.conf_section, 'certfile', default=None)
+            certfile = CONF.get(self.conf_section, 'certfile', fallback=None)
             if certfile:
                 LOG.debug("Prepare for client verification")
-                keyfile = CONF.get_value(self.conf_section, 'keyfile')
+                keyfile = CONF.get(self.conf_section, 'keyfile')
                 context.load_cert_chain(certfile, keyfile=keyfile)
 
             # Finally, the pika ssl options
@@ -190,7 +189,7 @@ def consume(work, from_queue, to_routing, ack_on_error=True):
     while True:
         with connection.channel() as channel:
             try:
-                LOG.debug('Consuming message from %s', from_queue)
+                LOG.info('Consuming message from %s', from_queue)
                 channel.basic_qos(prefetch_count=1)  # One job per worker
                 channel.basic_consume(from_queue, on_message_callback=process_request)
                 channel.start_consuming()

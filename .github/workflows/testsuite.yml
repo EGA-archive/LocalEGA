@@ -15,7 +15,7 @@ jobs:
       matrix:
         # os: [ubuntu-latest, macOS-latest]
         os: [ubuntu-latest]
-        bootstrap: ['', '--archive-backend s3']
+        bootstrap: ['', '--archive s3']
         bats: ['integration', 'security', 'robustness']
 
     runs-on: ${{ matrix.os }}

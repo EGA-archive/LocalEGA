@@ -14,16 +14,19 @@ FORCE=yes
 OPENSSL=openssl
 ARCHIVE_BACKEND=posix
 HOSTNAME_DOMAIN='' #".localega"
+SECRETS=no
+SECRETS_PREFIX='/run/secrets'
 
 PYTHONEXEC=python
 
 function usage {
     echo "Usage: $0 [options]"
     echo -e "\nOptions are:"
-    echo -e "\t--openssl <value>     \tPath to the Openssl executable [Default: ${OPENSSL}]"
-    echo -e "\t--archive-backend <value> \tSelect the archive backend: S3 or POSIX [Default: ${ARCHIVE_BACKEND}]"
-    echo -e "\t--pythonexec <value>  \tPython execute command [Default: ${PYTHONEXEC}]"
-    echo -e "\t--domain <value>      \tDomain for the hostnames [Default: '${HOSTNAME_DOMAIN}']"
+    echo -e "\t--openssl <value>    \tPath to the Openssl executable [Default: ${OPENSSL}]"
+    echo -e "\t--archive <value>    \tSelect the archive backend: S3 or POSIX [Default: ${ARCHIVE_BACKEND}]"
+    echo -e "\t--pythonexec <value> \tPython execute command [Default: ${PYTHONEXEC}]"
+    echo -e "\t--domain <value>     \tDomain for the hostnames [Default: '${HOSTNAME_DOMAIN}']"
+    echo -e "\t--secrets            \tUse secrets [Prefix in containers: '${SECRETS_PREFIX}']"
     echo ""
     echo -e "\t--verbose, -v     \tShow verbose output"
     echo -e "\t--polite, -p      \tDo not force the re-creation of the subfolders. Ask instead"
@@ -40,9 +43,10 @@ while [[ $# -gt 0 ]]; do
         --verbose|-v) VERBOSE=yes;;
         --polite|-p) FORCE=no;;
         --openssl) OPENSSL=$2; shift;;
-        --archive-backend) ARCHIVE_BACKEND=${2,,}; shift;;
+        --archive) ARCHIVE_BACKEND=${2,,}; shift;;
         --pythonexec) PYTHONEXEC=$2; shift;;
         --domain) HOSTNAME_DOMAIN=${2,,}; shift;;
+        --secrets) SECRETS=yes; SECRETS_PREFIX=${2,,}; shift;;
         --) shift; break;;
         *) echo "$0: error - unrecognized option $1" 1>&2; usage; exit 1;;
     esac
@@ -196,7 +200,6 @@ DB_CONNECTION_PARAMS=$(${PYTHONEXEC} -c "from urllib.parse import urlencode;    
 DB_CONNECTION="postgres://lega_in:${DB_LEGA_IN_PASSWORD}@db${HOSTNAME_DOMAIN}:5432/lega"
 
 
-
 cat > ${PRIVATE}/confs/ingest.ini <<EOF
 [DEFAULT]
 
@@ -228,8 +231,8 @@ if [[ ${ARCHIVE_BACKEND} == 's3' ]]; then
 [archive]
 storage_driver = S3Storage
 s3_url = https://archive${HOSTNAME_DOMAIN}:9000
-s3_access_key = ${S3_ACCESS_KEY}
-s3_secret_key = ${S3_SECRET_KEY}
+s3_access_key = env://S3_ACCESS_KEY
+s3_secret_key = env://S3_SECRET_KEY
 #region = lega
 cacertfile = /etc/ega/CA.cert
 certfile = /etc/ega/ssl.cert
@@ -279,8 +282,8 @@ if [[ ${ARCHIVE_BACKEND} == 's3' ]]; then
 [archive]
 storage_driver = S3Storage
 s3_url = https://archive${HOSTNAME_DOMAIN}:9000
-s3_access_key = ${S3_ACCESS_KEY}
-s3_secret_key = ${S3_SECRET_KEY}
+s3_access_key = env://S3_ACCESS_KEY
+s3_secret_key = env://S3_SECRET_KEY
 #region = lega
 cacertfile = /etc/ega/CA.cert
 certfile = /etc/ega/ssl.cert
@@ -365,7 +368,6 @@ services:
       - "${DOCKER_PORT_mq}:15672"
     image: egarchive/lega-mq:latest
     container_name: mq${HOSTNAME_DOMAIN}
-    restart: on-failure:3
     networks:
       - internal
       - external
@@ -395,7 +397,6 @@ services:
       - ../bootstrap/certs/data/db.cert.pem:/etc/ega/pg.cert
       - ../bootstrap/certs/data/db.sec.pem:/etc/ega/pg.key
       - ../bootstrap/certs/data/CA.db.cert.pem:/etc/ega/CA.cert
-    restart: on-failure:3
     networks:
       - private-db
 
@@ -406,7 +407,6 @@ services:
       - mq
     # Required external link
     container_name: inbox${HOSTNAME_DOMAIN}
-    restart: on-failure:3
     networks:
       - external
       - internal
@@ -452,14 +452,10 @@ services:
       - ../bootstrap/certs/data/ingest.sec.pem:/etc/ega/ssl.key
       - ../bootstrap/certs/data/CA.ingest.cert.pem:/etc/ega/CA.cert
 EOF
-if [[ ${ARCHIVE_BACKEND} == 'posix' ]]; then
-cat >> ${PRIVATE}/lega.yml <<EOF
+[[ ${ARCHIVE_BACKEND} == 'posix' ]] && cat >> ${PRIVATE}/lega.yml <<EOF
       - archive:/ega/archive
 EOF
-fi
-
 cat >> ${PRIVATE}/lega.yml <<EOF
-    restart: on-failure:3
     networks:
       - internal
       - private-db
@@ -473,6 +469,14 @@ cat >> ${PRIVATE}/lega.yml <<EOF
   verify:
     environment:
       - LEGA_LOG=debug
+EOF
+[[ ${ARCHIVE_BACKEND} == 's3' ]] && cat >> ${PRIVATE}/lega.yml <<EOF
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY}
+      - S3_SECRET_KEY=${S3_SECRET_KEY}
+      - AWS_ACCESS_KEY_ID=${S3_ACCESS_KEY}
+      - AWS_SECRET_ACCESS_KEY=${S3_SECRET_KEY}
+EOF
+cat >> ${PRIVATE}/lega.yml <<EOF
     hostname: verify${HOSTNAME_DOMAIN}
     container_name: verify${HOSTNAME_DOMAIN}
     image: egarchive/lega-base:latest
@@ -485,22 +489,10 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - ../bootstrap/certs/data/verify.sec.pem:/etc/ega/ssl.key
       - ../bootstrap/certs/data/CA.verify.cert.pem:/etc/ega/CA.cert
 EOF
-if [[ ${ARCHIVE_BACKEND} == 'posix' ]]; then
-    cat >> ${PRIVATE}/lega.yml <<EOF
+[[ ${ARCHIVE_BACKEND} == 'posix' ]] && cat >> ${PRIVATE}/lega.yml <<EOF
       - archive:/ega/archive
 EOF
-else
-    cat >> ${PRIVATE}/lega.yml <<EOF
-    environment:
-      - S3_ACCESS_KEY=${S3_ACCESS_KEY}
-      - S3_SECRET_KEY=${S3_SECRET_KEY}
-      - AWS_ACCESS_KEY_ID=${S3_ACCESS_KEY}
-      - AWS_SECRET_ACCESS_KEY=${S3_SECRET_KEY}
-EOF
-fi
-
 cat >> ${PRIVATE}/lega.yml <<EOF
-    restart: on-failure:3
     networks:
       - internal
       - private-db
@@ -524,7 +516,6 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - ../bootstrap/certs/data/finalize.cert.pem:/etc/ega/ssl.cert
       - ../bootstrap/certs/data/finalize.sec.pem:/etc/ega/ssl.key
       - ../bootstrap/certs/data/CA.finalize.cert.pem:/etc/ega/CA.cert
-    restart: on-failure:3
     networks:
       - internal
       - private-db
@@ -534,9 +525,7 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     # entrypoint: ["/bin/sleep", "1000000000000"]
 
 EOF
-
-if [[ ${ARCHIVE_BACKEND} == 's3' ]]; then
-cat >> ${PRIVATE}/lega.yml <<EOF
+[[ ${ARCHIVE_BACKEND} == 's3' ]] && cat >> ${PRIVATE}/lega.yml <<EOF
 
   # Storage backend: S3
   archive:
@@ -551,14 +540,12 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - ../bootstrap/certs/data/archive.cert.pem:/root/.minio/certs/public.crt
       - ../bootstrap/certs/data/archive.sec.pem:/root/.minio/certs/private.key
       - ../bootstrap/certs/data/CA.archive.cert.pem:/root/.minio/CAs/LocalEGA.crt
-    restart: on-failure:3
     networks:
       - private-vault
     # ports:
     #   - "${DOCKER_PORT_s3}:9000"
     command: ["server", "/data"]
 EOF
-fi
 
 #########################################################################
 # Specifying a fake Central EGA broker if requested
@@ -604,7 +591,6 @@ services:
       - ../bootstrap/certs/data/cega-mq.cert.pem:/etc/rabbitmq/ssl.cert
       - ../bootstrap/certs/data/cega-mq.sec.pem:/etc/rabbitmq/ssl.key
       - ../bootstrap/certs/data/CA.cega-mq.cert.pem:/etc/rabbitmq/CA.cert
-    restart: on-failure:3
     networks:
       - external
     entrypoint: ["/usr/local/bin/cega-entrypoint.sh"]
