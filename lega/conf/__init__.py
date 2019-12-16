@@ -111,7 +111,7 @@ class Configuration(configparser.ConfigParser):
             print('Error with --log:', repr(e), file=sys.stderr)
 
     def setup(self, args=None, encoding='utf-8'):
-        """Setup, that is all."""
+        """Run setup, that is all."""
         self._load_conf(args, encoding)
         self._load_log_conf(args)
 
