@@ -194,10 +194,11 @@ class S3FileReader(object):
 class S3Storage():
     """S3 object storage and related I/O."""
 
-    def __init__(self, config_section, bucket):
+    def __init__(self, config_section, bucket, prefix=""):
         """Initialize S3 object Storage."""
         import boto3
         import botocore
+        self.prefix = prefix
         self.endpoint = CONF.get_value(config_section, 's3_url')
         region = CONF.get_value(config_section, 's3_region')
         access_key = CONF.get_value(config_section, 's3_access_key')
@@ -230,6 +231,8 @@ class S3Storage():
 
     def location(self, file_id):
         """Retrieve object location."""
+        if self.prefix:
+            return str(self.prefix + '/' + file_id)
         return str(file_id)
 
     def filesize(self, path):
@@ -239,6 +242,8 @@ class S3Storage():
 
     def copy(self, fileobj, location):
         """Copy file object in a bucket."""
+        if self.prefix:
+            location = self.prefix + '/' + location
         self.s3.upload_fileobj(fileobj, self.bucket, location)
         resp = self.s3.head_object(Bucket=self.bucket, Key=location)
         return resp['ContentLength']
@@ -246,12 +251,16 @@ class S3Storage():
     @contextmanager
     def open(self, path, mode='rb'):
         """Open stored object."""
+        if self.prefix:
+            path = self.prefix + '/' + path
         f = S3FileReader(self.s3, self.bucket, path, mode=mode)
         yield f
         f.close()
 
     def exists(self, path):
         """Return true if the path exists."""
+        if self.prefix:
+            path = self.prefix + '/' + path
         return bool(self.filesize(path))
 
     def __str__(self):
