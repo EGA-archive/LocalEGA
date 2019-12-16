@@ -19,7 +19,8 @@ class FileStorage():
 
     def __init__(self, config_section, user):
         """Initialize backend storage to a POSIX file system."""
-        self.prefix = Path(CONF.get_value(config_section, 'location', raw=True) % user)
+        self.prefix = (CONF.get_value(config_section, 'location', raw=True) % user).rstrip('/')
+        self.separator = CONF.get_value(config_section, 'separator', raw=True)
 
     def location(self, file_id):
         """Retrieve file location."""
@@ -30,11 +31,11 @@ class FileStorage():
 
     def filesize(self, path):
         """Return the size of the file pointed by ``path``."""
-        return os.stat(self.prefix / path.lstrip('/')).st_size
+        return os.stat(Path(self.prefix + self.separator + path.lstrip('/'))).st_size
 
     def copy(self, fileobj, location):
         """Copy file object at a specific location."""
-        target = self.prefix / location.lstrip('/')
+        target = Path(self.prefix + self.separator + location.lstrip('/'))
         target.parent.mkdir(parents=True, exist_ok=True)
         with open(target, 'wb') as h:
             shutil.copyfileobj(fileobj, h)
@@ -43,14 +44,14 @@ class FileStorage():
     @contextmanager
     def open(self, path, mode='rb'):
         """Open stored file."""
-        fp = self.prefix / path.lstrip('/')
+        fp = Path(self.prefix + self.separator + path.lstrip('/'))
         f = open(fp, mode)
         yield f
         f.close()
 
     def exists(self, filepath):
         """Return true if the path exists."""
-        fp = self.prefix / filepath.lstrip('/')
+        fp = Path(self.prefix + self.separator + filepath.lstrip('/'))
         return fp.exists()
 
     def __str__(self):
