@@ -3,9 +3,9 @@
 """Database Connection."""
 
 import sys
+import logging
 import traceback
 from functools import wraps
-import logging
 import psycopg2
 from socket import gethostname
 from time import sleep
@@ -107,7 +107,7 @@ def insert_file(filename, user_id):
                          })
             file_id = (cur.fetchone())[0]
             if file_id:
-                LOG.debug(f'Created id {file_id} for {filename}')
+                LOG.debug('Created id %s for %s', file_id, filename)
                 return file_id
             else:
                 raise Exception('Database issue with insert_file')
@@ -151,7 +151,6 @@ def get_info(file_id):
 def _set_status(file_id, status):
     """Update status for file with id ``file_id``."""
     assert file_id, 'Eh? No file_id?'
-    LOG.debug(f'Updating status file_id {file_id} with "{status}"')
     with connect() as conn:
         with conn.cursor() as cur:
             cur.execute('UPDATE local_ega.files SET status = %(status)s WHERE id = %(file_id)s;',
@@ -161,18 +160,20 @@ def _set_status(file_id, status):
 
 def mark_in_progress(file_id):
     """Mark file in progress."""
+    LOG.debug('Marking file_id %s with "IN_INGESTION"', file_id)
     return _set_status(file_id, 'IN_INGESTION')
 
 
 def mark_completed(file_id):
     """Mark file as completed."""
+    LOG.debug('Marking file_id %s with "COMPLETED"', file_id)
     return _set_status(file_id, 'COMPLETED')
 
 
 def set_stable_id(file_id, stable_id):
     """Update File ``file_id`` stable ID."""
     assert file_id, 'Eh? No file_id?'
-    LOG.debug(f'Updating file_id {file_id} with stable ID "{stable_id}"')
+    LOG.debug('Updating file_id %s with stable ID "%s"', file_id, stable_id)
     with connect() as conn:
         with conn.cursor() as cur:
             cur.execute('UPDATE local_ega.files '
@@ -188,7 +189,7 @@ def store_header(file_id, header):
     """Store header for ``file_id``."""
     assert file_id, 'Eh? No file_id?'
     assert header, 'Eh? No header?'
-    LOG.debug(f'Store header for file_id {file_id}')
+    LOG.debug('Store header for file_id %s', file_id)
     with connect() as conn:
         with conn.cursor() as cur:
             cur.execute('UPDATE local_ega.files '
@@ -202,7 +203,7 @@ def set_archived(file_id, archive_path, archive_filesize):
     """Archive ``file_id``."""
     assert file_id, 'Eh? No file_id?'
     assert archive_path, 'Eh? No archive name?'
-    LOG.debug(f'Setting status to archived for file_id {file_id}')
+    LOG.debug('Setting status to archived for file_id %s', file_id)
     with connect() as conn:
         with conn.cursor() as cur:
             cur.execute('UPDATE local_ega.files '
@@ -225,9 +226,9 @@ _channel = None
 def catch_error(func):  # noqa: C901
     """Store the raised exception in the database decorator."""
     @wraps(func)
-    def wrapper(*args):
+    def wrapper(*args, **kwargs):
         try:
-            return func(*args)
+            return func(*args, **kwargs)
         except Exception as e:
             if isinstance(e, AssertionError):
                 raise e
