@@ -8,7 +8,7 @@ You can then [generate the private data](bootstrap), with:
 
 	make bootstrap
 
-This requires `openssl` (>=1.0), `ssh-keygen` (=>6.5), `expect` and [`crypt4gh-keygen`](https://github.com/EGA-archive/crypt4gh).
+This requires `openssl` (>=1.1), `ssh-keygen` (=>6.5), `expect` and [`crypt4gh-keygen`](https://github.com/EGA-archive/crypt4gh).
 
 The command will create a `.env` file and a `private` folder holding
 the necessary data (ie the master keypair, the SSL
