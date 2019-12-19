@@ -47,7 +47,7 @@ This is just a shortcut for `docker-compose down -v` (removing networks and volu
 
 ## Status
 
-	make down
+	make ps
 
 This is just a shortcut for `docker-compose ps`
 
