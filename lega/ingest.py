@@ -48,7 +48,7 @@ def get_header(input_file):
 def work(fs, inbox_fs, channel, data):
     """Read a message, split the header and send the remainder to the backend store."""
     filepath = data['filepath']
-    LOG.info(f"Processing {filepath}")
+    LOG.info('Processing %s', filepath)
 
     # Remove the host part of the user name
     user_id = sanitize_user_id(data['user'])
@@ -77,28 +77,28 @@ def work(fs, inbox_fs, channel, data):
 
     # Sending a progress message to CentralEGA
     org_msg['status'] = 'PROCESSING'
-    LOG.debug(f'Sending message to CentralEGA: {data}')
+    LOG.debug('Sending message to CentralEGA: %s', data)
     publish(org_msg, channel, 'cega', 'files.processing')
     org_msg.pop('status', None)
 
     # Strip the header out and copy the rest of the file to the archive
     LOG.debug('Opening %s', filepath)
     with inbox.open(filepath, 'rb') as infile:
-        LOG.debug(f'Reading header | file_id: {file_id}')
+        LOG.debug('Reading header | file_id: %s', file_id)
         header_bytes = get_header(infile)
         header_hex = header_bytes.hex()
         data['header'] = header_hex
         db.store_header(file_id, header_hex)  # header bytes will be .hex()
 
         target = fs.location(file_id)
-        LOG.info(f'[{fs.__class__.__name__}] Moving the rest of {filepath} to {target}')
+        LOG.info('[%s] Moving the rest of %s to %s', fs.__class__.__name__, filepath, target)
         target_size = fs.copy(infile, target)  # It will copy the rest only
 
-        LOG.info(f'Archive copying completed. Updating database')
+        LOG.info('Archive copying completed. Updating database')
         db.set_archived(file_id, target, target_size)
         data['archive_path'] = target
 
-    LOG.debug(f"Reply message: {data}")
+    LOG.debug("Reply message: %s", data)
     return data
 
 

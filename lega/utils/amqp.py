@@ -2,12 +2,12 @@
 
 import logging
 import json
-import uuid
 import ssl
 
 import pika
 
 from ..conf import CONF
+from .logging import _cid
 
 LOG = logging.getLogger(__name__)
 
@@ -19,9 +19,9 @@ def get_connection(domain, blocking=True):
     heartbeat values are read from the CONF argument.
     So are the SSL options.
     """
-    LOG.info(f'Getting a connection to {domain}')
+    LOG.info('Getting a connection to %s', domain)
     params = CONF.get_value(domain, 'connection', raw=True)
-    LOG.debug(f"Initializing a connection to: {params}")
+    LOG.debug("Initializing a connection to: %s", params)
     connection_params = pika.connection.URLParameters(params)
 
     # Handling the SSL options
@@ -65,11 +65,13 @@ def get_connection(domain, blocking=True):
 
 def publish(message, channel, exchange, routing, correlation_id=None):
     """Send a message to the local broker with ``path`` was updated."""
-    LOG.debug(f'Sending to exchange: {exchange} [routing key: {routing}]')
+    correlation_id = correlation_id or _cid.get()
+    assert(correlation_id), "You should not publish without a correlation id"
+    LOG.debug('Sending to exchange: %s [routing key: %s]', exchange, routing, extra={'correlation_id': correlation_id})
     channel.basic_publish(exchange,             # exchange
                           routing,              # routing_key
                           json.dumps(message),  # body
-                          properties=pika.BasicProperties(correlation_id=correlation_id or str(uuid.uuid4()),
+                          properties=pika.BasicProperties(correlation_id=correlation_id,
                                                           content_type='application/json',
                                                           delivery_mode=2))
 
@@ -89,28 +91,32 @@ def consume(work, connection, from_queue, to_routing):
     """
     assert(from_queue)
 
-    LOG.debug(f'Consuming message from {from_queue}')
+    LOG.debug('Consuming message from %s', from_queue)
 
     from_channel = connection.channel()
     from_channel.basic_qos(prefetch_count=1)  # One job per worker
     to_channel = connection.channel()
 
     def process_request(channel, method_frame, props, body):
-        correlation_id = props.correlation_id
-        message_id = method_frame.delivery_tag
-        LOG.debug(f'Consuming message {message_id} (Correlation ID: {correlation_id})')
+        try:
+            correlation_id = props.correlation_id
+            _cid.set(correlation_id)
+            message_id = method_frame.delivery_tag
+            LOG.debug('Consuming message %s', message_id, extra={'correlation_id': correlation_id})
 
-        # Process message in JSON format
-        answer = work(json.loads(body))  # Exceptions should be already caught
+            # Process message in JSON format
+            answer = work(json.loads(body))  # Exceptions should be already caught
 
-        # Publish the answer
-        if answer:
-            assert(to_routing)
-            publish(answer, to_channel, 'lega', to_routing, correlation_id=props.correlation_id)
+            # Publish the answer
+            if answer:
+                assert(to_routing)
+                publish(answer, to_channel, 'lega', to_routing, correlation_id=correlation_id)
 
-        # Acknowledgment: Cancel the message resend in case MQ crashes
-        LOG.debug(f'Sending ACK for message {message_id} (Correlation ID: {correlation_id})')
-        channel.basic_ack(delivery_tag=method_frame.delivery_tag)
+            # Acknowledgment: Cancel the message resend in case MQ crashes
+            LOG.debug('Sending ACK for message %s', message_id)
+            channel.basic_ack(delivery_tag=method_frame.delivery_tag)
+        finally:
+            _cid.set(None)
 
     # Let's do this
     try:

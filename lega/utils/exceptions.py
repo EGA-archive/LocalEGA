@@ -30,7 +30,7 @@ class NotFoundInInbox(FromUser):
 
     def __str__(self):
         """Return readable informal exception description."""
-        return f'File not found in inbox'
+        return 'File not found in inbox'
 
     def __repr__(self):
         """Return the file name for the missing file."""
@@ -58,7 +58,7 @@ class CompanionNotFound(FromUser):
 
     def __str__(self):
         """Return readable informal exception description."""
-        return f'Companion file not found in inbox'
+        return 'Companion file not found in inbox'
 
     def __repr__(self):
         """Return the missing companion file name."""
@@ -81,42 +81,6 @@ class Checksum(FromUser):
     def __repr__(self):
         """Return readable informal exception description about checksumed exception, with file name."""
         return 'Invalid {} checksum for the {} file: {}'.format(self.algo, 'original' if self.decrypted else 'encrypted', self.file)
-
-
-#############################################################################
-# PGP Key Error. Not all are from the user
-#############################################################################
-
-class PGPKeyError(FromUser):
-    """Raised Exception related to PGP keys."""
-
-    def __init__(self, msg):
-        """Initialize PGPKeyError Exception."""
-        self.msg = msg
-
-    def __str__(self):
-        """Return readable informal exception description."""
-        return 'PGP Key error'
-
-    def __repr__(self):
-        """Return PGP error message."""
-        return f'PGP Key error: {self.msg}'
-
-
-class KeyserverError(Exception):
-    """Raised Exception in case communication with Keyserver fails."""
-
-    def __init__(self, msg):
-        """Initialize KeyserverError Exception."""
-        self.msg = msg
-
-    def __str__(self):
-        """Return readable informal exception description."""
-        return 'Keyserver error'
-
-    def __repr__(self):
-        """Return Keyserver error message."""
-        return f'Keyserver error: {self.msg}'
 
 
 #############################################################################

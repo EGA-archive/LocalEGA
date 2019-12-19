@@ -4,3 +4,4 @@ aioresponses
 testfixtures
 coveralls
 git+https://github.com/EGA-archive/crypt4gh.git@v1.0
+tox
