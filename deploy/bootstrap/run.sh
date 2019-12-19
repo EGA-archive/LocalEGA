@@ -428,7 +428,6 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - AWS_ACCESS_KEY_ID=${S3_ACCESS_KEY}
       - AWS_SECRET_ACCESS_KEY=${S3_SECRET_KEY}
     volumes:
-      - ../../lega:/home/lega/.local/lib/python3.6/site-packages/lega
       - inbox:/ega/inbox
       - ./conf.ini:/etc/ega/conf.ini:ro
       - ./entrypoint.sh:/usr/local/bin/lega-entrypoint.sh
@@ -467,7 +466,6 @@ cat >> ${PRIVATE}/lega.yml <<EOF
       - AWS_ACCESS_KEY_ID=${S3_ACCESS_KEY}
       - AWS_SECRET_ACCESS_KEY=${S3_SECRET_KEY}
     volumes:
-      - ../../lega:/home/lega/.local/lib/python3.6/site-packages/lega
       - ./conf.ini:/etc/ega/conf.ini:ro
       - ./keys/ega.sec:/etc/ega/ega.sec
       - ./entrypoint.sh:/usr/local/bin/lega-entrypoint.sh
@@ -501,7 +499,6 @@ cat >> ${PRIVATE}/lega.yml <<EOF
     labels:
         lega_label: "finalize"
     volumes:
-      - ../../lega:/home/lega/.local/lib/python3.6/site-packages/lega
       - ./conf.ini:/etc/ega/conf.ini:ro
       - ./entrypoint.sh:/usr/local/bin/lega-entrypoint.sh
       - ./config/certs/finalize.ca.crt:/etc/ega/ssl.cert
