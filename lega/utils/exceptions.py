@@ -30,7 +30,7 @@ class NotFoundInInbox(FromUser):
 
     def __str__(self):
         """Return readable informal exception description."""
-        return f'File not found in inbox'
+        return 'File not found in inbox'
 
     def __repr__(self):
         """Return the file name for the missing file."""
@@ -58,7 +58,7 @@ class CompanionNotFound(FromUser):
 
     def __str__(self):
         """Return readable informal exception description."""
-        return f'Companion file not found in inbox'
+        return 'Companion file not found in inbox'
 
     def __repr__(self):
         """Return the missing companion file name."""

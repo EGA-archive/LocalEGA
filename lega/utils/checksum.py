@@ -40,7 +40,7 @@ def calculate(filepath, algo, bsize=8192):
                 m.update(data)
         return m.hexdigest()
     except OSError as e:
-        LOG.error(f'Unable to calculate checksum: {e!r}')
+        LOG.error('Unable to calculate checksum: %r', e)
         return None
 
 
@@ -68,7 +68,7 @@ def get_from_companion(filepath):
             with open(companion, 'rt', encoding='utf-8') as f:
                 return f.read(), h
         except OSError as e:  # Not found, not readable, ...
-            LOG.debug(f'Companion {companion}: {e!r}')
+            LOG.debug('Companion %s: %r', companion, e)
             # Check the next
 
     else:  # no break statement was encountered
