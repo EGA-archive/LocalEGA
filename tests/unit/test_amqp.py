@@ -55,7 +55,7 @@ class BrokerTest(unittest.TestCase):
         """Test if publish actually calls the publish to channel."""
         mock_channel = mock.MagicMock(name='basic_publish')
         mock_channel.basic_publish.return_value = mock.Mock()
-        publish('message', mock_channel, 'exchange', 'routing')
+        publish('message', mock_channel, 'exchange', 'routing', correlation_id='1234')
         mock_channel.basic_publish.assert_called()
 
     @mock.patch('lega.utils.amqp.pika')

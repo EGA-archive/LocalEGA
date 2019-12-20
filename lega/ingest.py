@@ -26,7 +26,7 @@ from crypt4gh import header
 
 from .conf import CONF
 from .utils import db, exceptions, sanitize_user_id, storage
-from .utils.amqp import consume, publish, get_connection
+from .utils.amqp import consume, get_connection
 
 LOG = logging.getLogger(__name__)
 
@@ -74,12 +74,6 @@ def work(fs, inbox_fs, channel, data):
 
     # Record in database
     db.mark_in_progress(file_id)
-
-    # Sending a progress message to CentralEGA
-    org_msg['status'] = 'PROCESSING'
-    LOG.debug('Sending message to CentralEGA: %s', data)
-    publish(org_msg, channel, 'cega', 'files.processing')
-    org_msg.pop('status', None)
 
     # Strip the header out and copy the rest of the file to the archive
     LOG.debug('Opening %s', filepath)
