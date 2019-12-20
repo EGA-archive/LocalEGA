@@ -2,7 +2,7 @@ SHELL := /bin/bash
 OPENSSL=openssl
 ARGS=
 
-.PHONY: help bootstrap private network up down clean ps clean-volumes clean-all prepare images install-bootstrap-packages
+.PHONY: help bootstrap private network up down clean ps clean-volumes clean-all erase purge
 
 help:
 	@echo "Usage: make <target>\n"
@@ -47,5 +47,32 @@ preflight-check:
 # - the key server (slow setup with java spring)
 
 
-images:
-	make -C images
+
+####################################################
+## Base Image
+####################################################
+
+# Must find better, but working so far
+MAIN_REPO := $(abspath $(dir $(abspath $(lastword $(MAKEFILE_LIST))))/..)
+
+IMAGE_ARGS=
+# eg --no-cache
+
+image:
+	cd $(MAIN_REPO) && \
+	docker build -f Dockerfile $(IMAGE_ARGS) \
+		   --build-arg LEGA_GID=1000 \
+		   --build-arg BUILD_DATE=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ') \
+		   --build-arg SOURCE_COMMIT=$(shell git rev-parse --short HEAD) \
+		   --tag egarchive/lega-base:latest \
+		   .
+
+define remove_dangling
+	docker images $(1) -f "dangling=true" -q | uniq | while read n; do docker rmi -f $$n; done
+endef
+
+erase:
+	@$(call remove_dangling,egarchive/lega-base)
+
+purge:
+	@$(call remove_dangling,)
