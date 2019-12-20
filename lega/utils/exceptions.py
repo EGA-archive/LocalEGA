@@ -84,42 +84,6 @@ class Checksum(FromUser):
 
 
 #############################################################################
-# PGP Key Error. Not all are from the user
-#############################################################################
-
-class PGPKeyError(FromUser):
-    """Raised Exception related to PGP keys."""
-
-    def __init__(self, msg):
-        """Initialize PGPKeyError Exception."""
-        self.msg = msg
-
-    def __str__(self):
-        """Return readable informal exception description."""
-        return 'PGP Key error'
-
-    def __repr__(self):
-        """Return PGP error message."""
-        return f'PGP Key error: {self.msg}'
-
-
-class KeyserverError(Exception):
-    """Raised Exception in case communication with Keyserver fails."""
-
-    def __init__(self, msg):
-        """Initialize KeyserverError Exception."""
-        self.msg = msg
-
-    def __str__(self):
-        """Return readable informal exception description."""
-        return 'Keyserver error'
-
-    def __repr__(self):
-        """Return Keyserver error message."""
-        return f'Keyserver error: {self.msg}'
-
-
-#############################################################################
 # Any other exception is caught by us
 #############################################################################
 
