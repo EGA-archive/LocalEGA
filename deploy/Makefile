@@ -2,21 +2,28 @@ SHELL := /bin/bash
 OPENSSL=openssl
 ARGS=
 SELECTED=
+HOSTNAME_DOMAIN=
+#HOSTNAME_DOMAIN=.localega
 
-.PHONY: help bootstrap private network up down clean ps clean-volumes clean-all erase purge
+.PHONY: help bootstrap up down clean ps clean-volumes clean-all erase purge
 
 help:
 	@echo "Usage: make <target>\n"
-	@echo "where <target> is: 'bootstrap', 'up' 'ps', 'down', 'network' or 'clean'\n"
+	@echo "where <target> is: 'bootstrap', 'up', 'ps', 'down', or 'clean'\n"
 
 # If DEPLOY_DEV is yes, we use dummy passwords
 bootstrap-dev: export DEPLOY_DEV=yes
-.env private/lega.yml private bootstrap bootstrap-dev:
-	@bootstrap/run.sh ${ARGS} || { cat private/.err; exit 1; }
+bootstrap bootstrap-dev:
+	@make -C bootstrap -s
+	@echo "Boostrapping done."
 
 
-up: .env private/lega.yml
+# [[ -x $(readlink ${OPENSSL}) ]] && echo "${OPENSSL} is not executable. Adjust the setting with --openssl" && exit 3
+
+
+up: bootstrap/private/lega.yml
 	@docker-compose up -d ${SELECTED}
+
 
 clean-volumes:
 	docker volume rm lega_db lega_inbox lega_s3
@@ -25,12 +32,11 @@ clean-volumes:
 ps:
 	@docker-compose ps
 
-down: #.env
-	@[[ -f private/lega.yml ]] && docker-compose down -v || echo -e "No recipe to bring containers down\nHave you bootstrapped? (ie make bootstrap)"
+down:
+	@[[ -f bootstrap/private/lega.yml ]] && docker-compose down -v || echo -e "No recipe to bring containers down\nHave you bootstrapped? (ie make bootstrap)"
 
 clean:
-	rm -rf .env private
-	make -C bootstrap/certs clean
+	make -C bootstrap clean
 
 clean-all: clean clean-volumes
 
