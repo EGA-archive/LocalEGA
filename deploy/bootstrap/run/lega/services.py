@@ -132,12 +132,12 @@ def main(cega_conf, conf, args):
             'image': 'egarchive/lega-inbox:latest',
             'volumes': [
                 'inbox:/ega/inbox',
-                '/home/daz/_local_inbox:/root/inbox', # debugging
+                # '/home/daz/_local_inbox:/root/inbox', # debugging
                 '../bootstrap/certs/data/inbox.cert.pem:/etc/ega/ssl.cert',
                 '../bootstrap/certs/data/inbox.sec.pem:/etc/ega/ssl.key',
                 '../bootstrap/certs/data/CA.inbox.cert.pem:/etc/ega/CA.cert',
             ],
-            'entrypoint': ['/bin/sleep','10000000'], # debugging
+            # 'entrypoint': ['/bin/sleep','10000000'], # debugging
         },
 
         'ingest': {
