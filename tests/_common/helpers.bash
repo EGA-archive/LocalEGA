@@ -6,7 +6,7 @@ HERE=$(dirname ${BASH_SOURCE[0]})
 MAIN_REPO=${HERE}/../..
 
 # Some variables for these tests
-EGA_PUBKEY=${MAIN_REPO}/deploy/bootstrap/private/master.key.pub
+EGA_PUBKEY=${MAIN_REPO}/deploy/private/master.key.pub
 
 # Default log file, in case the bats file does not overwrite its location.
 #DEBUG_LOG=${HERE}/output.debug
@@ -14,7 +14,7 @@ DEBUG_LOG=${BATS_TEST_FILENAME}.debug
 
 # Data directory
 TESTDATA_DIR=$HERE
-USERS_DIR=${MAIN_REPO}/deploy/bootstrap/private/users
+USERS_DIR=${MAIN_REPO}/deploy/private/users
 
 # This CEGA_CONNECTION is against the fake CentralEGA, deployed on the same network
 # as LocalEGA components, and accessible from the localhost via a port mapping

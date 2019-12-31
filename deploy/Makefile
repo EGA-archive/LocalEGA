@@ -21,7 +21,7 @@ bootstrap bootstrap-dev:
 # [[ -x $(readlink ${OPENSSL}) ]] && echo "${OPENSSL} is not executable. Adjust the setting with --openssl" && exit 3
 
 
-up: bootstrap/private/lega.yml
+up: private/lega.yml
 	@docker-compose up -d ${SELECTED}
 
 
@@ -33,7 +33,7 @@ ps:
 	@docker-compose ps
 
 down:
-	@[[ -f bootstrap/private/lega.yml ]] && docker-compose down -v || echo -e "No recipe to bring containers down\nHave you bootstrapped? (ie make bootstrap)"
+	@[[ -f private/lega.yml ]] && docker-compose down -v || echo -e "No recipe to bring containers down\nHave you bootstrapped? (ie make bootstrap)"
 
 clean:
 	make -C bootstrap clean

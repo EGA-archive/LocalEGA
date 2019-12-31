@@ -47,8 +47,6 @@ def main(cega_conf, conf, args):
         lega['volumes']['archive'] = None
 
 
-    mq_connection = conf.get('mq','connection')+'?'+conf.get('mq', 'connection_params')
-
     lega['services'] = {
         'mq': {
             'environment': [
@@ -72,9 +70,9 @@ def main(cega_conf, conf, args):
             ],
             'volumes': [
                 'mq:/var/lib/rabbitmq',
-                '../certs/data/mq.cert.pem:/etc/rabbitmq/ssl.cert',
-                '../certs/data/mq.sec.pem:/etc/rabbitmq/ssl.key',
-                '../certs/data/CA.mq.cert.pem:/etc/rabbitmq/CA.cert',
+                '../bootstrap/certs/data/mq.cert.pem:/etc/rabbitmq/ssl.cert',
+                '../bootstrap/certs/data/mq.sec.pem:/etc/rabbitmq/ssl.key',
+                '../bootstrap/certs/data/CA.mq.cert.pem:/etc/rabbitmq/CA.cert',
             ],
         },
         'db': {
@@ -92,9 +90,9 @@ def main(cega_conf, conf, args):
             'image': 'egarchive/lega-db:latest',
             'volumes': [
                 'db:/ega/data',
-                '../certs/data/db.cert.pem:/etc/ega/pg.cert',
-                '../certs/data/db.sec.pem:/etc/ega/pg.key',
-                '../certs/data/CA.db.cert.pem:/etc/ega/CA.cert',
+                '../bootstrap/certs/data/db.cert.pem:/etc/ega/pg.cert',
+                '../bootstrap/certs/data/db.sec.pem:/etc/ega/pg.key',
+                '../bootstrap/certs/data/CA.db.cert.pem:/etc/ega/CA.cert',
             ],
             'networks': [
                 'private-db',
@@ -114,7 +112,7 @@ def main(cega_conf, conf, args):
                 'CEGA_ENDPOINT='+cega_conf.get('users', 'endpoint'),
                 'CEGA_ENDPOINT_CREDS='+cega_conf.get('users', 'credentials'),
                 'CEGA_ENDPOINT_JSON_PREFIX=response.result',
-                'MQ_CONNECTION='+mq_connection,
+                'MQ_CONNECTION='+conf.get('mq','connection'), # without the connection_params
                 'MQ_EXCHANGE='+conf.get('mq','mq_exchange'),
                 'MQ_ROUTING_KEY='+conf.get('mq','mq_routing_key'),
                 'MQ_VERIFY_PEER=yes',
@@ -134,10 +132,12 @@ def main(cega_conf, conf, args):
             'image': 'egarchive/lega-inbox:latest',
             'volumes': [
                 'inbox:/ega/inbox',
-                '../certs/data/inbox.cert.pem:/etc/ega/ssl.cert',
-                '../certs/data/inbox.sec.pem:/etc/ega/ssl.key',
-                '../certs/data/CA.inbox.cert.pem:/etc/ega/CA.cert',
+                '/home/daz/_local_inbox:/root/inbox', # debugging
+                '../bootstrap/certs/data/inbox.cert.pem:/etc/ega/ssl.cert',
+                '../bootstrap/certs/data/inbox.sec.pem:/etc/ega/ssl.key',
+                '../bootstrap/certs/data/CA.inbox.cert.pem:/etc/ega/CA.cert',
             ],
+            'entrypoint': ['/bin/sleep','10000000'], # debugging
         },
 
         'ingest': {
@@ -152,9 +152,9 @@ def main(cega_conf, conf, args):
                 'inbox:/ega/inbox',
                 './ingest.ini:/etc/ega/conf.ini:ro',
                 './entrypoint.sh:/usr/local/bin/lega-entrypoint.sh',
-                '../certs/data/ingest.cert.pem:/etc/ega/ssl.cert',
-                '../certs/data/ingest.sec.pem:/etc/ega/ssl.key',
-                '../certs/data/CA.ingest.cert.pem:/etc/ega/CA.cert',
+                '../bootstrap/certs/data/ingest.cert.pem:/etc/ega/ssl.cert',
+                '../bootstrap/certs/data/ingest.sec.pem:/etc/ega/ssl.key',
+                '../bootstrap/certs/data/CA.ingest.cert.pem:/etc/ega/CA.cert',
             ] + ([] if with_s3 else ['archive:/ega/archive']),
             'networks': [
                 'internal',
@@ -184,9 +184,9 @@ def main(cega_conf, conf, args):
                 './verify.ini:/etc/ega/conf.ini:ro',
                 './master.key.sec:/etc/ega/ega.sec',
                 './entrypoint.sh:/usr/local/bin/lega-entrypoint.sh',
-                '../certs/data/verify.cert.pem:/etc/ega/ssl.cert',
-                '../certs/data/verify.sec.pem:/etc/ega/ssl.key',
-                '../certs/data/CA.verify.cert.pem:/etc/ega/CA.cert',
+                '../bootstrap/certs/data/verify.cert.pem:/etc/ega/ssl.cert',
+                '../bootstrap/certs/data/verify.sec.pem:/etc/ega/ssl.key',
+                '../bootstrap/certs/data/CA.verify.cert.pem:/etc/ega/CA.cert',
             ] + ([] if with_s3 else ['archive:/ega/archive']),
             'networks': [
                 'internal',
@@ -210,9 +210,9 @@ def main(cega_conf, conf, args):
                 # ../../../lega:/home/lega/.local/lib/python3.6/site-packages/lega',
                 './finalize.ini:/etc/ega/conf.ini:ro',
                 './entrypoint.sh:/usr/local/bin/lega-entrypoint.sh',
-                '../certs/data/finalize.cert.pem:/etc/ega/ssl.cert',
-                '../certs/data/finalize.sec.pem:/etc/ega/ssl.key',
-                '../certs/data/CA.finalize.cert.pem:/etc/ega/CA.cert',
+                '../bootstrap/certs/data/finalize.cert.pem:/etc/ega/ssl.cert',
+                '../bootstrap/certs/data/finalize.sec.pem:/etc/ega/ssl.key',
+                '../bootstrap/certs/data/CA.finalize.cert.pem:/etc/ega/CA.cert',
             ],
             'networks': [
                 'internal',
@@ -236,9 +236,9 @@ def main(cega_conf, conf, args):
             ],
             'volumes': [
                 'archive:/data',
-                '../certs/data/archive.cert.pem:/root/.minio/certs/public.crt',
-                '../certs/data/archive.sec.pem:/root/.minio/certs/private.key',
-                '../certs/data/CA.archive.cert.pem:/root/.minio/CAs/LocalEGA.crt',
+                '../bootstrap/certs/data/archive.cert.pem:/root/.minio/certs/public.crt',
+                '../bootstrap/certs/data/archive.sec.pem:/root/.minio/certs/private.key',
+                '../bootstrap/certs/data/CA.archive.cert.pem:/root/.minio/CAs/LocalEGA.crt',
             ],
             'networks': [
                 'private-vault',
