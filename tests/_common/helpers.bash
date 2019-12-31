@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env bash -x
 
 [ ${BASH_VERSINFO[0]} -lt 4 ] && echo 'Bash 4 (or higher) is required' 1>&2 && exit 1
 
@@ -93,7 +93,7 @@ function get_user_seckey {
     echo ${USERS_DIR}/${1}.sshkey
 }
 function get_user_passphrase {
-    echo ${USERS_DIR}/${1}.passphrase
+    cat ${USERS_DIR}/${1}.passphrase
 }
 
 

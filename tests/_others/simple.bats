@@ -27,7 +27,7 @@ function setup() {
     [[ $? != 0 ]] && echo "Error loading the test user into the local ssh-agent" >&2 && exit 3
 
     TESTUSER_SECKEY=$(get_user_seckey ${TESTUSER})
-    TESTUSER_PASSPHRASE=$(<$(get_user_passphrase ${TESTUSER}))
+    TESTUSER_PASSPHRASE=$(get_user_passphrase ${TESTUSER})
 
     # echo "TESTUSER KEY: $TESTUSER_SECKEY"
     # echo "TESTUSER PASSPHRASE: $TESTUSER_PASSPHRASE"
