@@ -1,29 +1,16 @@
 SHELL := /bin/bash
-OPENSSL=openssl
 ARGS=
 SELECTED=
 HOSTNAME_DOMAIN=
 #HOSTNAME_DOMAIN=.localega
 
-.PHONY: help bootstrap up down clean ps clean-volumes clean-all erase purge
+.PHONY: up down clean ps clean-volumes clean-all image erase purge preflight-check
 
-help:
-	@echo "Usage: make <target>\n"
-	@echo "where <target> is: 'bootstrap', 'up', 'ps', 'down', or 'clean'\n"
-
-# If DEPLOY_DEV is yes, we use dummy passwords
-bootstrap-dev: export DEPLOY_DEV=yes
-bootstrap bootstrap-dev:
-	@make -C bootstrap -s
-	@echo "Boostrapping done."
-
-
-# [[ -x $(readlink ${OPENSSL}) ]] && echo "${OPENSSL} is not executable. Adjust the setting with --openssl" && exit 3
-
-
-up: private/lega.yml
+up: .env
 	@docker-compose up -d ${SELECTED}
 
+private/lega.yml .env:
+	make -C bootstrap -s
 
 clean-volumes:
 	docker volume rm lega_db lega_inbox lega_s3
@@ -36,7 +23,7 @@ down:
 	@[[ -f private/lega.yml ]] && docker-compose down -v || echo -e "No recipe to bring containers down\nHave you bootstrapped? (ie make bootstrap)"
 
 clean:
-	make -C bootstrap clean
+	make -C bootstrap clean-all
 
 clean-all: clean clean-volumes
 
@@ -69,7 +56,7 @@ image:
 
 
 ####################################################
-# Cleaning images
+# Cleaning docker images
 
 define remove_dangling
 	docker images $(1) -f "dangling=true" -q | uniq | while read n; do docker rmi -f $$n; done

@@ -30,7 +30,7 @@ def main(conf, args):
     }
     config['c4gh_file'] = {
         'loader_class': 'C4GHFileKey',
-        'passphrase': conf.get('master_key','passphrase', raw=True),
+        'passphrase': 'env://MASTER_KEY_PASSPHRASE',
         'filepath': '/etc/ega/ega.sec',
     }
     config['inbox'] = {
@@ -56,9 +56,9 @@ def main(conf, args):
         config['archive'] = {
             'storage_driver': 'S3Storage',
             's3_url': conf.get('s3', 'url'),
-            's3_access_key': conf.get('s3', 'access_key'),
-            's3_secret_key': conf.get('s3', 'secret_key'),
-            # 'region': 'lega',
+            's3_region': conf.get('s3', 'region'),
+            's3_access_key': 'env://S3_ACCESS_KEY' , #conf.get('s3', 'access_key'),
+            's3_secret_key': 'env://S3_SECRET_KEY' , #conf.get('s3', 'secret_key'),
             'cacertfile': '/etc/ega/CA.cert',
             'certfile': '/etc/ega/ssl.cert',
             'keyfile': '/etc/ega/ssl.key',

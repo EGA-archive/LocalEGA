@@ -132,23 +132,23 @@ def main(cega_conf, conf, args):
             'image': 'egarchive/lega-inbox:latest',
             'volumes': [
                 'inbox:/ega/inbox',
-                # '/home/daz/_local_inbox:/root/inbox', # debugging
                 '../bootstrap/certs/data/inbox.cert.pem:/etc/ega/ssl.cert',
                 '../bootstrap/certs/data/inbox.sec.pem:/etc/ega/ssl.key',
                 '../bootstrap/certs/data/CA.inbox.cert.pem:/etc/ega/CA.cert',
             ],
-            # 'entrypoint': ['/bin/sleep','10000000'], # debugging
         },
 
         'ingest': {
             'environment': [
                 'LEGA_LOG=debug',
-            ],
+            ] + ([
+                'S3_ACCESS_KEY='+conf.get('s3','access_key'),
+                'S3_SECRET_KEY='+conf.get('s3','secret_key'),
+            ] if with_s3 else []),
             'hostname': f'ingest{HOSTNAME_DOMAIN}',
             'image': 'egarchive/lega-base:latest',
             'container_name': f'ingest{HOSTNAME_DOMAIN}',
             'volumes': [
-                # ../../../lega:/home/lega/.local/lib/python3.6/site-packages/lega',
                 'inbox:/ega/inbox',
                 './ingest.ini:/etc/ega/conf.ini:ro',
                 './entrypoint.sh:/usr/local/bin/lega-entrypoint.sh',
@@ -164,23 +164,20 @@ def main(cega_conf, conf, args):
             'user': 'lega',
             'entrypoint': ["lega-entrypoint.sh"],
             'command': ["ega-ingest"],
-            # 'entrypoint': ["/bin/sleep", "1000000000000"]
         },
 
         'verify': {
             'environment': [
                 'LEGA_LOG=debug',
+                'MASTER_KEY_PASSPHRASE='+conf.get('master_key','passphrase', raw=True),
             ] + ([
                 'S3_ACCESS_KEY='+conf.get('s3','access_key'),
                 'S3_SECRET_KEY='+conf.get('s3','secret_key'),
-                'AWS_ACCESS_KEY_ID='+conf.get('s3','access_key'),
-                'AWS_SECRET_ACCESS_KEY='+conf.get('s3','secret_key'),
             ] if with_s3 else []),
             'hostname': f'verify{HOSTNAME_DOMAIN}',
             'image': 'egarchive/lega-base:latest',
             'container_name': f'verify{HOSTNAME_DOMAIN}',
             'volumes': [
-                # ../../../lega:/home/lega/.local/lib/python3.6/site-packages/lega',
                 './verify.ini:/etc/ega/conf.ini:ro',
                 './master.key.sec:/etc/ega/ega.sec',
                 './entrypoint.sh:/usr/local/bin/lega-entrypoint.sh',
@@ -196,7 +193,6 @@ def main(cega_conf, conf, args):
             'user': 'lega',
             'entrypoint': ["lega-entrypoint.sh"],
             'command': ["ega-verify"],
-            # 'entrypoint': ["/bin/sleep", "1000000000000"]
         },
 
         'finalize': {
@@ -207,7 +203,7 @@ def main(cega_conf, conf, args):
             'image': 'egarchive/lega-base:latest',
             'container_name': f'finalize{HOSTNAME_DOMAIN}',
             'volumes': [
-                # ../../../lega:/home/lega/.local/lib/python3.6/site-packages/lega',
+                '../../lega:/home/lega/.local/lib/python3.6/site-packages/lega',  # under dev
                 './finalize.ini:/etc/ega/conf.ini:ro',
                 './entrypoint.sh:/usr/local/bin/lega-entrypoint.sh',
                 '../bootstrap/certs/data/finalize.cert.pem:/etc/ega/ssl.cert',
@@ -231,8 +227,8 @@ def main(cega_conf, conf, args):
             'container_name': f'archive{HOSTNAME_DOMAIN}',
             'image': 'minio/minio:RELEASE.2018-12-19T23-46-24Z',
             'environment': [
-                'MINIO_ACCESS_KEY=',
-                'MINIO_SECRET_KEY=',
+                'MINIO_ACCESS_KEY='+conf.get('s3','access_key'),
+                'MINIO_SECRET_KEY='+conf.get('s3','secret_key'),
             ],
             'volumes': [
                 'archive:/data',
@@ -248,6 +244,14 @@ def main(cega_conf, conf, args):
             # ],
             'command': ["server", "/data"]
         }
+
+    if 'DEV' in os.environ:
+        for s in ['ingest', 'verify', 'finalize']:
+            service = lega['services'][s]
+            volumes = service['volumes']
+            volumes.append('../../lega:/home/lega/.local/lib/python3.6/site-packages/lega')
+            del service['command']
+            service['entrypoint'] = ["/bin/sleep", "1000000000000"]
 
     yaml=YAML()
     yaml.default_flow_style = False

@@ -5,13 +5,13 @@
 #
 # * Docker-compose .env
 # * Users credentials ( ssh-keys, passphrases, .json)
+# * Stores configurations in {cega,lega}.conf
+# * {cega,lega}.yml
 # * {ingest,verify,finalize}.ini
-# * Stores CentralEGA configurations in cega.conf
-# * Docker-compose Services {cega,lega}.yml
 # * cega_mq_defs.json
 # * cega_mq_rabbitmq.config
-# * 
-#
+# * The certificates
+# * the secrets
 #
 #
 #########################################################
@@ -35,6 +35,7 @@ endif
 
 .PHONY: clean users certs secrets
 .DELETE_ON_ERROR: ../private/*
+.INTERMEDIATE: c4gh_keygen.sh
 
 all: ../private/cega.yml ../private/lega.yml users ../.env
 	@echo "Bootstrapping done"
@@ -44,6 +45,9 @@ USERS=john jane dummy
 SECRETS=master.key.passphrase \
 	db.lega.in db.lega.out \
 	mq
+ifdef S3
+SECRETS+= s3.access s3.secret
+endif
 
 ############### Generate global settings
 
@@ -136,15 +140,15 @@ users: ../private/users/serial \
 # 	@echo "Creating $(@F)"
 # 	@ssh-keygen -t ed25519 -f $@ -N "$(file < $<)" -C "Master.Key@LocalEGA" &>/dev/null
 
-../private/master.key.sec: ../private/c4gh_keygen.sh
+../private/master.key.sec: c4gh_keygen.sh
 	@echo "Creating $(@F)"
 	@expect -f $< &>/dev/null
 	@chmod 440 $@
 # Making the key readable, because when it's injected inside the container
 # it retains the permissions. Therefore, originally 400, will make it unreadable to the lega user.
 
-../private/c4gh_keygen.sh: ../private/secrets/master.key.passphrase
-	@echo "Creating $(@F)"
+c4gh_keygen.sh: ../private/secrets/master.key.passphrase
+	@echo "Creating $(@F) (intermediate)"
 	@mkdir -p $(<D)
 	@echo "set timeout -1" > $@
 	@echo "spawn crypt4gh-keygen -f --pk ../private/master.key.pub --sk ../private/master.key.sec" >> $@
@@ -158,11 +162,17 @@ users: ../private/users/serial \
 	@echo "Creating $(@F) (stronger)"
 	@python -m run.pwd_gen 32 > $@
 
+ifdef S3
+../private/secrets/s3.access ../private/secrets/s3.secret:
+	@mkdir -p $(@D)
+	@echo "Creating $(@F) (stronger)"
+	@python -m run.pwd_gen 32 > $@
+endif
+
 ../private/secrets/%:
 	@mkdir -p $(@D)
 	@echo "Creating $(@F)"
 	@python -m run.pwd_gen 16 > $@
-
 
 ############### Generate Certificates
 

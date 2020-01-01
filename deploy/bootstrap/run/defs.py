@@ -17,6 +17,8 @@ else:
     import bcrypt
 
 def generate_password(size):
+    if 'DEV' in os.environ:
+        return '-'*size
     return ''.join(secrets.choice(string.ascii_letters + string.digits) for i in range(size))
 
 def generate_bcrypt_hash(content):

@@ -113,6 +113,7 @@ def main(args):
         config['s3'] = {
             'access_key': get_secret('s3.access'),
             'secret_key': get_secret('s3.secret'),
+            'region': 'lega',
             'url': f"https://archive{HOSTNAME_DOMAIN}:9000"
         }
 
