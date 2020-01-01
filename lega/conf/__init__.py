@@ -16,19 +16,15 @@ It also loads the logging settings when ``setup`` is called.
 import sys
 import os
 import configparser
-from pathlib import Path
-import yaml
-from functools import wraps
 import warnings
 import stat
-
-# These two imports are needed to get the logging config files to work
-import logging  # noqa: F401
+import logging
 from logging.config import fileConfig, dictConfig
+from pathlib import Path
+import yaml
 
 from ..utils import get_from_file, get_from_env
 
-_here = Path(__file__).parent
 LOG_FILE = os.getenv('LEGA_LOG', None)
 CONF_FILE = os.getenv('LEGA_CONF', '/etc/ega/conf.ini')
 
@@ -89,7 +85,9 @@ def convert_sensitive(value):
 
 class Configuration(configparser.RawConfigParser):
     """Configuration from a config file."""
-    
+
+    logger = None
+
     def __init__(self):
         """Set up."""
         if not CONF_FILE:
@@ -106,49 +104,49 @@ class Configuration(configparser.RawConfigParser):
                                                   'sensitive': convert_sensitive,
                                               })
         self.read([CONF_FILE], encoding='utf-8')
-        self.load_log()
-
-    def load_log(self):
-        """Try to load `filename` as configuration file."""
-        global LOG_FILE
-        if not LOG_FILE:
-            print('No logging supplied', file=sys.stderr)
-            return
-
-        # Try first if it is a default logger
-        _logger = _here / f'loggers/{LOG_FILE}.yaml'
-        if _logger.exists():
-            with open(_logger, 'r') as stream:
-                dictConfig(yaml.safe_load(stream))
-                LOG_FILE = _logger
-                return
-
-        # Otherwise trying it as a path
-        filename = Path(LOG_FILE)
-
-        if not filename.exists():
-            print(f"The file '{filename}' does not exist", file=sys.stderr)
-            return
-
-        if filename.suffix in ('.yaml', '.yml'):
-            with open(filename, 'r') as stream:
-                dictConfig(yaml.safe_load(stream))
-                return
-
-        if filename.suffix in ('.ini', '.INI'):
-            with open(filename, 'r') as stream:
-                fileConfig(filename)
-                return
-        # Otherwise, fail
-        print(f"Unsupported log format for {filename}", file=sys.stderr)
-
-
+        try:
+            self.load_log(LOG_FILE)
+        except Exception as e:
+            print(f'No logging supplied: {e}', file=sys.stderr)
+                
     def __repr__(self):
         """Show the configuration files."""
         res = f'Configuration file: {CONF_FILE}'
-        if LOG_FILE:
-            res += f'\nLogging settings loaded from {LOG_FILE}'
+        if self.logger:
+            res += f'\nLogging settings loaded from {self.logger}'
         return res
+
+    def load_log(self, filename):
+        """Try to load `filename` as configuration file for logging."""
+        if not filename:
+            raise ValueError('No logging supplied')
+
+        _here = Path(__file__).parent
+
+        # Try first if it is a default logger
+        _logger = _here / f'loggers/{filename}.yaml'
+        if _logger.exists():
+            with open(_logger, 'r') as stream:
+                dictConfig(yaml.safe_load(stream))
+                return _logger
+
+        # Otherwise trying it as a path
+        _filename = Path(filename)
+
+        if not _filename.exists():
+            raise ValueError(f"The file '{filename}' does not exist")
+
+        if _filename.suffix in ('.yaml', '.yml'):
+            with open(_filename, 'r') as stream:
+                dictConfig(yaml.safe_load(stream))
+                return filename
+
+        if _filename.suffix in ('.ini', '.INI'):
+            fileConfig(filename)
+            return filename
+
+        # Otherwise, fail
+        raise ValueError(f"Unsupported log format for {filename}")
 
 
 CONF = Configuration()

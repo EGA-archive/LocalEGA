@@ -9,7 +9,7 @@ from contextlib import contextmanager
 import pika
 
 from ..conf import CONF
-from .logging import _cid
+from ..conf.logging import _cid
 from . import redact_url
 
 LOG = logging.getLogger(__name__)
