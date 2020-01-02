@@ -53,7 +53,11 @@ all: ../.env $(ALL_FILES) certs users
 dev: export DEPLOY_DEV=yesplease
 dev: all
 
-../private ../private/secrets:
+../private:
+	@rm -rf $@
+	@mkdir -p $@
+
+../private/secrets:
 	@mkdir -p $@
 
 ############### Generate global settings
@@ -98,25 +102,7 @@ endif
 
 ../private/%.ini: ../private/lega.conf run/lega/%.py | ../private
 	@echo "Creating LocalEGA service configuration: $(@F)"
-	@python -m run.lega.$(@:../private/%.ini=%) $(ARGS) $< 2>../private/.err > $@
-
-# ../private/master.key.sec: c4gh_keygen.sh
-# 	@echo "Creating $(@F)"
-# 	@expect -f $< &>/dev/null
-# 	@chmod 440 $@
-# # Making the key readable, because when it's injected inside the container
-# # it retains the permissions. Therefore, originally 400, will make it unreadable to the lega user.
-
-# c4gh_keygen.sh: ../private/secrets/master.key.passphrase
-# 	@echo "Creating $(@F) (intermediate)"
-# 	@mkdir -p $(<D)
-# 	@echo "set timeout -1" > $@
-# 	@echo "spawn crypt4gh-keygen -f --pk ../private/master.key.pub --sk ../private/master.key.sec" >> $@
-# 	@echo 'expect "Passphrase for *"' >> $@
-# 	@echo 'send -- "$(file < $<)\r"' >> $@
-# 	@echo "expect eof" >> $@
-
-#.INTERMEDIATE: c4gh_keygen.sh
+	@python -m run.lega.$* $(ARGS) $< 2>../private/.err > $@
 
 ../private/master.key.sec: ../private/secrets/master.key.passphrase
 	@echo "Creating master key: $(@F)"
