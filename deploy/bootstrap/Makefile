@@ -33,14 +33,8 @@ ARGS+=--archive_s3
 endif
 
 
-.PHONY: clean users certs secrets
+.PHONY: all users certs clean clean-all
 .DELETE_ON_ERROR: ../private/*
-#.INTERMEDIATE: c4gh_keygen.sh
-
-all: ../.env certs users
-
-dev: export DEPLOY_DEV=yesplease
-dev: all
 
 SECRETS:= master.key.passphrase \
 	  db.lega.in db.lega.out \
@@ -49,69 +43,61 @@ ifdef S3
 SECRETS+= s3.access s3.secret
 endif
 
+ALL_FILES=$(addprefix ../private/, lega-entrypoint.sh cega-entrypoint.sh \
+		                   cega-mq-defs.json cega-mq-rabbitmq.config \
+                                   ingest.ini verify.ini finalize.ini master.key.sec \
+	                           lega.yml cega.yml)
+
+all: ../.env $(ALL_FILES) certs users
+
+dev: export DEPLOY_DEV=yesplease
+dev: all
+
+../private ../private/secrets:
+	@mkdir -p $@
+
 ############### Generate global settings
 
-../private/cega.conf: run/cega/conf.py
-	@mkdir -p $(@D)
-	@echo "Creating $(@F)"
+../private/cega.conf: run/cega/conf.py | ../private
+	@echo "Creating CentralEGA configuration trace: $(@F)"
 	@python -m run.cega.conf > $@
 
-../private/lega.conf: run/lega/conf.py $(SECRETS:%=../private/secrets/%)
-	@mkdir -p $(@D)
-	@echo "Creating $(@F)"
+../private/lega.conf: run/lega/conf.py $(addprefix ../private/secrets/,$(SECRETS))
+	@echo "Creating LocalEGA configuration trace: $(@F)"
 ifdef S3
 	@python -m run.lega.conf --secrets $(CURDIR)/../private/secrets --archive_s3 > $@
 else
 	@python -m run.lega.conf --secrets $(CURDIR)/../private/secrets > $@
 endif
 
-../.env: ../private/lega.yml ../private/cega.yml
+../.env: | ../private
 	@echo "COMPOSE_PROJECT_NAME=lega" > $@
 	@echo "COMPOSE_FILE=private/lega.yml:private/cega.yml" >> $@
 	@echo "COMPOSE_PATH_SEPARATOR=:" >> $@
 
-secrets: $(SECRETS:%=../private/secrets/%)
-
 ############### Generate CentralEGA services
 
-../private/cega-mq-defs.json: ../private/cega.conf run/cega/mq_defs.py
-	@mkdir -p $(@D)
-	@echo "Creating $(@F)"
+../private/cega-mq-defs.json: ../private/cega.conf run/cega/mq_defs.py | ../private
+	@echo "Creating CentralEGA MQ defs: $(@F)"
 	@python -m run.cega.mq_defs < $< > $@
 
-../private/cega-mq-rabbitmq.config: run/cega/mq-rabbitmq.config
-	@echo "Creating $(@F)"
+../private/cega-mq-rabbitmq.config: run/cega/mq-rabbitmq.config | ../private
+	@echo "Creating CentralEGA MQ conf: $(@F)"
 	@cp $< $@
 
-../private/cega.yml: run/cega/services.py
-../private/cega.yml: ../private/cega-mq-defs.json ../private/cega-mq-rabbitmq.config ../private/cega-entrypoint.sh
-	@mkdir -p $(@D)
-	@echo "Creating $(@F)"
+../private/cega.yml: run/cega/services.py | ../private
+	@echo "Creating CentralEGA docker-compose file: $(@F)"
 	@python -m run.cega.services > $@
-
-############### Generate CentralEGA users
-
-USERS=john jane dummy
-
-include users.mk
-
-users: prepare-users \
-       $(USERS:%=../private/users/%.passphrase) \
-       $(USERS:%=../private/users/%.sshkey) \
-       $(USERS:%=../private/users/%.json)
 
 ############### Generate LocalEGA settings
 
-../private/lega.yml: run/lega/services.py ../private/entrypoint.sh $(SECRETS:%=../private/secrets/%)
-../private/lega.yml: ../private/ingest.ini ../private/verify.ini ../private/finalize.ini ../private/master.key.sec
+../private/lega.yml: run/lega/services.py | ../private
 ../private/lega.yml: ../private/cega.conf ../private/lega.conf
-	@mkdir -p $(@D)
-	@echo "Creating $(@F)"
+	@echo "Creating LocalEGA docker-compose file: $(@F)"
 	@python -m run.lega.services $(ARGS) ../private/cega.conf ../private/lega.conf 2>../private/.err > $@
 
-../private/%.ini: ../private/lega.conf run/lega/%.py
-	@mkdir -p $(@D)
-	@echo "Creating $(@F)"
+../private/%.ini: ../private/lega.conf run/lega/%.py | ../private
+	@echo "Creating LocalEGA service configuration: $(@F)"
 	@python -m run.lega.$(@:../private/%.ini=%) $(ARGS) $< 2>../private/.err > $@
 
 # ../private/master.key.sec: c4gh_keygen.sh
@@ -130,38 +116,66 @@ users: prepare-users \
 # 	@echo 'send -- "$(file < $<)\r"' >> $@
 # 	@echo "expect eof" >> $@
 
+#.INTERMEDIATE: c4gh_keygen.sh
+
 ../private/master.key.sec: ../private/secrets/master.key.passphrase
-	@echo "Creating $(@F)"
+	@echo "Creating master key: $(@F)"
 	@ssh-keygen -t ed25519 -f $@ -N "$(file < $<)" -C "Master.Key@LocalEGA" &>/dev/null	
 	@mv $@.pub $(@:%.sec=%.pub)
 	@chmod 440 $@
 
 # Stronger passphrase
-../private/secrets/master.key.passphrase:
-	@mkdir -p $(@D)
-	@echo "Creating $(@F) (stronger)"
+../private/secrets/master.key.passphrase: | ../private/secrets
+	@echo "Creating master key passphrase: $(@F)"
 	@python -m run.pwd_gen 32 > $@
 
 ifdef S3
-../private/secrets/s3.access ../private/secrets/s3.secret:
-	@mkdir -p $(@D)
-	@echo "Creating $(@F) (stronger)"
+../private/secrets/s3.access ../private/secrets/s3.secret: | ../private/secrets
+	@echo "Creating S3 credentials: $(@F)"
 	@python -m run.pwd_gen 32 > $@
 endif
 
-../private/secrets/%:
-	@mkdir -p $(@D)
-	@echo "Creating $(@F)"
+../private/secrets/%: | ../private/secrets
+	@echo "Creating secret: $(@F)"
 	@python -m run.pwd_gen 16 > $@
+
+############### Generate CentralEGA users
+
+USERS=john jane dummy
+
+include users.mk
+
+users: $(USERS:%=../private/users/%.passphrase) \
+       $(USERS:%=../private/users/%.sshkey) \
+       $(USERS:%=../private/users/%.json)
 
 ############### Generate Certificates
 
+COMPONENTS=ingest \
+           verify \
+           finalize \
+           db \
+           mq \
+           keys \
+           inbox \
+	   outgest \
+	   streamer
+
+ifdef S3
+COMPONENTS+=archive inbox-s3-backend
+endif
+
+OTHER_COMPONENTS=cega-mq cega-users testsuite
+
+ALL_COMPONENTS=$(COMPONENTS) $(OTHER_COMPONENTS)
+
+ALL_CERTS_FILES=$(ALL_COMPONENTS:%=../private/certs/%.sec.pem) \
+                $(ALL_COMPONENTS:%=../private/certs/%.cert.pem) \
+                $(ALL_COMPONENTS:%=../private/certs/CA.%.cert.pem)
+
 include certs.mk
 
-certs: prepare-certs
-	@yes | make --no-print-directory all-certs 2>../private/.err
-	@yes | make --no-print-directory cega-certs 2>../private/.err
-	@yes | make --no-print-directory testsuite-certs 2>../private/.err
+certs: $(ALL_CERTS_FILES)
 
 ############### Clean up
 clean:
@@ -191,9 +205,7 @@ clean-all:
 # This should not be necessary for the deployment
 # as they are capable of injecting a file with given owner and permissions.
 #
-../private/entrypoint.sh: entrypoint.sh
-../private/cega-entrypoint.sh: cega-entrypoint.sh
-../private/cega-entrypoint.sh ../private/entrypoint.sh:
-	@echo "Creating $(@F)"
+../private/%-entrypoint.sh: %-entrypoint.sh
+	@echo "Creating entrypoint replacement: $(@F)"
 	@cp $< $@
 	@chmod +x $@
