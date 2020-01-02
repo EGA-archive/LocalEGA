@@ -37,6 +37,8 @@ class DBConnection():
     def fetch_args(self):
         """Fetch arguments for initializing a connection to db."""
         self.args = CONF.getsensitive(self.conf_section, 'connection')
+        if isinstance(self.args,bytes):  # secret to str
+            self.args = self.args.decode()
         self.interval = CONF.getint(self.conf_section, 'try_interval', fallback=1)
         self.attempts = CONF.getint(self.conf_section, 'try', fallback=1)
         assert self.attempts > 0, "The number of reconnection should be >= 1"

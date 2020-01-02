@@ -42,7 +42,10 @@ def convert_sensitive(value):
     # * If `value` starts with 'env://', we strip it out and the remainder acts as the name of an environment variable to read.
     # If the environment variable does not exist, we raise a ValueError exception.
     
-    # * If `value` starts with 'file://', we strip it out and the remainder acts as the filepath of a file to read.
+    # * If `value` starts with 'file://', we strip it out and the remainder acts as the filepath of a file to read (in text mode).
+    # If any error occurs while read the file content, we raise a ValueError exception.
+
+    # * If `value` starts with 'secret://', we strip it out and the remainder acts as the filepath of a file to read (in binary mode), and we remove it after.
     # If any error occurs while read the file content, we raise a ValueError exception.
     
     # * If `value` starts with 'value://', we strip it out and the remainder acts as the value itself.
@@ -77,7 +80,7 @@ def convert_sensitive(value):
     if value.startswith('secret://'):
         path=value[9:]
         LOG.debug('Loading secret from path: %s', path)
-        return get_from_file(path, mode='rb', remove_after=True).decode()  # bytes -> str
+        return get_from_file(path, mode='rb', remove_after=True)  # bytes
 
     # It's the value itself (even if it starts with postgres:// or amqp(s)://)
     return value

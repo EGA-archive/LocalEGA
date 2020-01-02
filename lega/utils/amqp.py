@@ -33,6 +33,8 @@ class AMQPConnection():
         """Retrieve AMQP connection parameters."""
         LOG.debug('Getting a connection to "%s"', self.conf_section)
         params = CONF.getsensitive(self.conf_section, 'connection', raw=True)
+        if isinstance(params,bytes):  # secret to str
+            params = params.decode()
 
         LOG.info("Initializing a connection to: %s", redact_url(params))
         self.connection_params = pika.connection.URLParameters(params)

@@ -37,7 +37,10 @@ class C4GHFileKey(Key):
         """Initiliaze the Key object from a dict."""
         filepath = CONF.get(section, 'filepath')
         passphrase = CONF.getsensitive(section, 'passphrase')
-        assert(filepath and passphrase and isinstance(passphrase,str))
+        assert(filepath and passphrase)
+
+        if isinstance(passphrase,bytes):  # to str
+            passphrase = passphrase.decode()
 
         # We use the parser provided in the crypt4gh.keys module
         from crypt4gh.keys import get_private_key
