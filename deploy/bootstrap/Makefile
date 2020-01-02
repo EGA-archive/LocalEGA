@@ -103,36 +103,32 @@ users: prepare-users \
 	@echo "Creating $(@F)"
 	@python -m run.lega.services $(ARGS) ../private/cega.conf ../private/lega.conf 2>../private/.err > $@
 
-../private/ingest.ini: run/lega/ingest.py
-../private/ingest.ini: PY_RUN=python -m run.lega.ingest
-../private/verify.ini: run/lega/verify.py
-../private/verify.ini: PY_RUN=python -m run.lega.verify
-../private/finalize.ini: run/lega/finalize.py
-../private/finalize.ini: PY_RUN=python -m run.lega.finalize
-../private/ingest.ini ../private/verify.ini ../private/finalize.ini: ../private/lega.conf
+../private/%.ini: ../private/lega.conf run/lega/%.py
 	@mkdir -p $(@D)
 	@echo "Creating $(@F)"
-	@$(PY_RUN) $(ARGS) $< 2>../private/.err > $@
+	@python -m run.lega.$(@:../private/%.ini=%) $(ARGS) $< 2>../private/.err > $@
 
-# ../private/master.key: ../private/secrets/master.key.passphrase
+# ../private/master.key.sec: c4gh_keygen.sh
 # 	@echo "Creating $(@F)"
-# 	@ssh-keygen -t ed25519 -f $@ -N "$(file < $<)" -C "Master.Key@LocalEGA" &>/dev/null
+# 	@expect -f $< &>/dev/null
+# 	@chmod 440 $@
+# # Making the key readable, because when it's injected inside the container
+# # it retains the permissions. Therefore, originally 400, will make it unreadable to the lega user.
 
-../private/master.key.sec: c4gh_keygen.sh
+# c4gh_keygen.sh: ../private/secrets/master.key.passphrase
+# 	@echo "Creating $(@F) (intermediate)"
+# 	@mkdir -p $(<D)
+# 	@echo "set timeout -1" > $@
+# 	@echo "spawn crypt4gh-keygen -f --pk ../private/master.key.pub --sk ../private/master.key.sec" >> $@
+# 	@echo 'expect "Passphrase for *"' >> $@
+# 	@echo 'send -- "$(file < $<)\r"' >> $@
+# 	@echo "expect eof" >> $@
+
+../private/master.key.sec: ../private/secrets/master.key.passphrase
 	@echo "Creating $(@F)"
-	@expect -f $< &>/dev/null
+	@ssh-keygen -t ed25519 -f $@ -N "$(file < $<)" -C "Master.Key@LocalEGA" &>/dev/null	
+	@mv $@.pub $(@:%.sec=%.pub)
 	@chmod 440 $@
-# Making the key readable, because when it's injected inside the container
-# it retains the permissions. Therefore, originally 400, will make it unreadable to the lega user.
-
-c4gh_keygen.sh: ../private/secrets/master.key.passphrase
-	@echo "Creating $(@F) (intermediate)"
-	@mkdir -p $(<D)
-	@echo "set timeout -1" > $@
-	@echo "spawn crypt4gh-keygen -f --pk ../private/master.key.pub --sk ../private/master.key.sec" >> $@
-	@echo 'expect "Passphrase for *"' >> $@
-	@echo 'send -- "$(file < $<)\r"' >> $@
-	@echo "expect eof" >> $@
 
 # Stronger passphrase
 ../private/secrets/master.key.passphrase:
@@ -163,10 +159,10 @@ certs: prepare-certs
 
 ############### Clean up
 clean:
-	rm -rf ../private
+	rm -rf ../private/*.{conf,yml,ini,sec,pub,config,json,sh,py} ../private/secrets
 	rm -f ../.env
 
-clean-all: clean clean-certs
+clean-all: clean clean-certs clean-users
 
 ############### Extras
 
