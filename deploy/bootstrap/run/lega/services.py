@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 import sys
@@ -42,10 +43,11 @@ def main(cega_conf, conf, args):
         }
     }
 
+    with_docker_secrets = args['--secrets']
+
     with_s3 = args['--archive_s3']
     if not with_s3:
         lega['volumes']['archive'] = None
-
 
     lega['services'] = {
         'mq': {
@@ -244,7 +246,48 @@ def main(cega_conf, conf, args):
             'command': ["server", "/data"]
         }
 
-    if os.getenv('DEPLOY_DEV'): # don't define it as an empty string, duh!
+    if with_docker_secrets:
+        for s in ['ingest', 'verify', 'finalize']:
+            lega['services'][s]['secrets'] = [
+                { 'source': 'db.connection',
+                  'target': 'db.connection',
+                  'uid': 'lega',
+                  'gid': 'lega',
+                  'mode': 0o400,
+                },
+                { 'source': 'mq.connection',
+                  'target': 'mq.connection',
+                  'uid': 'lega',
+                  'gid': 'lega',
+                  'mode': 0o400,
+                }]
+            # S3 access and secret keys are in insecure env vars
+ 
+        lega['services']['verify']['secrets'].append({ 'source': 'master.key',
+                                                       'target': 'master.key',
+                                                       'uid': 'lega',
+                                                       'gid': 'lega',
+                                                       'mode': 0o400,
+        })
+           
+        lega['secrets'] = {
+            'db.connection': { 'file': './secrets/db.connection'         },
+            'mq.connection': { 'file': './secrets/mq.connection'         },
+            'master.key'   : { 'file': './secrets/master.key.passphrase' },
+        }
+
+        # create the files 
+        from ..defs import put_file_content
+        mq_connection = conf.get('mq', 'connection') + '?' + conf.get('mq', 'connection_params')
+        put_file_content(args['--secrets'], 'mq.connection', mq_connection.encode())
+        db_connection = conf.get('db', 'connection') + '?' + conf.get('db', 'connection_params')
+        put_file_content(args['--secrets'], 'db.connection', db_connection.encode())
+
+        
+
+    # If DEPLOY_DEV is set (and don't define it as an empty string, duh!),
+    # we then reset the entrypoint and add the current python code
+    if os.getenv('DEPLOY_DEV'): # 
         for s in ['ingest', 'verify', 'finalize']:
             service = lega['services'][s]
             volumes = service['volumes']

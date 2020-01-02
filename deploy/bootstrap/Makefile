@@ -24,7 +24,7 @@ HOSTNAME_DOMAIN=
 #HOSTNAME_DOMAIN=.localega
 
 ARGS=
-ifdef SECRETS
+ifdef DOCKER_SECRETS
 ARGS+=--secrets ../private/secrets
 endif
 
@@ -35,16 +35,16 @@ endif
 
 .PHONY: clean users certs secrets
 .DELETE_ON_ERROR: ../private/*
-.INTERMEDIATE: c4gh_keygen.sh
+#.INTERMEDIATE: c4gh_keygen.sh
 
 all: ../.env certs users
 
 dev: export DEPLOY_DEV=yesplease
 dev: all
 
-SECRETS=master.key.passphrase \
-	db.lega.in db.lega.out \
-	mq
+SECRETS:= master.key.passphrase \
+	  db.lega.in db.lega.out \
+	  mq
 ifdef S3
 SECRETS+= s3.access s3.secret
 endif
@@ -59,7 +59,11 @@ endif
 ../private/lega.conf: run/lega/conf.py $(SECRETS:%=../private/secrets/%)
 	@mkdir -p $(@D)
 	@echo "Creating $(@F)"
-	@python -m run.lega.conf --secrets $(CURDIR)/../private/secrets ${ARGS} > $@
+ifdef S3
+	@python -m run.lega.conf --secrets $(CURDIR)/../private/secrets --archive_s3 > $@
+else
+	@python -m run.lega.conf --secrets $(CURDIR)/../private/secrets > $@
+endif
 
 ../.env: ../private/lega.yml ../private/cega.yml
 	@echo "COMPOSE_PROJECT_NAME=lega" > $@

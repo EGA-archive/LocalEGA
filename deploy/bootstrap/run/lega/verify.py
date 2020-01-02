@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 import sys
@@ -23,22 +24,31 @@ Options:
 
 def main(conf, args):
     """Create verify.ini"""
+
+    with_docker_secrets = args['--secrets']
+
     config = configparser.RawConfigParser()
     config['DEFAULT'] = {
         'log':'debug',
         'master_key': 'c4gh_file',
     }
+
+    master_key = ('secret:///run/secrets/master.key'
+                  if with_docker_secrets else
+                  conf.get('master_key','passphrase', raw=True))
+
     config['c4gh_file'] = {
         'loader_class': 'C4GHFileKey',
-        'passphrase': 'value://'+conf.get('master_key','passphrase', raw=True),
+        'passphrase': master_key,
         'filepath': '/etc/ega/ega.sec',
     }
-    config['inbox'] = {
-        'location': r'/ega/inbox/%s/',
-        'chroot_sessions': True,
-    }
+
+    mq_connection = ('secret:///run/secrets/mq.connection'
+                     if with_docker_secrets else
+                     conf.get('mq', 'connection') + '?' + conf.get('mq', 'connection_params'))
+
     config['broker'] = {
-        'connection': conf.get('mq', 'connection') + '?' + conf.get('mq', 'connection_params'),
+        'connection': mq_connection,
         'enable_ssl': 'yes',
         'verify_peer': 'yes',
         'verify_hostname': 'no',
@@ -46,8 +56,13 @@ def main(conf, args):
         'certfile': '/etc/ega/ssl.cert',
         'keyfile': '/etc/ega/ssl.key',
     }
+
+    db_connection = ('secret:///run/secrets/db.connection'
+                     if with_docker_secrets else
+                     conf.get('db', 'connection') + '?' + conf.get('db', 'connection_params'))
+
     config['db'] = {
-        'connection': conf.get('db', 'connection') + '?' + conf.get('db', 'connection_params'),
+        'connection': db_connection,
         'try': 30,
         'try_interval': 1,
     }

@@ -77,7 +77,7 @@ def convert_sensitive(value):
     if value.startswith('secret://'):
         path=value[9:]
         LOG.debug('Loading secret from path: %s', path)
-        return get_from_file(path, remove_after=True)  # binary
+        return get_from_file(path, mode='rb', remove_after=True).decode()  # bytes -> str
 
     # It's the value itself (even if it starts with postgres:// or amqp(s)://)
     return value

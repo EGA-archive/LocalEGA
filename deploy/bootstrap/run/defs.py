@@ -53,3 +53,11 @@ def get_or_die(var):
 def get_file_content(filepath, mode='rb'):
     with open(filepath, mode=mode) as f:
         return f.read()
+
+def put_file_content(filedir, filename, content, mode='wb'):
+    filepath = os.path.join(filedir, filename)
+    if os.path.exists(filepath):
+        print(f'Overwritting {filename} already existing in {filedir}', file=sys.stderr)
+        # raise ValueError(f'File {filename} already existing in {filedir}')
+    with open(filepath, mode=mode) as f:
+        f.write(content) # replace anyway

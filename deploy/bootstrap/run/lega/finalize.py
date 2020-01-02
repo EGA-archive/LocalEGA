@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 import sys
@@ -22,15 +23,23 @@ Options:
 '''
 
 def main(conf, args):
-    """Create verify.ini"""
+    """Create finalize.ini"""
+
+    with_docker_secrets = args['--secrets']
+
     config = configparser.RawConfigParser()
     config['DEFAULT'] = {'log':'debug'}
     config['inbox'] = {
         'location': r'/ega/inbox/%s/',
         'chroot_sessions': True,
     }
+
+    mq_connection = ('secret:///run/secrets/mq.connection'
+                     if with_docker_secrets else
+                     conf.get('mq', 'connection') + '?' + conf.get('mq', 'connection_params'))
+
     config['broker'] = {
-        'connection': conf.get('mq', 'connection') + '?' + conf.get('mq', 'connection_params'),
+        'connection': mq_connection,
         'enable_ssl': 'yes',
         'verify_peer': 'yes',
         'verify_hostname': 'no',
@@ -38,11 +47,17 @@ def main(conf, args):
         'certfile': '/etc/ega/ssl.cert',
         'keyfile': '/etc/ega/ssl.key',
     }
+
+    db_connection = ('secret:///run/secrets/db.connection'
+                     if with_docker_secrets else
+                     conf.get('db', 'connection') + '?' + conf.get('db', 'connection_params'))
+
     config['db'] = {
-        'connection': conf.get('db', 'connection') + '?' + conf.get('db', 'connection_params'),
+        'connection': db_connection,
         'try': 30,
         'try_interval': 1,
     }
+
     # output
     config.write(sys.stdout)
 

@@ -34,7 +34,7 @@ class AMQPConnection():
         LOG.debug('Getting a connection to "%s"', self.conf_section)
         params = CONF.getsensitive(self.conf_section, 'connection', raw=True)
 
-        LOG.debug("Initializing a connection to: %s", redact_url(params))
+        LOG.info("Initializing a connection to: %s", redact_url(params))
         self.connection_params = pika.connection.URLParameters(params)
 
         # Handling the SSL options
