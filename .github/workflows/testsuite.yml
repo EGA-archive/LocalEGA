@@ -53,7 +53,7 @@ jobs:
         make -C bootstrap ${{ matrix.bootstrap }} || { cat private/.err; exit 1; }
         make up
         make ps
-        sleep 80
+        sleep 15
         popd
     - name: Running ${{ matrix.bats }} testsuite
       run: |
