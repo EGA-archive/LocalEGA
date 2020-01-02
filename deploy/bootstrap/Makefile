@@ -37,10 +37,8 @@ endif
 .DELETE_ON_ERROR: ../private/*
 .INTERMEDIATE: c4gh_keygen.sh
 
-all: ../private/cega.yml ../private/lega.yml users ../.env
+all: users ../.env certs
 	@echo "Bootstrapping done"
-
-USERS=john jane dummy
 
 SECRETS=master.key.passphrase \
 	db.lega.in db.lega.out \
@@ -87,43 +85,23 @@ secrets: $(SECRETS:%=../private/secrets/%)
 
 ############### Generate CentralEGA users
 
-# Keep them here to cancel the deletions from the implicit rules
-users: ../private/users/serial \
-	$(USERS:%=../private/users/%.passphrase) \
-	$(USERS:%=../private/users/%.sshkey) \
-	$(USERS:%=../private/users/%.json)
+USERS=john jane dummy
 
-../private/users/%.sshkey: ../private/users/%.passphrase
-	@echo "Creating $(@F)"
-	@ssh-keygen -t ed25519 -f $@ -N "$(file < $<)" -C "$(@:../private/users/%.sshkey=%)@LocalEGA" &>/dev/null
-	@chmod 400 $@
-# Making the key readable, because when it's injected inside the container
-# it retains the permissions. Therefore, originally 400, will make it unreadable to the lega user.
+include users.mk
 
-../private/users/%.json: ../private/users/%.sshkey
-	@mkdir -p $(@D)
-	@echo "Creating $(@F)"
-	@python -m run.cega.user $(@:../private/users/%.json=%) $(file < ../private/users/serial) '$(@:.json=.passphrase)' < $(<:=.pub) > $@
-	@$(file > ../private/users/serial,$(shell echo "$$(($(file < ../private/users/serial)+1))"))
-
-../private/users/%.passphrase:
-	@mkdir -p $(@D)
-	@echo "Creating $(@F)"
-	@python -m run.pwd_gen 8 > $@
-
-../private/users/serial:
-	@mkdir -p $(@D)
-	@echo '15000' > $@
+users: prepare-users \
+       $(USERS:%=../private/users/%.passphrase) \
+       $(USERS:%=../private/users/%.sshkey) \
+       $(USERS:%=../private/users/%.json)
 
 ############### Generate LocalEGA settings
 
-../private/lega.yml: run/lega/services.py ../private/entrypoint.sh secrets
+../private/lega.yml: run/lega/services.py ../private/entrypoint.sh $(SECRETS:%=../private/secrets/%)
 ../private/lega.yml: ../private/ingest.ini ../private/verify.ini ../private/finalize.ini ../private/master.key.sec
-../private/lega.yml: PY_RUN=python -m run.lega.services
 ../private/lega.yml: ../private/cega.conf ../private/lega.conf
 	@mkdir -p $(@D)
 	@echo "Creating $(@F)"
-	@$(PY_RUN) ${ARGS} ../private/cega.conf ../private/lega.conf 2>../private/.err > $@
+	@python -m run.lega.services $(ARGS) ../private/cega.conf ../private/lega.conf 2>../private/.err > $@
 
 ../private/ingest.ini: run/lega/ingest.py
 ../private/ingest.ini: PY_RUN=python -m run.lega.ingest
@@ -134,7 +112,7 @@ users: ../private/users/serial \
 ../private/ingest.ini ../private/verify.ini ../private/finalize.ini: ../private/lega.conf
 	@mkdir -p $(@D)
 	@echo "Creating $(@F)"
-	@$(PY_RUN) ${ARGS} $< 2>../private/.err > $@
+	@$(PY_RUN) $(ARGS) $< 2>../private/.err > $@
 
 # ../private/master.key: ../private/secrets/master.key.passphrase
 # 	@echo "Creating $(@F)"
@@ -176,20 +154,17 @@ endif
 
 ############### Generate Certificates
 
-certs:
-	@echo "Creating certificates"
-	@mkdir -p ../private
-	make -C certs clean prepare OPENSSL=${OPENSSL} &>../private/.err
-	yes | make -C certs OPENSSL=${OPENSSL} DOMAIN="${HOSTNAME_DOMAIN}" &>../private/.err
-	yes | make -C certs cega testsuite OPENSSL=${OPENSSL} DOMAIN="${HOSTNAME_DOMAIN}" &>../private/.err
+include certs.mk
+
+certs: prepare-certs
+	@yes | make --no-print-directory all-certs 2>../private/.err
+	@yes | make --no-print-directory cega-certs 2>../private/.err
+	@yes | make --no-print-directory testsuite-certs 2>../private/.err
 
 ############### Clean up
 clean:
 	rm -rf ../private
 	rm -f ../.env
-
-clean-certs:
-	make -C certs clean
 
 clean-all: clean clean-certs
 
