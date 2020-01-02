@@ -4,9 +4,10 @@
 
 HERE=$(dirname ${BASH_SOURCE[0]})
 MAIN_REPO=${HERE}/../..
+DOCKER_PATH=${MAIN_REPO}/deploy
 
 # Some variables for these tests
-EGA_PUBKEY=${MAIN_REPO}/deploy/private/master.key.pub
+EGA_PUBKEY=${DOCKER_PATH}/private/master.key.pub
 
 # Default log file, in case the bats file does not overwrite its location.
 #DEBUG_LOG=${HERE}/output.debug
@@ -14,7 +15,7 @@ DEBUG_LOG=${BATS_TEST_FILENAME}.debug
 
 # Data directory
 TESTDATA_DIR=$HERE
-USERS_DIR=${MAIN_REPO}/deploy/private/users
+USERS_DIR=${DOCKER_PATH}/private/users
 
 # This CEGA_CONNECTION is against the fake CentralEGA, deployed on the same network
 # as LocalEGA components, and accessible from the localhost via a port mapping
@@ -22,8 +23,8 @@ export CEGA_CONNECTION="amqps://legatest:legatest@localhost:5670/lega"
 
 # Create certfile/keyfile for testsuite
 #make --silent -C ${MAIN_REPO}/deploy/bootstrap testsuite-certs OPENSSL=${OPENSSL:-openssl} &>/dev/null
-cp -f ${MAIN_REPO}/deploy/private/certs/testsuite.{cert,sec}.pem ${HERE}/mq/.
-cp -f ${MAIN_REPO}/deploy/private/certs/CA.cert.pem ${HERE}/mq/.
+cp -f ${DOCKER_PATH}/private/certs/testsuite.{cert,sec}.pem ${HERE}/mq/.
+cp -f ${DOCKER_PATH}/private/certs/CA.cert.pem ${HERE}/mq/.
 
 # Utilities to scan the Message Queues
 MQ_CONSUME="python ${HERE}/mq/consume.py --connection ${CEGA_CONNECTION}"
