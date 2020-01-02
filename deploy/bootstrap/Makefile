@@ -37,8 +37,10 @@ endif
 .DELETE_ON_ERROR: ../private/*
 .INTERMEDIATE: c4gh_keygen.sh
 
-all: users ../.env certs
-	@echo "Bootstrapping done"
+all: ../.env certs users
+
+dev: export DEPLOY_DEV=yesplease
+dev: all
 
 SECRETS=master.key.passphrase \
 	db.lega.in db.lega.out \
@@ -162,7 +164,8 @@ clean:
 	rm -rf ../private/*.{conf,yml,ini,sec,pub,config,json,sh,py} ../private/secrets
 	rm -f ../.env
 
-clean-all: clean clean-certs clean-users
+clean-all:
+	rm -rf ../private ../.env
 
 ############### Extras
 

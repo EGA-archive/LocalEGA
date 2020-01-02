@@ -22,11 +22,6 @@ ps:
 down:
 	@[[ -f private/lega.yml ]] && docker-compose down -v || echo -e "No recipe to bring containers down\nHave you bootstrapped? (ie make bootstrap)"
 
-clean:
-	make -C bootstrap clean-all
-
-clean-all: clean clean-volumes
-
 preflight-check:
 	@echo "Ensure the system is up"
 	sleep 20

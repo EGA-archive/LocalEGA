@@ -30,7 +30,7 @@ def main(conf, args):
     }
     config['c4gh_file'] = {
         'loader_class': 'C4GHFileKey',
-        'passphrase': 'env://MASTER_KEY_PASSPHRASE',
+        'passphrase': 'value://'+conf.get('master_key','passphrase', raw=True),
         'filepath': '/etc/ega/ega.sec',
     }
     config['inbox'] = {

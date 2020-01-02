@@ -17,7 +17,7 @@ else:
     import bcrypt
 
 def generate_password(size):
-    if 'DEV' in os.environ:
+    if os.getenv('DEPLOY_DEV'): # don't define it as an empty string, duh!
         return '-'*size
     return ''.join(secrets.choice(string.ascii_letters + string.digits) for i in range(size))
 

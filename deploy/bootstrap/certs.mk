@@ -34,7 +34,7 @@ ALL_COMPONENTS=$(COMPONENTS) $(CEGA_COMPONENTS) testsuite
 all-certs: prepare-certs \
 	   $(COMPONENTS:%=../private/certs/%.cert.pem) \
 	   $(COMPONENTS:%=../private/certs/CA.%.cert.pem)
-	@chmod 444 $(COMPONENTS:%=../private/certs/%.sec.pem)
+	-@chmod 444 $(COMPONENTS:%=../private/certs/%.sec.pem)
 
 testsuite-certs: prepare-certs \
 	   	 ../private/certs/testsuite.cert.pem \
@@ -43,7 +43,7 @@ testsuite-certs: prepare-certs \
 cega-certs: prepare-certs \
 	   $(CEGA_COMPONENTS:%=../private/certs/%.cert.pem) \
 	   $(CEGA_COMPONENTS:%=../private/certs/CA.%.cert.pem)
-	@chmod 444 $(CEGA_COMPONENTS:%=../private/certs/%.sec.pem)
+	-@chmod 444 $(CEGA_COMPONENTS:%=../private/certs/%.sec.pem)
 
 ###############################################
 ## Necessary files
@@ -126,7 +126,7 @@ endif
 ###############################################
 
 clean-certs:
-	@rm -rf ../private/certs
+	rm -rf ../private/certs
 
 ../private/certs/CA.%.cert.pem: ../private/certs/CA.cert.pem
 	@echo -e "\t$(<F) > $(@F)"

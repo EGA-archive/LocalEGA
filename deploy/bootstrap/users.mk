@@ -19,3 +19,6 @@ prepare-users:
 	@mkdir -p $(@D)
 	@echo "Creating $(@F)"
 	@python -m run.pwd_gen 8 > $@
+
+clean-users:
+	rm -rf ../private/users

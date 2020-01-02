@@ -24,7 +24,6 @@ The credentials for the test users (john, jane and dummy) are found in `private/
 | make up          | `docker-compose up -d` | Use `docker-compose up -d --scale ingest=3 --scale verify=5` instead, if you want to start 3 ingestion and 5 verification workers. |
 | make down        | `docker-compose down -v` | `-v`: removing networks and volumes |
 | make ps          | `docker-compose ps` | |
-| make clean       | `make -C bootstrap clean-all` | Removes the conf files, secrets, certificates and users |
 
 Note that, in this architecture, we use separate volumes, e.g. for the
 inbox area, for the archive (be it a POSIX file system or backed by

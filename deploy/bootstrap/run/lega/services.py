@@ -70,9 +70,9 @@ def main(cega_conf, conf, args):
             ],
             'volumes': [
                 'mq:/var/lib/rabbitmq',
-                '../bootstrap/certs/data/mq.cert.pem:/etc/rabbitmq/ssl.cert',
-                '../bootstrap/certs/data/mq.sec.pem:/etc/rabbitmq/ssl.key',
-                '../bootstrap/certs/data/CA.mq.cert.pem:/etc/rabbitmq/CA.cert',
+                './certs/mq.cert.pem:/etc/rabbitmq/ssl.cert',
+                './certs/mq.sec.pem:/etc/rabbitmq/ssl.key',
+                './certs/CA.mq.cert.pem:/etc/rabbitmq/CA.cert',
             ],
         },
         'db': {
@@ -90,9 +90,9 @@ def main(cega_conf, conf, args):
             'image': 'egarchive/lega-db:latest',
             'volumes': [
                 'db:/ega/data',
-                '../bootstrap/certs/data/db.cert.pem:/etc/ega/pg.cert',
-                '../bootstrap/certs/data/db.sec.pem:/etc/ega/pg.key',
-                '../bootstrap/certs/data/CA.db.cert.pem:/etc/ega/CA.cert',
+                './certs/db.cert.pem:/etc/ega/pg.cert',
+                './certs/db.sec.pem:/etc/ega/pg.key',
+                './certs/CA.db.cert.pem:/etc/ega/CA.cert',
             ],
             'networks': [
                 'private-db',
@@ -132,9 +132,9 @@ def main(cega_conf, conf, args):
             'image': 'egarchive/lega-inbox:latest',
             'volumes': [
                 'inbox:/ega/inbox',
-                '../bootstrap/certs/data/inbox.cert.pem:/etc/ega/ssl.cert',
-                '../bootstrap/certs/data/inbox.sec.pem:/etc/ega/ssl.key',
-                '../bootstrap/certs/data/CA.inbox.cert.pem:/etc/ega/CA.cert',
+                './certs/inbox.cert.pem:/etc/ega/ssl.cert',
+                './certs/inbox.sec.pem:/etc/ega/ssl.key',
+                './certs/CA.inbox.cert.pem:/etc/ega/CA.cert',
             ],
         },
 
@@ -152,9 +152,9 @@ def main(cega_conf, conf, args):
                 'inbox:/ega/inbox',
                 './ingest.ini:/etc/ega/conf.ini:ro',
                 './entrypoint.sh:/usr/local/bin/lega-entrypoint.sh',
-                '../bootstrap/certs/data/ingest.cert.pem:/etc/ega/ssl.cert',
-                '../bootstrap/certs/data/ingest.sec.pem:/etc/ega/ssl.key',
-                '../bootstrap/certs/data/CA.ingest.cert.pem:/etc/ega/CA.cert',
+                './certs/ingest.cert.pem:/etc/ega/ssl.cert',
+                './certs/ingest.sec.pem:/etc/ega/ssl.key',
+                './certs/CA.ingest.cert.pem:/etc/ega/CA.cert',
             ] + ([] if with_s3 else ['archive:/ega/archive']),
             'networks': [
                 'internal',
@@ -169,7 +169,6 @@ def main(cega_conf, conf, args):
         'verify': {
             'environment': [
                 'LEGA_LOG=debug',
-                'MASTER_KEY_PASSPHRASE='+conf.get('master_key','passphrase', raw=True),
             ] + ([
                 'S3_ACCESS_KEY='+conf.get('s3','access_key'),
                 'S3_SECRET_KEY='+conf.get('s3','secret_key'),
@@ -181,9 +180,9 @@ def main(cega_conf, conf, args):
                 './verify.ini:/etc/ega/conf.ini:ro',
                 './master.key.sec:/etc/ega/ega.sec',
                 './entrypoint.sh:/usr/local/bin/lega-entrypoint.sh',
-                '../bootstrap/certs/data/verify.cert.pem:/etc/ega/ssl.cert',
-                '../bootstrap/certs/data/verify.sec.pem:/etc/ega/ssl.key',
-                '../bootstrap/certs/data/CA.verify.cert.pem:/etc/ega/CA.cert',
+                './certs/verify.cert.pem:/etc/ega/ssl.cert',
+                './certs/verify.sec.pem:/etc/ega/ssl.key',
+                './certs/CA.verify.cert.pem:/etc/ega/CA.cert',
             ] + ([] if with_s3 else ['archive:/ega/archive']),
             'networks': [
                 'internal',
@@ -206,9 +205,9 @@ def main(cega_conf, conf, args):
                 '../../lega:/home/lega/.local/lib/python3.6/site-packages/lega',  # under dev
                 './finalize.ini:/etc/ega/conf.ini:ro',
                 './entrypoint.sh:/usr/local/bin/lega-entrypoint.sh',
-                '../bootstrap/certs/data/finalize.cert.pem:/etc/ega/ssl.cert',
-                '../bootstrap/certs/data/finalize.sec.pem:/etc/ega/ssl.key',
-                '../bootstrap/certs/data/CA.finalize.cert.pem:/etc/ega/CA.cert',
+                './certs/finalize.cert.pem:/etc/ega/ssl.cert',
+                './certs/finalize.sec.pem:/etc/ega/ssl.key',
+                './certs/CA.finalize.cert.pem:/etc/ega/CA.cert',
             ],
             'networks': [
                 'internal',
@@ -232,9 +231,9 @@ def main(cega_conf, conf, args):
             ],
             'volumes': [
                 'archive:/data',
-                '../bootstrap/certs/data/archive.cert.pem:/root/.minio/certs/public.crt',
-                '../bootstrap/certs/data/archive.sec.pem:/root/.minio/certs/private.key',
-                '../bootstrap/certs/data/CA.archive.cert.pem:/root/.minio/CAs/LocalEGA.crt',
+                './certs/archive.cert.pem:/root/.minio/certs/public.crt',
+                './certs/archive.sec.pem:/root/.minio/certs/private.key',
+                './certs/CA.archive.cert.pem:/root/.minio/CAs/LocalEGA.crt',
             ],
             'networks': [
                 'private-vault',
@@ -245,7 +244,7 @@ def main(cega_conf, conf, args):
             'command': ["server", "/data"]
         }
 
-    if 'DEV' in os.environ:
+    if os.getenv('DEPLOY_DEV'): # don't define it as an empty string, duh!
         for s in ['ingest', 'verify', 'finalize']:
             service = lega['services'][s]
             volumes = service['volumes']
