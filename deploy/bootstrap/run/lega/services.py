@@ -153,7 +153,7 @@ def main(cega_conf, conf, args):
             'volumes': [
                 'inbox:/ega/inbox',
                 './ingest.ini:/etc/ega/conf.ini:ro',
-                './entrypoint.sh:/usr/local/bin/lega-entrypoint.sh',
+                './lega-entrypoint.sh:/usr/local/bin/lega-entrypoint.sh',
                 './certs/ingest.cert.pem:/etc/ega/ssl.cert',
                 './certs/ingest.sec.pem:/etc/ega/ssl.key',
                 './certs/CA.ingest.cert.pem:/etc/ega/CA.cert',
@@ -181,7 +181,7 @@ def main(cega_conf, conf, args):
             'volumes': [
                 './verify.ini:/etc/ega/conf.ini:ro',
                 './master.key.sec:/etc/ega/ega.sec',
-                './entrypoint.sh:/usr/local/bin/lega-entrypoint.sh',
+                './lega-entrypoint.sh:/usr/local/bin/lega-entrypoint.sh',
                 './certs/verify.cert.pem:/etc/ega/ssl.cert',
                 './certs/verify.sec.pem:/etc/ega/ssl.key',
                 './certs/CA.verify.cert.pem:/etc/ega/CA.cert',
@@ -206,7 +206,7 @@ def main(cega_conf, conf, args):
             'volumes': [
                 '../../lega:/home/lega/.local/lib/python3.6/site-packages/lega',  # under dev
                 './finalize.ini:/etc/ega/conf.ini:ro',
-                './entrypoint.sh:/usr/local/bin/lega-entrypoint.sh',
+                './lega-entrypoint.sh:/usr/local/bin/lega-entrypoint.sh',
                 './certs/finalize.cert.pem:/etc/ega/ssl.cert',
                 './certs/finalize.sec.pem:/etc/ega/ssl.key',
                 './certs/CA.finalize.cert.pem:/etc/ega/CA.cert',
