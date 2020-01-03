@@ -15,8 +15,10 @@ jobs:
       matrix:
         # os: [ubuntu-latest, macOS-latest]
         os: [ubuntu-latest]
-        bootstrap: ['', 'S3=true', 'DOCKER_SECRETS=true', 'S3=true DOCKER_SECRETS=true']
-        bats: ['integration', 'security', 'robustness']
+        # bootstrap: ['', 'S3=true', 'DOCKER_SECRETS=true', 'S3=true DOCKER_SECRETS=true']
+        bootstrap: ['']
+        #bats: ['integration', 'security', 'robustness']
+        bats: ['integration']
 
     runs-on: ${{ matrix.os }}
 
@@ -44,10 +46,12 @@ jobs:
     - name: Bootstrap (options ${{ matrix.bootstrap }})
       run: |
         pushd deploy
-        make -C bootstrap ${{ matrix.bootstrap }} || { cat private/.err; exit 1; }
+        { yes | make -C bootstrap ${{ matrix.bootstrap }}; } || { cat private/.err; exit 1; }
         make up
         make ps
         sleep 15
+        id
+        docker-compose logs ingest verify finalize
         popd
     - name: Running ${{ matrix.bats }} testsuite
       run: |

@@ -3,3 +3,4 @@ pika==1.0.1
 bcrypt
 ruamel.yaml
 docopt
+git+https://github.com/EGA-archive/crypt4gh.git

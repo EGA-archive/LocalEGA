@@ -151,17 +151,15 @@ ifdef S3
 COMPONENTS+=archive inbox-s3-backend
 endif
 
-OTHER_COMPONENTS=cega-mq cega-users testsuite
+COMPONENTS+=cega-mq cega-users testsuite
 
-ALL_COMPONENTS=$(COMPONENTS) $(OTHER_COMPONENTS)
-
-ALL_CERTS_FILES=$(ALL_COMPONENTS:%=../private/certs/%.sec.pem) \
-                $(ALL_COMPONENTS:%=../private/certs/%.cert.pem) \
-                $(ALL_COMPONENTS:%=../private/certs/CA.%.cert.pem)
+CERTS=$(COMPONENTS:%=../private/certs/%.sec.pem) \
+      $(COMPONENTS:%=../private/certs/%.cert.pem) \
+      $(COMPONENTS:%=../private/certs/CA.%.cert.pem)
 
 include certs.mk
 
-certs: $(ALL_CERTS_FILES)
+certs: $(CERTS)
 
 ############### Clean up
 clean:
