@@ -15,10 +15,8 @@ jobs:
       matrix:
         # os: [ubuntu-latest, macOS-latest]
         os: [ubuntu-latest]
-        # bootstrap: ['', 'S3=true', 'DOCKER_SECRETS=true', 'S3=true DOCKER_SECRETS=true']
-        bootstrap: ['']
-        #bats: ['integration', 'security', 'robustness']
-        bats: ['integration']
+        bootstrap: ['', 'S3=true', 'DOCKER_SECRETS=true', 'S3=true DOCKER_SECRETS=true']
+        bats: ['integration', 'security', 'robustness']
 
     runs-on: ${{ matrix.os }}
 
@@ -31,11 +29,10 @@ jobs:
       uses: actions/setup-python@master
       with:
         python-version: 3.6
-    - name: (re)Build docker image
+    - name: (re)Build docker image (with Runner id $(id -u))
       run: make -C deploy image
     - name: Install required tools
       run: |
-        make --version
         git clone https://github.com/bats-core/bats-core.git
         pushd bats-core
         git checkout v1.1.0
@@ -46,12 +43,10 @@ jobs:
     - name: Bootstrap (options ${{ matrix.bootstrap }})
       run: |
         pushd deploy
-        { yes | make -C bootstrap ${{ matrix.bootstrap }}; } || { cat private/.err; exit 1; }
+        { make -C bootstrap ${{ matrix.bootstrap }}; } || { cat private/.err; exit 1; }
         make up
         make ps
         sleep 15
-        id
-        docker-compose logs ingest verify finalize
         popd
     - name: Running ${{ matrix.bats }} testsuite
       run: |

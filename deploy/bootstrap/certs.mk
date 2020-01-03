@@ -54,7 +54,7 @@ endif
 
 %.cert.pem: %.csr.pem | ../private/certs/serial ../private/certs/index.txt
 	@echo "Creating $(@F)"
-	@$(OPENSSL) ca -config certs.cnf \
+	@yes | $(OPENSSL) ca -config certs.cnf \
 	           -extensions $(EXT) \
 	           -days 375 -notext -md sha256 -in $< -out $@ 2>../private/.err
 	-@rm ../private/certs/10*.pem

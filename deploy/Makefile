@@ -47,7 +47,11 @@ IMAGE_ARGS=
 
 image:
 	cd .. && \
-	docker build -f Dockerfile $(IMAGE_ARGS) --tag egarchive/lega-base:latest .
+	docker build -f Dockerfile \
+		     --build-arg LEGA_UID=$(shell id -u) \
+		     $(IMAGE_ARGS) \
+		     --tag egarchive/lega-base:latest \
+		     .
 
 
 ####################################################
