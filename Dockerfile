@@ -26,10 +26,11 @@ LABEL org.label-schema.vcs-url="https://github.com/EGA-archive/LocalEGA"
 
 RUN apk add --no-cache --update libressl postgresql-libs
 
+ARG LEGA_UID=1000
 ARG LEGA_GID=1000
 
 RUN addgroup -g ${LEGA_GID} lega && \
-    adduser -D -G lega lega
+    adduser -D -G lega -u ${LEGA_UID} lega
 
 COPY --from=BUILD usr/local/lib/python3.6/ usr/local/lib/python3.6/
 

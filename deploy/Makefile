@@ -1,22 +1,16 @@
 SHELL := /bin/bash
-OPENSSL=openssl
 ARGS=
 SELECTED=
+HOSTNAME_DOMAIN=
+#HOSTNAME_DOMAIN=.localega
 
-.PHONY: help bootstrap private network up down clean ps clean-volumes clean-all erase purge
+.PHONY: up down clean ps clean-volumes clean-all image erase purge preflight-check
 
-help:
-	@echo "Usage: make <target>\n"
-	@echo "where <target> is: 'bootstrap', 'up' 'ps', 'down', 'network' or 'clean'\n"
-
-# If DEPLOY_DEV is yes, we use dummy passwords
-bootstrap-dev: export DEPLOY_DEV=yes
-.env private/lega.yml private bootstrap bootstrap-dev:
-	@bootstrap/run.sh ${ARGS} || { cat private/.err; exit 1; }
-
-
-up: .env private/lega.yml
+up: .env
 	@docker-compose up -d ${SELECTED}
+
+private/lega.yml .env:
+	make -C bootstrap -s
 
 clean-volumes:
 	docker volume rm lega_db lega_inbox lega_s3
@@ -25,14 +19,8 @@ clean-volumes:
 ps:
 	@docker-compose ps
 
-down: #.env
+down:
 	@[[ -f private/lega.yml ]] && docker-compose down -v || echo -e "No recipe to bring containers down\nHave you bootstrapped? (ie make bootstrap)"
-
-clean:
-	rm -rf .env private
-	make -C bootstrap/certs clean
-
-clean-all: clean clean-volumes
 
 preflight-check:
 	@echo "Ensure the system is up"
@@ -59,11 +47,15 @@ IMAGE_ARGS=
 
 image:
 	cd .. && \
-	docker build -f Dockerfile $(IMAGE_ARGS) --tag egarchive/lega-base:latest .
+	docker build -f Dockerfile \
+		     --build-arg LEGA_UID=$(shell id -u) \
+		     $(IMAGE_ARGS) \
+		     --tag egarchive/lega-base:latest \
+		     .
 
 
 ####################################################
-# Cleaning images
+# Cleaning docker images
 
 define remove_dangling
 	docker images $(1) -f "dangling=true" -q | uniq | while read n; do docker rmi -f $$n; done

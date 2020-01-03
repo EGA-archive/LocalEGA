@@ -29,6 +29,8 @@ function setup() {
     TESTUSER_SECKEY=$(get_user_seckey ${TESTUSER})
     TESTUSER_PASSPHRASE=$(get_user_passphrase ${TESTUSER})
 
+    # echo "TESTUSER KEY: $TESTUSER_SECKEY"
+    # echo "TESTUSER PASSPHRASE: $TESTUSER_PASSPHRASE"
 
     # Find inbox port mapping. Usually 2222:9000
     INBOX_PORT="2222"

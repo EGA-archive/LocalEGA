@@ -1,13 +1,13 @@
-#!/usr/bin/env bash
+#!/usr/bin/env bash -x
 
 [ ${BASH_VERSINFO[0]} -lt 4 ] && echo 'Bash 4 (or higher) is required' 1>&2 && exit 1
 
 HERE=$(dirname ${BASH_SOURCE[0]})
 MAIN_REPO=${HERE}/../..
+DOCKER_PATH=${MAIN_REPO}/deploy
 
 # Some variables for these tests
-DOCKER_PATH=${MAIN_REPO}/deploy
-EGA_PUBKEY=${DOCKER_PATH}/private/keys/ega.pub
+EGA_PUBKEY=${DOCKER_PATH}/private/master.key.pub
 
 # Default log file, in case the bats file does not overwrite its location.
 #DEBUG_LOG=${HERE}/output.debug
@@ -15,17 +15,16 @@ DEBUG_LOG=${BATS_TEST_FILENAME}.debug
 
 # Data directory
 TESTDATA_DIR=$HERE
-USERS_FILE=${DOCKER_PATH}/private/.users
+USERS_DIR=${DOCKER_PATH}/private/users
 
-# If the CEGA_CONNECTION is not against hellgate (ie Central EGA)
-# then it is against the fake one, which is deployed on the same network
+# This CEGA_CONNECTION is against the fake CentralEGA, deployed on the same network
 # as LocalEGA components, and accessible from the localhost via a port mapping
 export CEGA_CONNECTION="amqps://legatest:legatest@localhost:5670/lega"
 
 # Create certfile/keyfile for testsuite
-#yes | make --silent -C ${MAIN_REPO}/deploy/bootstrap/certs testsuite OPENSSL=${OPENSSL:-openssl} &>/dev/null
-cp -f ${MAIN_REPO}/deploy/bootstrap/certs/data/testsuite.{cert,sec}.pem ${HERE}/mq/.
-cp -f ${MAIN_REPO}/deploy/bootstrap/certs/data/CA.cert.pem ${HERE}/mq/.
+#make --silent -C ${MAIN_REPO}/deploy/bootstrap testsuite-certs OPENSSL=${OPENSSL:-openssl} &>/dev/null
+cp -f ${DOCKER_PATH}/private/certs/testsuite.{cert,sec}.pem ${HERE}/mq/.
+cp -f ${DOCKER_PATH}/private/certs/CA.cert.pem ${HERE}/mq/.
 
 # Utilities to scan the Message Queues
 MQ_CONSUME="python ${HERE}/mq/consume.py --connection ${CEGA_CONNECTION}"
@@ -79,43 +78,23 @@ function load_into_ssh_agent {
 
     [[ -z "${SSH_AGENT_PID}" ]] && echo "The ssh-agent was not started" >&2 && return 2
 
-    while IFS=: read -a info; do
-	# echo "Compare with ${info[0]} == ${user}" >&3
-	if [[ "${info[0]}" == "${user}" ]]; then
-	    expect &>/dev/null <<EOF
+    [[ -f ${USERS_DIR}/${user}.sshkey ]] || return 1
+    [[ -f ${USERS_DIR}/${user}.passphrase ]] || return 2
+
+    expect &>/dev/null <<EOF
 set timeout -1
-spawn ssh-add ${info[1]}
+spawn ssh-add ${USERS_DIR}/${user}.sshkey
 expect "Enter passphrase for *"
-send -- "${info[2]}\r"
+send -- "$(<${USERS_DIR}/${user}.passphrase)\r"
 expect eof
 EOF
-	    #break
-	    return 0
-	fi
-    done < ${USERS_FILE}
-    return 1
 }
-
-function _get_user_info {
-    local pos=$1
-    local user=$2
-
-    while IFS=: read -a info; do
-	if [[ "${info[0]}" == "${user}" ]]; then
-	    echo -n "${info[$pos]}"
-	    #break
-	    return 0
-	fi
-    done < ${USERS_FILE}
-    return 1
-}
-
 
 function get_user_seckey {
-    _get_user_info 1 $1
+    echo ${USERS_DIR}/${1}.sshkey
 }
 function get_user_passphrase {
-    _get_user_info 2 $1
+    cat ${USERS_DIR}/${1}.passphrase
 }
 
 

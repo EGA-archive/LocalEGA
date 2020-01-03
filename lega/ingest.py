@@ -23,7 +23,7 @@ import io
 
 from crypt4gh import header
 
-from .conf import CONF, configure
+from .conf import CONF
 from .utils import db, exceptions, errors, sanitize_user_id, storage
 from .utils.amqp import consume
 
@@ -94,11 +94,10 @@ def work(fs, inbox_fs, data):
     return (data, False)
 
 
-@configure
 def main():
     """Run ingest service."""
-    inbox_fs = getattr(storage, CONF.get_value('inbox', 'storage_driver', default='FileStorage'))
-    fs = getattr(storage, CONF.get_value('archive', 'storage_driver', default='FileStorage'))
+    inbox_fs = getattr(storage, CONF.get('inbox', 'storage_driver', fallback='FileStorage'))
+    fs = getattr(storage, CONF.get('archive', 'storage_driver', fallback='FileStorage'))
     do_work = partial(work, fs('archive', 'lega'), partial(inbox_fs, 'inbox'))
 
     # upstream link configured in local broker
