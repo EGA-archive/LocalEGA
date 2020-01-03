@@ -30,13 +30,7 @@ jobs:
       with:
         python-version: 3.6
     - name: (re)Build docker image
-      run: |
-        docker build -f Dockerfile \
-                     --build-arg LEGA_GID=1000 \
-                     --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
-                     --build-arg SOURCE_COMMIT=$(git rev-parse --short HEAD) \
-                     --tag egarchive/lega-base:latest \
-                     .
+      run: make -C deploy image
     - name: Install required tools
       run: |
         git clone https://github.com/bats-core/bats-core.git
@@ -44,9 +38,9 @@ jobs:
         git checkout v1.1.0
         sudo ./install.sh /usr/local
         popd
-        pip install pika==1.0.1
+        pip install -r deploy/bootstrap/requirements.txt
         sudo apt-get install expect
-    - name: Bootstrap (options: ${{ matrix.bootstrap }})
+    - name: Bootstrap (options ${{ matrix.bootstrap }})
       run: |
         pushd deploy
         make -C bootstrap ${{ matrix.bootstrap }} || { cat private/.err; exit 1; }
@@ -57,5 +51,3 @@ jobs:
     - name: Running ${{ matrix.bats }} testsuite
       run: |
         bats tests/${{ matrix.bats }}
-
-

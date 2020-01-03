@@ -1,0 +1,5 @@
+PyYaml
+pika==1.0.1
+bcrypt
+ruamel.yaml
+docopt
