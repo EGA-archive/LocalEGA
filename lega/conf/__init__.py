@@ -13,12 +13,15 @@ It also loads the logging settings when ``setup`` is called.
   which case, it must end in ``.yaml`` or ``.yml``.
 """
 
+from . import logging as lega_logging
+import logging
+logging.setLoggerClass(lega_logging.LEGALogger)
+
 import sys
 import os
 import configparser
 import warnings
 import stat
-import logging
 from logging.config import fileConfig, dictConfig
 from pathlib import Path
 import yaml
@@ -27,31 +30,31 @@ from ..utils import get_from_file, get_from_env
 
 LOG_FILE = os.getenv('LEGA_LOG', None)
 CONF_FILE = os.getenv('LEGA_CONF', '/etc/ega/conf.ini')
-
 LOG = logging.getLogger(__name__)
 
-
 def convert_sensitive(value):
+    """Fetch a sensitive value from different sources.
+
+    * If `value` starts with 'env://', we strip it out and the remainder acts as the name of an environment variable to read.
+    If the environment variable does not exist, we raise a ValueError exception.
+    
+    * If `value` starts with 'file://', we strip it out and the remainder acts as the filepath of a file to read (in text mode).
+    If any error occurs while read the file content, we raise a ValueError exception.
+
+    * If `value` starts with 'secret://', we strip it out and the remainder acts as the filepath of a file to read (in binary mode), and we remove it after.
+    If any error occurs while read the file content, we raise a ValueError exception.
+    
+    * If `value` starts with 'value://', we strip it out and the remainder acts as the value itself.
+    It is used to enforce the value, in case its content starts with env:// or file:// (eg a file:// URL).
+    
+    * Otherwise, `value` is the value content itself. 
+    """
     if value is None:  # Not found
         return None
 
     # Short-circuit in case the value starts with value:// (ie, it is enforced)
     if value.startswith('value://'):
         return value[8:]
-
-    # * If `value` starts with 'env://', we strip it out and the remainder acts as the name of an environment variable to read.
-    # If the environment variable does not exist, we raise a ValueError exception.
-    
-    # * If `value` starts with 'file://', we strip it out and the remainder acts as the filepath of a file to read (in text mode).
-    # If any error occurs while read the file content, we raise a ValueError exception.
-
-    # * If `value` starts with 'secret://', we strip it out and the remainder acts as the filepath of a file to read (in binary mode), and we remove it after.
-    # If any error occurs while read the file content, we raise a ValueError exception.
-    
-    # * If `value` starts with 'value://', we strip it out and the remainder acts as the value itself.
-    # It is used to enforce the value, in case its content starts with env:// or file:// (eg a file:// URL).
-    
-    # * Otherwise, `value` is the value content itself. 
 
     if value.startswith('env://'):
         envvar = value[6:]

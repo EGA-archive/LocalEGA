@@ -1,12 +1,20 @@
 """Utility functions used internally."""
 
 import os
+import logging
 
+LOG = logging.getLogger(__name__)
 
 def sanitize_user_id(user):
     """Return username without host part of an ID on the form name@something."""
     return user.split('@')[0]
 
+def remove_file(filepath):
+    try:
+        os.remove(filepath)
+    except: # Crash if not found, or permission denied
+        # LOG.warning('Could not remove %s', filepath, extra={ 'correlation_id': '******' })
+        LOG.warning('Could not remove %s', filepath)
 
 def get_from_file(filepath, mode='rb', remove_after=False):
     """Return file content.
@@ -16,11 +24,11 @@ def get_from_file(filepath, mode='rb', remove_after=False):
     try:
         with open(filepath, mode) as s:
             return s.read()
-        # Crash if not found, or permission denied
-        if remove_after:
-            os.remove(filepath)
-    except:
+    except: # Crash if not found, or permission denied
         raise ValueError(f'Error loading {filepath}')
+    finally:
+        if remove_after:
+            remove_file(filepath)
 
 def get_from_env(name):
     result = os.getenv(name, None)

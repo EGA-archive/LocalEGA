@@ -11,7 +11,7 @@ loggers:
     qualname: lega
   py.warnings:
     level: DEBUG
-    handlers: [debugFile,consoleWarning]
+    handlers: [console]
 
 
 handlers:
@@ -21,10 +21,6 @@ handlers:
   console:
     class: logging.StreamHandler
     formatter: simple
-    stream: ext://sys.stderr
-  consoleWarning:
-    class: logging.StreamHandler
-    formatter: simple_no_correlation
     stream: ext://sys.stderr
   debugFile:
     class: logging.FileHandler
