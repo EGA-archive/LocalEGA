@@ -33,6 +33,7 @@ jobs:
       run: make -C deploy image
     - name: Install required tools
       run: |
+        make --version
         git clone https://github.com/bats-core/bats-core.git
         pushd bats-core
         git checkout v1.1.0

@@ -106,7 +106,7 @@ endif
 
 ../private/master.key.sec: ../private/secrets/master.key.passphrase
 	@echo "Creating master key: $(@F)"
-	@ssh-keygen -t ed25519 -f $@ -N "$(file < $<)" -C "Master.Key@LocalEGA" &>/dev/null	
+	@ssh-keygen -t ed25519 -f $@ -N "$(shell cat $<)" -C "Master.Key@LocalEGA" &>/dev/null
 	@mv $@.pub $(@:%.sec=%.pub)
 	@chmod 440 $@
 
