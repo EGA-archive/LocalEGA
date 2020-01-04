@@ -96,4 +96,16 @@ They require some knowledge on how the components are interconnected.
 - [x] Inbox user isolation: A user cannot access the files of another user<br/>
       Expected outcome: File not found or access denied
 
+- [x] Database not reachable from the vault (only if S3-backed)<br/>
+      Expected outcome: ping "db" fails from archive
+
+- [x] Database not reachable from the inbox<br/>
+      Expected outcome: ping "db" fails from inbox
+
+- [x] Vault not reachable from the db (only if S3-backed)<br/>
+      Expected outcome: ping "archive" fails from db
+
+- [x] Vault not reachable from the inbox (only if S3-backed)<br/>
+      Expected outcome: ping "archive" fails from inbox
+
 
