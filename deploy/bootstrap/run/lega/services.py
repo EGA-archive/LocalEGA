@@ -219,7 +219,8 @@ def main(cega_conf, conf, args):
             'entrypoint': ["lega-entrypoint.sh"],
             'command': ["ega-finalize"],
             # 'entrypoint': ["/bin/sleep", "1000000000000"]
-        }
+        },
+
     }
 
     if with_s3:
@@ -253,27 +254,27 @@ def main(cega_conf, conf, args):
                   'target': 'db.connection',
                   'uid': 'lega',
                   'gid': 'lega',
-                  'mode': 0o400,
+                  'mode': '0400', # octal
                 },
                 { 'source': 'mq.connection',
                   'target': 'mq.connection',
                   'uid': 'lega',
                   'gid': 'lega',
-                  'mode': 0o400,
+                  'mode': '0400', # octal
                 }]
             # S3 access and secret keys are in insecure env vars
  
-        lega['services']['verify']['secrets'].append({ 'source': 'master.key',
-                                                       'target': 'master.key',
+        lega['services']['verify']['secrets'].append({ 'source': 'master.key.passphrase',
+                                                       'target': 'master.key.passphrase',
                                                        'uid': 'lega',
                                                        'gid': 'lega',
-                                                       'mode': 0o400,
+                                                       'mode': '0400', # octal
         })
            
         lega['secrets'] = {
             'db.connection': { 'file': './secrets/db.connection'         },
             'mq.connection': { 'file': './secrets/mq.connection'         },
-            'master.key'   : { 'file': './secrets/master.key.passphrase' },
+            'master.key.passphrase' : { 'file': './secrets/master.key.passphrase' },
         }
 
         # create the files 

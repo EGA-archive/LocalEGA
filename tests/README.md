@@ -1,7 +1,7 @@
 # LocalEGA testsuite
 
 Unit Tests are run with pytest, coverage and tox.
-The other tests use [BATS](https://github.com/bats-core/bats-core).
+The other tests use [BATS](https://github.com/bats-core/bats-core) (and require `expect` and `jq`).
 
 ## Integration Tests
 
@@ -16,7 +16,7 @@ These tests treat the system as a black box, only checking the expected output f
 - [x] Ingesting a directory with multiple files and/or subdirectories<br/>
       Expected outcome: Messages in the CentralEGA completed queue
 
-- [x] (skipped) Upload 2 files encrypted with same session key<br/>
+- [x] Upload 2 files encrypted with same session key<br/>
 	  Expected outcome: Message in the CentralEGA user-error queue for the second file
 
 - [x] (skipped) Use 2 stable IDs for the same ingested file<br/>
@@ -56,19 +56,19 @@ They require some knowledge on how the components are interconnected.
 - [ ] Check Archive+DB consistency<br/>
       Expected outcome: Re-checksums the files after several ingestions
 
-- [x] (skipped) DB restarted after *n* seconds<br/>
+- [x] DB restarted after *n* seconds<br/>
       Expected outcome: Combining an ingestion before and one after, the latest one should still "work"
 
-- [x] (skipped) DB restarted in the middle of an ingestion<br/>
+- [x] DB restarted in the middle of an ingestion<br/>
       Expected outcome: File ingested as usual
 
-- [x] (skipped) MQ restarted, test delivery mode<br/>
+- [x] MQ restarted, test delivery mode<br/>
       Expected outcome: queued tasks completed
 
 - [ ] Retry message 3 times if rejected before error or timeout<br/>
       Expected outcome: queued tasks completed
 
-- [x] (skipped) Restart some component X<br/>
+- [x] Restart all components in between 2 ingestions<br/>
       Expected outcome: Business as usual
 
 ## Stress
