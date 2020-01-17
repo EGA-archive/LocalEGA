@@ -34,7 +34,7 @@ jobs:
         pushd bats-core && git checkout v1.1.0 && sudo ./install.sh /usr/local && popd
     - name: Bootstrap requirements
       run: |
-        pip install git+https://github.com/EGA-archive/crypt4gh.git@v1.0
+        pip install git+https://github.com/EGA-archive/crypt4gh.git@v1.1
         pip install pika==1.0.1
         pip install shyaml
         sudo apt-get install expect
