@@ -2,12 +2,27 @@
 """Logs Formatter."""
 
 from logging import Formatter
-from logging.handlers import DatagramHandler
+from logging.handlers import DatagramHandler, SocketHandler
 import json
 import re
 
 class UDPHandler(DatagramHandler):
     """UDP Log Handler.
+
+    We do not use pickle.dumps for the result.
+    We only send it as bytes (adding a newline).
+    """
+
+    def makePickle(self, record):
+        """Create python pickle."""
+        # the parent makePickle uses pickle.dumps
+        # which sends more than the formatted record
+        # See https://github.com/python/cpython/blob/3.8/Lib/logging/handlers.py#L585-L605
+        # Instead, we only format the record and send it as bytes, along with a newline terminator
+        return self.format(record).encode('utf-8') + b'\n'
+
+class TCPHandler(SocketHandler):
+    """TCP Log Handler.
 
     We do not use pickle.dumps for the result.
     We only send it as bytes (adding a newline).
