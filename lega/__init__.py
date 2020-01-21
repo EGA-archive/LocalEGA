@@ -11,8 +11,8 @@ __copyright__ = 'Local EGA @ CRG, Barcelona'
 
 # This updates the logging class from all loggers used in this package.
 # The new logging class injects a correlation id to the log record.
-from .conf.logging import LEGALogger
 import logging
+from .conf.logging import LEGALogger
 logging.setLoggerClass(LEGALogger)
 
 # Send warnings using the package warnings to the logging system
@@ -21,4 +21,3 @@ logging.setLoggerClass(LEGALogger)
 import warnings
 logging.captureWarnings(True)
 warnings.simplefilter("default")  # do not ignore Deprecation Warnings
-

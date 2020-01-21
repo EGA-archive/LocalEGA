@@ -8,7 +8,6 @@ from . import CONF
 
 def main(print_values=False):
     """Run the main routine, for loading configuration."""
-    CONF.setup()
 
     print(repr(CONF))
 
