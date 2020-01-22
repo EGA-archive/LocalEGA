@@ -6,7 +6,7 @@ root:
 loggers:
   lega:
     level: DEBUG
-    handlers: [tcp, console]
+    handlers: [udp, console]
     propagate: True
     qualname: lega
   py.warnings:
@@ -20,27 +20,19 @@ handlers:
     level: NOTSET
   console:
     class: logging.StreamHandler
-    formatter: json
+    formatter: lega
     stream: ext://sys.stderr
   udp:
     class: lega.utils.logging.UDPHandler
     formatter: json
     host: logs
     port: 9000
-  tcp:
-    class: lega.utils.logging.TCPHandler
-    formatter: json
-    host: logs
-    port: 9000
 
 formatters:
   lega:
-    fmt: '[{asctime:<20}][{name}][{process:d} {processName:>15}][{levelname}] (L:{lineno}) {funcName}: {message}'
-    style: '{'
-    datefmt: '%Y-%m-%d %H:%M:%S'
-  simple:
     fmt: '[{correlation_id}][{name:^10}][{levelname:^6}] (L{lineno}) {message}'
     style: '{'
+    datefmt: '%Y-%m-%d %H:%M:%S'
   json:
     (): lega.utils.logging.JSONFormatter
     fmt: '(correlation_id) (asctime) (name) (levelname) (lineno) (funcName) (message)'

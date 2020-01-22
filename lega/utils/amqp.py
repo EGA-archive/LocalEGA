@@ -196,6 +196,7 @@ def consume(work, from_queue, to_routing, ack_on_error=True):
                 channel.basic_consume(from_queue, on_message_callback=process_request)
                 channel.start_consuming()
             except KeyboardInterrupt:
+                LOG.info('Stop consuming (Keyboard Interrupt)')
                 channel.stop_consuming()
                 connection.close()
                 break
@@ -206,9 +207,9 @@ def consume(work, from_queue, to_routing, ack_on_error=True):
                 LOG.debug('Retrying after %s', e)
                 connection.close()
                 continue
-            # # Note: Let it raise any other exception and bail out.
-            # except Exception as e:
-            #     LOG.critical('%r', e)
-            #     connection.close()
-            #     break
-            #     #sys.exit(2)
+            # Let it raise any other exception and bail out.
+            except Exception as e:
+                LOG.critical('%r', e)
+                connection.close()
+                #break
+                sys.exit(2)

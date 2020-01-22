@@ -17,7 +17,7 @@ Users are handled through Central EGA, directly.
 ''',
       packages=find_packages(),
       include_package_data=False,
-      package_data={'lega': ['conf/loggers/*.yaml', 'conf/defaults.ini']},
+      package_data={'lega': ['conf/loggers/*.yaml']},
       zip_safe=False,
       entry_points={
           'console_scripts': [
