@@ -36,7 +36,7 @@ preflight-check:
 # the rabbitmq shovel to CentralEGA (the federated queue can be late, it doesn't hurt)
 
 logs:
-	docker-compose logs -f logs
+	@docker logs -f logs
 
 ####################################################
 ## Base Image
