@@ -35,7 +35,8 @@ preflight-check:
 # For the moment, we simply do sleep 20, because we need
 # the rabbitmq shovel to CentralEGA (the federated queue can be late, it doesn't hurt)
 
-
+logs:
+	@docker logs -f logs
 
 ####################################################
 ## Base Image

@@ -44,7 +44,14 @@ The following images are pulled from Docker Hub, when starting LocalEGA (only th
 * [`egarchive/lega-mq`](https://github.com/EGA-archive/LocalEGA-mq) (based on `rabbitmq:3.6.14-management`)
 * [`egarchive/lega-db`](https://github.com/EGA-archive/LocalEGA-db) (based on `postgres:11.2`)
 * [`egarchive/lega-inbox`](https://github.com/EGA-archive/LocalEGA-inbox) (based on OpenSSH version 7.8p1 and CentOS7)
-* `python:3.6-alpine3.10` 
+* `python:3.8-alpine3.11` 
+
+
+> Important notice: The user inside the container is called `lega`,
+> and its ID is by default 1000. When (re)building the image, the
+> above target `make image` will make the ID match the current user
+> calling the command. This is important to allow injected files to be
+> readable by the `lega` user inside the containers.
 
 ----
 

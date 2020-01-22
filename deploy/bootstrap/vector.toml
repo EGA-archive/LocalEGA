@@ -1,0 +1,10 @@
+[sources.lega]
+type = "socket"
+mode = "udp"
+address = "0.0.0.0:9000"
+
+[sinks.out]
+inputs   = ["lega"]
+type     = "console"
+#encoding = "json"
+target   = "stdout"

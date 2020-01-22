@@ -142,7 +142,7 @@ def main(cega_conf, conf, args):
 
         'ingest': {
             'environment': [
-                'LEGA_LOG=debug',
+                'LEGA_LOG=centralized',
             ] + ([
                 'S3_ACCESS_KEY='+conf.get('s3','access_key'),
                 'S3_SECRET_KEY='+conf.get('s3','secret_key'),
@@ -170,7 +170,7 @@ def main(cega_conf, conf, args):
 
         'verify': {
             'environment': [
-                'LEGA_LOG=debug',
+                'LEGA_LOG=centralized',
             ] + ([
                 'S3_ACCESS_KEY='+conf.get('s3','access_key'),
                 'S3_SECRET_KEY='+conf.get('s3','secret_key'),
@@ -198,13 +198,12 @@ def main(cega_conf, conf, args):
 
         'finalize': {
             'environment': [
-                'LEGA_LOG=debug'
+                'LEGA_LOG=centralized'
             ],
             'hostname': f'finalize{HOSTNAME_DOMAIN}',
             'image': 'egarchive/lega-base:latest',
             'container_name': f'finalize{HOSTNAME_DOMAIN}',
             'volumes': [
-                '../../lega:/home/lega/.local/lib/python3.6/site-packages/lega',  # under dev
                 './finalize.ini:/etc/ega/conf.ini:ro',
                 './lega-entrypoint.sh:/usr/local/bin/lega-entrypoint.sh',
                 './certs/finalize.cert.pem:/etc/ega/ssl.cert',
@@ -218,8 +217,26 @@ def main(cega_conf, conf, args):
             'user': 'lega',
             'entrypoint': ["lega-entrypoint.sh"],
             'command': ["ega-finalize"],
-            # 'entrypoint': ["/bin/sleep", "1000000000000"]
+        },
+
+        # Collect logs to a central location.
+        # Vector.dev, logstash, or a custom code can receive them
+        'logs': {
+            'hostname': f'logs{HOSTNAME_DOMAIN}',
+            'image': 'python:3.8-alpine3.11',
+            'container_name': f'logs{HOSTNAME_DOMAIN}',
+            'volumes': [
+                '../bootstrap/udplogs.py:/logserver.py',
+            ],
+            'networks': [
+                'internal',
+                # 'private-db',
+                # 'private-vault',
+                # 'external',
+            ],
+            'entrypoint': ['python', '/logserver.py']
         }
+
     }
 
     if with_s3:
@@ -253,27 +270,27 @@ def main(cega_conf, conf, args):
                   'target': 'db.connection',
                   'uid': 'lega',
                   'gid': 'lega',
-                  'mode': 0o400,
+                  'mode': '0400', # octal
                 },
                 { 'source': 'mq.connection',
                   'target': 'mq.connection',
                   'uid': 'lega',
                   'gid': 'lega',
-                  'mode': 0o400,
+                  'mode': '0400', # octal
                 }]
             # S3 access and secret keys are in insecure env vars
  
-        lega['services']['verify']['secrets'].append({ 'source': 'master.key',
-                                                       'target': 'master.key',
+        lega['services']['verify']['secrets'].append({ 'source': 'master.key.passphrase',
+                                                       'target': 'master.key.passphrase',
                                                        'uid': 'lega',
                                                        'gid': 'lega',
-                                                       'mode': 0o400,
+                                                       'mode': '0400', # octal
         })
            
         lega['secrets'] = {
             'db.connection': { 'file': './secrets/db.connection'         },
             'mq.connection': { 'file': './secrets/mq.connection'         },
-            'master.key'   : { 'file': './secrets/master.key.passphrase' },
+            'master.key.passphrase' : { 'file': './secrets/master.key.passphrase' },
         }
 
         # create the files 

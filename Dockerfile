@@ -1,7 +1,7 @@
 ##########################
 ## Build env
 ##########################
-FROM python:3.6-alpine3.10 as BUILD
+FROM python:3.8-alpine3.11 as BUILD
 
 RUN apk add git postgresql-dev gcc musl-dev libffi-dev make gnupg
 
@@ -17,7 +17,7 @@ RUN pip install /root/LocalEGA
 ##########################
 ## Final image
 ##########################
-FROM python:3.6-alpine3.10
+FROM python:3.8-alpine3.11
 
 LABEL maintainer "EGA System Developers"
 LABEL org.label-schema.schema-version="1.0"
@@ -32,8 +32,7 @@ ARG LEGA_GID=1000
 RUN addgroup -g ${LEGA_GID} lega && \
     adduser -D -G lega -u ${LEGA_UID} lega
 
-COPY --from=BUILD usr/local/lib/python3.6/ usr/local/lib/python3.6/
-
+COPY --from=BUILD usr/local/lib/python3.8/ usr/local/lib/python3.8/
 COPY --from=BUILD /usr/local/bin/ega-* /usr/local/bin/
 
 RUN mkdir -p /ega/archive && \

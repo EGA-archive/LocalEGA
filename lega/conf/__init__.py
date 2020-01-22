@@ -1,6 +1,6 @@
 """Configuration Module provides a dictionary-like with configuration settings.
 
-It also loads the logging settings when ``setup`` is called.
+It also sets up the logging.
 
 * The ``LEGA_LOG`` environment variable is used to configure where the logs go.
   Without it, there is no logging capabilities.
@@ -12,7 +12,6 @@ It also loads the logging settings when ``setup`` is called.
   The files must be either in ``INI`` format or in ``YAML`` format, in
   which case, it must end in ``.yaml`` or ``.yml``.
 """
-
 from . import logging as lega_logging
 import logging
 logging.setLoggerClass(lega_logging.LEGALogger)
@@ -26,11 +25,26 @@ from logging.config import fileConfig, dictConfig
 from pathlib import Path
 import yaml
 
-from ..utils import get_from_file, get_from_env
-
 LOG_FILE = os.getenv('LEGA_LOG', None)
 CONF_FILE = os.getenv('LEGA_CONF', '/etc/ega/conf.ini')
 LOG = logging.getLogger(__name__)
+
+def get_from_file(filepath, mode='rb', remove_after=False):
+    """Return file content.
+
+    Raises ValueError if it errors.
+    """
+    try:
+        with open(filepath, mode) as s:
+            return s.read()
+    except: # Crash if not found, or permission denied
+        raise ValueError(f'Error loading {filepath}')
+    finally:
+        if remove_after:
+            try:
+                os.remove(filepath)
+            except: # Crash if not found, or permission denied
+                LOG.warning('Could not remove %s', filepath)
 
 def convert_sensitive(value):
     """Fetch a sensitive value from different sources.
@@ -65,7 +79,10 @@ def convert_sensitive(value):
             " Use secret:// instead",
             DeprecationWarning, stacklevel=4
         )
-        return get_from_env(envvar)
+        envvalue = os.getenv(envvar, None)
+        if envvalue is None:
+            raise ValueError(f'Environment variable {envvar} not found')
+        return envvalue
 
     if value.startswith('file://'):
         path=value[7:]
@@ -113,7 +130,11 @@ class Configuration(configparser.RawConfigParser):
         try:
             self.load_log(LOG_FILE)
         except Exception as e:
-            print(f'No logging supplied: {e}', file=sys.stderr)
+            # import traceback
+            # traceback.print_stack()
+            print(f'No logging supplied: {e!r}', file=sys.stderr)
+            if e.__cause__:
+                print('Cause: {e.__cause__!r}', file=sys.stderr)
                 
     def __repr__(self):
         """Show the configuration files."""

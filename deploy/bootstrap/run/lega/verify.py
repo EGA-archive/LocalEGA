@@ -33,7 +33,7 @@ def main(conf, args):
         'master_key': 'c4gh_file',
     }
 
-    master_key = ('secret:///run/secrets/master.key'
+    master_key = ('secret:///run/secrets/master.key.passphrase'
                   if with_docker_secrets else
                   conf.get('master_key','passphrase', raw=True))
 
