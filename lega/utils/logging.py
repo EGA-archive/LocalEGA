@@ -21,11 +21,11 @@ class BaseHandler():
         # Instead, we only format the record and send it as bytes, along with a newline terminator
         return self.format(record).encode('utf-8') + b'\n'
 
-class UDPHandler(DatagramHandler, BaseHandler):
+class UDPHandler(BaseHandler, DatagramHandler):
     """UDP Log Handler."""
     pass
 
-class TCPHandler(SocketHandler, BaseHandler):
+class TCPHandler(BaseHandler, SocketHandler):
     """TCP Log Handler."""
     pass
 
