@@ -1,8 +1,7 @@
 from setuptools import setup, find_packages
-from lega import __version__
 
 setup(name='lega',
-      version=__version__,
+      version='1.1',  # not via loading lega.__version__
       url='https://localega.readthedocs.io/',
       license='Apache License 2.0',
       author='EGA System Developers',
@@ -30,10 +29,8 @@ Users are handled through Central EGA, directly.
       platforms='any',
       install_requires=[
           'pika',
-          'aiohttp',
           'psycopg2>=2.8.4',
           'PyYaml',
           'boto3',
-          'requests',
           'crypt4gh @ git+https://github.com/EGA-archive/crypt4gh.git'
       ])

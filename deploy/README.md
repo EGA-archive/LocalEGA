@@ -6,16 +6,17 @@ You can then [generate the private data](bootstrap), with:
 
 	make -C bootstrap
 
-This requires `openssl` (>=1.1), `ssh-keygen` (=>6.5).
+This requires `openssl` (>=1.1), `ssh-keygen` (=>6.5).  
+Install the required python packages with `pip install -r bootstrap/requirements.txt`.
 
-The command will create a `.env` file and a `private` folder holding
-the necessary data (ie the master keypair, the TLS
+Bootstrapping will create a `.env` file and a `private` directory
+holding the necessary data (ie the master keypair, the TLS
 certificates for internal communication, passwords, default users,
-etc...)
+configuration files, etc...)
 
 The passwords are in `private/secrets` and the errors (if any) are in `private/.err`.
 
-The credentials for the test users (john, jane and dummy) are found in `private/users`.
+The credentials for the test users are found in `private/users`.
 
 ## Convenient commands
 
@@ -63,3 +64,7 @@ We use 2 stubbing services in order to fake the necessary Central EGA components
 |-------------:|------|
 | `cega-users` | Sets up a small list of test users |
 | `cega-mq`    | Sets up a RabbitMQ message broker with appropriate accounts, exchanges, queues and bindings |
+
+If the `cega-users` is not built, it will be build by docker-compose. If you want to build yourself, you can run:
+
+	docker-compose build cega-users

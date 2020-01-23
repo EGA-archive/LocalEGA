@@ -113,9 +113,14 @@ class Configuration(configparser.RawConfigParser):
 
     def __init__(self):
         """Set up."""
-        if not CONF_FILE:
-            print('No configuration found', file=sys.stderr)
-            print('Bailing out', file=sys.stderr)
+        if (
+                not CONF_FILE  # has no value
+                or
+                not os.path.isfile(CONF_FILE)  # does not exist
+                or
+                not os.access(CONF_FILE, os.R_OK)  # is not readable
+        ):
+            print('Error: No configuration found', file=sys.stderr)
             sys.exit(2)
 
         configparser.RawConfigParser.__init__(self,

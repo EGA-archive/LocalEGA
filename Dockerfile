@@ -3,9 +3,10 @@
 ##########################
 FROM python:3.8-alpine3.11 as BUILD
 
-RUN apk add git postgresql-dev gcc musl-dev libffi-dev make gnupg
+RUN apk add git libressl-dev postgresql-dev gcc musl-dev libffi-dev make
 
-COPY requirements.txt /root/LocalEGA/requirements.txt
+# This will pin the package versions
+COPY deploy/requirements.txt /root/LocalEGA/requirements.txt
 RUN pip install --upgrade pip && \
     pip install -r /root/LocalEGA/requirements.txt
 
