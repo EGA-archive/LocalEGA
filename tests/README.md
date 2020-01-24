@@ -1,7 +1,11 @@
 # LocalEGA testsuite
 
 Unit Tests are run with pytest, coverage and tox.
-The other tests use [BATS](https://github.com/bats-core/bats-core) (and require `expect` and `jq`).
+
+The other tests use [BATS](https://github.com/bats-core/bats-core).
+They also require `expect`, `ssh`, `ssh-agent` and `crypt4gh`.
+
+Install the required packages with `pip install -r requirements.txt`.
 
 ## Integration Tests
 
