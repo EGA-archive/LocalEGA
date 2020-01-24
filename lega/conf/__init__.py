@@ -115,16 +115,7 @@ class Configuration(configparser.RawConfigParser):
 
     def __init__(self):
         """Set up."""
-        if (
-                not CONF_FILE  # has no value
-                or
-                not os.path.isfile(CONF_FILE)  # does not exist
-                or
-                not os.access(CONF_FILE, os.R_OK)  # is not readable
-        ):
-            print('Error: No configuration found', file=sys.stderr)
-            sys.exit(2)
-
+        # Load the configuration settings
         configparser.RawConfigParser.__init__(self,
                                               delimiters=('=', ':'),
                                               comment_prefixes=('#', ';'),
@@ -133,15 +124,29 @@ class Configuration(configparser.RawConfigParser):
                                               converters={
                                                   'sensitive': convert_sensitive,
                                               })
-        self.read([CONF_FILE], encoding='utf-8')
-        try:
-            self.load_log(LOG_FILE)
-        except Exception as e:
-            # import traceback
-            # traceback.print_stack()
-            print(f'No logging supplied: {e!r}', file=sys.stderr)
-            if e.__cause__:
-                print('Cause: {e.__cause__!r}', file=sys.stderr)
+        if (
+                not CONF_FILE  # has no value
+                or
+                not os.path.isfile(CONF_FILE)  # does not exist
+                or
+                not os.access(CONF_FILE, os.R_OK)  # is not readable
+        ):
+            warnings.warn("No configuration settings found", UserWarning, stacklevel=2)
+        else:
+            self.read([CONF_FILE], encoding='utf-8')
+
+        # Configure the logging system
+        if not LOG_FILE:
+            warnings.warn("No logging supplied", UserWarning, stacklevel=2)
+        else:
+            try:
+                self._load_log(LOG_FILE)
+            except Exception as e:
+                # import traceback
+                # traceback.print_stack()
+                warnings.warn(f"No logging supplied: {e!r}", UserWarning, stacklevel=3)
+                if e.__cause__:
+                    warnings.warn(f'Cause: {e.__cause__!r}', UserWarning, stacklevel=3)
 
     def __repr__(self):
         """Show the configuration files."""
@@ -150,11 +155,9 @@ class Configuration(configparser.RawConfigParser):
             res += f'\nLogging settings loaded from {self.logger}'
         return res
 
-    def load_log(self, filename):
+    def _load_log(self, filename):
         """Try to load `filename` as configuration file for logging."""
-        if not filename:
-            raise ValueError('No logging supplied')
-
+        assert(filename)
         _here = Path(__file__).parent
 
         # Try first if it is a default logger
