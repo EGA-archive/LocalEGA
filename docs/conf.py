@@ -5,31 +5,14 @@ import os
 import sys
 import datetime
 from recommonmark.parser import CommonMarkParser
-from unittest.mock import MagicMock
 
 # Get the project root dir, which is the parent dir of this
+# sys.path.insert(0, os.path.dirname(os.getcwd()))
 sys.path.insert(0, os.path.abspath('..'))
-
-import lega  # noqa: E402
+# print('PYTHONPATH =', sys.path)
+import lega
 
 # -- General configuration ------------------------------------------------
-
-
-class Mock(MagicMock):
-    """Mock modules.
-
-    For some modules we will not build docs.
-    """
-
-    @classmethod
-    def __getattr__(cls, name):
-        """Mock modules."""
-        return MagicMock()
-
-
-# Some modules need to be mocked
-MOCK_MODULES = ['yaml', 'pika', 'aiohttp', 'asyncio', 'psycopg2']
-sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 # If your documentation needs a minimal Sphinx version, state it here.
 #
@@ -45,7 +28,7 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.viewcode',
               'sphinx.ext.githubpages',
               'sphinx.ext.todo',
-              ]
+]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['templates']
@@ -66,8 +49,8 @@ current_year = str(datetime.date.today().year)
 
 # General information about the project.
 project = 'Local EGA'
-copyright = f'2017 - {current_year}, NBIS System Developers'
-author = 'NBIS System Developers'
+copyright = f'2017 - {current_year}, EGA-CRG System Developers'
+author = 'EGA-CRG System Developers'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -101,15 +84,25 @@ autosummary_generate = True
 
 # -- Options for HTML output ----------------------------------------------
 
-html_title = 'NBIS Local EGA'
+html_title = 'Local EGA'
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
+#
+# html_theme = 'alabaster'
+# html_theme_options = {
+#     'fixed_sidebar': True,
+#     'show_powered_by': False,
+#     #'badge_branch': 'dev',
+#     'github_repo': 'https://github.com/EGA-archive/LocalEGA',
+#     'github_button': True,
+# }
 
 html_theme = 'sphinx_rtd_theme'
 html_theme_options = {
     'collapse_navigation': True,
     'sticky_navigation': True,
+    # 'navigation_depth': 4,
     'display_version': True,
     'prev_next_buttons_location': 'bottom',
 }
@@ -125,7 +118,13 @@ html_static_path = ['static']
 # This is required for the alabaster theme
 # refs: http://alabaster.readthedocs.io/en/latest/installation.html#sidebars
 html_sidebars = {
-    '**': []
+    '**': [
+        # 'about.html',
+        # 'navigation.html',
+        # 'relations.html',  # needs 'show_related': True theme option to display
+        # 'searchbox.html',
+        # 'donate.html',
+    ]
 }
 
 
@@ -140,6 +139,7 @@ def setup(app):
 # -- Other stuff ----------------------------------------------------------
 htmlhelp_basename = 'LocalEGA'
 latex_elements = {}
-latex_documents = [(master_doc, 'LocalEGA.tex', 'Local EGA', 'NBIS System Developers', 'manual')]
+latex_documents = [(master_doc, 'LocalEGA.tex', 'Local EGA', 'EGA-CRG System Developers', 'manual')]
 man_pages = [(master_doc, 'localega', 'Local EGA', [author], 1)]
-texinfo_documents = [(master_doc, 'LocalEGA', 'Local EGA', author, 'LocalEGA', 'Local extension to the European Genomic Archive', 'Miscellaneous')]
+texinfo_documents = [(master_doc, 'LocalEGA', 'Local EGA', author, 'LocalEGA',
+                     'Local extension to the European Genomic Archive', 'Miscellaneous')]

@@ -1,4 +1,4 @@
-<table id="ega">
+<table id="lega">
   <thead>
     <tr>
       <th>Service</th>
@@ -9,8 +9,8 @@
   <tbody>
     <tr>
       <td>db</td>
-      <td>A Postgres database with appropriate schema</td>
-      <td><i class="fa fa-battery-full ega-stable" title="Stable"></i></td>
+      <td>A Postgres database with appropriate schemas</td>
+      <td><i class="fa fa-battery-full lega-stable" title="Stable"></i></td>
     </tr>
     <tr>
       <td>mq</td>
@@ -18,48 +18,51 @@
       exchanges, queues and bindings. We use a federated queue to get
       messages from CentralEGA's broker and shovels to send answers
       back.</td>
-      <td><i class="fa fa-battery-full ega-stable" title="Stable"></i></td>
+      <td><i class="fa fa-battery-full lega-stable" title="Stable"></i></td>
     </tr>
     <tr>
       <td>inbox</td>
       <td>SFTP server, acting as a dropbox, where user credentials come from Central EGA</td>
-      <td><i class="fa fa-battery-full ega-stable" title="Stable"></i></td>
+      <td><i class="fa fa-battery-full lega-stable" title="Stable"></i></td>
     </tr>
     <tr>
-      <td>keyserver</td>
-      <td>Handles the encryption/decryption keys</td>
-      <td><i class="fa fa-battery-half ega-dev" title="Working, but still under development"></i></td>
-    </tr>
-    <tr>
-      <td>Ingesters</td>
+      <td>ingesters</td>
       <td>Split the Crypt4GH header and move the remainder to the
-      storage backend. No cryptographic task, nor connection to the
-      keyserver.</td>
-      <td><i class="fa fa-battery-full ega-stable" title="Stable"></i></td>
+      storage backend. No cryptographic task.</td>
+      <td><i class="fa fa-battery-full lega-stable" title="Stable"></i></td>
     </tr>
     <tr>
-      <td>Verifiers</td>
-      <td>Connect to the keyserver (via SSL) and decrypt the stored
-      files and checksum them against their embedded checksum.</td>
-      <td><i class="fa fa-battery-full ega-stable" title="Stable"></i></td>
+      <td>verifiers</td>
+      <td>Decrypt the stored files and checksum them against their
+      embedded checksum. Decryption key securely loaded.</td>
+      <td><i class="fa fa-battery-full lega-stable" title="Stable"></i></td>
     </tr>
     <tr>
-      <td>archive</td>
-      <td>Storage backend: as a regular file system or as a S3 object
-      store.</td>
-      <td><i class="fa fa-battery-full ega-stable" title="Stable"></i></td>
+      <td>vault</td>
+      <td>Storage backend: as a regular file system or as a S3 object store.</td>
+      <td><i class="fa fa-battery-full lega-stable" title="Stable"></i></td>
     </tr>
     <tr>
-      <td>ID Mapper</td>
-      <td>Handles the so-called <i>Stable ID</i> filename mappings from CentralEGA..
-      store.</td>
-      <td><i class="fa fa-battery-half ega-dev" title="Working, but still under development"></i></td>
+      <td>finalizers</td>
+      <td>Receive a so-called Stable ID from Central EGA and flag the ingested file as <em>Ready</em>.</td>
+      <td><i class="fa fa-battery-full lega-stable" title="Stable"></i></td>
     </tr>
-    <!-- <tr>
-      <td>Controllers</td>
-      <td>Plugin-based <i>Quality</i> Controllers, running in the background.
-      store.</td>
-      <td><i class="fa fa-battery-half ega-dev" title="Working, but still under development"></i></td>
-    </tr> -->
+    <tr>
+      <td>outgesters</td>
+      <td>Front-facing HTTP(s) server, receiving POST requests to outgest files.
+	It is guarded by an external check regarding the given file access permissions.
+	It is based on standard OpenID Connect (OAuth2) authorization.</td>
+      <td><i class="fa fa-battery-half lega-dev" title="Working, but still under development"></i></td>
+    </tr>
+    <tr>
+      <td>streamers</td>
+      <td>Fetch the vault file internally and prepare streaming in Crypt4GH format.</td>
+      <td><i class="fa fa-battery-half lega-dev" title="Working, but still under development"></i></td>
+    </tr>
+    <tr>
+      <td>controllers</td>
+      <td><i>Quality</i> Controllers, running in the background.</td>
+      <td><i class="fa fa-battery-empty lega-dev" title="Not started"></i></td>
+    </tr>
   </tbody>
 </table>

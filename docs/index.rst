@@ -34,64 +34,38 @@ properly uploaded.
 
 When a submission is ready, Central EGA triggers an ingestion process
 on the user-chosen Local EGA instance. The uploaded file must be
-encrypted in the :download:`Crypt4GH file format
-<./static/crypt4gh.pdf>` using that Local EGA's public PGP
-key. Central EGA's interface is updated with progress notifications
-whether the ingestion was successful, or whether there was an error.
+encrypted in the `Crypt4GH file format
+<https://crypt4gh.readthedocs.io/en/latest/encryption.html>`_ using
+that Local EGA's public key. Central EGA's interface is updated with
+progress notifications whether the ingestion was successful, or
+whether there was an error.
 
 |moreabout| More details about the :ref:`ingestion process`.
 
-.. image:: /static/components.svg
-   :target: ./_static/components.svg
+.. image:: /static/components.jpeg
+   :target: ./_static/components.jpeg
    :alt: General Architecture and Connected Components
 
 ----
 
-Getting started
-===============
-
-.. toctree::
-   :maxdepth: 2
-   :name: setup
-
-   Getting started      <setup>
-   Bootstrap & Deploy   <bootstrap>
-
-Information about the Architecture
-==================================
-
-.. toctree::
-   :maxdepth: 2
-   :name: architecture
-
-   Inbox                <inbox>
-   Ingestion            <ingestion>
-   Encryption           <encryption>
-   Keyserver            <keyserver>
-   Database             <db>
-   CEGA from/to LEGA    <connection>
-
-Miscellaneous
-=============
-
 .. toctree::
    :maxdepth: 1
-   :name: extra
+   :name: architecture
 
-   Python Modules       <code>
+   Installation         <installation>
+   Ingestion            <ingestion>
+   Data distribution    <outgestion>
+   Encryption           <encryption>
+   Connection CEGA-LEGA <connection>
+   Inbox                <inbox>
    Testsuite            <tests>
-   Contributing         <CONTRIBUTING>
+   Contributing         <contribute>
 
-|Codacy| | |Travis| | Version |version| | Generated |today|
+|Testsuite| | Version |version| | Generated |today|
 
 
-.. |Codacy| image:: https://api.codacy.com/project/badge/Grade/3dd83b28ec2041889bfb13641da76c5b
-	:alt: Codacy Badge
-	:class: inline-baseline
-
-.. |Travis| image:: https://travis-ci.org/NBISweden/LocalEGA.svg?branch=dev
-	:alt: Build Status
+.. |Testsuite| image:: https://github.com/EGA-archive/LocalEGA/workflows/Testsuite/badge.svg
+	:alt: Testsuite Status
 	:class: inline-baseline
 
 .. |moreabout| unicode:: U+261E .. right pointing finger
-.. |connect| unicode:: U+21cc .. <-_>

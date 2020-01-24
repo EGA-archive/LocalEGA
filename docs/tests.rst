@@ -1,80 +1,74 @@
-.. _`testsuite`:
-
 Testsuite
 =========
 
-We have implemented 2 types of testsuite: one set of *unit tests* to
-test the functionalities of the code and one set of *integration
-tests* to test the overall architecture. The latter does actually
-deploy a chosen setup and runs several scenarios, simulating how users
-will utilize the system as a whole.
+We have implemented several types of `testsuite`_, grouped into one of
+the following categories: *unit tests*, *integration tests*,
+*robustness tests*, *security tests*, and *stress tests*.
+
+All but the unit tests simulate real-case user scenarios on how they
+will interact with the system. All tests are performed on GitHub
+Actions runner, when there is a push to master or a Pull Request
+creation (i.e., they are integrated to the CI).
+
+|moreabout| Check out the `list of tests`_.
 
 Unit Tests
 ^^^^^^^^^^
 
-Unit tests are minimal: Given a set of input values for a chosen
-function, they execute the function and check if the output has the
-expected values. Moreover, they capture triggered exceptions and
-errors. Additionally we also perform pep8 and pep257 style guide checks
-using `flake8  <http://flake8.pycqa.org/en/latest/>`_ with the following
-configuration:
+Unit tests test the functionalities of the code, and are by design
+minimal: Given a set of input values for a chosen function, they
+execute the function and check if the output has the expected
+values. Moreover, they capture triggered exceptions and
+errors. Additionally we also perform pep8 and pep257 style guide
+checks using `flake8 <http://flake8.pycqa.org/en/latest/>`_ (ignoring
+the trivial configurations such as E226, D203, D212, D213, D404, D100,
+D104, C901, E402, W503, W504):
 
-.. code-block:: yaml
-
-    [flake8]
-    ignore = E226,E302
-    exclude =
-        docker,
-        extras,
-        .tox
-    max-line-length = 160
-    max-complexity = 10
-
-Unit tests can be run using the ``tox`` commands.
+Unit tests can be run using the ``tox`` command.
 
 .. code-block:: console
 
-    $ cd [git-repo]
     $ tox
 
 Integration Tests
 ^^^^^^^^^^^^^^^^^
 
 Integration tests are more involved and simulate how a user will use
-the system. Therefore, we have develop a `bootstrap script
-<bootstrap>`_ to kickstart the system, and we execute a set of scenarii
-in it. `The implementation
-<https://github.com/NBISweden/LocalEGA/blob/dev/docker/tests/README.md>`_
-is in Java, and we target a docker-based environment.
-
-We have grouped the integration around 2 targets: *Common tests* and *Robustness tests*.
+the system. They test the overall ingestion architecture.
 
 .. code-block:: console
 
-    $ cd [git-repo]/docker/tests
-    $ mvn test -Dtest=CommonTests -B
-    $ mvn test -Dtest=RobustnessTests -B
+    $ bats tests/integration
 
-Scenarii
-~~~~~~~~
+Robustness Tests
+^^^^^^^^^^^^^^^^
 
-Here follow the different scenarii we currently test, using a Gherkin-style description.
+Robustness tests test the microservice architecture and how the
+components are inter-connected. They, for example, check that if the
+database or one microservice is restarted, the overall functionality
+remains.
 
-.. literalinclude:: /../docker/tests/src/test/resources/cucumber/features/authentication.feature
-   :language: gherkin
-   :lines: 1-20
+.. code-block:: console
 
-.. literalinclude:: /../docker/tests/src/test/resources/cucumber/features/ingestion.feature
-   :language: gherkin
-   :lines: 1-25,38-
+    $ bats tests/robustness
 
-.. literalinclude:: /../docker/tests/src/test/resources/cucumber/features/uploading.feature
-   :language: gherkin
+Security Tests
+^^^^^^^^^^^^^^
 
-..
-   .. literalinclude:: /../docker/tests/src/test/resources/cucumber/features/checksums.feature
-      :language: gherkin
+Security tests increase confidence around security of the
+implementation. They give some deployment guarantees, such as one user
+cannot see the inbox of another user, or the vault is not accessible
+from the inbox.
 
-.. literalinclude:: /../docker/tests/src/test/resources/cucumber/features/robustness.feature
-   :language: gherkin
-   :lines: 1-15
+.. code-block:: console
+
+    $ bats tests/security
+
+Stress Tests
+^^^^^^^^^^^^
+
+Not yet implemented
+
+.. _testsuite: https://github.com/EGA-archive/LocalEGA/tree/master/tests
+.. |moreabout| unicode:: U+261E .. right pointing finger
+.. _list of tests: https://github.com/EGA-archive/LocalEGA/tree/master/tests

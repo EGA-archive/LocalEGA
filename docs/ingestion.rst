@@ -4,7 +4,8 @@ Ingestion Procedure
 ===================
 
 We describe in this section the architecture of the ingestion
-procedure. We assume the files are already uploaded in the user inbox.
+procedure. We assume the files are already uploaded in the :ref:`inbox
+login system`.
 
 .. image:: /static/CEGA-LEGA.png
    :target: ./_static/CEGA-LEGA.png
