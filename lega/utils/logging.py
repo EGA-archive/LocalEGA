@@ -6,6 +6,7 @@ from logging.handlers import DatagramHandler, SocketHandler
 import json
 import re
 
+
 class BaseHandler():
     """Base Log Handler.
 
@@ -21,16 +22,21 @@ class BaseHandler():
         # Instead, we only format the record and send it as bytes, along with a newline terminator
         return self.format(record).encode('utf-8') + b'\n'
 
+
 class UDPHandler(BaseHandler, DatagramHandler):
     """UDP Log Handler."""
+
     pass
+
 
 class TCPHandler(BaseHandler, SocketHandler):
     """TCP Log Handler."""
+
     pass
 
 
 _FIELDS = re.compile(r'\((.+?)\)', re.IGNORECASE)
+
 
 class JSONFormatter(Formatter):
     """Json Logs formatting."""
@@ -61,4 +67,3 @@ class JSONFormatter(Formatter):
             _record['stack_info'] = self.formatStack(record.stack_info)
 
         return json.dumps(_record)
- 

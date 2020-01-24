@@ -3,6 +3,7 @@
 
 from logging import Logger
 
+
 class _wrapper():
     """Wrapper class for the correlation id."""
 

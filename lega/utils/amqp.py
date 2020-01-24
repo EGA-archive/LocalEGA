@@ -33,7 +33,7 @@ class AMQPConnection():
         """Retrieve AMQP connection parameters."""
         LOG.debug('Getting a connection to "%s"', self.conf_section)
         params = CONF.getsensitive(self.conf_section, 'connection', raw=True)
-        if isinstance(params,bytes):  # secret to str
+        if isinstance(params, bytes):  # secret to str
             params = params.decode()
 
         LOG.info("Initializing a connection to: %s", redact_url(params))
@@ -211,5 +211,5 @@ def consume(work, from_queue, to_routing, ack_on_error=True):
             except Exception as e:
                 LOG.critical('%r', e)
                 connection.close()
-                #break
+                # break
                 sys.exit(2)

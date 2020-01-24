@@ -31,7 +31,7 @@ def log_trace():
 
     # fname = os.path.split(frame.f_code.co_filename)[1]
     fname = frame.f_code.co_filename
-    LOG.error('Exception: %s in %s on line: %s', exc_type, fname, lineno)
+    LOG.error('Exception: %s in %s on line: %s', exc_type, fname, lineno, exc_info=True)
 
 
 def handle_error(e, data):
