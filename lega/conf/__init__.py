@@ -16,7 +16,6 @@ from . import logging as lega_logging
 import logging
 logging.setLoggerClass(lega_logging.LEGALogger)
 
-import sys
 import os
 import configparser
 import warnings
