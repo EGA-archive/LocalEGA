@@ -1,0 +1,11 @@
+
+pika==1.1.0
+git+https://github.com/EGA-archive/crypt4gh.git
+
+pytest
+pytest-cov
+aioresponses
+testfixtures
+coveralls
+coverage
+tox

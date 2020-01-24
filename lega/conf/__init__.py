@@ -16,7 +16,6 @@ from . import logging as lega_logging
 import logging
 logging.setLoggerClass(lega_logging.LEGALogger)
 
-import sys
 import os
 import configparser
 import warnings
@@ -29,6 +28,7 @@ LOG_FILE = os.getenv('LEGA_LOG', None)
 CONF_FILE = os.getenv('LEGA_CONF', '/etc/ega/conf.ini')
 LOG = logging.getLogger(__name__)
 
+
 def get_from_file(filepath, mode='rb', remove_after=False):
     """Return file content.
 
@@ -37,31 +37,32 @@ def get_from_file(filepath, mode='rb', remove_after=False):
     try:
         with open(filepath, mode) as s:
             return s.read()
-    except: # Crash if not found, or permission denied
-        raise ValueError(f'Error loading {filepath}')
+    except Exception as e:  # Crash if not found, or permission denied
+        raise ValueError(f'Error loading {filepath}') from e
     finally:
         if remove_after:
             try:
                 os.remove(filepath)
-            except: # Crash if not found, or permission denied
-                LOG.warning('Could not remove %s', filepath)
+            except Exception:  # Crash if not found, or permission denied
+                LOG.warning('Could not remove %s', filepath, exc_info=True)
+
 
 def convert_sensitive(value):
     """Fetch a sensitive value from different sources.
 
     * If `value` starts with 'env://', we strip it out and the remainder acts as the name of an environment variable to read.
     If the environment variable does not exist, we raise a ValueError exception.
-    
+
     * If `value` starts with 'file://', we strip it out and the remainder acts as the filepath of a file to read (in text mode).
     If any error occurs while read the file content, we raise a ValueError exception.
 
     * If `value` starts with 'secret://', we strip it out and the remainder acts as the filepath of a file to read (in binary mode), and we remove it after.
     If any error occurs while read the file content, we raise a ValueError exception.
-    
+
     * If `value` starts with 'value://', we strip it out and the remainder acts as the value itself.
     It is used to enforce the value, in case its content starts with env:// or file:// (eg a file:// URL).
-    
-    * Otherwise, `value` is the value content itself. 
+
+    * Otherwise, `value` is the value content itself.
     """
     if value is None:  # Not found
         return None
@@ -85,7 +86,7 @@ def convert_sensitive(value):
         return envvalue
 
     if value.startswith('file://'):
-        path=value[7:]
+        path = value[7:]
         LOG.debug('Loading value from path: %s', path)
         statinfo = os.stat(path)
         if statinfo.st_mode & stat.S_IRGRP or statinfo.st_mode & stat.S_IROTH:
@@ -98,7 +99,7 @@ def convert_sensitive(value):
         return get_from_file(path, mode='rt')  # str
 
     if value.startswith('secret://'):
-        path=value[9:]
+        path = value[9:]
         LOG.debug('Loading secret from path: %s', path)
         return get_from_file(path, mode='rb', remove_after=True)  # bytes
 
@@ -113,11 +114,7 @@ class Configuration(configparser.RawConfigParser):
 
     def __init__(self):
         """Set up."""
-        if not CONF_FILE:
-            print('No configuration found', file=sys.stderr)
-            print('Bailing out', file=sys.stderr)
-            sys.exit(2)
-
+        # Load the configuration settings
         configparser.RawConfigParser.__init__(self,
                                               delimiters=('=', ':'),
                                               comment_prefixes=('#', ';'),
@@ -126,16 +123,30 @@ class Configuration(configparser.RawConfigParser):
                                               converters={
                                                   'sensitive': convert_sensitive,
                                               })
-        self.read([CONF_FILE], encoding='utf-8')
-        try:
-            self.load_log(LOG_FILE)
-        except Exception as e:
-            # import traceback
-            # traceback.print_stack()
-            print(f'No logging supplied: {e!r}', file=sys.stderr)
-            if e.__cause__:
-                print('Cause: {e.__cause__!r}', file=sys.stderr)
-                
+        if (
+                not CONF_FILE  # has no value
+                or
+                not os.path.isfile(CONF_FILE)  # does not exist
+                or
+                not os.access(CONF_FILE, os.R_OK)  # is not readable
+        ):
+            warnings.warn("No configuration settings found", UserWarning, stacklevel=2)
+        else:
+            self.read([CONF_FILE], encoding='utf-8')
+
+        # Configure the logging system
+        if not LOG_FILE:
+            warnings.warn("No logging supplied", UserWarning, stacklevel=2)
+        else:
+            try:
+                self._load_log(LOG_FILE)
+            except Exception as e:
+                # import traceback
+                # traceback.print_stack()
+                warnings.warn(f"No logging supplied: {e!r}", UserWarning, stacklevel=3)
+                if e.__cause__:
+                    warnings.warn(f'Cause: {e.__cause__!r}', UserWarning, stacklevel=3)
+
     def __repr__(self):
         """Show the configuration files."""
         res = f'Configuration file: {CONF_FILE}'
@@ -143,11 +154,9 @@ class Configuration(configparser.RawConfigParser):
             res += f'\nLogging settings loaded from {self.logger}'
         return res
 
-    def load_log(self, filename):
+    def _load_log(self, filename):
         """Try to load `filename` as configuration file for logging."""
-        if not filename:
-            raise ValueError('No logging supplied')
-
+        assert(filename)
         _here = Path(__file__).parent
 
         # Try first if it is a default logger

@@ -13,19 +13,17 @@ config = {
     'services': {
         'cega-users': {
             'hostname': f'cega-users{HOSTNAME_DOMAIN}',
-            'ports': ["15671:443"],
-            'image': 'egarchive/lega-base:latest',
+            # 'ports': ["15671:443"],
+            'build': '../bootstrap/cega-users',
+            'image': 'egarchive/cega-users:latest',
             'container_name': f'cega-users{HOSTNAME_DOMAIN}',
             'volumes': [
-                '../bootstrap/cega-users.py:/cega/users.py',
                 './users:/cega/users',
                 './certs/cega-users.cert.pem:/cega/ssl.crt',
                 './certs/cega-users.sec.pem:/cega/ssl.key',
                 './certs/CA.cega-users.cert.pem:/cega/CA.crt',
             ],
             'networks': ['external'],
-            'user': 'root',
-            'entrypoint': ["python", "/cega/users.py", "0.0.0.0", "443", "/cega/users"],
         },
 
         'cega-mq': {

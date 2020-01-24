@@ -38,6 +38,7 @@ jobs:
         sudo ./install.sh /usr/local
         popd
         pip install -r deploy/bootstrap/requirements.txt
+        pip install -r tests/requirements.txt
         sudo apt-get install expect
     - name: Bootstrap (options ${{ matrix.bootstrap }})
       run: |

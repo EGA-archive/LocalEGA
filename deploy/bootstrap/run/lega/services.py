@@ -148,6 +148,9 @@ def main(cega_conf, conf, args):
                 'S3_SECRET_KEY='+conf.get('s3','secret_key'),
             ] if with_s3 else []),
             'hostname': f'ingest{HOSTNAME_DOMAIN}',
+            'build': '../..',  # Just in case we docker-compose up before building the image locally
+                               # This might be useless since the image from the master branch is built on docker hub.
+                               # so it will get downloaded
             'image': 'egarchive/lega-base:latest',
             'container_name': f'ingest{HOSTNAME_DOMAIN}',
             'volumes': [

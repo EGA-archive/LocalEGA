@@ -39,7 +39,7 @@ class C4GHFileKey(Key):
         passphrase = CONF.getsensitive(section, 'passphrase')
         assert(filepath and passphrase)
 
-        if isinstance(passphrase,bytes):  # to str
+        if isinstance(passphrase, bytes):  # to str
             passphrase = passphrase.decode()
 
         # We use the parser provided in the crypt4gh.keys module

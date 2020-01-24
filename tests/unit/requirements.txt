@@ -1,7 +1,0 @@
-pytest
-pytest-cov
-aioresponses
-testfixtures
-coveralls
-git+https://github.com/EGA-archive/crypt4gh.git
-tox
