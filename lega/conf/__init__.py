@@ -23,10 +23,14 @@ import stat
 from logging.config import fileConfig, dictConfig
 from pathlib import Path
 import yaml
+from yaml import SafeLoader as sf
+
 
 LOG_FILE = os.getenv('LEGA_LOG', None)
 CONF_FILE = os.getenv('LEGA_CONF', '/etc/ega/conf.ini')
 LOG = logging.getLogger(__name__)
+
+sf.add_constructor('tag:yaml.org,2002:python/tuple', lambda self, node: tuple(sf.construct_sequence(self, node)))
 
 
 def get_from_file(filepath, mode='rb', remove_after=False):
@@ -163,7 +167,7 @@ class Configuration(configparser.RawConfigParser):
         _logger = _here / f'loggers/{filename}.yaml'
         if _logger.exists():
             with open(_logger, 'r') as stream:
-                dictConfig(yaml.safe_load(stream))
+                dictConfig(yaml.load(stream, Loader=sf))
                 return _logger
 
         # Otherwise trying it as a path
@@ -174,7 +178,7 @@ class Configuration(configparser.RawConfigParser):
 
         if _filename.suffix in ('.yaml', '.yml'):
             with open(_filename, 'r') as stream:
-                dictConfig(yaml.safe_load(stream))
+                dictConfig(yaml.load(stream, Loader=sf))
                 return filename
 
         if _filename.suffix in ('.ini', '.INI'):
