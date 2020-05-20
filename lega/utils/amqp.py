@@ -115,10 +115,13 @@ class AMQPConnection():
     def connect(self, force=False):
         """Connect to the Message Broker supporting AMQP(S)."""
         if force:
+            LOG.debug("Force close the connection")
             self.close()
 
         if self.conn:
+            LOG.debug("We already have a connection")
             if not self.conn.is_closed:
+                LOG.debug("connection not closed, returning it")
                 return
             self.close()
 
@@ -146,8 +149,12 @@ class AMQPConnection():
         """Close MQ channel."""
         LOG.debug("Closing the AMQP connection")
         if self.conn and self.conn.is_open:
+            LOG.debug("Closing AMQP socket and channels")
             self.conn.close() # will close all the channels
         self.conn = None
+        self.pull_channel = None
+        self.pub_channel = None
+
 
     # We are reusing the same channel to publish all the messages
     # Consumes goes from the MQ to the client, publish goes from the client to MQ
