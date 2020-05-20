@@ -28,9 +28,10 @@ Users are handled through Central EGA, directly.
       },
       platforms='any',
       install_requires=[
-          'pika',
-          'psycopg2>=2.8.4',
+          'amqpstorm',
+          'requests',
+          'psycopg2-binary>=2.8.5',
           'PyYaml',
           'boto3',
-          'crypt4gh @ git+https://github.com/EGA-archive/crypt4gh.git'
+          'crypt4gh>=1.3',
       ])
