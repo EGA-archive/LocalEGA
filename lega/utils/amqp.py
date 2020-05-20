@@ -125,15 +125,20 @@ class AMQPConnection():
         if not self.connection_params:
             self.fetch_args()
 
-        self.conn = retry('MQ Connection',
-                          self.attempts,
-                          self.interval,
-                          exceptions=AMQPConnectionError,
-                          on_failure=self.on_failure)(
-                              lambda: UriConnection(self.connection_params,
-                                                    ssl_options=self.ssl_options,
-                                                    client_properties=self.client_properties)
-                          )()
+        self.conn = UriConnection(self.connection_params,
+                                  ssl_options=self.ssl_options,
+                                  client_properties=self.client_properties,
+                                  lazy=True) # don't start it
+
+        retry('Opening MQ Connection',
+              self.attempts,
+              self.interval,
+              exceptions=AMQPConnectionError,
+              on_failure=self.on_failure,
+              cleanup=lambda:self.conn.close() # when we can't open, we must close the unused socket
+        )(
+                  lambda:self.conn.open()
+              )()
         LOG.debug("Connection successful")
         # This also spawns a separate thread to handle the heartbeat
         

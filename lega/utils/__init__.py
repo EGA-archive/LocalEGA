@@ -50,19 +50,22 @@ def log_trace():
     LOG.error('Exception: %s in %s on line: %s', exc_type, fname, lineno, exc_info=True)
 
 
-def retry(text, attempts, backoff_interval, exceptions=Exception, on_failure=None):
+def retry(text, attempts, backoff_interval,
+          exceptions=Exception, on_failure=None, cleanup=None):
     assert(attempts > 0)
     assert(backoff_interval > 0)
     def decorator(func):
         @wraps(func)
         def inner(*args, **kwargs):
             backoff = backoff_interval
-            for count in range(attempts):
+            for count in range(1, attempts+1):
                 try:
-                    LOG.debug("%s attempt %d", text, count)
                     return func(*args, **kwargs)
                 except exceptions as e:
-                    LOG.error('Retry after %r', e)
+                    if callable(cleanup):
+                        cleanup()
+                    LOG.error("%s retry attempt %d", text, count)
+                    LOG.error('Reason %r', e)
                     sleep(backoff)
                     backoff = (2 ** (count // 10)) * backoff_interval
                     # from  0 to  9, sleep 1 * interval secs
