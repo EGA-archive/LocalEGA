@@ -119,9 +119,9 @@ class AMQPConnection():
             self.close()
 
         if self.conn:
-            LOG.debug("We already have a connection")
+            # LOG.debug("We already have a connection")
             if not self.conn.is_closed:
-                LOG.debug("connection not closed, returning it")
+                # LOG.debug("connection not closed, returning it")
                 return
             self.close()
 
@@ -206,7 +206,8 @@ connection = AMQPConnection(on_failure=lambda: sys.exit(1))
 
 atexit.register(lambda: connection.close())
 
-def _handle_request(work, message, content, exchange, error_key, user_error_key):
+
+def _handle_request(work, message, content, exchange, error_key):
     # Run the job. There are 4 cases:
     #    * Message rejected by raise RejectMessage inside work
     #    * Malformatted message: ack message, but send to system.error
@@ -227,7 +228,7 @@ def _handle_request(work, message, content, exchange, error_key, user_error_key)
         assert( isinstance(content, dict) ), "We should have a dict here"
         content['reason'] = str(cause)  # str = Informal
         clean_message(content)
-        publish(content, routing_key=user_error_key)
+        publish(content, exchange=exchange, routing_key=error_key)
         message.ack()
         raise ue # to send it to error too
 
@@ -239,10 +240,12 @@ def consume(work, ack_on_error=True, threaded=True):
     The message is acked if the function ``work`` does not raise an Exception.
     """
 
-    exchange = CONF.get('DEFAULT', 'exchange', fallback='ingestion.v1')
+    lega_exchange = CONF.get('DEFAULT', 'exchange', fallback='lega')
     from_queue = CONF.get('DEFAULT', 'queue')
-    error_key = CONF.get('DEFAULT', 'error', fallback='error.system')
-    user_error_key = CONF.get('DEFAULT', 'user_error', fallback='error')
+    lega_error_key = CONF.get('DEFAULT', 'lega_error', fallback='lega.error')
+
+    cega_exchange = CONF.get('DEFAULT', 'cega_exchange', fallback='cega')
+    cega_error_key = CONF.get('DEFAULT', 'cega_error', fallback='files.error')
 
     # Normally fetch one message at a time (QOS prefetch: 1)
     # So there should be one worker thread at most
@@ -264,17 +267,21 @@ def consume(work, ack_on_error=True, threaded=True):
                 message.ack() # Force acknowledging the message
                 return
 
-            _handle_request(work, message, content, exchange, error_key, user_error_key)
+            _handle_request(work, message, content, cega_exchange, cega_error_key) # tell Central EGA on error
 
         except json.JSONDecodeError as je:
             LOG.error('Malformed JSON-message: %s', je, extra={'correlation_id': correlation_id})
-            LOG.error('Original message: %s', message, extra={'correlation_id': correlation_id})
+            LOG.error('Original message: %s', content, extra={'correlation_id': correlation_id})
             error = {
                 'informal': 'Malformed JSON-message',
                 'formal': repr(je),
                 'message': content,
             }
-            connection.publish(error, exchange, error_key, correlation_id)
+            # Tell Central EGA
+            connection.publish(error,
+                               exchange=cega_exchange,
+                               routing_key=cega_error_key,
+                               correlation_id=correlation_id)
             message.reject(requeue=False)
         except Exception as e:
             # log_trace() # Locate the error
@@ -284,7 +291,11 @@ def consume(work, ack_on_error=True, threaded=True):
                 'informal': str(cause),
                 'formal': repr(cause),
             }
-            connection.publish(content, exchange, error_key, correlation_id)
+            # Tell Local EGA
+            connection.publish(content,
+                               exchange=lega_exchange,
+                               routing_key=lega_error_key,
+                               correlation_id=correlation_id)
             message.reject(requeue=False)
         finally:
             _cid.set(None)
@@ -302,6 +313,6 @@ def consume(work, ack_on_error=True, threaded=True):
 def publish(content, exchange=None, routing_key=None, correlation_id=None):
     correlation_id = correlation_id or _cid.get()
     assert(correlation_id), "You should not publish without a correlation id"
-    exchange = exchange or CONF.get('DEFAULT', 'exchange', fallback='ingestion.v1')
+    exchange = exchange or CONF.get('DEFAULT', 'exchange', fallback='lega')
     routing_key = routing_key or CONF.get('DEFAULT', 'routing_key')
     connection.publish(content, exchange, routing_key, correlation_id)

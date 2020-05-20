@@ -64,7 +64,7 @@ function teardown() {
     retry_until 0 30 10 ${MQ_FIND} v1.files.error "${CORRELATION_ID}"
     [ "$status" -eq 0 ]
 
-    [[ "$output" =~ "reason: " ]]
+    [[ "$output" =~ "informal: " ]]
     [[ "$output" =~ "Malformed JSON-message" ]]
 
 }
