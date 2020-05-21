@@ -27,7 +27,7 @@ jobs:
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@master
       with:
-        python-version: 3.6
+        python-version: 3.7
     - name: (re)Build docker image (with Runner id $(id -u))
       run: make -C deploy -j 4 images
     - name: Install required tools
