@@ -84,8 +84,7 @@ def main(cega_conf, conf, args):
         'db': {
             'build': '../../ingestion/db',
             'environment': [
-                'DB_LEGA_IN_PASSWORD='+conf.get('db', 'lega_in'),
-                'DB_LEGA_OUT_PASSWORD='+conf.get('db', 'lega_out'),
+                'DB_PASSWORD='+conf.get('db', 'password'),
                 'PGDATA=/ega/data',
                 'PG_SERVER_CERT=/etc/ega/pg.cert',
                 'PG_SERVER_KEY=/etc/ega/pg.key',

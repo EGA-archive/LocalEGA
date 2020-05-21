@@ -4,10 +4,14 @@
 """The lega package contains code to start a *Local EGA*."""
 
 __title__ = 'Local EGA'
-__version__ = VERSION = '1.1'
+__version__ = '1.2'
 __author__ = 'Frédéric Haziza'
-__license__ = 'Apache 2.0'
-__copyright__ = 'Local EGA @ CRG, Barcelona'
+__author_email__ = 'frederic.haziza@crg.eu'
+__license__ = 'Apache License 2.0'
+__copyright__ = __title__ + ' @ CRG, Barcelona'
+
+import sys
+assert sys.version_info >= (3, 7), "This tool requires python version 3.7 or higher"
 
 # This updates the logging class from all loggers used in this package.
 # The new logging class injects a correlation id to the log record.

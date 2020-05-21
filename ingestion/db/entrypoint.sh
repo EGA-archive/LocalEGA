@@ -135,7 +135,7 @@ function docker_process_init_files {
 # `initdb` automatically creates the "postgres", "template0", and "template1" dbnames
 function do_initdb {
 
-    [[ -z "${DB_LEGA_IN_PASSWORD}" ]] && echo 'Environment DB_LEGA_IN_PASSWORD is empty' 1>&2 && exit 1
+    [[ -z "${DB_PASSWORD}" ]] && echo 'Environment DB_PASSWORD is empty' 1>&2 && exit 1
 
     if [ -n "$POSTGRES_INITDB_WALDIR" ]; then
 	set -- --waldir "$POSTGRES_INITDB_WALDIR" "$@"
@@ -178,7 +178,7 @@ EOSQL
 
     # Set password for lega_in and lega_out users
     process_sql --dbname lega <<EOSQL
-ALTER USER lega_in WITH PASSWORD '${DB_LEGA_IN_PASSWORD}';
+ALTER USER lega WITH PASSWORD '${DB_PASSWORD}';
 EOSQL
 
     # Stop the server (PGUSER: postgres)
@@ -210,7 +210,7 @@ else
     echo 'PostgreSQL Database directory already setup'
 fi
 
-unset DB_LEGA_IN_PASSWORD
+unset DB_PASSWORD
 
 # always re-create the pg_hba.conf and pg.conf
 create_pg_conf

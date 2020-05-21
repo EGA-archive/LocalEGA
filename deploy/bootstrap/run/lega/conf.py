@@ -50,7 +50,7 @@ def main(args):
     #### Local Message Broker
     #################################################
     mq_user = 'admin'
-    mq_password = get_secret('mq')
+    mq_password = get_secret('mq.admin')
 
     # Pika is not parsing the URL the way RabbitMQ likes.
     # So we add the parameters on the configuration file and
@@ -78,19 +78,18 @@ def main(args):
     #### Local Database
     #################################################
 
-    db_lega_in_pwd = get_secret('db.lega.in')
-    db_lega_out_pwd = get_secret('db.lega.out')
+    db_lega_pwd = get_secret('db.lega')
     db_connection_params = urlencode({ 'application_name': 'LocalEGA',
 				       'sslmode': 'verify-full',
 				       'sslcert': '/etc/ega/ssl.cert',
 				       'sslkey': '/etc/ega/ssl.key.lega',
 				       'sslrootcert': '/etc/ega/CA.cert',
     }, safe='/-_.')
-    db_connection=f"postgres://lega_in:{db_lega_in_pwd}@db{HOSTNAME_DOMAIN}:5432/lega"
+    db_connection=f"postgres://lega:{db_lega_pwd}@db{HOSTNAME_DOMAIN}:5432/lega"
 
     config['db'] = {
-        'lega_in': db_lega_in_pwd,
-        'lega_out': db_lega_out_pwd,
+        'user': 'lega',
+        'password': db_lega_pwd,
         'connection': db_connection,
         'connection_params': db_connection_params,
     }

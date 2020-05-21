@@ -6,7 +6,7 @@ HOSTNAME_DOMAIN=
 
 .PHONY: up down clean ps clean-volumes clean-all images erase purge preflight-check
 
-up: .env
+up: .env private/lega.yml
 	@docker-compose up -d ${SELECTED}
 
 private/lega.yml .env:
@@ -20,7 +20,8 @@ ps:
 	@docker-compose ps
 
 down:
-	@[[ -f private/lega.yml ]] && docker-compose down -v || echo -e "No recipe to bring containers down\nHave you bootstrapped? (ie make bootstrap)"
+	@[[ -f private/lega.yml ]] && docker-compose down -v \
+	 || echo -e "No recipe to bring containers down\nHave you bootstrapped? (ie make bootstrap)"
 
 preflight-check:
 	@echo "Ensure the system is up"
@@ -31,7 +32,7 @@ preflight-check:
 # docker run --rm -it --network=lega_lega \
 #        -v ${PWD}/bootstrap/ensure_system_up.sh:/ensure_system_up.sh \
 #        egarchive/lega-base /ensure_system_up.sh
-
+#
 # For the moment, we simply do sleep 20, because we need
 # the rabbitmq shovel to CentralEGA (the federated queue can be late, it doesn't hurt)
 
@@ -46,8 +47,7 @@ logs:
 IMAGE_ARGS=
 MQ_ARGS=
 DB_ARGS=
-# eg --no-cache
-# eg --build-arg LEGA_GID=1000
+# eg --no-cache, or --build-arg LEGA_GID=1000
 
 .PHONY: images image mq-image db-image
 images: image mq-image db-image
@@ -61,14 +61,14 @@ image:
 		     .
 
 mq-image:
-	cd ../pipeline/mq && \
+	cd ../ingestion/mq && \
 	docker build -f Dockerfile \
 		     $(MQ_ARGS) \
 		     --tag egarchive/lega-mq:latest \
 		     .
 
 db-image:
-	cd ../pipeline/db && \
+	cd ../ingestion/db && \
 	docker build -f Dockerfile \
 		     $(DB_ARGS) \
 		     --tag egarchive/lega-db:latest \
@@ -83,7 +83,7 @@ define remove_dangling
 endef
 
 erase:
-	@$(call remove_dangling,egarchive/lega-base)
+	@$(call remove_dangling,egarchive/lega-*)
 
 purge:
 	@$(call remove_dangling,)

@@ -36,9 +36,8 @@ endif
 .PHONY: all users certs clean clean-all
 .DELETE_ON_ERROR: ../private/*
 
-SECRETS:= master.key.passphrase \
-	  db.lega.in db.lega.out \
-	  mq
+SECRETS:= master.key.passphrase db.lega mq.admin
+
 ifdef S3
 SECRETS+= s3.access s3.secret
 endif
