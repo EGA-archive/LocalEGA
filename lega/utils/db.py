@@ -64,9 +64,8 @@ class DBConnection():
         LOG.info("Connection attempts: %d", self.attempts)
 
         backoff = self.interval
-        for count in range(self.attempts):
+        for count in range(1,self.attempts+1):
             try:
-                LOG.debug("Connection attempt %d", count)
                 self.conn = psycopg2.connect(self.args)
                 # self.conn.set_session(autocommit=True) # default is False.
                 LOG.debug("Connection successful")
@@ -76,14 +75,16 @@ class DBConnection():
             except psycopg2.InterfaceError as e:
                 LOG.debug("Invalid connection parameters: %r", e)
                 break
+            LOG.debug("Connection attempt %d", count)
+            self.conn.close()
             sleep(backoff)
             backoff = (2 ** (count // 10)) * self.interval
             # from  0 to  9, sleep 1 * self.interval secs
             # from 10 to 19, sleep 2 * self.interval secs
             # from 20 to 29, sleep 4 * self.interval secs ... etc
-
+            
         # fail to connect
-        if self.on_failure and callable(self.on_failure):
+        if callable(self.on_failure):
             LOG.error("Failed to connect.")
             self.on_failure()
 

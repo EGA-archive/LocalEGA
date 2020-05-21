@@ -8,6 +8,8 @@ import ssl
 from socket import gethostname
 from pwd import getpwuid
 import atexit
+from time import sleep
+
 
 from amqpstorm import (UriConnection, Connection as OrgConnection, Message,
                        AMQPChannelError, AMQPConnectionError, AMQPError)
@@ -15,8 +17,7 @@ from amqpstorm import (UriConnection, Connection as OrgConnection, Message,
 
 from ..conf import CONF
 from ..conf.logging import _cid
-from . import (exceptions, retry,
-               redact_url, clean_message, log_trace)
+from . import (exceptions, redact_url, clean_message, log_trace)
 
 LOG = logging.getLogger(__name__)
 
@@ -133,17 +134,28 @@ class AMQPConnection():
                                   client_properties=self.client_properties,
                                   lazy=True) # don't start it
 
-        retry('Opening MQ Connection',
-              self.attempts,
-              self.interval,
-              exceptions=AMQPConnectionError,
-              on_failure=self.on_failure,
-              cleanup=lambda:self.conn.close() # when we can't open, we must close the unused socket
-        )(
-                  lambda:self.conn.open()
-              )()
-        LOG.debug("Connection successful")
-        # This also spawns a separate thread to handle the heartbeat
+        # Retry loop
+        backoff = self.interval
+        for count in range(1, self.attempts+1):
+            try:
+                self.conn.open()
+                LOG.debug("Connection successful")
+                # This also spawns a separate thread to handle the heartbeat
+                return
+            except AMQPConnectionError as e:
+                self.conn.close() # when we can't open, we must close the unused socket
+                LOG.error("Opening MQ Connection retry attempt %d", count)
+                LOG.error('Reason %r', e)
+                sleep(backoff)
+                backoff = (2 ** (count // 10)) * backoff_interval
+                # from  0 to  9, sleep 1 * interval secs
+                # from 10 to 19, sleep 2 * interval secs
+                # from 20 to 29, sleep 4 * interval secs ... etc
+        # fail
+        if callable(self.on_failure):
+            LOG.error("Failed to open the connection")
+            self.on_failure()
+
         
     def close(self):
         """Close MQ channel."""

@@ -8,7 +8,6 @@ import os
 import sys
 import hashlib
 import traceback
-from time import sleep
 from functools import wraps
 
 LOG = logging.getLogger(__name__)
@@ -48,33 +47,3 @@ def log_trace():
     # fname = os.path.split(frame.f_code.co_filename)[1]
     fname = frame.f_code.co_filename
     LOG.error('Exception: %s in %s on line: %s', exc_type, fname, lineno, exc_info=True)
-
-
-def retry(text, attempts, backoff_interval,
-          exceptions=Exception, on_failure=None, cleanup=None):
-    assert(attempts > 0)
-    assert(backoff_interval > 0)
-    def decorator(func):
-        @wraps(func)
-        def inner(*args, **kwargs):
-            backoff = backoff_interval
-            for count in range(1, attempts+1):
-                try:
-                    return func(*args, **kwargs)
-                except exceptions as e:
-                    if callable(cleanup):
-                        cleanup()
-                    LOG.error("%s retry attempt %d", text, count)
-                    LOG.error('Reason %r', e)
-                    sleep(backoff)
-                    backoff = (2 ** (count // 10)) * backoff_interval
-                    # from  0 to  9, sleep 1 * interval secs
-                    # from 10 to 19, sleep 2 * interval secs
-                    # from 20 to 29, sleep 4 * interval secs ... etc
-            # fail
-            if callable(on_failure):
-                LOG.error("Failed to run the function %s", func)
-                on_failure()
-        return inner
-    return decorator
-
