@@ -5,7 +5,7 @@
 [![Testsuite](https://github.com/EGA-archive/LocalEGA/workflows/Testsuite/badge.svg)](https://github.com/EGA-archive/LocalEGA/actions)
 
 
-The [code](lega) is written in Python (3.6+).
+The [code](lega) is written in Python (3.7+).
 
 You can provision and deploy the different components, locally, using [docker-compose](deploy).
 
