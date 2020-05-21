@@ -116,6 +116,14 @@ class SessionKeyAlreadyUsedError(FromUser):
         return f'Session key (likely) already used [checksum: {self.checksum}].'
 
 
+class PayloadDecryptionError(FromUser):
+    """Raised Exception when payload decryption fails."""
+
+    def __str__(self):
+        """Return readable informal exception description."""
+        return 'Error decrypting this file'
+
+
 #############################################################################
 # Any other exception is caught by us
 #############################################################################
@@ -136,3 +144,34 @@ class AlreadyProcessed(Warning):
                 f'\t* user: {self.user}\n'
                 f'\t* name: {self.filename}\n'
                 f'\t* Encrypted checksum: {self.enc_checksum_hash} (algorithm: {self.enc_checksum_algorithm}')
+
+
+class AlreadyInProgress(Warning):
+    """Raised when a file is already in progress."""
+
+    def __init__(self, path):
+        self.path = path
+
+    def __repr__(self):
+        return f'Warning: File already in progress or existing: {self.path}'
+
+
+class ChecksumsNotMatching(Exception):
+    """Raised when 2 checksums don't match."""
+
+    def __init__(self, path, md1, md2):
+        self.path = path
+        self.md1 = md1
+        self.md2 = md2
+
+    def __str__(self):
+        return f'Checksums for {self.path} do not match'
+
+    def __repr__(self):
+        return f'Checksums for {self.path} do not match:\n* {self.md1}\n* {self.md2}'
+
+class RejectMessage(Exception):
+    pass
+
+class InvalidBrokerMessage(RejectMessage):
+    pass

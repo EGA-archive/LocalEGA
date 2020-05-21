@@ -29,7 +29,7 @@ jobs:
       with:
         python-version: 3.6
     - name: (re)Build docker image (with Runner id $(id -u))
-      run: make -C deploy image
+      run: make -C deploy -j 4 images
     - name: Install required tools
       run: |
         git clone https://github.com/bats-core/bats-core.git

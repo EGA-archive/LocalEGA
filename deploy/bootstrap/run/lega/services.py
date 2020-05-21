@@ -54,6 +54,7 @@ def main(cega_conf, conf, args):
 
     lega['services'] = {
         'mq': {
+            'build': '../../ingestion/mq',
             'environment': [
                 'CEGA_CONNECTION='+cega_conf.get('mq', 'connection'),
                 'MQ_USER=admin',
@@ -81,6 +82,7 @@ def main(cega_conf, conf, args):
             ],
         },
         'db': {
+            'build': '../../ingestion/db',
             'environment': [
                 'DB_LEGA_IN_PASSWORD='+conf.get('db', 'lega_in'),
                 'DB_LEGA_OUT_PASSWORD='+conf.get('db', 'lega_out'),
@@ -151,9 +153,9 @@ def main(cega_conf, conf, args):
                 'S3_SECRET_KEY='+conf.get('s3','secret_key'),
             ] if with_s3 else []),
             'hostname': f'ingest{HOSTNAME_DOMAIN}',
-            'build': '../..',  # Just in case we docker-compose up before building the image locally
-                               # This might be useless since the image from the master branch is built on docker hub.
-                               # so it will get downloaded
+            'build': '../../ingestion',  # Just in case we docker-compose up before building the image locally
+                                         # This might be useless since the image from the master branch is built on docker hub.
+                                         # so it will get downloaded
             'image': 'egarchive/lega-base:latest',
             'container_name': f'ingest{HOSTNAME_DOMAIN}',
             'volumes': [
@@ -314,7 +316,7 @@ def main(cega_conf, conf, args):
         for s in ['ingest', 'verify', 'finalize']:
             service = lega['services'][s]
             volumes = service['volumes']
-            volumes.append('../../lega:/home/lega/.local/lib/python3.8/site-packages/lega')
+            volumes.append('../../ingestion/lega:/home/lega/.local/lib/python3.8/site-packages/lega')
             del service['command']
             service['entrypoint'] = ["/bin/sleep", "1000000000000"]
 

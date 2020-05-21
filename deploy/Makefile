@@ -4,7 +4,7 @@ SELECTED=
 HOSTNAME_DOMAIN=
 #HOSTNAME_DOMAIN=.localega
 
-.PHONY: up down clean ps clean-volumes clean-all image erase purge preflight-check
+.PHONY: up down clean ps clean-volumes clean-all images erase purge preflight-check
 
 up: .env
 	@docker-compose up -d ${SELECTED}
@@ -40,19 +40,38 @@ logs:
 # 	@docker-compose logs -f logs
 
 ####################################################
-## Base Image
+## Docker Images
 ####################################################
 
 IMAGE_ARGS=
+MQ_ARGS=
+DB_ARGS=
 # eg --no-cache
 # eg --build-arg LEGA_GID=1000
 
+.PHONY: images image mq-image db-image
+images: image mq-image db-image
+
 image:
-	cd .. && \
+	cd ../ingestion && \
 	docker build -f Dockerfile \
 		     --build-arg LEGA_UID=$(shell id -u) \
 		     $(IMAGE_ARGS) \
 		     --tag egarchive/lega-base:latest \
+		     .
+
+mq-image:
+	cd ../pipeline/mq && \
+	docker build -f Dockerfile \
+		     $(MQ_ARGS) \
+		     --tag egarchive/lega-mq:latest \
+		     .
+
+db-image:
+	cd ../pipeline/db && \
+	docker build -f Dockerfile \
+		     $(DB_ARGS) \
+		     --tag egarchive/lega-db:latest \
 		     .
 
 
