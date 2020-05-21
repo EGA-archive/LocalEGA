@@ -140,14 +140,13 @@ class AMQPConnection():
             try:
                 self.conn.open()
                 LOG.debug("Connection successful")
-                # This also spawns a separate thread to handle the heartbeat
                 return
             except AMQPConnectionError as e:
                 self.conn.close() # when we can't open, we must close the unused socket
                 LOG.error("Opening MQ Connection retry attempt %d", count)
                 LOG.error('Reason %r', e)
                 sleep(backoff)
-                backoff = (2 ** (count // 10)) * backoff_interval
+                backoff = (2 ** (count // 10)) * self.interval
                 # from  0 to  9, sleep 1 * interval secs
                 # from 10 to 19, sleep 2 * interval secs
                 # from 20 to 29, sleep 4 * interval secs ... etc
