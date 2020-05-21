@@ -25,7 +25,7 @@ from crypt4gh import header
 
 from .conf import CONF
 from .utils import db, exceptions, errors, sanitize_user_id, storage
-from .utils.amqp import consume
+from .utils.amqp import consume, publish
 
 LOG = logging.getLogger(__name__)
 
@@ -91,7 +91,8 @@ def work(fs, inbox_fs, data):
         data['archive_path'] = target
 
     LOG.debug("Reply message: %s", data)
-    return (data, False)
+    # Publish the answer
+    publish(data)
 
 
 def main():
@@ -101,7 +102,7 @@ def main():
     do_work = partial(work, fs('archive', 'lega'), partial(inbox_fs, 'inbox'))
 
     # upstream link configured in local broker
-    consume(do_work, 'files', 'archived')
+    consume(do_work)
 
 
 if __name__ == '__main__':

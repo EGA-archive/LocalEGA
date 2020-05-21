@@ -5,7 +5,7 @@ root:
 
 loggers:
   lega:
-    level: INFO
+    level: DEBUG
     handlers: [debugFile,console]
     propagate: True
     qualname: lega

@@ -22,7 +22,7 @@ from crypt4gh.header import deconstruct
 
 from .conf import CONF
 from .utils import db, storage, key, errors, exceptions
-from .utils.amqp import consume
+from .utils.amqp import consume, publish
 
 LOG = logging.getLogger(__name__)
 
@@ -155,7 +155,8 @@ def work(key, mover, data):
                                       {'type': 'md5', 'value': digest_md5}]  # for stable id
     # org_msg['reference'] = file_id
     LOG.debug(f"Reply message: {org_msg}")
-    return (org_msg, False)
+    # Publish the answer
+    publish(org_msg)
 
 
 def main():
@@ -170,7 +171,7 @@ def main():
 
     do_work = partial(work, key_loader(key_section), store('archive', 'lega'))
 
-    consume(do_work, 'archived', 'completed')
+    consume(do_work)
 
 
 if __name__ == '__main__':

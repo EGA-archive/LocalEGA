@@ -33,13 +33,13 @@ def work(data):
     db.set_stable_id(file_id, stable_id)  # That will flag the entry as 'Ready'
 
     LOG.info("Stable ID %s mapped to %s", stable_id, file_id)
-    return (None, False)
+    # Not publishing any answer
 
 
 def main():
     """Listen for incoming stable IDs."""
     # upstream link configured in local broker
-    consume(work, 'stableIDs', None)
+    consume(work)
 
 
 if __name__ == '__main__':

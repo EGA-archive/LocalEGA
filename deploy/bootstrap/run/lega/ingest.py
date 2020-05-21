@@ -28,7 +28,13 @@ def main(conf, args):
     with_docker_secrets = args['--secrets']
 
     config = configparser.RawConfigParser()
-    config['DEFAULT'] = {'log':'debug'}
+
+    config['DEFAULT'] = {
+        'queue': 'files',
+        'exchange': 'lega',
+        'routing_key': 'archived',
+    }
+
     config['inbox'] = {
         'location': r'/ega/inbox/%s/',
         'chroot_sessions': True,

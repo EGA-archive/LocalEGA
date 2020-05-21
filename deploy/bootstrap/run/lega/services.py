@@ -26,6 +26,9 @@ Options:
  
 '''
 
+LEGA_LOG='LEGA_LOG=debug'
+# LEGA_LOG='INGESTION_LOG=centralized'
+
 def main(cega_conf, conf, args):
     lega = {
         'version': '3.7',
@@ -142,7 +145,7 @@ def main(cega_conf, conf, args):
 
         'ingest': {
             'environment': [
-                'LEGA_LOG=centralized',
+                LEGA_LOG,
             ] + ([
                 'S3_ACCESS_KEY='+conf.get('s3','access_key'),
                 'S3_SECRET_KEY='+conf.get('s3','secret_key'),
@@ -173,7 +176,7 @@ def main(cega_conf, conf, args):
 
         'verify': {
             'environment': [
-                'LEGA_LOG=centralized',
+                LEGA_LOG,
             ] + ([
                 'S3_ACCESS_KEY='+conf.get('s3','access_key'),
                 'S3_SECRET_KEY='+conf.get('s3','secret_key'),
@@ -201,7 +204,7 @@ def main(cega_conf, conf, args):
 
         'finalize': {
             'environment': [
-                'LEGA_LOG=centralized'
+                LEGA_LOG,
             ],
             'hostname': f'finalize{HOSTNAME_DOMAIN}',
             'image': 'egarchive/lega-base:latest',
@@ -222,23 +225,23 @@ def main(cega_conf, conf, args):
             'command': ["ega-finalize"],
         },
 
-        # Collect logs to a central location.
-        # Vector.dev, logstash, or a custom code can receive them
-        'logs': {
-            'hostname': f'logs{HOSTNAME_DOMAIN}',
-            'image': 'python:3.8-alpine3.11',
-            'container_name': f'logs{HOSTNAME_DOMAIN}',
-            'volumes': [
-                '../bootstrap/udplogs.py:/logserver.py',
-            ],
-            'networks': [
-                'internal',
-                # 'private-db',
-                # 'private-vault',
-                # 'external',
-            ],
-            'entrypoint': ['python', '/logserver.py']
-        }
+        # # Collect logs to a central location.
+        # # Vector.dev, logstash, or a custom code can receive them
+        # 'logs': {
+        #     'hostname': f'logs{HOSTNAME_DOMAIN}',
+        #     'image': 'python:3.8-alpine3.11',
+        #     'container_name': f'logs{HOSTNAME_DOMAIN}',
+        #     'volumes': [
+        #         '../bootstrap/udplogs.py:/logserver.py',
+        #     ],
+        #     'networks': [
+        #         'internal',
+        #         # 'private-db',
+        #         # 'private-vault',
+        #         # 'external',
+        #     ],
+        #     'entrypoint': ['python', '/logserver.py']
+        # }
 
     }
 
@@ -311,7 +314,7 @@ def main(cega_conf, conf, args):
         for s in ['ingest', 'verify', 'finalize']:
             service = lega['services'][s]
             volumes = service['volumes']
-            volumes.append('../../lega:/home/lega/.local/lib/python3.6/site-packages/lega')
+            volumes.append('../../lega:/home/lega/.local/lib/python3.8/site-packages/lega')
             del service['command']
             service['entrypoint'] = ["/bin/sleep", "1000000000000"]
 

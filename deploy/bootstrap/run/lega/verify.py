@@ -29,7 +29,9 @@ def main(conf, args):
 
     config = configparser.RawConfigParser()
     config['DEFAULT'] = {
-        'log':'debug',
+        'queue': 'archived',
+        'exchange': 'lega',
+        'routing_key': 'completed',
         'master_key': 'c4gh_file',
     }
 
