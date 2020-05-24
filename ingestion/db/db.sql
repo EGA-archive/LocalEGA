@@ -29,15 +29,13 @@ CREATE TABLE local_ega.status (
 
 INSERT INTO local_ega.status(id,code,description)
 VALUES (10, 'INIT'        , 'Initializing a file ingestion'),
-       (20, 'STAGED'      , 'File copied to the staging area'),
-       (30, 'VERIFIED'    , 'File verified in staging area'),
-       (40, 'BACKUP1'     , 'File in the vault'),
-       (41, 'BACKUP2'     , 'File in the 2nd vault'),
-       (50, 'COMPLETED'   , 'File backed up into the vault'),
+       (20, 'VERIFIED'    , 'File copied to the staging area, and verified'),
+       (30, 'BACKUP1'     , 'File in the vault'),
+       (31, 'BACKUP2'     , 'File in the 2nd vault'),
+       (40, 'COMPLETED'   , 'File backed up into the vault'),
        (0,  'ERROR'       , 'An Error occured, check the error table'),
        (1,  'CANCELED'    , 'Used for submissions that are stopped, overwritten, or to be cleaned up')
 ;
-
 
 -- ##################################################
 --                        FILES
@@ -76,9 +74,7 @@ CREATE TABLE local_ega.main (
        encrypted_payload_checksum_type  checksum_algorithm,
        encrypted_payload_file_type      storage, -- S3 or POSIX file system
        
-       -- accession_id           TEXT, UNIQUE (accession_id),
-       -- archive_path           TEXT, UNIQUE (archive_path),
-       -- archive_path2          TEXT, UNIQUE (archive_path2),
+       accession_id           TEXT, UNIQUE (accession_id),
 
        -- Errors
        hostname      TEXT,
@@ -86,8 +82,6 @@ CREATE TABLE local_ega.main (
        error_msg     TEXT,
        from_user     BOOLEAN DEFAULT FALSE,
        -- error_at    TIMESTAMP WITH TIME ZONE DEFAULT clock_timestamp()
-
-
 
        -- Table Audit / Logs
        created_by             NAME DEFAULT CURRENT_USER, -- Postgres users
@@ -126,12 +120,10 @@ SELECT id,
        staging_relative_path,
        status,
        header,  -- Crypt4gh specific
-       -- archive_path,
-       -- archive_path2,
-       -- accession_id        AS stable_id
        encrypted_payload_size          AS payload_size,
        encrypted_payload_checksum      AS payload_checksum,
-       encrypted_payload_checksum_type AS payload_checksum_type
+       encrypted_payload_checksum_type AS payload_checksum_type,
+       accession_id
 FROM local_ega.main;
 
 -- Insert into main

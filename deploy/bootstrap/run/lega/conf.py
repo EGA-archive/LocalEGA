@@ -94,6 +94,26 @@ def main(args):
         'connection_params': db_connection_params,
     }
 
+    #################################################
+    #### Storage Database
+    #################################################
+
+    archive_db_lega_pwd = get_secret('archive-db.lega')
+    archive_db_connection_params = urlencode({ 'application_name': 'LocalEGA',
+				               'sslmode': 'verify-full',
+				               'sslcert': '/etc/ega/ssl.cert',
+				               'sslkey': '/etc/ega/ssl.key.lega',
+				               'sslrootcert': '/etc/ega/CA.cert',
+    }, safe='/-_.')
+    archive_db_connection=f"postgres://lega:{archive_db_lega_pwd}@archive-db{HOSTNAME_DOMAIN}:5432/lega"
+
+    config['archive-db'] = {
+        'user': 'lega',
+        'password': archive_db_lega_pwd,
+        'connection': archive_db_connection,
+        'connection_params': archive_db_connection_params,
+    }
+
 
     #################################################
     #### Master key

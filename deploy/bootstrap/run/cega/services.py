@@ -10,6 +10,10 @@ HOSTNAME_DOMAIN = os.getenv('HOSTNAME_DOMAIN','')
 config = {
     'version': '3.7',
 
+    'networks': {
+        'external': None,
+    },
+
     'services': {
         'cega-users': {
             'hostname': f'cega-users{HOSTNAME_DOMAIN}',

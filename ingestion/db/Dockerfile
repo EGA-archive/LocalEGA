@@ -19,7 +19,7 @@ RUN mkdir -p /etc/ega/initdb.d            && \
     chmod 2775 /var/run/postgresql
 
 COPY pg.conf       /etc/ega/pg.conf.default
-COPY db.sql        /etc/ega/db.sql
+#COPY db.sql        /etc/ega/db.sql
 
 RUN chown -R postgres /etc/ega            && \
     chown -R postgres /var/run/postgresql

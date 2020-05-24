@@ -36,7 +36,7 @@ endif
 .PHONY: all users certs clean clean-all
 .DELETE_ON_ERROR: ../private/*
 
-SECRETS:= master.key.passphrase db.lega mq.admin
+SECRETS:= master.key.passphrase db.lega mq.admin archive-db.lega
 
 ifdef S3
 SECRETS+= s3.access s3.secret
@@ -44,8 +44,8 @@ endif
 
 ALL_FILES=$(addprefix ../private/, lega-entrypoint.sh cega-entrypoint.sh \
 		                   cega-mq-defs.json cega-mq-rabbitmq.config \
-                                   ingest.ini verify.ini finalize.ini master.key.sec \
-	                           lega.yml cega.yml)
+                                   dispatch.ini ingest.ini mapper.ini master.key.sec \
+	                           pipeline.yml lega.yml cega.yml)
 
 all: ../.env $(ALL_FILES) certs users
 
@@ -75,7 +75,7 @@ endif
 
 ../.env: | ../private
 	@echo "COMPOSE_PROJECT_NAME=lega" > $@
-	@echo "COMPOSE_FILE=private/lega.yml:private/cega.yml" >> $@
+	@echo "COMPOSE_FILE=private/lega.yml:private/cega.yml:private/pipeline.yml" >> $@
 	@echo "COMPOSE_PATH_SEPARATOR=:" >> $@
 
 ############### Generate CentralEGA services
@@ -98,6 +98,11 @@ endif
 ../private/lega.yml: ../private/cega.conf ../private/lega.conf
 	@echo "Creating LocalEGA docker-compose file: $(@F)"
 	@python -m run.lega.services $(ARGS) ../private/cega.conf ../private/lega.conf 2>../private/.err > $@
+
+../private/pipeline.yml: run/lega/pipeline.py | ../private
+../private/pipeline.yml: ../private/cega.conf ../private/lega.conf
+	@echo "Creating LocalEGA docker-compose file: $(@F)"
+	@python -m run.lega.pipeline $(ARGS) ../private/cega.conf ../private/lega.conf 2>../private/.err > $@
 
 ../private/%.ini: ../private/lega.conf run/lega/%.py | ../private
 	@echo "Creating LocalEGA service configuration: $(@F)"
@@ -144,7 +149,8 @@ COMPONENTS=ingest \
            keys \
            inbox \
 	   outgest \
-	   streamer
+	   streamer \
+	   archive-db
 
 ifdef S3
 COMPONENTS+=archive inbox-s3-backend

@@ -36,15 +36,14 @@ def main(cega_conf, conf, args):
             'external': None,
             'internal': None,
             'private-db': None,
-            'private-vault': None,
         },
         'volumes': { # Use the default driver for volume creation
-            'mq': None,
-            'db': None,
+            'archive-db': None,
             'inbox': None,
             'archive': None,
         }
     }
+
 
     with_docker_secrets = args['--secrets']
 
@@ -53,52 +52,25 @@ def main(cega_conf, conf, args):
         lega['volumes']['archive'] = None
 
     lega['services'] = {
-        'mq': {
-            'build': '../../ingestion/mq',
-            'environment': [
-                'CEGA_CONNECTION='+cega_conf.get('mq', 'connection'),
-                'MQ_USER=admin',
-                'MQ_PASSWORD_HASH='+conf.get('mq', 'password_hash'),
-                'MQ_CA=/etc/rabbitmq/CA.cert',
-                'MQ_SERVER_CERT=/etc/rabbitmq/ssl.cert',
-                'MQ_SERVER_KEY=/etc/rabbitmq/ssl.key',
-            ],
-            'hostname': f'mq{HOSTNAME_DOMAIN}',
-            'ports': [
-                conf.get('docker-ports', 'mq')+':15672',
-            ],
-            'image': 'egarchive/lega-mq:latest',
-            'container_name': f'mq{HOSTNAME_DOMAIN}',
-            'networks': [
-                'internal',
-                'external',  # Only so that it is simpler to reach the cega-mq.
-                             # Normally, we'd have routing to cega-mq
-            ],
-            'volumes': [
-                'mq:/var/lib/rabbitmq',
-                './certs/mq.cert.pem:/etc/rabbitmq/ssl.cert',
-                './certs/mq.sec.pem:/etc/rabbitmq/ssl.key',
-                './certs/CA.mq.cert.pem:/etc/rabbitmq/CA.cert',
-            ],
-        },
-        'db': {
+        'archive-db': {
             'build': '../../ingestion/db',
             'environment': [
-                'DB_PASSWORD='+conf.get('db', 'password'),
+                'DB_PASSWORD='+conf.get('archive-db', 'password'),
                 'PGDATA=/ega/data',
                 'PG_SERVER_CERT=/etc/ega/pg.cert',
                 'PG_SERVER_KEY=/etc/ega/pg.key',
                 'PG_CA=/etc/ega/CA.cert',
                 'PG_VERIFY_PEER=1',
             ],
-            'hostname': f'db{HOSTNAME_DOMAIN}',
-            'container_name': f'db{HOSTNAME_DOMAIN}',
+            'hostname': f'archive-db{HOSTNAME_DOMAIN}',
+            'container_name': f'archive-db{HOSTNAME_DOMAIN}',
             'image': 'egarchive/lega-db:latest',
             'volumes': [
-                'db:/ega/data',
-                './certs/db.cert.pem:/etc/ega/pg.cert',
-                './certs/db.sec.pem:/etc/ega/pg.key',
-                './certs/CA.db.cert.pem:/etc/ega/CA.cert',
+                'archive-db:/ega/data',
+                '../../ingestion/db/archive-db.sql:/etc/ega/db.sql', # booting 
+                './certs/archive-db.cert.pem:/etc/ega/pg.cert',
+                './certs/archive-db.sec.pem:/etc/ega/pg.key',
+                './certs/CA.archive-db.cert.pem:/etc/ega/CA.cert',
             ],
             'networks': [
                 'private-db',
@@ -112,7 +84,7 @@ def main(cega_conf, conf, args):
             'container_name': f'inbox{HOSTNAME_DOMAIN}',
             'networks': [
                 'external',
-                'internal',
+                'internal', # to reach local MQ
             ],
             'environment': [
                 'CEGA_ENDPOINT='+cega_conf.get('users', 'endpoint'),
@@ -143,110 +115,11 @@ def main(cega_conf, conf, args):
                 './certs/CA.inbox.cert.pem:/etc/ega/CA.cert',
             ],
         },
-
-        'ingest': {
-            'environment': [
-                LEGA_LOG,
-            ] + ([
-                'S3_ACCESS_KEY='+conf.get('s3','access_key'),
-                'S3_SECRET_KEY='+conf.get('s3','secret_key'),
-            ] if with_s3 else []),
-            'hostname': f'ingest{HOSTNAME_DOMAIN}',
-            'build': '../../ingestion',  # Just in case we docker-compose up before building the image locally
-                                         # This might be useless since the image from the master branch is built on docker hub.
-                                         # so it will get downloaded
-            'image': 'egarchive/lega-base:latest',
-            'container_name': f'ingest{HOSTNAME_DOMAIN}',
-            'volumes': [
-                'inbox:/ega/inbox',
-                './ingest.ini:/etc/ega/conf.ini:ro',
-                './lega-entrypoint.sh:/usr/local/bin/lega-entrypoint.sh',
-                './certs/ingest.cert.pem:/etc/ega/ssl.cert',
-                './certs/ingest.sec.pem:/etc/ega/ssl.key',
-                './certs/CA.ingest.cert.pem:/etc/ega/CA.cert',
-            ] + ([] if with_s3 else ['archive:/ega/archive']),
-            'networks': [
-                'internal',
-                'private-db',
-                'private-vault',
-            ],
-            'user': 'lega',
-            'entrypoint': ["lega-entrypoint.sh"],
-            'command': ["ega-ingest"],
-        },
-
-        'verify': {
-            'environment': [
-                LEGA_LOG,
-            ] + ([
-                'S3_ACCESS_KEY='+conf.get('s3','access_key'),
-                'S3_SECRET_KEY='+conf.get('s3','secret_key'),
-            ] if with_s3 else []),
-            'hostname': f'verify{HOSTNAME_DOMAIN}',
-            'image': 'egarchive/lega-base:latest',
-            'container_name': f'verify{HOSTNAME_DOMAIN}',
-            'volumes': [
-                './verify.ini:/etc/ega/conf.ini:ro',
-                './master.key.sec:/etc/ega/ega.sec',
-                './lega-entrypoint.sh:/usr/local/bin/lega-entrypoint.sh',
-                './certs/verify.cert.pem:/etc/ega/ssl.cert',
-                './certs/verify.sec.pem:/etc/ega/ssl.key',
-                './certs/CA.verify.cert.pem:/etc/ega/CA.cert',
-            ] + ([] if with_s3 else ['archive:/ega/archive']),
-            'networks': [
-                'internal',
-                'private-db',
-                'private-vault',
-            ],
-            'user': 'lega',
-            'entrypoint': ["lega-entrypoint.sh"],
-            'command': ["ega-verify"],
-        },
-
-        'finalize': {
-            'environment': [
-                LEGA_LOG,
-            ],
-            'hostname': f'finalize{HOSTNAME_DOMAIN}',
-            'image': 'egarchive/lega-base:latest',
-            'container_name': f'finalize{HOSTNAME_DOMAIN}',
-            'volumes': [
-                './finalize.ini:/etc/ega/conf.ini:ro',
-                './lega-entrypoint.sh:/usr/local/bin/lega-entrypoint.sh',
-                './certs/finalize.cert.pem:/etc/ega/ssl.cert',
-                './certs/finalize.sec.pem:/etc/ega/ssl.key',
-                './certs/CA.finalize.cert.pem:/etc/ega/CA.cert',
-            ],
-            'networks': [
-                'internal',
-                'private-db',
-            ],
-            'user': 'lega',
-            'entrypoint': ["lega-entrypoint.sh"],
-            'command': ["ega-finalize"],
-        },
-
-        # # Collect logs to a central location.
-        # # Vector.dev, logstash, or a custom code can receive them
-        # 'logs': {
-        #     'hostname': f'logs{HOSTNAME_DOMAIN}',
-        #     'image': 'python:3.8-alpine3.11',
-        #     'container_name': f'logs{HOSTNAME_DOMAIN}',
-        #     'volumes': [
-        #         '../bootstrap/udplogs.py:/logserver.py',
-        #     ],
-        #     'networks': [
-        #         'internal',
-        #         # 'private-db',
-        #         # 'private-vault',
-        #         # 'external',
-        #     ],
-        #     'entrypoint': ['python', '/logserver.py']
-        # }
-
     }
 
+
     if with_s3:
+        lega['networks']['private-vault'] = None
         lega['services']['archive'] = {
             'hostname': f'archive{HOSTNAME_DOMAIN}',
             'container_name': f'archive{HOSTNAME_DOMAIN}',
@@ -271,53 +144,14 @@ def main(cega_conf, conf, args):
         }
 
     if with_docker_secrets:
-        for s in ['ingest', 'verify', 'finalize']:
-            lega['services'][s]['secrets'] = [
-                { 'source': 'db.connection',
-                  'target': 'db.connection',
-                  'uid': 'lega',
-                  'gid': 'lega',
-                  'mode': '0400', # octal
-                },
-                { 'source': 'mq.connection',
-                  'target': 'mq.connection',
-                  'uid': 'lega',
-                  'gid': 'lega',
-                  'mode': '0400', # octal
-                }]
-            # S3 access and secret keys are in insecure env vars
- 
-        lega['services']['verify']['secrets'].append({ 'source': 'master.key.passphrase',
-                                                       'target': 'master.key.passphrase',
-                                                       'uid': 'lega',
-                                                       'gid': 'lega',
-                                                       'mode': '0400', # octal
-        })
-           
         lega['secrets'] = {
-            'db.connection': { 'file': './secrets/db.connection'         },
-            'mq.connection': { 'file': './secrets/mq.connection'         },
-            'master.key.passphrase' : { 'file': './secrets/master.key.passphrase' },
+            'archive-db.connection': { 'file': './secrets/archive-db.connection'         },
         }
 
         # create the files 
         from ..defs import put_file_content
-        mq_connection = conf.get('mq', 'connection') + '?' + conf.get('mq', 'connection_params')
-        put_file_content(args['--secrets'], 'mq.connection', mq_connection.encode())
-        db_connection = conf.get('db', 'connection') + '?' + conf.get('db', 'connection_params')
-        put_file_content(args['--secrets'], 'db.connection', db_connection.encode())
-
-        
-
-    # If DEPLOY_DEV is set (and don't define it as an empty string, duh!),
-    # we then reset the entrypoint and add the current python code
-    if os.getenv('DEPLOY_DEV'): # 
-        for s in ['ingest', 'verify', 'finalize']:
-            service = lega['services'][s]
-            volumes = service['volumes']
-            volumes.append('../../ingestion/lega:/home/lega/.local/lib/python3.8/site-packages/lega')
-            del service['command']
-            service['entrypoint'] = ["/bin/sleep", "1000000000000"]
+        db_connection = conf.get('archive-db', 'connection') + '?' + conf.get('archive-db', 'connection_params')
+        put_file_content(args['--secrets'], 'archive-db.connection', db_connection.encode())
 
     yaml=YAML()
     yaml.default_flow_style = False
@@ -332,7 +166,7 @@ if __name__ == '__main__':
     args = docopt(__doc__,
                   sys.argv[1:],
                   help=True,
-                  version='LocalEGA docker services boostrap (version 0.2)')
+                  version='LocalEGA stub services boostrap (version 0.2)')
 
     conf = configparser.RawConfigParser()
     conf.read(args['<conf>'])

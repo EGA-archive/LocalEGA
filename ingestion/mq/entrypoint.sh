@@ -37,28 +37,23 @@ cat > /etc/rabbitmq/definitions.json <<EOF
   ],
   "parameters": [
     {
-      "name": "CEGA-ids", "vhost": "/", "component": "federation-upstream",
-      "value": { "ack-mode": "on-confirm", "queue": "v1.stableIDs", "trust-user-id": false, "uri": "${CEGA_CONNECTION}" }
-    },
-    {
-      "name": "CEGA-files", "vhost": "/", "component": "federation-upstream",
+      "name": "from_cega", "vhost": "/", "component": "federation-upstream",
       "value": { "ack-mode": "on-confirm", "queue": "v1.files", "trust-user-id": false, "uri": "${CEGA_CONNECTION}" }
     }
   ],
   "policies": [
     {
-      "vhost": "/", "name": "CEGA-files", "pattern": "files", "apply-to": "queues", "priority": 0,
-      "definition": { "federation-upstream": "CEGA-files" }
-    },
-    {
-      "vhost": "/", "name": "CEGA-ids", "pattern": "stableIDs", "apply-to": "queues", "priority": 0,
-      "definition": { "federation-upstream": "CEGA-ids" }
+      "vhost": "/", "name": "from_cega", "pattern": "from_cega", "apply-to": "queues", "priority": 0,
+      "definition": { "federation-upstream": "from_cega" }
     }
   ],
   "queues": [
-    {"name": "stableIDs", "vhost": "/", "durable": true, "auto_delete": false, "arguments":{}},
-    {"name": "files",     "vhost": "/", "durable": true, "auto_delete": false, "arguments":{}},
-    {"name": "archived",  "vhost": "/", "durable": true, "auto_delete": false, "arguments":{}},
+    {"name": "from_cega", "vhost": "/", "durable": true, "auto_delete": false, "arguments":{}},
+    {"name": "ingest",    "vhost": "/", "durable": true, "auto_delete": false, "arguments":{}},
+    {"name": "verified",  "vhost": "/", "durable": true, "auto_delete": false, "arguments":{}},
+    {"name": "accession", "vhost": "/", "durable": true, "auto_delete": false, "arguments":{}},
+    {"name": "backup1",   "vhost": "/", "durable": true, "auto_delete": false, "arguments":{}},
+    {"name": "backup2",   "vhost": "/", "durable": true, "auto_delete": false, "arguments":{}},
     {"name": "completed", "vhost": "/", "durable": true, "auto_delete": false, "arguments":{}}
   ],
   "exchanges": [
@@ -66,7 +61,11 @@ cat > /etc/rabbitmq/definitions.json <<EOF
     {"name":"lega", "vhost":"/", "type":"topic", "durable":true, "auto_delete":false, "internal":false, "arguments":{}}
   ], 
   "bindings": [
-    { "source":"lega", "vhost": "/", "destination":"archived", "destination_type":"queue", "routing_key":"archived", "arguments":{}},
+    { "source":"lega", "vhost": "/", "destination":"ingest", "destination_type":"queue", "routing_key":"ingest", "arguments":{}},
+    { "source":"lega", "vhost": "/", "destination":"verified", "destination_type":"queue", "routing_key":"verified", "arguments":{}},
+    { "source":"lega", "vhost": "/", "destination":"accession", "destination_type":"queue", "routing_key":"accession", "arguments":{}},
+    { "source":"lega", "vhost": "/", "destination":"backup1", "destination_type":"queue", "routing_key":"backup1", "arguments":{}},
+    { "source":"lega", "vhost": "/", "destination":"backup2", "destination_type":"queue", "routing_key":"backup2", "arguments":{}},
     { "source":"lega", "vhost": "/", "destination":"completed", "destination_type":"queue", "routing_key":"completed", "arguments":{}}
   ]
 }
