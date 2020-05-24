@@ -62,9 +62,9 @@ def main(confs):
         "queues":[
             add_queue('v1.files', vhost),
             add_queue('v1.files.inbox', vhost),
-            add_queue('v1.stableIDs', vhost),
+            add_queue('v1.files.verified', vhost),
             add_queue('v1.files.completed', vhost),
-            add_queue('v1.files.processing', vhost),
+            # add_queue('v1.files.processing', vhost),
             add_queue('v1.files.error', vhost),
         ],
         "exchanges": [
@@ -79,12 +79,13 @@ def main(confs):
             }
         ],
         "bindings": [
-            add_binding(exchange, vhost, 'v1.stableIDs', 'stableIDs'),
+            add_binding(exchange, vhost, 'v1.files', 'accession'),
             add_binding(exchange, vhost, 'v1.files', 'files'),
             add_binding(exchange, vhost, 'v1.files.inbox', 'files.inbox'),
             add_binding(exchange, vhost, 'v1.files.error','files.error'),
             add_binding(exchange, vhost, 'v1.files.processing', 'files.processing'),
             add_binding(exchange, vhost, 'v1.files.completed', 'files.completed'),
+            add_binding(exchange, vhost, 'v1.files.verified', 'files.verified'),
         ]
     }
 

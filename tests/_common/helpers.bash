@@ -146,7 +146,7 @@ function lega_trigger_ingestion {
     CORRELATION_ID=$output
 
     # Publish the file to simulate a CentralEGA trigger
-    MESSAGE="{ \"user\": \"${user}\", \"filepath\": \"${upload_path}\"}"
+    MESSAGE="{ \"type\": \"ingest\", \"user\": \"${user}\", \"filepath\": \"${upload_path}\"}"
     legarun ${MQ_PUBLISH} --correlation_id "${CORRELATION_ID}" files "$MESSAGE"
     [ "$status" -eq 0 ]
 

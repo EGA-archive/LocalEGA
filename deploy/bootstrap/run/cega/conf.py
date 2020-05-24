@@ -26,7 +26,8 @@ config = configparser.RawConfigParser()
 config['DEFAULT'] = {}
 config['mq'] = {
     'version': '3.7.8',
-    'connection': f"amqps://legatest:legatest@cega-mq{HOSTNAME_DOMAIN}:5671/lega?{cega_connection_params}",
+    'connection': f"amqps://legatest:legatest@cega-mq{HOSTNAME_DOMAIN}:5671/lega",
+    'connection_params': cega_connection_params,
     'user': 'legatest',
     'password_hash': generate_mq_hash('legatest'),
     'vhost': 'lega',

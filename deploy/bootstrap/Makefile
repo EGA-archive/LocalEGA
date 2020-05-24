@@ -43,8 +43,8 @@ SECRETS+= s3.access s3.secret
 endif
 
 ALL_FILES=$(addprefix ../private/, lega-entrypoint.sh cega-entrypoint.sh \
-		                   cega-mq-defs.json cega-mq-rabbitmq.config \
-                                   dispatch.ini ingest.ini mapper.ini master.key.sec \
+		                   cega-mq-defs.json cega-mq-rabbitmq.config cega-accession.ini \
+                                   dispatcher.ini ingest.ini finalize.ini master.key.sec \
 	                           pipeline.yml lega.yml cega.yml)
 
 all: ../.env $(ALL_FILES) certs users
@@ -91,6 +91,10 @@ endif
 ../private/cega.yml: run/cega/services.py | ../private
 	@echo "Creating CentralEGA docker-compose file: $(@F)"
 	@python -m run.cega.services > $@
+
+../private/cega-accession.ini: ../private/cega.conf run/cega/accession.py | ../private
+	@echo "Creating CentralEGA docker-compose file: $(@F)"
+	@python -m run.cega.accession $< > $@
 
 ############### Generate LocalEGA settings
 
@@ -141,7 +145,8 @@ users: $(USERS:%=../private/users/%.passphrase) \
 
 ############### Generate Certificates
 
-COMPONENTS=ingest \
+COMPONENTS=dispatcher \
+	   ingest \
            verify \
            finalize \
            db \
@@ -156,7 +161,7 @@ ifdef S3
 COMPONENTS+=archive inbox-s3-backend
 endif
 
-COMPONENTS+=cega-mq cega-users testsuite
+COMPONENTS+=cega-mq cega-users cega-accession testsuite
 
 CERTS=$(COMPONENTS:%=../private/certs/%.sec.pem) \
       $(COMPONENTS:%=../private/certs/%.cert.pem) \

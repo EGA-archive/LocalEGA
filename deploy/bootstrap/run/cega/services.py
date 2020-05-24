@@ -46,6 +46,27 @@ config = {
             'networks': ['external'],
             'entrypoint': ["/usr/local/bin/cega-entrypoint.sh"],
         },
+
+        'cega-accession': {
+            'environment': [
+                'LEGA_LOG=debug'
+            ],
+            'hostname': f'cega-accession{HOSTNAME_DOMAIN}',
+            # 'ports': ["15671:443"],
+            'image': 'egarchive/lega-base:latest',
+            'container_name': f'cega-accession{HOSTNAME_DOMAIN}',
+            'volumes': [
+                './cega-accession.ini:/etc/ega/conf.ini:ro',
+                '../bootstrap/cega-accession.py:/cega/accession.py',
+                './certs/cega-accession.cert.pem:/cega/ssl.crt',
+                './certs/cega-accession.sec.pem:/cega/ssl.key',
+                './certs/CA.cega-accession.cert.pem:/cega/CA.crt',
+            ],
+            'networks': ['external'],
+            'working_dir': '/cega',
+            #'entrypoint': ["python", "accession.py"],
+            'entrypoint': ["/bin/sleep", "100000000000"],
+        },
     },
 }
 

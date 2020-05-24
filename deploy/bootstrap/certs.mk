@@ -34,6 +34,7 @@ DOMAIN_EMAIL := -dev.ega@crg.eu
 ## Certificates
 ###############################################
 
+../private/certs/dispatcher.cert.pem: EXT=client_cert
 ../private/certs/ingest.cert.pem: EXT=client_cert
 ../private/certs/verify.cert.pem: EXT=client_cert
 ../private/certs/finalize.cert.pem: EXT=client_cert
@@ -43,9 +44,11 @@ DOMAIN_EMAIL := -dev.ega@crg.eu
 ../private/certs/keys.cert.pem: EXT=server_cert
 ../private/certs/cega-mq.cert.pem: EXT=server_cert
 ../private/certs/cega-users.cert.pem: EXT=server_cert
+../private/certs/cega-accession.cert.pem: EXT=client_cert
 ../private/certs/outgest.cert.pem: EXT=server_client_cert
 ../private/certs/streamer.cert.pem: EXT=server_client_cert
 ../private/certs/testsuite.cert.pem: EXT=client_cert
+../private/certs/archive-db.cert.pem: EXT=server_cert
 
 ifdef S3
 ../private/certs/archive.cert.pem: EXT=server_cert
