@@ -30,14 +30,28 @@ def main(conf, args):
     config = configparser.RawConfigParser()
 
     config['DEFAULT'] = {
-        'queue': 'files',
+        'queue': 'ingest',
         'exchange': 'lega',
-        'routing_key': 'archived',
+        'routing_key': 'verified',
+        'master_key': 'c4gh_file',
+    }
+
+    master_key = ('secret:///run/secrets/master.key.passphrase'
+                  if with_docker_secrets else
+                  conf.get('master_key','passphrase', raw=True))
+
+    config['c4gh_file'] = {
+        'loader_class': 'C4GHFileKey',
+        'passphrase': master_key,
+        'filepath': '/etc/ega/ega.sec',
     }
 
     config['inbox'] = {
         'location': r'/ega/inbox/%s/',
-        'chroot_sessions': True,
+    }
+
+    config['staging'] = {
+        'location': r'/ega/staging/',
     }
 
     mq_connection = ('secret:///run/secrets/mq.connection'

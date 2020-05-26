@@ -17,7 +17,7 @@ import logging
 
 from .conf import CONF
 from .conf.logging import _cid
-from .utils import db, get_sha256, exceptions
+from .utils import db, exceptions, get_sha256
 from .utils.amqp import consume, publish
 
 LOG = logging.getLogger(__name__)
@@ -42,11 +42,11 @@ def work(data):
         # correlation_id fetched internally
         job_id = db.insert_job(data['filepath'],
                                data['user'],
-                               encrypted_sha256_checksum=get_sha256(data))
+                               encrypted_checksums=data.get('encrypted_checksums'))
         
         if job_id == -1:  # no need to work
             LOG.warning('Already ongoing in another message')
-            return True
+            return
 
         # Otherwise
         data.pop('type', None)
@@ -60,7 +60,7 @@ def work(data):
         # correlation_id fetched internally
         db.cancel_job(data['filepath'],
                       data['user'],
-                      encrypted_sha256_checksum=get_sha256(data))
+                      encrypted_sha256_checksum=get_sha256(data.get('encrypted_checksums')))
 
     elif job_type == 'heartbeat':
 
@@ -68,15 +68,50 @@ def work(data):
         raise NotImplementedError('Heartbeat not implemented yet')
 
     elif job_type == 'accession':
-
+        
         LOG.info('Receiving an accession id (correlation_id %s)', correlation_id)
-        # Republish and let the mapper handle it
+
+        filepath = data.get('filepath')
+        user = data.get('user')
+        decrypted_sha256 = get_sha256(data.get('decrypted_checksums',[]))
+        accession_id = data.get('accession_id')
+
+        # All fields should be there
+        if (filepath is None or
+            user is None or
+            decrypted_sha256 is None or
+            accession_id is None):
+            raise exceptions.InvalidBrokerMessage('Invalid accession message from CentralEGA')
+
+        # Find the relevant job. Crash if parameters not there
+        job = db.find_job(filepath, user, decrypted_sha256)
+        
+        if job == None:
+            LOG.error('No running job for correlation_id %s', correlation_id)
+            raise exceptions.RejectMessage(f'No running job for correlation_id {correlation_id}'
+                                           f' to associate with Accession ID {accession_id}')
+
+        job_id, staging_info = job
+        staging_info['accession_id'] = accession_id
+        LOG.info('Found job id %s for correlation_id %s and accession_id %s', job_id, correlation_id, accession_id)
+
+        # Sanity check or crash
+        assert staging_info['job_id'] == job_id, "Eh? Not the same job_id?"
+        assert staging_info['filepath'] == filepath, "Eh? Not the same filepath?"
+        assert staging_info['user'] == user, "Eh? Not the same user?"
+        assert get_sha256(staging_info['decrypted_checksums']) == decrypted_sha256, "Eh? Not the same decrypted sha256 checksum?"
+
+        # Just record it in the pipeline db
+        # db.set_accession_id(job_id, accession_id)
+  
+        # Republish and let this LocalEGA
         routing_key = CONF.get('DEFAULT', 'accession_routing_key', fallback='accession')
-        publish(data, routing_key=routing_key)  # will use the same correlation_id
+        publish(staging_info, routing_key=routing_key)  # will use the same correlation_id
 
     elif job_type == 'mapping':
 
         LOG.info('Receiving a mapping (correlation_id %s)', correlation_id)
+        data.pop('type', None)
         # Republish and let the mapper handle it
         routing_key = CONF.get('DEFAULT', 'mapping_routing_key', fallback='mapping')
         publish(data, routing_key=routing_key)  # will use the same correlation_id

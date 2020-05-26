@@ -30,9 +30,9 @@ def main(conf, args):
     config = configparser.RawConfigParser()
 
     config['DEFAULT'] = {
-        'queue': 'stableIDs',
-        'exchange': 'lega',
-        # 'routing_key': 'backup1',
+        'queue': 'completed',
+        'exchange': 'cega',
+        'routing_key': 'completed',
     }
 
 
@@ -61,6 +61,16 @@ def main(conf, args):
 
     config['db'] = {
         'connection': db_connection,
+        'try': 30,
+        'try_interval': 1,
+    }
+    
+    archive_db_connection = ('secret:///run/secrets/archive-db.connection'
+                     if with_docker_secrets else
+                     conf.get('archive-db', 'connection') + '?' + conf.get('archive-db', 'connection_params'))
+
+    config['archive-db'] = {
+        'connection': archive_db_connection,
         'try': 30,
         'try_interval': 1,
     }

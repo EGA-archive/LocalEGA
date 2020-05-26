@@ -8,13 +8,6 @@ CREATE SCHEMA local_ega; -- includes the main table, some views and errors
 SET search_path TO local_ega;
 
 CREATE TYPE checksum_algorithm AS ENUM ('MD5', 'SHA256', 'SHA384', 'SHA512'); -- md5 is bad. Use sha*!
-CREATE TYPE storage AS ENUM ('S3', 'POSIX');
--- Note: This is an enum, because that's what the "provided" database supports
---       If a site has its own database already, let them define their keyword in the ENUM 
---       and use it (Notice that their code must be update to push this value into the table)
---       There is no need to agree on how each site should operate their own database
---       What we need is to document where they need to update and what.
-
 
 -- ##################################################
 --                  FILE STATUS
@@ -65,16 +58,10 @@ CREATE TABLE local_ega.main (
        			      -- No "ON DELETE CASCADE": update to the new status in case the old one is deleted
 
        -- Staging information
-       staging_relative_path  TEXT,
-
-       -- Archive information
-       header                 TEXT, -- Crypt4GH header
-       encrypted_payload_size           BIGINT,
-       encrypted_payload_checksum       VARCHAR(128) NULL, -- NOT NULL,
-       encrypted_payload_checksum_type  checksum_algorithm,
-       encrypted_payload_file_type      storage, -- S3 or POSIX file system
+       staging_info  json, -- JSON formatted blob
        
-       accession_id           TEXT, UNIQUE (accession_id),
+       accession_id                     TEXT, UNIQUE (accession_id),
+       decrypted_payload_checksum       VARCHAR(128) NULL, -- NOT NULL, -- only sha256
 
        -- Errors
        hostname      TEXT,
@@ -117,13 +104,10 @@ SELECT id,
        inbox_path,
        inbox_path_encrypted_checksum   AS inbox_checksum,
        inbox_path_encrypted_checksum_type AS inbox_checksum_type,
-       staging_relative_path,
+       staging_info,
        status,
-       header,  -- Crypt4gh specific
-       encrypted_payload_size          AS payload_size,
-       encrypted_payload_checksum      AS payload_checksum,
-       encrypted_payload_checksum_type AS payload_checksum_type,
-       accession_id
+       accession_id,
+       decrypted_payload_checksum
 FROM local_ega.main;
 
 -- Insert into main
@@ -200,7 +184,7 @@ RETURNS void AS $cancel_job$
     END;
 $cancel_job$ LANGUAGE plpgsql;
 
-CREATE FUNCTION has_status(fid local_ega.jobs.id%TYPE, statuses status[])
+CREATE FUNCTION local_ega.has_status(fid local_ega.jobs.id%TYPE, statuses status[])
 RETURNS boolean AS $has_status$
 #variable_conflict use_column
 BEGIN
@@ -224,11 +208,11 @@ SELECT id,
        last_modified   AS error_at
 FROM local_ega.main;
 
-CREATE FUNCTION insert_error(jid        local_ega.errors.id%TYPE,
-                             h          local_ega.errors.hostname%TYPE,
-                             etype      local_ega.errors.error_type%TYPE,
-                             msg        local_ega.errors.message%TYPE,
-                             from_user  local_ega.errors.from_user%TYPE)
+CREATE FUNCTION local_ega.insert_error(jid        local_ega.errors.id%TYPE,
+                                       h          local_ega.errors.hostname%TYPE,
+                                       etype      local_ega.errors.error_type%TYPE,
+                                       msg        local_ega.errors.message%TYPE,
+                                       from_user  local_ega.errors.from_user%TYPE)
     RETURNS void AS $insert_error$
     BEGIN
        UPDATE local_ega.jobs
@@ -254,8 +238,8 @@ CREATE TABLE local_ega.session_key_checksums_sha256 (
 
 
 -- Returns if the session key checksums are already found in the database
-CREATE FUNCTION check_session_keys_checksums_sha256(checksums text[]) --local_ega.session_key_checksums.session_key_checksum%TYPE []
-    RETURNS boolean AS $check_session_keys_checksums_sha256$
+CREATE FUNCTION local_ega.has_session_keys_checksums_sha256(checksums text[]) --local_ega.session_key_checksums.session_key_checksum%TYPE []
+    RETURNS boolean AS $has_session_keys_checksums_sha256$
     #variable_conflict use_column
     BEGIN
 	RETURN EXISTS(SELECT 1
@@ -265,12 +249,12 @@ CREATE FUNCTION check_session_keys_checksums_sha256(checksums text[]) --local_eg
 		      WHERE (f.status <> 'ERROR' AND f.status <> 'CANCELED') AND -- no data-race on those values
 		      	    sk.session_key_checksum = ANY(checksums));
     END;
-$check_session_keys_checksums_sha256$ LANGUAGE plpgsql;
+$has_session_keys_checksums_sha256$ LANGUAGE plpgsql;
 
 
 -- Insert all the checksums for a given job_id
-CREATE FUNCTION insert_session_keys_checksums_sha256(jid        local_ega.jobs.id%TYPE,
-                                                     checksums  text[])
+CREATE FUNCTION local_ega.insert_session_keys_checksums_sha256(jid        local_ega.jobs.id%TYPE,
+                                                               checksums  text[])
     RETURNS VOID AS $insert_session_keys_checksums_sha256$
     #variable_conflict use_column
     BEGIN

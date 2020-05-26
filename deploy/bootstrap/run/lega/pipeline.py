@@ -56,7 +56,7 @@ def main(cega_conf, conf, args):
         'mq': {
             'build': '../../ingestion/mq',
             'environment': [
-                'CEGA_CONNECTION='+cega_conf.get('mq', 'connection'),
+                'CEGA_CONNECTION='+cega_conf.get('mq', 'connection')+"?"+cega_conf.get('mq', 'connection_params'),
                 'MQ_USER=admin',
                 'MQ_PASSWORD_HASH='+conf.get('mq', 'password_hash'),
                 'MQ_CA=/etc/rabbitmq/CA.cert',
@@ -105,6 +105,32 @@ def main(cega_conf, conf, args):
                 'internal',
             ],
         },
+
+        'dispatcher': {
+            'environment': [
+                LEGA_LOG,
+            ],
+            'hostname': f'dispatcher{HOSTNAME_DOMAIN}',
+            'build': '../../ingestion',  # Just in case we docker-compose up before building the image locally
+                                         # This might be useless since the image from the master branch is built on docker hub.
+                                         # so it will get downloaded
+            'image': 'egarchive/lega-base:latest',
+            'container_name': f'dispatcher{HOSTNAME_DOMAIN}',
+            'volumes': [
+                './dispatcher.ini:/etc/ega/conf.ini:ro',
+                './lega-entrypoint.sh:/usr/local/bin/lega-entrypoint.sh',
+                './certs/dispatcher.cert.pem:/etc/ega/ssl.cert',
+                './certs/dispatcher.sec.pem:/etc/ega/ssl.key',
+                './certs/CA.dispatcher.cert.pem:/etc/ega/CA.cert',
+            ],
+            'networks': [
+                'internal',
+            ],
+            'user': 'lega',
+            'entrypoint': ["lega-entrypoint.sh"],
+            'command': ["ega-dispatcher"],
+        },
+
         'ingest': {
             'environment': [
                 LEGA_LOG,
@@ -119,6 +145,7 @@ def main(cega_conf, conf, args):
                 'inbox:/ega/inbox',
                 'staging:/ega/staging',
                 './ingest.ini:/etc/ega/conf.ini:ro',
+                './master.key.sec:/etc/ega/ega.sec',
                 './lega-entrypoint.sh:/usr/local/bin/lega-entrypoint.sh',
                 './certs/ingest.cert.pem:/etc/ega/ssl.cert',
                 './certs/ingest.sec.pem:/etc/ega/ssl.key',
@@ -204,12 +231,12 @@ def main(cega_conf, conf, args):
     # If DEPLOY_DEV is set (and don't define it as an empty string, duh!),
     # we then reset the entrypoint and add the current python code
     if os.getenv('DEPLOY_DEV'): # 
-        for s in ['ingest']:
+        for s in ['dispatcher', 'ingest']:
             service = lega['services'][s]
             volumes = service['volumes']
             volumes.append('../../ingestion/lega:/home/lega/.local/lib/python3.8/site-packages/lega')
-            del service['command']
-            service['entrypoint'] = ["/bin/sleep", "1000000000000"]
+            # del service['command']
+            # service['entrypoint'] = ["/bin/sleep", "1000000000000"]
 
     yaml=YAML()
     yaml.default_flow_style = False

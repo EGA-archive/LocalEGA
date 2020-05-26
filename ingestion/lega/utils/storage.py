@@ -17,41 +17,32 @@ LOG = logging.getLogger(__name__)
 class FileStorage():
     """Storage on disk and related I/O."""
 
-    def __init__(self, config_section, user):
+    def __init__(self, config_section):
         """Initialize backend storage to a POSIX file system."""
-        self.prefix = Path(CONF.get(config_section, 'location', raw=True) % user)
+        self.prefix = CONF.get(config_section, 'location', raw=True)
 
-    def location(self, file_id):
+    def __call__(self, user, path, mkdirs=False):
         """Retrieve file location."""
-        name = f"{file_id:0>20}"  # filling with zeros, and 20 characters wide
-        name_bits = [name[i:i+3] for i in range(0, len(name), 3)]
-        target = Path('/').joinpath(*name_bits)
-        return str(target)
+        prefix = self.prefix if user is None else self.prefix % user
+        path = os.path.join(prefix, path.strip('/') )
+        if mkdirs:
+            Path(path).parent.mkdir(parents=True, exist_ok=True)
+        return path
 
-    def filesize(self, path):
-        """Return the size of the file pointed by ``path``."""
-        return os.stat(self.prefix / path.lstrip('/')).st_size
-
-    def copy(self, fileobj, location):
-        """Copy file object at a specific location."""
-        target = self.prefix / location.lstrip('/')
-        target.parent.mkdir(parents=True, exist_ok=True)
-        with open(target, 'wb') as h:
-            shutil.copyfileobj(fileobj, h)
-        return self.filesize(location)
+    def name2fs(self, name):
+        """Convert a name to a file system relative path."""
+        return os.path.join(*list(name[i:i+3] for i in range(0, len(name), 3)))
 
     @contextmanager
     def open(self, path, mode='rb'):
         """Open stored file."""
-        fp = self.prefix / path.lstrip('/')
-        f = open(fp, mode)
+        f = open(path, mode)
         yield f
         f.close()
 
-    def exists(self, filepath):
+    def exists(self, path):
         """Return true if the path exists."""
-        fp = self.prefix / filepath.lstrip('/')
-        return fp.exists()
+        return os.path.exists(path)
 
     def __str__(self):
         """Return inbox prefix."""
@@ -194,7 +185,7 @@ class S3FileReader(object):
 class S3Storage():
     """S3 object storage and related I/O."""
 
-    def __init__(self, config_section, user):
+    def __init__(self, config_section):
         """Initialize S3 object Storage."""
         import boto3
         import botocore

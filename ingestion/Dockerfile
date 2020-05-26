@@ -47,6 +47,9 @@ ARG LEGA_GROUPNAME=lega
 RUN ldconfig -v                                  && \
     groupadd -g ${LEGA_GID} -r ${LEGA_GROUPNAME} && \
     useradd -M -g ${LEGA_GROUPNAME} -u ${LEGA_UID} ${LEGA_USERNAME} && \
+    mkdir -p /ega/staging                        && \
+    chgrp ${LEGA_USERNAME} /ega/staging          && \
+    chmod 2770 /ega/staging                      && \
     mkdir -p /ega/archive                        && \
     chgrp ${LEGA_USERNAME} /ega/archive          && \
     chmod 2770 /ega/archive                      && \

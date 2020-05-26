@@ -12,10 +12,10 @@ from functools import wraps
 import atexit
 
 
-from . import redact_url
 from ..conf import CONF
 from ..conf.logging import _cid
-from ..utils import retry
+from . import redact_url, get_sha256
+from psycopg2.extras import Json
 
 LOG = logging.getLogger(__name__)
 
@@ -135,102 +135,104 @@ connection = DBConnection(on_failure=lambda: sys.exit(1))
 
 atexit.register(lambda: connection.close())
 
-
-def insert_job(filename, user_id, encrypted_sha256_checksum=None):
+def insert_job(filename, user_id, encrypted_checksums=None):
     """Insert a new file entry and returns its id."""
     correlation_id = _cid.get()
     assert correlation_id, 'Eh? No correlation_id?'
     with connection.cursor() as cur:
-        cur.execute('''SELECT * FROM ega.insert_job(%(correlation_id)s::text,
-                                                    %(filename)s::text,
-                                                    %(user_id)s::text,
-                                                    %(cs)s::text,
-                                                    %(cs_type)s::checksum_algorithm);''',
+        # We use only the sha256 if provided
+        encrypted_sha256_checksum = get_sha256(encrypted_checksums)        
+        cur.execute('''SELECT * FROM local_ega.insert_job(%(correlation_id)s::text,
+                                                          %(filename)s::text,
+                                                          %(user_id)s::text,
+                                                          %(cs)s::text,
+                                                          %(cs_type)s);''', # don't type cast it here
                     {'correlation_id': _cid.get(),
                      'filename': filename,
                      'user_id': user_id,
                      'cs': encrypted_sha256_checksum,
-                     'cs_type': None if encrypted_sha256_checksum is None else 'sha256'})
+                     'cs_type': None if encrypted_sha256_checksum is None else 'SHA256'})
         _id = (cur.fetchone())[0]
         if _id is None:
             raise Exception('Database issue with insert_job')
         LOG.debug('Inserted job id %s for %s', _id, filename)
         return _id
 
-
-def set_error(error, from_user=False):
-    """Record error to database."""
+def cancel_job(filename, user_id, encrypted_checksums=None):
+    """Cancel a job."""
     correlation_id = _cid.get()
     assert correlation_id, 'Eh? No correlation_id?'
-    assert error, 'Eh? No error?'
-    LOG.debug('Setting error for %s: %s | Cause: %s', correlation_id, error, error.__cause__)
     with connection.cursor() as cur:
-        cur.execute('''SELECT * FROM local_ega.insert_error(%(correlation_id)s,
-                                                            %(h)s,
-                                                            %(etype)s,
-                                                            %(msg)s,
-                                                            %(from_user)s);''',
-                    {'h': gethostname(),
-                     'etype': error.__class__.__name__,
-                     'msg': repr(error),
-                     'correlation_id': correlation_id,
-                     'from_user': from_user})
-        return cur.fetchall()
+        # We use only the sha256 if provided
+        encrypted_sha256_checksum = get_sha256(encrypted_checksums)        
+        cur.execute('''SELECT * FROM local_ega.cancel_job(%(correlation_id)s::text,
+                                                          %(filename)s::text,
+                                                          %(user_id)s::text,
+                                                          %(cs)s::text,
+                                                          %(cs_type)s);''', # don't type cast it here
+                    {'correlation_id': _cid.get(),
+                     'filename': filename,
+                     'user_id': user_id,
+                     'cs': encrypted_sha256_checksum,
+                     'cs_type': None if encrypted_sha256_checksum is None else 'SHA256'})
+        _id = (cur.fetchone())[0]
+        if _id is None:
+            raise Exception('Database issue with cancel_job')
+        LOG.debug('Canceled job id %s for %s', _id, filename)
+        return _id
 
 
-def mark_staged(header, staging_path, staging_checksum, staging_size):
+def mark_verified(job_id, data, decrypted_payload_checksum):
 
     correlation_id = _cid.get()
     assert correlation_id, 'Eh? No correlation_id?'
-    assert header, 'Eh? No header?'
     LOG.debug('Setting status to staged for job %s', correlation_id)
     with connection.cursor() as cur:
-        cur.execute('SELECT * FROM local_ega.mark_verified(%(correlation_id)s, '
-                    '                                %(h)s, '
-                    '                                %(spath)s, '
-                    '                                %(ssize)s, '
-                    '                                %(sc)s, '
-                    '                                %(sct)s)',
-                    {'correlation_id': correlation_id,
-                     'spath': staging_path,
-                     'ssize': staging_size,
-                     'sc': staging_checksum,
-                     'sct': 'SHA256',
-                     'h': header})
+        cur.execute('UPDATE local_ega.jobs '
+                    'SET status = %(status)s, '
+                    '    staging_info = %(staging_info)s, '
+                    '    decrypted_payload_checksum = %(decrypted_payload_checksum)s ' # separating it for find_job
+                    'WHERE id = %(job_id)s;',
+                    {'status': 'VERIFIED', # no data-race is status is DISABLED or ERROR
+                     'job_id': job_id, 
+                     'staging_info': Json(data), # psycopg2 json adapter
+                     'decrypted_payload_checksum': decrypted_payload_checksum })
 
-
-def mark_verified(session_key_checksums, digest_sha256):
-    """Mark file as verified."""
+def find_job(filename, user_id, decrypted_payload_checksum):
+    """Cancel a job."""
     correlation_id = _cid.get()
     assert correlation_id, 'Eh? No correlation_id?'
-    LOG.debug('Marking correlation_id %s with "VERIFIED"', correlation_id)
     with connection.cursor() as cur:
-        cur.execute('UPDATE local_ega.files '
-                    'SET status = %(status)s, '
-                    '    archive_checksum = %(archive_checksum)s, '
-                    '    archive_checksum_type = %(archive_checksum_type)s '
-                    'WHERE correlation_id = %(correlation_id)s;',
-                    {'status': 'VERIFIED', # no data-race is file status is DISABLED or ERROR
-                     'correlation_id': correlation_id, 
-                     'archive_checksum': digest_sha256,
-                     'archive_checksum_type': 'SHA256'})
-        # Insert the checksums, afterwards
-        cur.executemany('INSERT INTO local_ega.session_key_checksums_sha256 '
-                        '            (correlation_id, session_key_checksum) '
-                        'VALUES (%s, %s);',
-                        [(correlation_id, c) for c in session_key_checksums])
+        # We use only the sha256 if provided
+        cur.execute('''SELECT id, staging_info 
+                       FROM local_ega.jobs 
+                       WHERE correlation_id = %(correlation_id)s AND 
+                             inbox_path = %(filename)s AND 
+                             user_id = %(user_id)s AND
+                             decrypted_payload_checksum = %(decrypted_payload_checksum)s''',
+                    {'correlation_id': _cid.get(),
+                     'filename': filename,
+                     'user_id': user_id,
+                     'decrypted_payload_checksum': decrypted_payload_checksum })
+        res = cur.fetchone()
+        return res if res else None # psycopg2 json decoder for staging_info
 
-def set_status(job_id, status):
-    """Set job status."""
+def set_accession_id(job_id, accession_id):
     assert job_id, 'Eh? No job_id?'
-    LOG.debug('Setting job %s to "%s"', job_id, status)
+    LOG.debug('Setting accession id for job %s to "%s"', job_id, accession_id)
     with connection.cursor() as cur:
-        cur.execute('UPDATE local_ega.jobs '
-                    'SET status = %(status)s '
-                    'WHERE id = %(job_id)s;',
-                    {'status': status,
-                     'job_id': job_id })
-        # Note: no data-race is file status is DISABLED or ERROR
+        cur.execute('UPDATE local_ega.jobs SET accession_id = %(accession_id)s WHERE id = %(job_id)s;',
+                    {'job_id': job_id, 'accession_id': accession_id })
+
+
+def insert_session_keys_checksums_sha256(job_id, session_keys_checksums):
+    LOG.debug('Record session keys checksums for job %s', job_id)
+    with connection.cursor() as cur:
+        cur.execute('SELECT * FROM local_ega.insert_session_keys_checksums_sha256(%(job_id)s, %(session_keys_checksums)s);',
+                    {'job_id': job_id,
+                     'session_keys_checksums': session_keys_checksums })
+                    
+
 
 def has_session_keys_checksums(session_key_checksums):
     """Check if this session key is (likely) already used."""
@@ -255,6 +257,55 @@ def is_canceled(job_id):
         found = cur.fetchone()
         res = found and found[0] # not none and check boolean value
     return res
+
+def check_canceled(func):
+    @wraps(func)
+    def decorator(*args, **kwargs):
+        data = args[-1] # last one
+        job_id = int(data['job_id'])
+        LOG.info('Working on job id %s with data %s', job_id, data)
+        if is_canceled(job_id):
+            LOG.warning('Job %s was canceled', job_id)
+            # no error, ack/consume message and send to cleanup queue
+            # publish(..., routing_key=cleanup) ?
+        else:
+            return func(*args, **kwargs)
+    return decorator
+
+
+
+def set_error(error, from_user=False):
+    """Record error to database."""
+    correlation_id = _cid.get()
+    assert correlation_id, 'Eh? No correlation_id?'
+    assert error, 'Eh? No error?'
+    LOG.debug('Setting error for %s: %s | Cause: %s', correlation_id, error, error.__cause__)
+    with connection.cursor() as cur:
+        cur.execute('''SELECT * FROM local_ega.insert_error(%(correlation_id)s,
+                                                            %(h)s,
+                                                            %(etype)s,
+                                                            %(msg)s,
+                                                            %(from_user)s);''',
+                    {'h': gethostname(),
+                     'etype': error.__class__.__name__,
+                     'msg': repr(error),
+                     'correlation_id': correlation_id,
+                     'from_user': from_user})
+        return cur.fetchall()
+
+def set_status(job_id, status):
+    """Set job status."""
+    assert job_id, 'Eh? No job_id?'
+    LOG.debug('Setting job %s to "%s"', job_id, status)
+    with connection.cursor() as cur:
+        cur.execute('UPDATE local_ega.jobs '
+                    'SET status = %(status)s '
+                    'WHERE id = %(job_id)s;',
+                    {'status': status,
+                     'job_id': job_id })
+        # Note: no data-race is file status is DISABLED or ERROR
+
+
 
 # Testing connection with `python -m crg_ingestion.utils.db`
 if __name__ == '__main__':

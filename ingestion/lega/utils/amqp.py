@@ -203,7 +203,7 @@ class AMQPConnection():
                 LOG.info('Stop consuming (Keyboard Interrupt)')
                 if self.pull_channel:
                     self.pull_channel.stop_consuming()
-                self.close()
+                # self.close() # Not needed. Done by atexit (see below)
                 break
 
 
@@ -216,7 +216,6 @@ class AMQPConnection():
 connection = AMQPConnection(on_failure=lambda: sys.exit(1))
 
 atexit.register(lambda: connection.close())
-
 
 def _handle_request(work, message, content, exchange, error_key):
     # Run the job. There are 4 cases:
@@ -253,7 +252,7 @@ def consume(work, ack_on_error=True, threaded=True):
 
     lega_exchange = CONF.get('DEFAULT', 'exchange', fallback='lega')
     from_queue = CONF.get('DEFAULT', 'queue')
-    lega_error_key = CONF.get('DEFAULT', 'lega_error', fallback='lega.error')
+    lega_error_key = CONF.get('DEFAULT', 'lega_error', fallback='error')
 
     cega_exchange = CONF.get('DEFAULT', 'cega_exchange', fallback='cega')
     cega_error_key = CONF.get('DEFAULT', 'cega_error', fallback='files.error')

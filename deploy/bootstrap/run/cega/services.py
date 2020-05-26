@@ -64,8 +64,8 @@ config = {
             ],
             'networks': ['external'],
             'working_dir': '/cega',
-            #'entrypoint': ["python", "accession.py"],
-            'entrypoint': ["/bin/sleep", "100000000000"],
+            'entrypoint': ["python", "accession.py"],
+            # 'entrypoint': ["/bin/sleep", "100000000000"],
         },
     },
 }

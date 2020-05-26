@@ -28,7 +28,7 @@ def main(conf, args):
     config = configparser.RawConfigParser()
     config['DEFAULT'] = {
         'queue': 'from_cega',
-        'exchange': 'localega.v1',
+        'exchange': 'lega',
     }
 
     mq_connection = ('secret:///run/secrets/mq.connection'

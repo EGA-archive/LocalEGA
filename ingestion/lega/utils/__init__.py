@@ -8,13 +8,8 @@ import os
 import sys
 import hashlib
 import traceback
-from functools import wraps
 
 LOG = logging.getLogger(__name__)
-
-def sanitize_user_id(user):
-    """Return username without host part of an ID on the form name@something."""
-    return user.split('@')[0]
 
 def redact_url(url):
     """Remove user:password from the URL."""
@@ -23,10 +18,22 @@ def redact_url(url):
     # return f'{protocol}[redacted]@{remainder}'
     return protocol + '[redacted]@' + remainder
 
+def get_sha256(checksums):
+    for checksum in (checksums or []):  # bad input: "or []"
+        if isinstance(checksum, dict) and checksum.get('type','').lower() == 'sha256':
+            return checksum.get('value')
+    else:
+        return None
+
 def clean_message(data):
 
     for key in ['staged_path', 'staged_name',
-                'target_size']:
+                'target_size',
+                'type',
+                'job_id',
+                'job_type',
+                'header',
+                'payload_checksum']:
         try:
             del data[key]
         except KeyError as ke:
@@ -47,3 +54,13 @@ def log_trace():
     # fname = os.path.split(frame.f_code.co_filename)[1]
     fname = frame.f_code.co_filename
     LOG.error('Exception: %s in %s on line: %s', exc_type, fname, lineno, exc_info=True)
+
+
+def add_prefix(prefix, name):
+    """Concatenate prefix and name."""
+    return os.path.join(prefix, name[1:] if name.startswith('/') else name)
+
+def name2fs(name):
+    """Convert a name to a file system relative path."""
+    return os.path.join(*list(name[i:i+3] for i in range(0, len(name), 3)))
+
