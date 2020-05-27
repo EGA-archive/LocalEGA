@@ -102,7 +102,7 @@ function teardown() {
     [ "$status" -eq 0 ]
 
     # Publish the file to simulate a CentralEGA trigger
-    MESSAGE="{ \"user\": \"${TESTUSER}\", \"filepath\": \"${TESTFILE_UPLOADED}\"}"
+    MESSAGE="{ \"type\": \"ingest\", \"user\": \"${TESTUSER}\", \"filepath\": \"${TESTFILE_UPLOADED}\"}"
     legarun ${MQ_PUBLISH} --correlation_id "${CORRELATION_ID}" files "$MESSAGE"
     [ "$status" -eq 0 ]
 
@@ -125,7 +125,7 @@ function teardown() {
     CORRELATION_ID=$(uuidgen)
 
     # Publish the file to simulate a CentralEGA trigger
-    MESSAGE="{ \"user\": \"${TESTUSER}\", \"filepath\": \"non.existing.file\"}"
+    MESSAGE="{ \"type\": \"ingest\", \"user\": \"${TESTUSER}\", \"filepath\": \"non.existing.file\"}"
     legarun ${MQ_PUBLISH} --correlation_id ${CORRELATION_ID} files "$MESSAGE"
     [ "$status" -eq 0 ]
 

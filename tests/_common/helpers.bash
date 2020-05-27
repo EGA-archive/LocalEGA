@@ -156,7 +156,7 @@ function lega_trigger_ingestion {
     [ "$status" -eq 0 ]
 
     # The message should contain the same info as the trigger message
-    [[ "$output" =~ "user: dummy" ]]
+    [[ "$output" =~ "user: ${user}" ]]
     [[ "$output" =~ "filepath: ${upload_path}" ]]
 }
 
