@@ -17,28 +17,19 @@ Options:
    -h, --help             Prints this help and exit
    -v, --version          Prints the version and exits
    -V, --verbose          Prints more output
-   --archive_s3           Ignored
    --secrets <prefix>     Use this prefix for the docker secrets
  
 '''
 
 def main(conf, args):
-    """Create finalize.ini"""
 
     with_docker_secrets = args['--secrets']
 
     config = configparser.RawConfigParser()
-
     config['DEFAULT'] = {
-        'queue': 'stableIDs',
-        'exchange': 'lega',
-        # 'routing_key': 'backup1',
-    }
-
-
-    config['inbox'] = {
-        'location': r'/ega/inbox/%s/',
-        'chroot_sessions': True,
+        'queue': 'save2db',
+        'exchange': 'cega',
+        'routing_key': 'files.completed',
     }
 
     mq_connection = ('secret:///run/secrets/mq.connection'
@@ -55,9 +46,9 @@ def main(conf, args):
         'keyfile': '/etc/ega/ssl.key',
     }
 
-    db_connection = ('secret:///run/secrets/db.connection'
+    db_connection = ('secret:///run/secrets/archive-db.connection'
                      if with_docker_secrets else
-                     conf.get('db', 'connection') + '?' + conf.get('db', 'connection_params'))
+                     conf.get('archive-db', 'connection') + '?' + conf.get('archive-db', 'connection_params'))
 
     config['db'] = {
         'connection': db_connection,
@@ -73,7 +64,7 @@ if __name__ == '__main__':
     args = docopt(__doc__,
                   sys.argv[1:],
                   help=True,
-                  version='LocalEGA finalize service boostrap (version 0.2)')
+                  version='LocalEGA ingest service boostrap (version 0.2)')
     conf = configparser.RawConfigParser()
     conf.read(args['<conf>'])
     main(conf, args)

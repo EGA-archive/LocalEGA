@@ -13,8 +13,7 @@ private/lega.yml .env:
 	make -C bootstrap -s
 
 clean-volumes:
-	docker volume rm lega_db lega_inbox lega_s3
-	-docker volume rm lega_inbox-s3
+	docker volume rm lega_db lega_inbox lega_archive_db lega_vault lega_vault_bkp
 
 ps:
 	@docker-compose ps
@@ -37,8 +36,14 @@ preflight-check:
 # the rabbitmq shovel to CentralEGA (the federated queue can be late, it doesn't hurt)
 
 logs:
-	@docker-compose logs -f
+	@docker-compose logs -f $(SELECTED)
 # 	@docker-compose logs -f logs
+
+# Restart all but the CentralEGA stubs
+restart: SELECTED=ingest backup1 backup2 cleanup dispatcher save2db db mq archive-db inbox
+restart:
+	@docker-compose restart $(SELECTED)
+
 
 ####################################################
 ## Docker Images
@@ -88,3 +93,10 @@ erase:
 purge:
 	@$(call remove_dangling,)
 
+
+####################################################
+# Checking the archive DB
+
+dbshell:
+	chmod 600 $(CURDIR)/private/certs/save2db.sec.pem
+	psql "postgres://lega:----------------@localhost:15432/lega?sslmode=verify-ca&sslcert=$(CURDIR)/private/certs/save2db.cert.pem&sslkey=$(CURDIR)/private/certs/save2db.sec.pem&sslrootcert=$(CURDIR)/private/certs/CA.save2db.cert.pem"

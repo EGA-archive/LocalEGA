@@ -98,7 +98,7 @@ function teardown() {
     [ "$status" -eq 0 ]
 
     # Publish the file to simulate a CentralEGA trigger, but with a malformed message (not in JSON)
-    MESSAGE="{ \"user\": \"${TESTUSER}\", \"filepath\": \"${TESTFILE_UPLOADED}\"}"
+    MESSAGE="{ \"type\": \"ingest\", \"user\": \"${TESTUSER}\", \"filepath\": \"${TESTFILE_UPLOADED}\"}"
     legarun ${MQ_PUBLISH} --correlation_id "${CORRELATION_ID}" files "$MESSAGE"
     [ "$status" -eq 0 ]
 
@@ -143,7 +143,7 @@ function teardown() {
     [ "$status" -eq 0 ]
 
     # Publish the file to simulate a CentralEGA trigger, but with a malformed message (not in JSON)
-    MESSAGE="{ \"user\": \"${TESTUSER}\", \"filepath\": \"${TESTFILE_UPLOADED}\"}"
+    MESSAGE="{ \"type\": \"ingest\", \"user\": \"${TESTUSER}\", \"filepath\": \"${TESTFILE_UPLOADED}\"}"
     legarun ${MQ_PUBLISH} --correlation_id "${CORRELATION_ID}" files "$MESSAGE"
     [ "$status" -eq 0 ]
 
@@ -157,8 +157,8 @@ function teardown() {
     # And the messages are still there
     # Let it run its course
     
-    # Restart verify
-    legarun docker restart verify
+    # Restart the ingest microservice
+    legarun docker restart ingest
     sleep 15
 
     # Check that a message with the above correlation id arrived in the expected queue

@@ -8,10 +8,14 @@ import psycopg2
 from socket import gethostname
 from time import sleep
 from contextlib import contextmanager
+from functools import wraps
+import atexit
 
 
 from ..conf import CONF
-from . import redact_url
+from ..conf.logging import _cid
+from . import redact_url, get_sha256
+from psycopg2.extras import Json
 
 LOG = logging.getLogger(__name__)
 
@@ -43,6 +47,7 @@ class DBConnection():
         self.attempts = CONF.getint(self.conf_section, 'try', fallback=1)
         assert self.attempts > 0, "The number of reconnection should be >= 1"
 
+
     def connect(self, force=False):
         """Get the database connection (which encapsulates a database session).
 
@@ -54,14 +59,13 @@ class DBConnection():
         if force:
             self.close()
 
-        if self.conn and self.curr:
+        if self.conn:
             return
 
         if not self.args:
             self.fetch_args()
 
         LOG.info("Initializing a connection to %s", redact_url(self.args))
-        LOG.info("Connection attempts: %d", self.attempts)
 
         backoff = self.interval
         for count in range(1,self.attempts+1):
@@ -74,7 +78,7 @@ class DBConnection():
                 LOG.debug("Database connection error: %r", e)
             except psycopg2.InterfaceError as e:
                 LOG.debug("Invalid connection parameters: %r", e)
-                break
+                break # go to failure
             LOG.debug("Connection attempt %d", count)
             self.conn.close()
             sleep(backoff)
@@ -93,7 +97,7 @@ class DBConnection():
         if self.conn is None:
             self.connect()
         try:
-            with self.conn:
+            with self.conn: # deal with autocommit
                 with self.conn.cursor() as cur:  # does not commit if error raised
                     cur.execute('SELECT 1;')
                     LOG.debug("Ping db successful")
@@ -114,9 +118,6 @@ class DBConnection():
     def close(self):
         """Close DB Connection."""
         LOG.debug("Closing the database")
-        if self.curr:
-            self.curr.close()
-            self.curr = None
         if self.conn:
             self.conn.close()
             self.conn = None
@@ -125,151 +126,198 @@ class DBConnection():
     # if everything goes fine.
 
 
-# Instantiate the global connection
-connection = DBConnection(on_failure=lambda: sys.exit(1))
-
-
 ######################################
 #           Business logic           #
 ######################################
 
+# Instantiate the global connection
+connection = DBConnection(on_failure=lambda: sys.exit(1))
 
-def insert_file(filename, user_id):
+atexit.register(lambda: connection.close())
+
+def insert_job(filename, user_id, encrypted_checksums=None):
     """Insert a new file entry and returns its id."""
+    correlation_id = _cid.get()
+    assert correlation_id, 'Eh? No correlation_id?'
     with connection.cursor() as cur:
-        cur.execute('SELECT local_ega.insert_file(%(filename)s,%(user_id)s);',
-                    {'filename': filename,
-                     'user_id': user_id})
-        file_id = (cur.fetchone())[0]
-        if file_id:
-            LOG.debug('Created id %s for %s', file_id, filename)
-            return file_id
-        raise Exception('Database issue with insert_file')
+        # We use only the sha256 if provided
+        encrypted_sha256_checksum = get_sha256(encrypted_checksums)        
+        cur.execute('''SELECT * FROM local_ega.insert_job(%(correlation_id)s::text,
+                                                          %(filename)s::text,
+                                                          %(user_id)s::text,
+                                                          %(cs)s::text,
+                                                          %(cs_type)s);''', # don't type cast it here
+                    {'correlation_id': _cid.get(),
+                     'filename': filename,
+                     'user_id': user_id,
+                     'cs': encrypted_sha256_checksum,
+                     'cs_type': None if encrypted_sha256_checksum is None else 'SHA256'})
+        _id = (cur.fetchone())[0]
+        if _id is None:
+            raise Exception('Database issue with insert_job')
+        LOG.debug('Inserted job id %s for %s', _id, filename)
+        return _id
 
-
-def set_error(file_id, error, from_user=False):
-    """Store error related to ``file_id`` in database."""
-    assert file_id, 'Eh? No file_id?'
-    assert error, 'Eh? No error?'
-    LOG.debug('Setting error for %s: %s | Cause: %s', file_id, error, error.__cause__)
-    hostname = gethostname()
+def cancel_job(filename, user_id, encrypted_checksums=None):
+    """Cancel a job."""
+    correlation_id = _cid.get()
+    assert correlation_id, 'Eh? No correlation_id?'
     with connection.cursor() as cur:
-        cur.execute('SELECT * FROM local_ega.insert_error(%(file_id)s,%(h)s,%(etype)s,%(msg)s,%(from_user)s);',
-                    {'h': hostname,
-                     'etype': error.__class__.__name__,
-                     'msg': repr(error),
-                     'file_id': file_id,
-                     'from_user': from_user})
-        return cur.fetchall()
+        # We use only the sha256 if provided
+        encrypted_sha256_checksum = get_sha256(encrypted_checksums)        
+        cur.execute('''SELECT * FROM local_ega.cancel_job(%(correlation_id)s::text,
+                                                          %(filename)s::text,
+                                                          %(user_id)s::text,
+                                                          %(cs)s::text,
+                                                          %(cs_type)s);''', # don't type cast it here
+                    {'correlation_id': _cid.get(),
+                     'filename': filename,
+                     'user_id': user_id,
+                     'cs': encrypted_sha256_checksum,
+                     'cs_type': None if encrypted_sha256_checksum is None else 'SHA256'})
+        _id = (cur.fetchone())[0]
+        if _id is None:
+            raise Exception('Database issue with cancel_job')
+        LOG.debug('Canceled job id %s for %s', _id, filename)
+        return _id
 
 
-def get_info(file_id):
-    """Retrieve information for ``file_id``."""
+def mark_verified(job_id, data, decrypted_payload_checksum):
+    correlation_id = _cid.get()
+    assert correlation_id, 'Eh? No correlation_id?'
+    LOG.debug('Setting status to staged for job %s', correlation_id)
+    LOG.debug('Saving staged info %s', data)
     with connection.cursor() as cur:
-        query = 'SELECT inbox_path, archive_path, stable_id, header from local_ega.files WHERE id = %(file_id)s;'
-        cur.execute(query, {'file_id': file_id})
-        return cur.fetchone()
-
-
-def _set_status(file_id, status):
-    """Update status for file with id ``file_id``."""
-
-
-def mark_in_progress(file_id):
-    """Mark file in progress."""
-    LOG.debug('Marking file_id %s with "IN_INGESTION"', file_id)
-    assert file_id, 'Eh? No file_id?'
-    with connection.cursor() as cur:
-        cur.execute('UPDATE local_ega.files SET status = %(status)s WHERE id = %(file_id)s;',
-                    {'status': 'IN_INGESTION',
-                     'file_id': file_id})
-
-
-def set_stable_id(file_id, stable_id):
-    """Update File ``file_id`` stable ID."""
-    assert file_id, 'Eh? No file_id?'
-    LOG.debug('Updating file_id %s with stable ID "%s"', file_id, stable_id)
-    with connection.cursor() as cur:
-        cur.execute('UPDATE local_ega.files '
+        cur.execute('UPDATE local_ega.jobs '
                     'SET status = %(status)s, '
-                    '    stable_id = %(stable_id)s '
-                    'WHERE id = %(file_id)s;',
-                    {'status': 'READY',
-                     'file_id': file_id,
-                     'stable_id': stable_id})
+                    '    staging_info = %(staging_info)s, '
+                    '    decrypted_payload_checksum = %(decrypted_payload_checksum)s ' # separating it for find_job
+                    'WHERE id = %(job_id)s;',
+                    {'status': 'VERIFIED', # no data-race is status is DISABLED or ERROR
+                     'job_id': job_id, 
+                     'staging_info': Json(data), # psycopg2 json adapter
+                     'decrypted_payload_checksum': decrypted_payload_checksum })
 
-
-def store_header(file_id, header):
-    """Store header for ``file_id``."""
-    assert file_id, 'Eh? No file_id?'
-    assert header, 'Eh? No header?'
-    LOG.debug('Store header for file_id %s', file_id)
+def find_job(filename, user_id, decrypted_payload_checksum):
+    """Cancel a job."""
+    correlation_id = _cid.get()
+    assert correlation_id, 'Eh? No correlation_id?'
     with connection.cursor() as cur:
-        cur.execute('UPDATE local_ega.files '
-                    'SET header = %(header)s '
-                    'WHERE id = %(file_id)s;',
-                    {'file_id': file_id,
-                     'header': header})
+        # We use only the sha256 if provided
+        cur.execute('''SELECT id, staging_info 
+                       FROM local_ega.jobs 
+                       WHERE correlation_id = %(correlation_id)s AND 
+                             inbox_path = %(filename)s AND 
+                             user_id = %(user_id)s AND
+                             decrypted_payload_checksum = %(decrypted_payload_checksum)s''',
+                    {'correlation_id': _cid.get(),
+                     'filename': filename,
+                     'user_id': user_id,
+                     'decrypted_payload_checksum': decrypted_payload_checksum })
+        res = cur.fetchone()
+        return res if res else None # psycopg2 json decoder for staging_info
 
-
-def set_archived(file_id, archive_path, archive_filesize):
-    """Archive ``file_id``."""
-    assert file_id, 'Eh? No file_id?'
-    assert archive_path, 'Eh? No archive name?'
-    LOG.debug('Setting status to archived for file_id %s', file_id)
+def set_accession_id(job_id, accession_id):
+    assert job_id, 'Eh? No job_id?'
+    LOG.debug('Setting accession id for job %s to "%s"', job_id, accession_id)
     with connection.cursor() as cur:
-        cur.execute('UPDATE local_ega.files '
-                    'SET status = %(status)s, '
-                    '    archive_path = %(archive_path)s, '
-                    '    archive_filesize = %(archive_filesize)s '
-                    'WHERE id = %(file_id)s;',
-                    {'status': 'ARCHIVED',
-                     'file_id': file_id,
-                     'archive_path': archive_path,
-                     'archive_filesize': archive_filesize})
+        cur.execute('UPDATE local_ega.jobs SET accession_id = %(accession_id)s WHERE id = %(job_id)s;',
+                    {'job_id': job_id, 'accession_id': accession_id })
 
 
-def check_session_keys_checksums(session_key_checksums):
+def insert_session_keys_checksums_sha256(job_id, session_keys_checksums):
+    LOG.debug('Record session keys checksums for job %s', job_id)
+    with connection.cursor() as cur:
+        cur.execute('SELECT * FROM local_ega.insert_session_keys_checksums_sha256(%(job_id)s, %(session_keys_checksums)s);',
+                    {'job_id': job_id,
+                     'session_keys_checksums': session_keys_checksums })
+                    
+
+
+def has_session_keys_checksums(session_key_checksums):
     """Check if this session key is (likely) already used."""
     assert session_key_checksums, 'Eh? No checksum for the session keys?'
     LOG.debug('Check if session keys (hash) are already used: %s', session_key_checksums)
     with connection.cursor() as cur:
-        cur.execute('SELECT * FROM local_ega.check_session_keys_checksums_sha256(%(sk_checksums)s);',
-                    {'sk_checksums': session_key_checksums})
+        LOG.debug('SELECT * FROM local_ega.has_session_keys_checksums_sha256(%s);', session_key_checksums)
+        cur.execute('SELECT * FROM local_ega.has_session_keys_checksums_sha256(%(sk_checksums)s);',
+                    {'sk_checksums': list(session_key_checksums)})
         found = cur.fetchone()
         LOG.debug("Check session keys: %s", found)
         return (found and found[0])  # not none and check boolean value
 
-
-def mark_completed(file_id, session_key_checksums, digest_sha256):
-    """Mark file as completed."""
-    LOG.debug('Marking file_id %s with "COMPLETED"', file_id)
-    assert file_id, 'Eh? No file_id?'
+def is_canceled(job_id):
+    """Check if this job is marked as not canceled."""
+    assert job_id, 'Eh? No job_id?'
+    res = False
     with connection.cursor() as cur:
-        cur.execute('UPDATE local_ega.files '
-                    'SET status = %(status)s, '
-                    '    archive_file_checksum = %(archive_file_checksum)s, '
-                    '    archive_file_checksum_type = %(archive_file_checksum_type)s '
-                    'WHERE id = %(file_id)s;',
-                    {'status': 'COMPLETED',
-                     'file_id': file_id,
-                     'archive_file_checksum': digest_sha256,
-                     'archive_file_checksum_type': 'SHA256'})
-        cur.executemany('INSERT INTO local_ega.session_key_checksums_sha256 '
-                        '            (file_id, session_key_checksum) '
-                        'VALUES (%s, %s);',
-                        [(file_id, c) for c in session_key_checksums])
+        cur.execute("SELECT EXISTS(SELECT 1 FROM local_ega.jobs WHERE id = %(job_id)s AND (status = ANY(%(statuses)s)));",
+                    {'job_id': job_id,
+                    'statuses': ['CANCELED', 'ERROR', 'COMPLETED'] })   # ie: ongoing job
+        found = cur.fetchone()
+        res = found and found[0] # not none and check boolean value
+    return res
+
+def check_canceled(func):
+    @wraps(func)
+    def decorator(*args, **kwargs):
+        data = args[-1] # last one
+        job_id = int(data['job_id'])
+        LOG.info('Working on job id %s with data %s', job_id, data)
+        if is_canceled(job_id):
+            LOG.warning('Job %s was canceled', job_id)
+            # no error, ack/consume message and send to cleanup queue
+            # publish(..., routing_key=cleanup) ?
+        else:
+            return func(*args, **kwargs)
+    return decorator
+
+
+
+def set_error(error, from_user=False):
+    """Record error to database."""
+    correlation_id = _cid.get()
+    assert correlation_id, 'Eh? No correlation_id?'
+    assert error, 'Eh? No error?'
+    LOG.debug('Setting error for %s: %s | Cause: %s', correlation_id, error, error.__cause__)
+    with connection.cursor() as cur:
+        cur.execute('''SELECT * FROM local_ega.insert_error(%(correlation_id)s,
+                                                            %(h)s,
+                                                            %(etype)s,
+                                                            %(msg)s,
+                                                            %(from_user)s);''',
+                    {'h': gethostname(),
+                     'etype': error.__class__.__name__,
+                     'msg': repr(error),
+                     'correlation_id': correlation_id,
+                     'from_user': from_user})
+        return cur.fetchall()
+
+def set_status(job_id, status):
+    """Set job status."""
+    assert job_id, 'Eh? No job_id?'
+    LOG.debug('Setting job %s to "%s"', job_id, status)
+    with connection.cursor() as cur:
+        cur.execute('UPDATE local_ega.jobs '
+                    'SET status = %(status)s '
+                    'WHERE id = %(job_id)s;',
+                    {'status': status,
+                     'job_id': job_id })
         # Note: no data-race is file status is DISABLED or ERROR
 
 
-# Testing connection with `python -m lega.utils.db`
+
+# Testing connection with `python -m crg_ingestion.utils.db`
 if __name__ == '__main__':
-    CONF.setup()
     with connection.cursor() as cur:
         query = 'SELECT inbox_path, archive_path, stable_id, header from local_ega.files;'
+        print('query:', query)
         cur.execute(query)
         names = ('inbox_path', 'archive_path', 'stable_id', 'header')
         for row in cur.fetchall():
             res = [f'{k}: {v}' for k, v in zip(names, row)]
             print('-'*30)
             print(res)
+        else:
+            print('no rows')
+            

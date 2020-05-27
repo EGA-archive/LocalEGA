@@ -37,37 +37,36 @@ cat > /etc/rabbitmq/definitions.json <<EOF
   ],
   "parameters": [
     {
-      "name": "CEGA-ids", "vhost": "/", "component": "federation-upstream",
-      "value": { "ack-mode": "on-confirm", "queue": "v1.stableIDs", "trust-user-id": false, "uri": "${CEGA_CONNECTION}" }
-    },
-    {
-      "name": "CEGA-files", "vhost": "/", "component": "federation-upstream",
+      "name": "from_cega", "vhost": "/", "component": "federation-upstream",
       "value": { "ack-mode": "on-confirm", "queue": "v1.files", "trust-user-id": false, "uri": "${CEGA_CONNECTION}" }
     }
   ],
   "policies": [
     {
-      "vhost": "/", "name": "CEGA-files", "pattern": "files", "apply-to": "queues", "priority": 0,
-      "definition": { "federation-upstream": "CEGA-files" }
-    },
-    {
-      "vhost": "/", "name": "CEGA-ids", "pattern": "stableIDs", "apply-to": "queues", "priority": 0,
-      "definition": { "federation-upstream": "CEGA-ids" }
+      "vhost": "/", "name": "from_cega", "pattern": "from_cega", "apply-to": "queues", "priority": 0,
+      "definition": { "federation-upstream": "from_cega" }
     }
   ],
   "queues": [
-    {"name": "stableIDs", "vhost": "/", "durable": true, "auto_delete": false, "arguments":{}},
-    {"name": "files",     "vhost": "/", "durable": true, "auto_delete": false, "arguments":{}},
-    {"name": "archived",  "vhost": "/", "durable": true, "auto_delete": false, "arguments":{}},
-    {"name": "completed", "vhost": "/", "durable": true, "auto_delete": false, "arguments":{}}
+    {"name": "from_cega", "vhost": "/", "durable": true, "auto_delete": false, "arguments":{}},
+    {"name": "ingest",    "vhost": "/", "durable": true, "auto_delete": false, "arguments":{}},
+    {"name": "accession", "vhost": "/", "durable": true, "auto_delete": false, "arguments":{}},
+    {"name": "backup1",   "vhost": "/", "durable": true, "auto_delete": false, "arguments":{}},
+    {"name": "backup2",   "vhost": "/", "durable": true, "auto_delete": false, "arguments":{}},
+    {"name": "save2db",   "vhost": "/", "durable": true, "auto_delete": false, "arguments":{}},
+    {"name": "errors",    "vhost": "/", "durable": true, "auto_delete": false, "arguments":{}}
   ],
   "exchanges": [
     {"name":"cega", "vhost":"/", "type":"topic", "durable":true, "auto_delete":false, "internal":false, "arguments":{}}, 
     {"name":"lega", "vhost":"/", "type":"topic", "durable":true, "auto_delete":false, "internal":false, "arguments":{}}
   ], 
   "bindings": [
-    { "source":"lega", "vhost": "/", "destination":"archived", "destination_type":"queue", "routing_key":"archived", "arguments":{}},
-    { "source":"lega", "vhost": "/", "destination":"completed", "destination_type":"queue", "routing_key":"completed", "arguments":{}}
+    { "source":"lega", "vhost": "/", "destination":"ingest", "destination_type":"queue", "routing_key":"ingest", "arguments":{}},
+    { "source":"lega", "vhost": "/", "destination":"accession", "destination_type":"queue", "routing_key":"accession", "arguments":{}},
+    { "source":"lega", "vhost": "/", "destination":"backup1", "destination_type":"queue", "routing_key":"backup1", "arguments":{}},
+    { "source":"lega", "vhost": "/", "destination":"backup2", "destination_type":"queue", "routing_key":"backup2", "arguments":{}},
+    { "source":"lega", "vhost": "/", "destination":"save2db", "destination_type":"queue", "routing_key":"save2db", "arguments":{}},
+    { "source":"lega", "vhost": "/", "destination":"errors", "destination_type":"queue", "routing_key":"error", "arguments":{}}
   ]
 }
 EOF
@@ -103,8 +102,8 @@ cat > /etc/rabbitmq/advanced.config <<EOF
               {publish_fields, [{exchange, <<"localega.v1">>}]}]},
           {ack_mode, on_confirm},
           {reconnect_delay, 5}
-        ]},
-      {cega_completion,
+       ]},
+       {cega_verified,
         [{source,
           [{protocol, amqp091},
             {uris, ["amqp://"]},
@@ -112,7 +111,7 @@ cat > /etc/rabbitmq/advanced.config <<EOF
               {'queue.bind',
                 [{exchange, <<"lega">>},
                   {queue, <<>>},
-                  {routing_key, <<"completed">>}
+                  {routing_key, <<"verified">>}
                 ]}
             ]},
             {queue, <<>>},
@@ -124,14 +123,14 @@ cat > /etc/rabbitmq/advanced.config <<EOF
               {declarations, []},
               {publish_properties, [{delivery_mode, 2}]},
               {publish_fields, [{exchange, <<"cega">>},
-                {routing_key, <<"files.completed">>}
+                {routing_key, <<"files.verified">>}
               ]}
             ]},
           {ack_mode, on_confirm},
           {reconnect_delay, 5}
-        ]}
+       ]}
     ]}
-    ]}
+  ]}
 ].
 EOF
 chown rabbitmq:rabbitmq /etc/rabbitmq/advanced.config

@@ -161,16 +161,8 @@ SET TIME ZONE 'UTC';
 CREATE DATABASE lega;
 EOSQL
 
-    # Run sql commands (in order!)
-    DB_FILES=(/etc/ega/initdb.d/main.sql
-	      /etc/ega/initdb.d/grants.sql)
-
-    for f in ${DB_FILES[@]}; do # in order
-	echo "$0: running $f";
-	echo
-	process_sql --dbname lega -f $f;
-	echo
-    done
+    # Run sql commands
+    process_sql --dbname lega -f /etc/ega/db.sql
 
     # Extra ones from /docker-entrypoint-initdb.d
     # Note: added to the `lega` database

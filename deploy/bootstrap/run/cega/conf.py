@@ -10,7 +10,7 @@ from ..defs import generate_mq_hash
 
 HOSTNAME_DOMAIN = os.getenv('HOSTNAME_DOMAIN','')
 
-cega_connection_params=urlencode({ 'heartbeat': 0,
+cega_connection_params=urlencode({ 'heartbeat': 60,
 				   'connection_attempts': 30,
 				   'retry_delay': 10,
 				   'server_name_indication': f'cega-mq{HOSTNAME_DOMAIN}',
@@ -26,7 +26,8 @@ config = configparser.RawConfigParser()
 config['DEFAULT'] = {}
 config['mq'] = {
     'version': '3.7.8',
-    'connection': f"amqps://legatest:legatest@cega-mq{HOSTNAME_DOMAIN}:5671/lega?{cega_connection_params}",
+    'connection': f"amqps://legatest:legatest@cega-mq{HOSTNAME_DOMAIN}:5671/lega",
+    'connection_params': cega_connection_params,
     'user': 'legatest',
     'password_hash': generate_mq_hash('legatest'),
     'vhost': 'lega',

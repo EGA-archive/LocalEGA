@@ -22,35 +22,13 @@ Options:
 '''
 
 def main(conf, args):
-    """Create ingest.ini"""
 
     with_docker_secrets = args['--secrets']
 
     config = configparser.RawConfigParser()
-
     config['DEFAULT'] = {
-        'queue': 'ingest',
+        'queue': 'from_cega',
         'exchange': 'lega',
-        'routing_key': 'verified',
-        'master_key': 'c4gh_file',
-    }
-
-    master_key = ('secret:///run/secrets/master.key.passphrase'
-                  if with_docker_secrets else
-                  conf.get('master_key','passphrase', raw=True))
-
-    config['c4gh_file'] = {
-        'loader_class': 'C4GHFileKey',
-        'passphrase': master_key,
-        'filepath': '/etc/ega/ega.sec',
-    }
-
-    config['inbox'] = {
-        'location': r'/ega/inbox/%s/',
-    }
-
-    config['staging'] = {
-        'location': r'/ega/staging/',
     }
 
     mq_connection = ('secret:///run/secrets/mq.connection'
@@ -85,7 +63,7 @@ if __name__ == '__main__':
     args = docopt(__doc__,
                   sys.argv[1:],
                   help=True,
-                  version='LocalEGA ingest service boostrap (version 0.2)')
+                  version='LocalEGA ingestion service boostrap (version 0.2)')
     conf = configparser.RawConfigParser()
     conf.read(args['<conf>'])
     main(conf, args)

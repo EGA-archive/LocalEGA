@@ -20,9 +20,11 @@ Users are handled through Central EGA, directly.
       zip_safe=False,
       entry_points={
           'console_scripts': [
+              'ega-dispatcher = lega.dispatcher:main',
               'ega-ingest = lega.ingest:main',
-              'ega-verify = lega.verify:main',
-              'ega-finalize = lega.finalize:main',
+              'ega-backup = lega.backup:main',
+              'ega-cleanup = lega.cleanup:main',
+              'ega-save2db = lega.save2db:main',
               'ega-conf = lega.conf.__main__:main',
           ]
       },

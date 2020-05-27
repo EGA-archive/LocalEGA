@@ -15,7 +15,8 @@ jobs:
       matrix:
         # os: [ubuntu-latest, macOS-latest]
         os: [ubuntu-latest]
-        bootstrap: ['', 'S3=true', 'DOCKER_SECRETS=true', 'S3=true DOCKER_SECRETS=true']
+        # bootstrap: ['', 'S3=true', 'DOCKER_SECRETS=true', 'S3=true DOCKER_SECRETS=true']
+        bootstrap: ['']
 
     runs-on: ${{ matrix.os }}
 

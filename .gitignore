@@ -11,6 +11,7 @@ tests/**/*.d
 tests/_common/users/
 tests/_common/backup
 tests/_common/mq/*.pem
+*.old
 
 # =====================================
 # Byte-compiled / optimized / DLL files

@@ -203,7 +203,7 @@ class AMQPConnection():
                 LOG.info('Stop consuming (Keyboard Interrupt)')
                 if self.pull_channel:
                     self.pull_channel.stop_consuming()
-                self.close()
+                # self.close() # Not needed. Done by atexit (see below)
                 break
 
 
@@ -217,7 +217,6 @@ connection = AMQPConnection(on_failure=lambda: sys.exit(1))
 
 atexit.register(lambda: connection.close())
 
-
 def _handle_request(work, message, content, exchange, error_key):
     # Run the job. There are 4 cases:
     #    * Message rejected by raise RejectMessage inside work
@@ -230,9 +229,6 @@ def _handle_request(work, message, content, exchange, error_key):
         work(content)
         # If no exception: we ack
         message.ack()
-    except exceptions.RejectMessage as rm:
-        LOG.warning('Message %s rejected', message.delivery_tag)
-        message.reject() # requeue=True
     except exceptions.FromUser as ue: # ValueError for decryption errors
         cause = ue.__cause__ or ue
         LOG.error('%r', cause)  # repr(cause) = Technical
@@ -242,6 +238,9 @@ def _handle_request(work, message, content, exchange, error_key):
         publish(content, exchange=exchange, routing_key=error_key)
         message.ack()
         raise ue # to send it to error too
+    except exceptions.RejectMessage as rm:
+        LOG.warning('Message %s rejected: %s', message.delivery_tag, rm)
+        message.reject() # requeue=True
 
 def consume(work, ack_on_error=True, threaded=True):
     """Register callback ``work`` to be called, blocking function.
@@ -253,7 +252,7 @@ def consume(work, ack_on_error=True, threaded=True):
 
     lega_exchange = CONF.get('DEFAULT', 'exchange', fallback='lega')
     from_queue = CONF.get('DEFAULT', 'queue')
-    lega_error_key = CONF.get('DEFAULT', 'lega_error', fallback='lega.error')
+    lega_error_key = CONF.get('DEFAULT', 'lega_error', fallback='error')
 
     cega_exchange = CONF.get('DEFAULT', 'cega_exchange', fallback='cega')
     cega_error_key = CONF.get('DEFAULT', 'cega_error', fallback='files.error')

@@ -26,7 +26,6 @@ Options:
    -h, --help             Prints this help and exit
    -v, --version          Prints the version and exits
    --secrets <dir>        Secrets directory [Default: private/secrets]
-   --archive_s3           With S3 as an archive backend
  
 '''
 
@@ -42,7 +41,7 @@ def main(args):
     config['docker-ports'] = {
         'inbox':2222,
         'mq': 15672,
-        'kibana': 5601,
+        'archive-db': 15432,
     }
 
 
@@ -57,7 +56,7 @@ def main(args):
     # create the SSL socket ourselves
     # Some parameters can be passed in the URL, though.
     mq_connection=f"amqps://{mq_user}:{mq_password}@mq{HOSTNAME_DOMAIN}:5671/%2F"
-    mq_connection_params = urlencode({ 'heartbeat': 0,
+    mq_connection_params = urlencode({ 'heartbeat': 60,
 				       'connection_attempts': 30,
 				       'retry_delay': 10 })
 
@@ -94,6 +93,26 @@ def main(args):
         'connection_params': db_connection_params,
     }
 
+    #################################################
+    #### Storage Database
+    #################################################
+
+    archive_db_lega_pwd = get_secret('archive-db.lega')
+    archive_db_connection_params = urlencode({ 'application_name': 'LocalEGA',
+				               'sslmode': 'verify-full',
+				               'sslcert': '/etc/ega/ssl.cert',
+				               'sslkey': '/etc/ega/ssl.key.lega',
+				               'sslrootcert': '/etc/ega/CA.cert',
+    }, safe='/-_.')
+    archive_db_connection=f"postgres://lega:{archive_db_lega_pwd}@archive-db{HOSTNAME_DOMAIN}:5432/lega"
+
+    config['archive-db'] = {
+        'user': 'lega',
+        'password': archive_db_lega_pwd,
+        'connection': archive_db_connection,
+        'connection_params': archive_db_connection_params,
+    }
+
 
     #################################################
     #### Master key
@@ -102,19 +121,6 @@ def main(args):
     config['master_key'] = {
         'passphrase': get_secret('master.key.passphrase')
     }
-
-    #################################################
-    #### If archive backend is S3
-    #################################################
-
-    if args['--archive_s3']:
-        config['docker-ports']['s3'] = '9000'
-        config['s3'] = {
-            'access_key': get_secret('s3.access'),
-            'secret_key': get_secret('s3.secret'),
-            'region': 'lega',
-            'url': f"https://archive{HOSTNAME_DOMAIN}:9000"
-        }
 
     return config
 
