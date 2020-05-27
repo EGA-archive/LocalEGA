@@ -26,7 +26,6 @@ Options:
    -h, --help             Prints this help and exit
    -v, --version          Prints the version and exits
    --secrets <dir>        Secrets directory [Default: private/secrets]
-   --archive_s3           With S3 as an archive backend
  
 '''
 
@@ -42,7 +41,7 @@ def main(args):
     config['docker-ports'] = {
         'inbox':2222,
         'mq': 15672,
-        'kibana': 5601,
+        'archive-db': 15432,
     }
 
 
@@ -122,19 +121,6 @@ def main(args):
     config['master_key'] = {
         'passphrase': get_secret('master.key.passphrase')
     }
-
-    #################################################
-    #### If archive backend is S3
-    #################################################
-
-    if args['--archive_s3']:
-        config['docker-ports']['s3'] = '9000'
-        config['s3'] = {
-            'access_key': get_secret('s3.access'),
-            'secret_key': get_secret('s3.secret'),
-            'region': 'lega',
-            'url': f"https://archive{HOSTNAME_DOMAIN}:9000"
-        }
 
     return config
 

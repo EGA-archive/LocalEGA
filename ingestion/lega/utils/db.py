@@ -183,10 +183,10 @@ def cancel_job(filename, user_id, encrypted_checksums=None):
 
 
 def mark_verified(job_id, data, decrypted_payload_checksum):
-
     correlation_id = _cid.get()
     assert correlation_id, 'Eh? No correlation_id?'
     LOG.debug('Setting status to staged for job %s', correlation_id)
+    LOG.debug('Saving staged info %s', data)
     with connection.cursor() as cur:
         cur.execute('UPDATE local_ega.jobs '
                     'SET status = %(status)s, '

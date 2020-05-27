@@ -13,8 +13,7 @@ private/lega.yml .env:
 	make -C bootstrap -s
 
 clean-volumes:
-	docker volume rm lega_db lega_inbox lega_s3
-	-docker volume rm lega_inbox-s3
+	docker volume rm lega_db lega_inbox lega_archive_db lega_vault lega_vault_bkp
 
 ps:
 	@docker-compose ps
@@ -88,3 +87,10 @@ erase:
 purge:
 	@$(call remove_dangling,)
 
+
+####################################################
+# Checking the archive DB
+
+dbshell:
+	chmod 600 $(CURDIR)/private/certs/save2db.sec.pem
+	psql "postgres://lega:----------------@localhost:15432/lega?sslmode=verify-ca&sslcert=$(CURDIR)/private/certs/save2db.cert.pem&sslkey=$(CURDIR)/private/certs/save2db.sec.pem&sslrootcert=$(CURDIR)/private/certs/CA.save2db.cert.pem"

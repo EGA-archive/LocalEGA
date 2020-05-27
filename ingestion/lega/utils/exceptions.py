@@ -115,5 +115,6 @@ class ChecksumsNotMatching(Exception):
 class RejectMessage(Exception):
     pass
 
-class InvalidBrokerMessage(RejectMessage):
+class InvalidBrokerMessage(Exception):
     pass
+# do not extend from RejectMessage, otherwise we can an infinite loop

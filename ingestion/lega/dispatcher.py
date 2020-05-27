@@ -49,7 +49,6 @@ def work(data):
             return
 
         # Otherwise
-        data.pop('type', None)
         data['job_id'] = job_id
         LOG.info('Publish job %d', job_id)
         routing_key = CONF.get('DEFAULT', 'ingest_routing_key', fallback='ingest')
@@ -113,7 +112,7 @@ def work(data):
         LOG.info('Receiving a mapping (correlation_id %s)', correlation_id)
         data.pop('type', None)
         # Republish and let the mapper handle it
-        routing_key = CONF.get('DEFAULT', 'mapping_routing_key', fallback='mapping')
+        routing_key = CONF.get('DEFAULT', 'mapping_routing_key', fallback='save2db')
         publish(data, routing_key=routing_key)  # will use the same correlation_id
 
     else: # If not caught before, it's not a valid job

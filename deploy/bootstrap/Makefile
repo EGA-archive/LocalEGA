@@ -6,8 +6,8 @@
 # * Docker-compose .env
 # * Users credentials ( ssh-keys, passphrases, .json)
 # * Stores configurations in {cega,lega}.conf
-# * {cega,lega}.yml
-# * {ingest,verify,finalize}.ini
+# * {cega,lega, pipeline}.yml
+# * *.ini
 # * cega_mq_defs.json
 # * cega_mq_rabbitmq.config
 # * The certificates
@@ -23,16 +23,6 @@ OPENSSL=openssl
 HOSTNAME_DOMAIN=
 #HOSTNAME_DOMAIN=.localega
 
-ARGS=
-ifdef DOCKER_SECRETS
-ARGS+=--secrets ../private/secrets
-endif
-
-ifdef S3
-ARGS+=--archive_s3
-endif
-
-
 .PHONY: all users certs clean clean-all
 .DELETE_ON_ERROR: ../private/*
 
@@ -44,7 +34,8 @@ endif
 
 ALL_FILES=$(addprefix ../private/, lega-entrypoint.sh cega-entrypoint.sh \
 		                   cega-mq-defs.json cega-mq-rabbitmq.config cega-accession.ini \
-                                   dispatcher.ini ingest.ini finalize.ini master.key.sec \
+                                   master.key.sec \
+		                   dispatcher.ini ingest.ini backup1.ini backup2.ini cleanup.ini save2db.ini \
 	                           pipeline.yml lega.yml cega.yml)
 
 all: ../.env $(ALL_FILES) certs users
@@ -67,11 +58,7 @@ dev: all
 
 ../private/lega.conf: run/lega/conf.py $(addprefix ../private/secrets/,$(SECRETS))
 	@echo "Creating LocalEGA configuration trace: $(@F)"
-ifdef S3
-	@python -m run.lega.conf --secrets $(CURDIR)/../private/secrets --archive_s3 > $@
-else
 	@python -m run.lega.conf --secrets $(CURDIR)/../private/secrets > $@
-endif
 
 ../.env: | ../private
 	@echo "COMPOSE_PROJECT_NAME=lega" > $@
@@ -101,16 +88,30 @@ endif
 ../private/lega.yml: run/lega/services.py | ../private
 ../private/lega.yml: ../private/cega.conf ../private/lega.conf
 	@echo "Creating LocalEGA docker-compose file: $(@F)"
-	@python -m run.lega.services $(ARGS) ../private/cega.conf ../private/lega.conf 2>../private/.err > $@
+	@python -m run.lega.services ../private/cega.conf ../private/lega.conf 2>../private/.err > $@
 
 ../private/pipeline.yml: run/lega/pipeline.py | ../private
 ../private/pipeline.yml: ../private/cega.conf ../private/lega.conf
 	@echo "Creating LocalEGA docker-compose file: $(@F)"
-	@python -m run.lega.pipeline $(ARGS) ../private/cega.conf ../private/lega.conf 2>../private/.err > $@
+	@python -m run.lega.pipeline ../private/cega.conf ../private/lega.conf 2>../private/.err > $@
+
+../private/backup1.ini: ../private/lega.conf run/lega/backup.py | ../private
+	@echo "Creating LocalEGA service configuration: $(@F)"
+	@python -m run.lega.backup --queue accession \
+	                           --destination /ega/vault \
+			           --routing_key backup1 \
+	                      $< 2>../private/.err > $@
+
+../private/backup2.ini: ../private/lega.conf run/lega/backup.py | ../private
+	@echo "Creating LocalEGA service configuration: $(@F)"
+	@python -m run.lega.backup --queue backup1 \
+	                           --destination /ega/vault.bkp \
+	                           --routing_key backup2 \
+	                      $< 2>../private/.err > $@
 
 ../private/%.ini: ../private/lega.conf run/lega/%.py | ../private
 	@echo "Creating LocalEGA service configuration: $(@F)"
-	@python -m run.lega.$* $(ARGS) $< 2>../private/.err > $@
+	@python -m run.lega.$* $< 2>../private/.err > $@
 
 ../private/master.key.sec: ../private/secrets/master.key.passphrase
 	@echo "Creating master key: $(@F)"
@@ -147,14 +148,14 @@ users: $(USERS:%=../private/users/%.passphrase) \
 
 COMPONENTS=dispatcher \
 	   ingest \
-           verify \
-           finalize \
+	   backup1 \
+	   backup2 \
+	   cleanup \
+           save2db \
            db \
            mq \
            keys \
            inbox \
-	   outgest \
-	   streamer \
 	   archive-db
 
 ifdef S3

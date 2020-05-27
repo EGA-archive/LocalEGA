@@ -14,35 +14,30 @@ Usage:
    {sys.argv[0]} [options] <conf>
 
 Options:
-   -h, --help             Prints this help and exit
-   -v, --version          Prints the version and exits
-   -V, --verbose          Prints more output
-   --archive_s3           With S3 as an archive backend
-   --secrets <prefix>     Use this prefix for the docker secrets
+   -h, --help               Prints this help and exit
+   -v, --version            Prints the version and exits
+   -V, --verbose            Prints more output
+   --secrets <prefix>       Use this prefix for the docker secrets
+   --queue <q>              Queue to listen to
+   --destination <section>  "to" storage prefix
+   --routing_key <q>        Routing key when done
  
 '''
 
 def main(conf, args):
-    """Create verify.ini"""
+    """Create ingest.ini"""
 
     with_docker_secrets = args['--secrets']
 
     config = configparser.RawConfigParser()
     config['DEFAULT'] = {
-        'queue': 'archived',
+        'queue': args['--queue'],
         'exchange': 'lega',
-        'routing_key': 'completed',
-        'master_key': 'c4gh_file',
+        'routing_key': args['--routing_key'],
     }
 
-    master_key = ('secret:///run/secrets/master.key.passphrase'
-                  if with_docker_secrets else
-                  conf.get('master_key','passphrase', raw=True))
-
-    config['c4gh_file'] = {
-        'loader_class': 'C4GHFileKey',
-        'passphrase': master_key,
-        'filepath': '/etc/ega/ega.sec',
+    config['destination'] = {
+        'location': args['--destination'],
     }
 
     mq_connection = ('secret:///run/secrets/mq.connection'
@@ -69,23 +64,6 @@ def main(conf, args):
         'try_interval': 1,
     }
 
-    if args['--archive_s3']:
-        config['archive'] = {
-            'storage_driver': 'S3Storage',
-            's3_url': conf.get('s3', 'url'),
-            's3_region': conf.get('s3', 'region'),
-            's3_access_key': 'env://S3_ACCESS_KEY' , #conf.get('s3', 'access_key'),
-            's3_secret_key': 'env://S3_SECRET_KEY' , #conf.get('s3', 'secret_key'),
-            'cacertfile': '/etc/ega/CA.cert',
-            'certfile': '/etc/ega/ssl.cert',
-            'keyfile': '/etc/ega/ssl.key',
-        }
-    else:
-        config['archive'] = {
-            'storage_driver': 'FileStorage',
-            'location': r'/ega/archive/%s/',
-        }
-
     # output
     config.write(sys.stdout)
 
@@ -94,9 +72,7 @@ if __name__ == '__main__':
     args = docopt(__doc__,
                   sys.argv[1:],
                   help=True,
-                  version='LocalEGA verify service boostrap (version 0.2)')
+                  version='LocalEGA ingestion service boostrap (version 0.2)')
     conf = configparser.RawConfigParser()
     conf.read(args['<conf>'])
     main(conf, args)
-
-

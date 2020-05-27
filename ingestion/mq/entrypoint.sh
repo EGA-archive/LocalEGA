@@ -50,11 +50,10 @@ cat > /etc/rabbitmq/definitions.json <<EOF
   "queues": [
     {"name": "from_cega", "vhost": "/", "durable": true, "auto_delete": false, "arguments":{}},
     {"name": "ingest",    "vhost": "/", "durable": true, "auto_delete": false, "arguments":{}},
-    {"name": "verified",  "vhost": "/", "durable": true, "auto_delete": false, "arguments":{}},
     {"name": "accession", "vhost": "/", "durable": true, "auto_delete": false, "arguments":{}},
     {"name": "backup1",   "vhost": "/", "durable": true, "auto_delete": false, "arguments":{}},
     {"name": "backup2",   "vhost": "/", "durable": true, "auto_delete": false, "arguments":{}},
-    {"name": "completed", "vhost": "/", "durable": true, "auto_delete": false, "arguments":{}},
+    {"name": "save2db",   "vhost": "/", "durable": true, "auto_delete": false, "arguments":{}},
     {"name": "errors",    "vhost": "/", "durable": true, "auto_delete": false, "arguments":{}}
   ],
   "exchanges": [
@@ -63,11 +62,10 @@ cat > /etc/rabbitmq/definitions.json <<EOF
   ], 
   "bindings": [
     { "source":"lega", "vhost": "/", "destination":"ingest", "destination_type":"queue", "routing_key":"ingest", "arguments":{}},
-    { "source":"lega", "vhost": "/", "destination":"verified", "destination_type":"queue", "routing_key":"verified", "arguments":{}},
     { "source":"lega", "vhost": "/", "destination":"accession", "destination_type":"queue", "routing_key":"accession", "arguments":{}},
     { "source":"lega", "vhost": "/", "destination":"backup1", "destination_type":"queue", "routing_key":"backup1", "arguments":{}},
     { "source":"lega", "vhost": "/", "destination":"backup2", "destination_type":"queue", "routing_key":"backup2", "arguments":{}},
-    { "source":"lega", "vhost": "/", "destination":"completed", "destination_type":"queue", "routing_key":"completed", "arguments":{}},
+    { "source":"lega", "vhost": "/", "destination":"save2db", "destination_type":"queue", "routing_key":"save2db", "arguments":{}},
     { "source":"lega", "vhost": "/", "destination":"errors", "destination_type":"queue", "routing_key":"error", "arguments":{}}
   ]
 }
@@ -104,34 +102,8 @@ cat > /etc/rabbitmq/advanced.config <<EOF
               {publish_fields, [{exchange, <<"localega.v1">>}]}]},
           {ack_mode, on_confirm},
           {reconnect_delay, 5}
-        ]},
-      {cega_completion,
-        [{source,
-          [{protocol, amqp091},
-            {uris, ["amqp://"]},
-            {declarations, [{'queue.declare', [{exclusive, true}]},
-              {'queue.bind',
-                [{exchange, <<"lega">>},
-                  {queue, <<>>},
-                  {routing_key, <<"completed">>}
-                ]}
-            ]},
-            {queue, <<>>},
-            {prefetch_count, 10}
-          ]},
-          {destination,
-            [{protocol, amqp091},
-              {uris, ["amqp://"]},
-              {declarations, []},
-              {publish_properties, [{delivery_mode, 2}]},
-              {publish_fields, [{exchange, <<"cega">>},
-                {routing_key, <<"files.completed">>}
-              ]}
-            ]},
-          {ack_mode, on_confirm},
-          {reconnect_delay, 5}
-        ]},
-      {cega_verified,
+       ]},
+       {cega_verified,
         [{source,
           [{protocol, amqp091},
             {uris, ["amqp://"]},
@@ -156,7 +128,7 @@ cat > /etc/rabbitmq/advanced.config <<EOF
             ]},
           {ack_mode, on_confirm},
           {reconnect_delay, 5}
-        ]}
+       ]}
     ]}
   ]}
 ].

@@ -36,8 +36,10 @@ DOMAIN_EMAIL := -dev.ega@crg.eu
 
 ../private/certs/dispatcher.cert.pem: EXT=client_cert
 ../private/certs/ingest.cert.pem: EXT=client_cert
-../private/certs/verify.cert.pem: EXT=client_cert
-../private/certs/finalize.cert.pem: EXT=client_cert
+../private/certs/backup1.cert.pem: EXT=client_cert
+../private/certs/backup2.cert.pem: EXT=client_cert
+../private/certs/cleanup.cert.pem: EXT=client_cert
+../private/certs/save2db.cert.pem: EXT=client_cert
 ../private/certs/mq.cert.pem: EXT=server_client_cert
 ../private/certs/inbox.cert.pem: EXT=server_client_cert
 ../private/certs/db.cert.pem: EXT=server_cert
@@ -49,11 +51,6 @@ DOMAIN_EMAIL := -dev.ega@crg.eu
 ../private/certs/streamer.cert.pem: EXT=server_client_cert
 ../private/certs/testsuite.cert.pem: EXT=client_cert
 ../private/certs/archive-db.cert.pem: EXT=server_cert
-
-ifdef S3
-../private/certs/archive.cert.pem: EXT=server_cert
-../private/certs/inbox-s3-backend.cert.pem: EXT=server_cert
-endif
 
 %.cert.pem: %.csr.pem | ../private/certs/serial ../private/certs/index.txt
 	@echo "Creating $(@F)"

@@ -50,14 +50,19 @@ RUN ldconfig -v                                  && \
     mkdir -p /ega/staging                        && \
     chgrp ${LEGA_USERNAME} /ega/staging          && \
     chmod 2770 /ega/staging                      && \
-    mkdir -p /ega/archive                        && \
-    chgrp ${LEGA_USERNAME} /ega/archive          && \
-    chmod 2770 /ega/archive                      && \
+    mkdir -p /ega/vault                          && \
+    chgrp ${LEGA_USERNAME} /ega/vault            && \
+    chmod 2770 /ega/vault                        && \
+    mkdir -p /ega/vault.bkp                      && \
+    chgrp ${LEGA_USERNAME} /ega/vault.bkp        && \
+    chmod 2770 /ega/vault.bkp                    && \
     mkdir -p /etc/ega                            && \
     chgrp ${LEGA_USERNAME} /etc/ega              && \
     chmod 2770 /etc/ega
 
-VOLUME /ega/archive
+VOLUME /ega/vault
+VOLUME /ega/vault.bkp
+VOLUME /ega/staging
 VOLUME /etc/ega
 
 USER ${LEGA_USERNAME}

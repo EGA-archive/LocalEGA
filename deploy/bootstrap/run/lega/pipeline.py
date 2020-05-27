@@ -21,7 +21,6 @@ Options:
    -h, --help             Prints this help and exit
    -v, --version          Prints the version and exits
    -V, --verbose          Prints more output
-   --archive_s3           With S3 as an archive backend
    --secrets <prefix>     Use this prefix for the docker secrets
  
 '''
@@ -40,16 +39,12 @@ def main(cega_conf, conf, args):
             'db': None,
             'inbox': None,
             'staging': None,
+            'vault': None,
+            'vault_bkp': None,
         }
     }
 
     with_docker_secrets = args['--secrets']
-
-    with_s3 = args['--archive_s3']
-    if not with_s3:
-        lega['volumes']['archive'] = None
-    else:
-        lega['networks']['private-vault'] = None
 
 
     lega['services'] = {
@@ -159,38 +154,107 @@ def main(cega_conf, conf, args):
             'command': ["ega-ingest"],
         },
 
-        # 'backup1': {
-        #     'environment': [
-        #         LEGA_LOG,
-        #     ] + ([
-        #         'S3_ACCESS_KEY='+conf.get('s3','access_key'),
-        #         'S3_SECRET_KEY='+conf.get('s3','secret_key'),
-        #     ] if with_s3 else []),
-        #     'hostname': f'verify{HOSTNAME_DOMAIN}',
-        #     'image': 'egarchive/lega-base:latest',
-        #     'container_name': f'verify{HOSTNAME_DOMAIN}',
-        #     'volumes': [
-        #         './verify.ini:/etc/ega/conf.ini:ro',
-        #         './master.key.sec:/etc/ega/ega.sec',
-        #         './lega-entrypoint.sh:/usr/local/bin/lega-entrypoint.sh',
-        #         './certs/verify.cert.pem:/etc/ega/ssl.cert',
-        #         './certs/verify.sec.pem:/etc/ega/ssl.key',
-        #         './certs/CA.verify.cert.pem:/etc/ega/CA.cert',
-        #     ] + ([] if with_s3 else ['archive:/ega/archive']),
-        #     'networks': [
-        #         'internal',
-        #         'private-db',
-        #         'private-vault',
-        #     ],
-        #     'user': 'lega',
-        #     'entrypoint': ["lega-entrypoint.sh"],
-        #     'command': ["ega-verify"],
-        # },
+        'backup1': {
+            'environment': [
+                LEGA_LOG,
+            ],
+            'hostname': f'backup1{HOSTNAME_DOMAIN}',
+            'image': 'egarchive/lega-base:latest',
+            'container_name': f'backup1{HOSTNAME_DOMAIN}',
+            'volumes': [
+                './backup1.ini:/etc/ega/conf.ini:ro',
+                'staging:/ega/staging',
+                'vault:/ega/vault',
+                './lega-entrypoint.sh:/usr/local/bin/lega-entrypoint.sh',
+                './certs/backup1.cert.pem:/etc/ega/ssl.cert',
+                './certs/backup1.sec.pem:/etc/ega/ssl.key',
+                './certs/CA.backup1.cert.pem:/etc/ega/CA.cert',
+            ],
+            'networks': [
+                'internal',
+            ],
+            'user': 'lega',
+            'entrypoint': ["lega-entrypoint.sh"],
+            'command': ["ega-backup"],
+        },
+
+        'backup2': {
+            'environment': [
+                LEGA_LOG,
+            ],
+            'hostname': f'backup2{HOSTNAME_DOMAIN}',
+            'image': 'egarchive/lega-base:latest',
+            'container_name': f'backup2{HOSTNAME_DOMAIN}',
+            'volumes': [
+                './backup2.ini:/etc/ega/conf.ini:ro',
+                'staging:/ega/staging',
+                'vault_bkp:/ega/vault.bkp',
+                './lega-entrypoint.sh:/usr/local/bin/lega-entrypoint.sh',
+                './certs/backup2.cert.pem:/etc/ega/ssl.cert',
+                './certs/backup2.sec.pem:/etc/ega/ssl.key',
+                './certs/CA.backup1.cert.pem:/etc/ega/CA.cert',
+            ],
+            'networks': [
+                'internal',
+            ],
+            'user': 'lega',
+            'entrypoint': ["lega-entrypoint.sh"],
+            'command': ["ega-backup"],
+        },
+
+        'cleanup': {
+            'environment': [
+                LEGA_LOG,
+            ],
+            'hostname': f'cleanup{HOSTNAME_DOMAIN}',
+            'image': 'egarchive/lega-base:latest',
+            'container_name': f'cleanup{HOSTNAME_DOMAIN}',
+            'volumes': [
+                './cleanup.ini:/etc/ega/conf.ini:ro',
+                'inbox:/ega/inbox',
+                'staging:/ega/staging',
+                './lega-entrypoint.sh:/usr/local/bin/lega-entrypoint.sh',
+                './certs/cleanup.cert.pem:/etc/ega/ssl.cert',
+                './certs/cleanup.sec.pem:/etc/ega/ssl.key',
+                './certs/CA.cleanup.cert.pem:/etc/ega/CA.cert',
+            ],
+            'networks': [
+                'internal',
+            ],
+            'user': 'lega',
+            'entrypoint': ["lega-entrypoint.sh"],
+            'command': ["ega-cleanup"],
+        },
+
+        'save2db': {
+            'environment': [
+                LEGA_LOG,
+            ],
+            'hostname': f'save2db{HOSTNAME_DOMAIN}',
+            'image': 'egarchive/lega-base:latest',
+            'container_name': f'save2db{HOSTNAME_DOMAIN}',
+            'volumes': [
+                './save2db.ini:/etc/ega/conf.ini:ro', # connect to the long-term DB
+                './lega-entrypoint.sh:/usr/local/bin/lega-entrypoint.sh',
+                './certs/save2db.cert.pem:/etc/ega/ssl.cert',
+                './certs/save2db.sec.pem:/etc/ega/ssl.key',
+                './certs/CA.save2db.cert.pem:/etc/ega/CA.cert',
+            ],
+            'networks': [
+                'internal',
+                'private-db', # to access the long-term DB
+            ],
+            'user': 'lega',
+            'entrypoint': ["lega-entrypoint.sh"],
+            'command': ["ega-save2db"],
+        },
+
+
 
     }
 
     if with_docker_secrets:
-        for s in ['ingest']:
+        for s in ['dispatcher', 'ingest', 'backup1', 'backup2', 'cleaner']:
             lega['services'][s]['secrets'] = [
                 { 'source': 'db.connection',
                   'target': 'db.connection',
@@ -204,7 +268,20 @@ def main(cega_conf, conf, args):
                   'gid': 'lega',
                   'mode': '0400', # octal
                 }]
-            # S3 access and secret keys are in insecure env vars
+
+        lega['services']['save2db']['secrets'] = [
+            { 'source': 'archive-db.connection',
+              'target': 'archive-db.connection',
+              'uid': 'lega',
+              'gid': 'lega',
+              'mode': '0400', # octal
+            },
+            { 'source': 'mq.connection',
+              'target': 'mq.connection',
+              'uid': 'lega',
+              'gid': 'lega',
+              'mode': '0400', # octal
+            }]
  
         lega['services']['ingest']['secrets'].append({ 'source': 'master.key.passphrase',
                                                        'target': 'master.key.passphrase',
@@ -214,8 +291,9 @@ def main(cega_conf, conf, args):
         })
            
         lega['secrets'] = {
-            'db.connection': { 'file': './secrets/db.connection'         },
-            'mq.connection': { 'file': './secrets/mq.connection'         },
+            'db.connection': { 'file': './secrets/db.connection' },
+            'archive-db.connection': { 'file': './secrets/archive-db.connection' },
+            'mq.connection': { 'file': './secrets/mq.connection' },
             'master.key.passphrase' : { 'file': './secrets/master.key.passphrase' },
         }
 
@@ -225,13 +303,15 @@ def main(cega_conf, conf, args):
         put_file_content(args['--secrets'], 'mq.connection', mq_connection.encode())
         db_connection = conf.get('db', 'connection') + '?' + conf.get('db', 'connection_params')
         put_file_content(args['--secrets'], 'db.connection', db_connection.encode())
+        archive_db_connection = conf.get('archive-db', 'connection') + '?' + conf.get('archive-db', 'connection_params')
+        put_file_content(args['--secrets'], 'archive-db.connection', archive_db_connection.encode())
 
         
 
     # If DEPLOY_DEV is set (and don't define it as an empty string, duh!),
     # we then reset the entrypoint and add the current python code
     if os.getenv('DEPLOY_DEV'): # 
-        for s in ['dispatcher', 'ingest']:
+        for s in ['dispatcher', 'ingest', 'backup1', 'backup2', 'cleanup', 'save2db']:
             service = lega['services'][s]
             volumes = service['volumes']
             volumes.append('../../ingestion/lega:/home/lega/.local/lib/python3.8/site-packages/lega')

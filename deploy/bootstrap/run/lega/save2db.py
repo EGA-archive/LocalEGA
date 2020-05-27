@@ -22,35 +22,14 @@ Options:
 '''
 
 def main(conf, args):
-    """Create ingest.ini"""
 
     with_docker_secrets = args['--secrets']
 
     config = configparser.RawConfigParser()
-
     config['DEFAULT'] = {
-        'queue': 'ingest',
-        'exchange': 'lega',
-        'routing_key': 'verified',
-        'master_key': 'c4gh_file',
-    }
-
-    master_key = ('secret:///run/secrets/master.key.passphrase'
-                  if with_docker_secrets else
-                  conf.get('master_key','passphrase', raw=True))
-
-    config['c4gh_file'] = {
-        'loader_class': 'C4GHFileKey',
-        'passphrase': master_key,
-        'filepath': '/etc/ega/ega.sec',
-    }
-
-    config['inbox'] = {
-        'location': r'/ega/inbox/%s/',
-    }
-
-    config['staging'] = {
-        'location': r'/ega/staging/',
+        'queue': 'save2db',
+        'exchange': 'cega',
+        'routing_key': 'files.completed',
     }
 
     mq_connection = ('secret:///run/secrets/mq.connection'
@@ -67,9 +46,9 @@ def main(conf, args):
         'keyfile': '/etc/ega/ssl.key',
     }
 
-    db_connection = ('secret:///run/secrets/db.connection'
+    db_connection = ('secret:///run/secrets/archive-db.connection'
                      if with_docker_secrets else
-                     conf.get('db', 'connection') + '?' + conf.get('db', 'connection_params'))
+                     conf.get('archive-db', 'connection') + '?' + conf.get('archive-db', 'connection_params'))
 
     config['db'] = {
         'connection': db_connection,

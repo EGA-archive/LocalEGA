@@ -22,7 +22,9 @@ Users are handled through Central EGA, directly.
           'console_scripts': [
               'ega-dispatcher = lega.dispatcher:main',
               'ega-ingest = lega.ingest:main',
-              'ega-mapper = lega.mapper:main',
+              'ega-backup = lega.backup:main',
+              'ega-cleanup = lega.cleanup:main',
+              'ega-save2db = lega.save2db:main',
               'ega-conf = lega.conf.__main__:main',
           ]
       },

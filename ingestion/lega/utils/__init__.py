@@ -8,6 +8,7 @@ import os
 import sys
 import hashlib
 import traceback
+from pathlib import Path
 
 LOG = logging.getLogger(__name__)
 
@@ -25,6 +26,18 @@ def get_sha256(checksums):
     else:
         return None
 
+def add_prefix(prefix, name):
+    """Concatenate prefix and name."""
+    return os.path.join(prefix, name[1:] if name.startswith('/') else name)
+
+def name2fs(name):
+    """Convert a name to a file system relative path."""
+    return os.path.join(*list(name[i:i+3] for i in range(0, len(name), 3)))
+
+def mkdirs(path):
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
+
+
 def clean_message(data):
 
     for key in ['staged_path', 'staged_name',
@@ -33,7 +46,8 @@ def clean_message(data):
                 'job_id',
                 'job_type',
                 'header',
-                'payload_checksum']:
+                'payload_checksum',
+                'vault_name', 'mounted_vault_paths']:
         try:
             del data[key]
         except KeyError as ke:

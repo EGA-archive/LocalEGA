@@ -230,7 +230,7 @@ def _handle_request(work, message, content, exchange, error_key):
         # If no exception: we ack
         message.ack()
     except exceptions.RejectMessage as rm:
-        LOG.warning('Message %s rejected', message.delivery_tag)
+        LOG.warning('Message %s rejected: %s', message.delivery_tag, rm)
         message.reject() # requeue=True
     except exceptions.FromUser as ue: # ValueError for decryption errors
         cause = ue.__cause__ or ue

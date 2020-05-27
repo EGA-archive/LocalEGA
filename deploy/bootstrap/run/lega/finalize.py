@@ -17,7 +17,6 @@ Options:
    -h, --help             Prints this help and exit
    -v, --version          Prints the version and exits
    -V, --verbose          Prints more output
-   --archive_s3           Ignored
    --secrets <prefix>     Use this prefix for the docker secrets
  
 '''

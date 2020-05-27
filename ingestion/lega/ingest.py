@@ -16,13 +16,12 @@ import io
 import os
 import hashlib
 import time
-from pathlib import Path
 
 from crypt4gh.lib import body_decrypt, body_decrypt_parts
 from crypt4gh.header import deconstruct, parse
 
 from .conf import CONF
-from .utils import exceptions, db, key, storage, clean_message
+from .utils import exceptions, db, key, clean_message, name2fs, add_prefix, mkdirs
 from .utils.amqp import consume, publish
 
 LOG = logging.getLogger(__name__)
@@ -76,14 +75,14 @@ def work(decryption_keys, inbox_fs, staging_fs, data):
     inbox_path = inbox_fs(username, filepath)
     
     # Check if file is in inbox
-    if not inbox_fs.exists(inbox_path):
+    if not os.path.exists(inbox_path):
         raise exceptions.NotFoundInInbox(inbox_path)  # return early
 
     # Ok, we have the file in the inbox
     # ---------------------------------
 
     LOG.debug('Opening %s', inbox_path)
-    with inbox_fs.open(inbox_path, 'rb') as infile:
+    with open(inbox_path, 'rb') as infile:
 
         LOG.debug('Reading header')
         # Get session keys
@@ -109,11 +108,11 @@ def work(decryption_keys, inbox_fs, staging_fs, data):
         data['header'] = header_hex
 
         # Making a staging area name
-        staged_name = staging_fs.name2fs(f"{job_id:0>20}")  # filling with zeros, and 20 characters wide
+        staged_name = name2fs(f"{job_id:0>20}")  # filling with zeros, and 20 characters wide
         data['staged_name'] = staged_name
-        staged_path = staging_fs(None, staged_name, mkdirs=True) # Create parent directories
+        staged_path = staging_fs(staged_name)
         data['staged_path'] = staged_path  # record for cleanup        
-
+        mkdirs(staged_path) # Create parent directories
 
         # Verifying the payload and calculating the checksums of the original content
         LOG.debug('Verifying payload')
@@ -122,7 +121,7 @@ def work(decryption_keys, inbox_fs, staging_fs, data):
                                 # Note: it's useless, Make EBI drop md5 instead.
 
         LOG.info('Staging path: %s', staged_path)
-        with staging_fs.open(staged_path, 'wb') as outfile:
+        with open(staged_path, 'wb') as outfile:
 
             LOG.info('Decrypting / Copying / Checksuming the payload')
             md_payload = hashlib.sha256()
@@ -187,11 +186,13 @@ def main():
     k = getattr(key, CONF.get(key_section, 'loader_class'))(key_section)
     decryption_keys = [(0, k.private(), None)]
 
-    inbox_driver = CONF.get('inbox', 'storage_driver', fallback='FileStorage')
-    inbox_fs = getattr(storage, inbox_driver)('inbox')
+    inbox_prefix = CONF.get('inbox', 'location', raw=True)
+    def inbox_fs(user, path):
+        return os.path.join(inbox_prefix % user, path.strip('/') )
 
-    staging_driver = CONF.get('staging', 'storage_driver', fallback='FileStorage')
-    staging_fs = getattr(storage, staging_driver)('staging')
+    staging_prefix = CONF.get('staging', 'location', raw=True)
+    def staging_fs(path):
+        return os.path.join(staging_prefix, path.strip('/') )
 
     do_work = partial(work, decryption_keys, inbox_fs, staging_fs)
 
