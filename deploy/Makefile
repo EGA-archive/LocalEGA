@@ -39,6 +39,12 @@ logs:
 	@docker-compose logs -f $(SELECTED)
 # 	@docker-compose logs -f logs
 
+# Restart all but the CentralEGA stubs
+restart: SELECTED=ingest backup1 backup2 cleanup dispatcher save2db db mq archive-db inbox
+restart:
+	@docker-compose restart $(SELECTED)
+
+
 ####################################################
 ## Docker Images
 ####################################################
