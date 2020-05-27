@@ -85,8 +85,11 @@ def work(decryption_keys, inbox_fs, staging_fs, data):
     with open(inbox_path, 'rb') as infile:
 
         LOG.debug('Reading header')
-        # Get session keys
-        session_keys, edit_list = deconstruct(infile, decryption_keys)
+        try:
+            # Get session keys
+            session_keys, edit_list = deconstruct(infile, decryption_keys)
+        except Exception as e:
+            raise exceptions.Crypt4GHHeaderDecryptionError() from e
 
         # Raise error we could not decrypt the header (ie no session keys retrieved)
         if not session_keys:
@@ -155,7 +158,7 @@ def work(decryption_keys, inbox_fs, staging_fs, data):
                 LOG.info('Verification completed')
             #except ValueError as v:
             except Exception as v: # capture any error here
-                raise exceptions.PayloadDecryptionError() from v
+                raise exceptions.Crypt4GHPayloadDecryptionError() from v
 
             # Add decrypted checksums to message
             decrypted_payload_checksum = md_sha256.hexdigest()

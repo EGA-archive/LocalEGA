@@ -229,9 +229,6 @@ def _handle_request(work, message, content, exchange, error_key):
         work(content)
         # If no exception: we ack
         message.ack()
-    except exceptions.RejectMessage as rm:
-        LOG.warning('Message %s rejected: %s', message.delivery_tag, rm)
-        message.reject() # requeue=True
     except exceptions.FromUser as ue: # ValueError for decryption errors
         cause = ue.__cause__ or ue
         LOG.error('%r', cause)  # repr(cause) = Technical
@@ -241,6 +238,9 @@ def _handle_request(work, message, content, exchange, error_key):
         publish(content, exchange=exchange, routing_key=error_key)
         message.ack()
         raise ue # to send it to error too
+    except exceptions.RejectMessage as rm:
+        LOG.warning('Message %s rejected: %s', message.delivery_tag, rm)
+        message.reject() # requeue=True
 
 def consume(work, ack_on_error=True, threaded=True):
     """Register callback ``work`` to be called, blocking function.

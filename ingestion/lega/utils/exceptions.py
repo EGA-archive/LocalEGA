@@ -61,11 +61,17 @@ class SessionKeyAlreadyUsedError(FromUser):
         return f'Session key (likely) already used [checksum: {self.checksum}].'
 
 
-class PayloadDecryptionError(FromUser):
+class Crypt4GHHeaderDecryptionError(FromUser):
+    """Raised Exception when header decryption fails."""
+
+    def __str__(self):
+        return 'Error decrypting this Crypt4GH file'
+
+class Crypt4GHPayloadDecryptionError(FromUser):
     """Raised Exception when payload decryption fails."""
 
     def __str__(self):
-        return 'Error decrypting this file'
+        return 'Error decrypting the content of this file'
 
 
 #############################################################################
