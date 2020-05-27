@@ -10,7 +10,7 @@ from ..defs import generate_mq_hash
 
 HOSTNAME_DOMAIN = os.getenv('HOSTNAME_DOMAIN','')
 
-cega_connection_params=urlencode({ 'heartbeat': 0,
+cega_connection_params=urlencode({ 'heartbeat': 60,
 				   'connection_attempts': 30,
 				   'retry_delay': 10,
 				   'server_name_indication': f'cega-mq{HOSTNAME_DOMAIN}',

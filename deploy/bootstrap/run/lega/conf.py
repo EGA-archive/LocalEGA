@@ -56,7 +56,7 @@ def main(args):
     # create the SSL socket ourselves
     # Some parameters can be passed in the URL, though.
     mq_connection=f"amqps://{mq_user}:{mq_password}@mq{HOSTNAME_DOMAIN}:5671/%2F"
-    mq_connection_params = urlencode({ 'heartbeat': 0,
+    mq_connection_params = urlencode({ 'heartbeat': 60,
 				       'connection_attempts': 30,
 				       'retry_delay': 10 })
 
