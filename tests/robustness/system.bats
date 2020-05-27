@@ -50,12 +50,12 @@ function teardown() {
 
 @test "Whole system restart" {
 
-    lega_ingest $(uuidgen) 10 v1.files.completed /dev/urandom
+    lega_ingest $(uuidgen) 1 v1.files.completed /dev/urandom
 
     pushd ${DOCKER_PATH}
     legarun make restart
     legarun make preflight-check
     popd
 
-    lega_ingest $(uuidgen) 10 v1.files.completed /dev/urandom
+    lega_ingest $(uuidgen) 1 v1.files.completed /dev/urandom
 }
