@@ -48,14 +48,14 @@ function teardown() {
 
 @test "Ingestion after db restart" {
 
-    lega_ingest $(uuidgen) 1 v1.files.completed /dev/zero
+    lega_ingest $(uuidgen) 1 v1.files.completed /dev/urandom
 
     run docker stop db
     run docker start db
     [ "$status" -eq 0 ]
     #sleep 15
 
-    lega_ingest $(uuidgen) 1 v1.files.completed /dev/zero
+    lega_ingest $(uuidgen) 1 v1.files.completed /dev/urandom
 }
 
 
@@ -72,7 +72,7 @@ function teardown() {
     run docker stop verify
 
     # Generate a Crypt4GH file of 1 MB
-    lega_generate_file ${TESTFILE} ${TESTFILE_ENCRYPTED} 1 /dev/zero
+    lega_generate_file ${TESTFILE} ${TESTFILE_ENCRYPTED} 1 /dev/urandom
 
     # Upload it
     lega_upload "${TESTFILE_ENCRYPTED}" "${TESTFILE_UPLOADED}"
@@ -85,7 +85,7 @@ function teardown() {
     CORRELATION_ID=$output
 
     # Publish the file to simulate a CentralEGA trigger
-    MESSAGE="{ \"user\": \"${TESTUSER}\", \"filepath\": \"/${TESTFILE}.c4gh\"}"
+    MESSAGE="{ \"type\": \"ingest\", \"user\": \"${TESTUSER}\", \"filepath\": \"/${TESTFILE}.c4gh\"}"
     legarun ${MQ_PUBLISH} --correlation_id ${CORRELATION_ID} files "$MESSAGE"
     [ "$status" -eq 0 ]
 
@@ -95,8 +95,8 @@ function teardown() {
     [ "$status" -eq 0 ]
     sleep 15
 
-    # Restart verify
-    run docker restart verify
+    # Restart the ingest microservice
+    run docker restart ingest
     [ "$status" -eq 0 ]
     sleep 15
 
