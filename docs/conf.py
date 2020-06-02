@@ -10,7 +10,7 @@ from recommonmark.parser import CommonMarkParser
 # sys.path.insert(0, os.path.dirname(os.getcwd()))
 sys.path.insert(0, os.path.abspath('..'))
 # print('PYTHONPATH =', sys.path)
-import lega
+from lega import __version__
 
 # -- General configuration ------------------------------------------------
 

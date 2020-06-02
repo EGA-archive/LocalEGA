@@ -1,50 +1,67 @@
-Throughout this documentation, we can refer to Central EGA as
-``CEGA``, or ``CentralEGA``, and *any* Local EGA instance as ``LEGA``,
-or ``LocalEGA``.  When two or more Local EGA instances are involved,
-we will use ``LEGA<i>`` for Local EGA instance ``<i>``.
-
 ================
 Local EGA
 ================
 
-The Local EGA project is divided into several microservices.
+The ``Local EGA`` project consists of several components:
 
-.. raw:: html
-   :file: table.html
+* An inbox
+* A long-term database and file storage
+* An ingestion pipeline
+* A distribution system
 
-The workflow consists of two ordered parts:
+In short, the ingestion pipeline moves encrypted files from the inbox
+into the long-term storage, and saves information in the database. In
+the process, each ingested file obtain an ``Accession ID``, which
+identifies it uniquely across the `EGA
+<https://ega-archive.org/>`_. The distribution system allows
+requesters to access securely the encrypted files in the long-term
+storage, using the accession id, if permissions are granted by a Data
+Access Commity (``DAC``).
 
-The user first logs onto the Local EGA's inbox and uploads its
-files. He/She then goes to the Central EGA's interface to prepare a
-submission. Upon completion, the files are ingested into the archive and
-become searchable by the Central EGA's engine.
+Files are encrypted whether in transit or at rest. The transport
+depends on the inbox and files are stored using the `Crypt4GH file
+format <http://samtools.github.io/hts-specs/crypt4gh.pdf>`_. The
+metadata of the encrypted files and the permissions to access them are
+located at ``Central EGA``.
 
 ----
 
-More concretely, Central EGA contains a database of users. The Central
-EGA' ID is used to authenticate the user against either their EGA
-password or an RSA key.
+More concretely, the workflow consists of three ordered parts,
+involving 2 different user roles: submitters and requesters.
 
-For every uploaded file, Central EGA receives a notification that the
-file has landed. The file is checksumed and presented in the Central
-EGA's interface in order for the user to double-check that it was
-properly uploaded.
+The submitter first logs onto the Local EGA's inbox and uploads its
+encrypted files. Login credentials are provided by Central EGA. For
+every uploaded file, Central EGA receives a notification that the file
+has landed. The file is checksumed and presented in the Central EGA's
+interface in order for the user to double-check the integrity of the
+upload.
 
 |moreabout| More details about the :ref:`inbox login system`.
 
-When a submission is ready, Central EGA triggers an ingestion process
-on the user-chosen Local EGA instance. The uploaded file must be
-encrypted in the `Crypt4GH file format
-<https://crypt4gh.readthedocs.io/en/latest/encryption.html>`_ using
-that Local EGA's public key. Central EGA's interface is updated with
-progress notifications whether the ingestion was successful, or
-whether there was an error.
+The submitter then prepares a submission, programmatically or via
+Central EGA's interface. Upon completion, Central EGA sends an
+ingestion trigger to the connected Local EGA, and the files are moved
+securely into the long-term storage. They also obtain their Accession
+ID, identifying them uniquely across Central EGA and all Local EGAs
+(or rather, their *content*).
 
 |moreabout| More details about the :ref:`ingestion process`.
 
-.. image:: /static/components.jpeg
-   :target: ./_static/components.jpeg
-   :alt: General Architecture and Connected Components
+Separately, after a file is successfully ingested (including a backup
+confirmation), has an accession id, and the metadata is marked as
+*released*, the file becomes available for download. If a file access
+has been granted by a DAC, the file can be served in Crypt4GH format
+to the requester.
+
+|moreabout| More details about the :ref:`distribution system`.
+
+Permissions are granted by the DACs (and not Central EGA). Central EGA
+and Local EGAs are not the files' owner. Ownership is retained by the
+DACs, as a result of consent agreements signed by the submitters whom
+provided the original files.
+
+|moreabout| More details about the `EGA access model
+<https://ega-archive.org/access/faq>`_.
 
 ----
 
@@ -52,20 +69,13 @@ whether there was an error.
    :maxdepth: 1
    :name: architecture
 
-   Installation         <installation>
-   Ingestion            <ingestion>
-   Data distribution    <outgestion>
-   Encryption           <encryption>
    Connection CEGA-LEGA <connection>
    Inbox                <inbox>
-   Testsuite            <tests>
-   Contributing         <contribute>
+   Ingestion            <ingestion>
+   Distribution         <outgestion>
+   Encryption           <encryption>
+   Contributing         <https://github.com/EGA-archive/LocalEGA/blob/master/CONTRIBUTING.md>
 
-|Testsuite| | Version |version| | Generated |today|
 
-
-.. |Testsuite| image:: https://github.com/EGA-archive/LocalEGA/workflows/Testsuite/badge.svg
-	:alt: Testsuite Status
-	:class: inline-baseline
 
 .. |moreabout| unicode:: U+261E .. right pointing finger

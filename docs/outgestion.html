@@ -1,0 +1,38 @@
+<table id="lega">
+  <thead>
+    <tr>
+      <th>Service</th>
+      <th>Description</th>
+      <th>Status</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>outbox</td>
+      <td>SFTP server, in read-only mode, where user credentials come from Central EGA</td>
+      <td><i class="fa fa-battery-full lega-stable" title="Stable"></i></td>
+    </tr>
+    <tr>
+      <td>db</td>
+      <td>The long-term database.</td>
+      <td><i class="fa fa-battery-full lega-stable" title="Stable"></i></td>
+    </tr>
+    <tr>
+      <td>vault</td>
+      <td>The long-term storage.</td>
+      <td><i class="fa fa-battery-full lega-stable" title="Stable"></i></td>
+    </tr>
+    <tr>
+      <td>outgesters</td>
+      <td>Front-facing HTTP(s) server, receiving POST requests to outgest files.
+	It is guarded by an external check regarding the given file access permissions.
+	It is based on standard OpenID Connect (OAuth2) authorization.</td>
+      <td><i class="fa fa-battery-half lega-dev" title="Working, but still under development"></i></td>
+    </tr>
+    <tr>
+      <td>streamers</td>
+      <td>Fetch the vault file internally and prepare streaming in Crypt4GH format.</td>
+      <td><i class="fa fa-battery-half lega-dev" title="Working, but still under development"></i></td>
+    </tr>
+  </tbody>
+</table>

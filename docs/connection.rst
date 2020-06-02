@@ -3,130 +3,98 @@
 Connection CEGA |connect| LEGA
 ==============================
 
-All Local EGA instances are connected to Central EGA using
-`RabbitMQ`_, a message broker, that allows application components to
-send and receive messages. Messages are queued, not lost, and resend
-on network failure or connection problems. Naturally, this is configurable.
-
-The RabbitMQ message brokers of each LocalEGA are the **only**
-components with the necessary credentials to connect to Central
-EGA, the other LocalEGA components are not.
-
-We call ``CegaMQ`` and ``LegaMQ``, the RabbitMQ message brokers of,
-respectively, Central EGA and Local EGA.
-
-.. note:: We pinned the RabbitMQ version to ``3.6.14``.
+All Local EGA instances are connected to Central EGA using `AMQP, the
+advanced message queueing protocol <http://www.amqp.org/>`_, that
+allows application components to send and receive messages. Messages
+are queued, not lost, and resend on network failure or connection
+problems. Naturally, this is configurable.
 
 
-``CegaMQ`` declares a ``vhost`` for each LocalEGA instance. It also
-creates the credentials to connect to that ``vhost`` in the form of a
-*username/password* pair. The connection uses the AMQP(S) protocol
-(The S adds TLS encryption to the traffic).
-
-``LegaMQ`` then uses a connection string with the following syntax:
-
-.. code-block:: console
-
-   amqp[s]://<user>:<password>@<cega-host>:<port>/<vhost>
-
-
-``CegaMQ`` contains an exchange named ``localega.v1``. ``v1`` is used for
-versioning and is internal to CentralEGA. The queues connected to that
-exchange are also internal to CentralEGA. For this documentation, we
-use the stub implementation of CentralEGA and the following queues, per
-``vhost``:
-
-+-----------------+------------------------------------+
-| Name            | Purpose                            |
-+=================+====================================+
-| files           | Triggers for file ingestion        |
-+-----------------+------------------------------------+
-| completed       | When files are properly ingested   |
-+-----------------+------------------------------------+
-| errors          | User-related errors                |
-+-----------------+------------------------------------+
-| inbox           | Notifications of uploaded files    |
-+-----------------+------------------------------------+
-| inbox.checksums | Checksum values for uploaded files |
-+-----------------+------------------------------------+
-
-``LegaMQ`` contains two exchanges named ``lega`` and ``cega``, and the following queues, in the default ``vhost``:
-
-+-----------------+---------------------------------------+
-| Name            | Purpose                               |
-+=================+=======================================+
-| files           | Trigger for file ingestion            |
-+-----------------+---------------------------------------+
-| archived        | The file is in the archive            |
-+-----------------+---------------------------------------+
-| qc              | The file is "verified" in the archive |
-|                 | and Quality Controllers can execute   |
-+-----------------+---------------------------------------+
-
-``LegaMQ`` registers ``CegaMQ`` as an *upstream* and listens to the
-incoming messages in ``files`` using a *federated queue*.  Ingestion
-workers listen to the ``files`` queue of the local broker. If there
-are no messages to work on, ``LegaMQ`` will ask its upstream queue if
-it has messages. If so, messages are moved downstream. If not,
-ingestion workers wait for messages to arrive.
-
-.. note:: This gives us the ability to ingest files coming from
-   CentralEGA, as well as files coming from other instances.  For
-   example, we could drop an ingestion message into ``LegaMQ``'s files
-   queue in order to ingest files that are external to CentralEGA.
-
-
-``CegaMQ`` receives notifications from ``LegaMQ`` using a
-*shovel*. Everything that is published to its ``cega`` exchange gets
-forwarded to CentralEGA (using the same routing key). This is how we
-propagate the different status of the workflow to CentralEGA, using
-the following routing keys:
-
-+-----------------------+-------------------------------------------------------+
-| Name                  | Purpose                                               |
-+=======================+=======================================================+
-| files.completed       | In case the file is properly ingested                 |
-+-----------------------+-------------------------------------------------------+
-| files.error           | In case a user-related error is detected              |
-+-----------------------+-------------------------------------------------------+
-| files.inbox           | In case a file is (re)uploaded                        |
-+-----------------------+-------------------------------------------------------+
-| files.inbox.checksums | In case a file path ends in ``.md5`` or ``.sha256``   |
-+-----------------------+-------------------------------------------------------+
-
-Note that we do not need at the moment a queue to store the completed
-message, nor the errors, as we directly forward them to Central
-EGA. They can be added later on, if necessary.
+In practice, the `reference implementation
+<https://github.com/EGA-archive/LocalEGA/tree/master/ingestion/mq>`_
+uses the RabbitMQ message broker for each LocalEGA, henceforth called
+``LegaMQ`` or *local broker*, which is the **only** component with the
+necessary credentials to connect to the Central EGA message broker,
+henceforth called ``CegaMQ`` or *central broker*. The other LocalEGA
+components are connected to their respective local broker.
 
 
 .. image:: /static/CEGA-LEGA.png
    :target: ./_static/CEGA-LEGA.png
    :alt: RabbitMQ setup
 
-.. _supported checksum algorithm: md5
+.. note:: We pinned the RabbitMQ version to ``3.7.8``, so far, until
+          both CegaMQ and LegaMQ can be upgraded simultaneously to the
+          latest version.
 
-Adding a new Local EGA instance
--------------------------------
 
-Central EGA only has to prepare a user/password pair along with a
-``vhost`` in their RabbitMQ.
+For each LocalEGA instance, the central broker configures a ``vhost``,
+and creates the credentials to connect to that ``vhost`` in the form
+of a *username/password* pair. The local brokers then use a connection
+string with the following syntax:
 
-When Central EGA has communicated these details to the given Local EGA
-instance, the latter can contact Central EGA using the federated queue
-and the shovel mechanism in their local broker.
+.. code-block:: console
 
-CentralEGA should then see 2 incoming connections from that new
-LocalEGA instance, on the given ``vhost``.
+   amqps://<user>:<password>@<cega-host>:<port>/<vhost>
 
-The exchanges and routing keys will be the same as all the other
-LocalEGA instances, since the clustering is done per ``vhost``.
 
-Message Format
---------------
+The connection is a two-way connection using a combination of a
+*federated queue* and a *shovel*.
+
+``LegaMQ`` registers a *federated queue* with ``CegaMQ`` as *upstream*
+and listens to the incoming messages. In order to minimize the number
+of connection sockets, all Local EGAs only use *one* federated queue
+towards the central broker, and all messages in the queue are
+distinguished with a ``type``.
+
+Ingestion workers listen to the downstream queue of the local broker. If there
+are no messages to work on, ``LegaMQ`` will ask its upstream queue if
+it has messages. If so, messages are moved downstream. If not,
+ingestion workers wait for messages to arrive.
+
+.. note:: This allows a Local EGA instance to *also* ingest files from
+   other sources than Central EGA. For example, a message, external to
+   Central EGA, could be dropped in the local broker in order to
+   ingest non-EGA files.
+
+
+``CegaMQ`` receives notifications from ``LegaMQ`` using a
+*shovel*. ``LegaMQ`` has an exchange named ``cega`` configured such
+that all messages published to it get forwarded to CentralEGA (using
+the same routing key). This is how we propagate the different status
+of the workflow to the central broker, using the following routing keys:
+
++-----------------------+-------------------------------------------------------+
+| Name                  | Purpose                                               |
++=======================+=======================================================+
+| files.archived        | In case the file is properly ingested                 |
++-----------------------+-------------------------------------------------------+
+| files.completed       | In case the file is properly backed-up                |
++-----------------------+-------------------------------------------------------+
+| files.error           | In case a user-related error is detected              |
++-----------------------+-------------------------------------------------------+
+| files.inbox           | In case a file is (re)uploaded or removed             |
++-----------------------+-------------------------------------------------------+
+
+
+
+
+Message interface (API)
+=======================
 
 It is necessary to agree on the format of the messages exchanged
 between Central EGA and any Local EGAs. Central EGA's messages are
-JSON-formatted and contain the following fields:
+JSON-formatted and are distinguished with a field named ``type``.
+There are 4 types of messages so far:
+
+* ``type=ingest``: an ingestion trigger
+* ``type=accession``: contains an accession id
+* ``type=mapping``: contains a dataset to accession id mapping (they
+  are known a the metadata release stage or when permissions are
+  granted by a DAC
+* ``type=heartbeat``: A mean to check if the Local EGA instance is "alive"
+
+Ingestion 
 
 * ``user``
 * ``filepath``

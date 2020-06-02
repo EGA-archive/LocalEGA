@@ -14,17 +14,9 @@ The session key is itself encrypted with the public key of a LocalEGA
 instance, and prepended to the encrypted original file. The prepended
 part is called the Crypt4GH header.
 
-The header contains then the necessary information to decrypt the data
-portion, including some offset to apply, in case the data portion was
-meant to be chopped. This is useful is the data portion contains
-information about a chromosome which does not land on segment
-boundaries. The offset allows to recover the relevant data without
-decrypting and re-encrypting the data portion.
-
 .. image:: https://crypt4gh.readthedocs.io/en/latest/_images/encryption.png
    :target: https://crypt4gh.readthedocs.io/en/latest/_images/encryption.png
    :alt: Encryption
-
 
 There are `several advantages for using the Crypt4GH format
 <https://crypt4gh.readthedocs.io/en/latest/encryption.html>`_. The

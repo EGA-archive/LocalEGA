@@ -11,6 +11,8 @@ Install the required packages with `pip install -r requirements.txt`.
 
 These tests treat the system as a black box, only checking the expected output for a given input.
 
+      $ bats tests/integration
+
 - [x] Ingesting a 10MB file<br/>
       Expected outcome: Message in the CentralEGA completed queue
   
@@ -53,9 +55,10 @@ These tests treat the system as a black box, only checking the expected output f
 
 ## Robustness Tests
 
-These tests will not treat the system as a black box.
-
+These tests will not treat the system as a black box.  
 They require some knowledge on how the components are interconnected.
+
+      $ bats tests/robustness
 
 - [ ] Check Archive+DB consistency<br/>
       Expected outcome: Re-checksums the files after several ingestions
@@ -79,6 +82,8 @@ They require some knowledge on how the components are interconnected.
 
 These tests treat the system as a black box and "measure" performance
 
+      $ bats tests/stress
+
 - [ ] Multiple ingestions by the same user<br/>
       Expected outcome: 
 
@@ -90,9 +95,10 @@ These tests treat the system as a black box and "measure" performance
   
 ## Security
 
-These tests will not treat the system as a black box.
-
+These tests will not treat the system as a black box.  
 They require some knowledge on how the components are interconnected.
+
+      $ bats tests/security
 
 - [ ] Network access forbidden from some selected components<br/>
       Expected outcome: 
