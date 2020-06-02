@@ -1,31 +1,32 @@
 Encryption Algorithm - Crypt4GH
 ===============================
 
-The encryption procedure uses the :download:`Crypt4GH file format
-<./static/crypt4gh.pdf>`, which works as follows.
+The encryption procedure uses the `Crypt4GH file format
+<https://crypt4gh.readthedocs.io>`_, which works as follows.
 
-A random session key (of 256 bits) is generated to seed an AES engine,
-in CTR mode. An initialization vector (IV) is also randomly generated
-for the engine. Using the two latters, the original file is encrypted
-and a header is prepended to the encrypted data.
+In a nutshell, the original file is encrypted with a symmetric
+algorithm (here Chacha20), authenticated (here with Poly1305). The
+resulting encrypted data is called the data portion. The data portion
+is segmented. The symmetric key used for the encryption is called the
+session key. The session key is unique for each file.
 
-Informally, the header contains, in order, the word ``crypt4gh``, the
-format version (currently 1), the length of the remainder of the
-header and the remainder.
+The session key is itself encrypted with the public key of a LocalEGA
+instance, and prepended to the encrypted original file. The prepended
+part is called the Crypt4GH header.
 
-The remainder is an `OpenPGP <https://tools.ietf.org/html/rfc4880>`_
-encrypted message that contains *records*.  A record encapsulates a
-section of the original file, the randomly-generated session key and
-IV, and the counter offset.
-
-.. image:: /static/encryption.png
-   :target: ../_static/encryption.png
+.. image:: https://crypt4gh.readthedocs.io/en/latest/_images/encryption.png
+   :target: https://crypt4gh.readthedocs.io/en/latest/_images/encryption.png
    :alt: Encryption
 
+There are `several advantages for using the Crypt4GH format
+<https://crypt4gh.readthedocs.io/en/latest/encryption.html>`_. The
+main ones are:
 
-The advantages of the format are, among others:
+* No re-encryption upon ingestion (only decryption).
+* Minimal re-encryption for data distribution.
+* Shipping only selected segments for data distribution.
 
-* Re-encrypting the file for another user requires only to decrypt the header and encrypt it with the user's public key.
-* Ingesting the file does not require a decryption step. `(Note: That is done in the verification step)`.
-* Possibility to encrypt parts of the file using different session keys
-* The CTR offset allows to encrypt/decrypt only part of the file, and/or run the cryptographic tasks in parallel.
+
+.. image:: /static/Crypt4GH.png
+   :target: ./_static/Crypt4GH.png
+   :alt: Advantages of using Crypt4GH
