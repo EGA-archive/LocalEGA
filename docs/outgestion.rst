@@ -1,4 +1,4 @@
-.. _`data distribution`:
+.. _`distribution`:
 
 Data Distribution
 =================

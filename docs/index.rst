@@ -53,7 +53,7 @@ confirmation), has an accession id, and the metadata is marked as
 has been granted by a DAC, the file can be served in Crypt4GH format
 to the requester.
 
-|moreabout| More details about the :ref:`distribution system`.
+|moreabout| More details about the :ref:`distribution`.
 
 Permissions are granted by the DACs (and not Central EGA). Central EGA
 and Local EGAs are not the files' owner. Ownership is retained by the
@@ -67,9 +67,8 @@ provided the original files.
 
 .. toctree::
    :maxdepth: 1
-   :name: architecture
 
-   Connection CEGA-LEGA <connection>
+   Connection CEGA-LEGA <amqp>
    Inbox                <inbox>
    Ingestion            <ingestion>
    Distribution         <outgestion>

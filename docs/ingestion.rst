@@ -79,8 +79,12 @@ However, we containerized the code and use `Docker`_ to deploy it.
 Since there are several components with multiple settings, we created
 a bootstrap script to help deploy a LocalEGA instance, on your local
 machine. The sources for the external components are in seperate
-repositories, i.e., the `inbox`_, the `local message broker`_ and the
-`database`_, and will be pulled in when booting the instance.
+repositories, i.e., the `inbox`_, the `local message
+broker
+<https://github.com/EGA-archive/LocalEGA/blob/master/ingestion/mq>`_
+and the `database
+<https://github.com/EGA-archive/LocalEGA/blob/master/ingestion/db/archive-db.sql>`_,
+and will be pulled in when booting the instance.
 
 The bootstrap generates random passwords, configuration files,
 necessary public/secret keys, certificates for secure communication
