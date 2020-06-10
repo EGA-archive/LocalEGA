@@ -69,6 +69,9 @@ They require some knowledge on how the components are interconnected.
 - [x] MQ restarted, test delivery mode<br/>
       Expected outcome: queued tasks completed
 
+- [x] Central MQ restarted while LocalEGA shoveling the completion message<br/>
+      Expected outcome: queued tasks completed
+
 - [ ] Retry message 3 times if rejected before error or timeout<br/>
       Expected outcome: queued tasks completed
 

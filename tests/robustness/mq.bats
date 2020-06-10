@@ -165,3 +165,54 @@ function teardown() {
     retry_until 0 30 10 ${MQ_FIND} v1.files.completed "${CORRELATION_ID}"
     [ "$status" -eq 0 ]
 }
+
+
+# MQ federated shovel
+# -------------------
+# Message published to Central EGA via the shovel are not lost if the central broker down for a while
+# When restarted, no messages are lost
+
+@test "MQ federation - shovel" {
+
+    TESTFILE=$(uuidgen)
+    TESTFILE_ENCRYPTED="${TESTFILES}/${TESTFILE}.c4gh"
+    TESTFILE_UPLOADED="/${TESTFILE}.c4gh"
+
+    # Create a random file Crypt4GH file of 1 MB
+    lega_generate_file ${TESTFILE} ${TESTFILE_ENCRYPTED} 1 /dev/urandom
+
+    # Upload it
+    lega_upload "${TESTFILE_ENCRYPTED}" "${TESTFILE_UPLOADED}"
+    [ "$status" -eq 0 ]
+
+    # Fetch the correlation id for that file (Hint: with user/filepath combination)
+    retry_until 0 100 1 ${MQ_GET_INBOX} "${TESTUSER}" "${TESTFILE_UPLOADED}"
+    [ "$status" -eq 0 ]
+    CORRELATION_ID=$output
+
+    # Stop the ingestion, this guarantees the ingestion won't complete
+    legarun docker stop cleanup
+    [ "$status" -eq 0 ]
+
+    # Publish the file to simulate a CentralEGA trigger, but with a malformed message (not in JSON)
+    MESSAGE="{ \"type\": \"ingest\", \"user\": \"${TESTUSER}\", \"filepath\": \"${TESTFILE_UPLOADED}\"}"
+    legarun ${MQ_PUBLISH} --correlation_id "${CORRELATION_ID}" files "$MESSAGE"
+    [ "$status" -eq 0 ]
+
+    sleep 10 # and let it pass the accession step
+
+    # Stop the central broker
+    legarun docker stop cega-mq
+
+    # Restart the ingestion, up to shovelling the completion message
+    legarun docker start cleanup
+
+    # Restart the central broker
+    legarun docker start cega-mq
+    sleep 10 # is it enough?
+    
+    # Check that a message with the above correlation id arrived in the expected queue
+    retry_until 0 30 10 ${MQ_FIND} v1.files.completed "${CORRELATION_ID}"
+    [ "$status" -eq 0 ]
+
+}
