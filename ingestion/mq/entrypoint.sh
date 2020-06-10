@@ -54,7 +54,8 @@ cat > /etc/rabbitmq/definitions.json <<EOF
     {"name": "backup1",   "vhost": "/", "durable": true, "auto_delete": false, "arguments":{}},
     {"name": "backup2",   "vhost": "/", "durable": true, "auto_delete": false, "arguments":{}},
     {"name": "save2db",   "vhost": "/", "durable": true, "auto_delete": false, "arguments":{}},
-    {"name": "errors",    "vhost": "/", "durable": true, "auto_delete": false, "arguments":{}}
+    {"name": "errors",    "vhost": "/", "durable": true, "auto_delete": false, "arguments":{}},
+    {"name": "to_cega",   "vhost": "/", "durable": true, "auto_delete": false, "arguments":{}}
   ],
   "exchanges": [
     {"name":"cega", "vhost":"/", "type":"topic", "durable":true, "auto_delete":false, "internal":false, "arguments":{}}, 
@@ -66,7 +67,8 @@ cat > /etc/rabbitmq/definitions.json <<EOF
     { "source":"lega", "vhost": "/", "destination":"backup1", "destination_type":"queue", "routing_key":"backup1", "arguments":{}},
     { "source":"lega", "vhost": "/", "destination":"backup2", "destination_type":"queue", "routing_key":"backup2", "arguments":{}},
     { "source":"lega", "vhost": "/", "destination":"save2db", "destination_type":"queue", "routing_key":"save2db", "arguments":{}},
-    { "source":"lega", "vhost": "/", "destination":"errors", "destination_type":"queue", "routing_key":"error", "arguments":{}}
+    { "source":"lega", "vhost": "/", "destination":"errors", "destination_type":"queue", "routing_key":"error", "arguments":{}},
+    { "source":"cega", "vhost": "/", "destination":"to_cega", "destination_type":"queue", "routing_key":"#", "arguments":{}}
   ]
 }
 EOF
@@ -75,61 +77,49 @@ chmod 600 /etc/rabbitmq/definitions.json
 
 cat > /etc/rabbitmq/advanced.config <<EOF
 [
-  {rabbit,
-    [{tcp_listeners, []}
+ {rabbit,
+  [{tcp_listeners, []}
   ]},
-  {rabbitmq_shovel,
-    [{shovels, [
-      {to_cega,
-        [{source,
-          [{protocol, amqp091},
-            {uris, ["amqp://"]},
-            {declarations, [{'queue.declare', [{exclusive, true}]},
-              {'queue.bind',
-                [{exchange, <<"cega">>},
-                  {queue, <<>>},
-                  {routing_key, <<"#">>}
-                ]}
-            ]},
-            {queue, <<>>},
-            {prefetch_count, 10}
-          ]},
-          {destination,
-            [{protocol, amqp091},
-              {uris, ["${CEGA_CONNECTION}"]},
-              {declarations, []},
-              {publish_properties, [{delivery_mode, 2}]},
-              {publish_fields, [{exchange, <<"localega.v1">>}]}]},
-          {ack_mode, on_confirm},
-          {reconnect_delay, 5}
-       ]},
-       {cega_verified,
-        [{source,
-          [{protocol, amqp091},
-            {uris, ["amqp://"]},
-            {declarations, [{'queue.declare', [{exclusive, true}]},
-              {'queue.bind',
-                [{exchange, <<"lega">>},
-                  {queue, <<>>},
-                  {routing_key, <<"verified">>}
-                ]}
-            ]},
-            {queue, <<>>},
-            {prefetch_count, 10}
-          ]},
-          {destination,
-            [{protocol, amqp091},
-              {uris, ["amqp://"]},
-              {declarations, []},
-              {publish_properties, [{delivery_mode, 2}]},
-              {publish_fields, [{exchange, <<"cega">>},
-                {routing_key, <<"files.verified">>}
-              ]}
-            ]},
-          {ack_mode, on_confirm},
-          {reconnect_delay, 5}
-       ]}
-    ]}
+ {rabbitmq_shovel,
+  [{shovels, [{to_cega, [{source, [{protocol, amqp091},
+				   {uris, ["amqp://"]},
+				   {declarations, []},
+				   {queue, <<"to_cega">>},
+				   {prefetch_count, 1000}]
+			 },
+			 {destination, [{protocol, amqp091},
+					{uris, ["${CEGA_CONNECTION}"]},
+					{declarations, []},
+					{publish_properties, [{delivery_mode, 2}]},
+					{publish_fields, [{exchange, <<"localega.v1">>}]}]
+			 },
+			 {ack_mode, on_confirm},
+			 {reconnect_delay, 5}
+			]
+	      },
+	      {cega_verified, [{source, [{protocol, amqp091},
+					 {uris, ["amqp://"]},
+					 {declarations, [{'queue.declare', [{exclusive, true}]},
+							 {'queue.bind', [{exchange, <<"lega">>},
+									 {queue, <<>>},
+									 {routing_key, <<"verified">>}]}
+							]},
+					 {queue, <<>>},
+					 {prefetch_count, 1000}
+					]},
+			       {destination,
+				[{protocol, amqp091},
+				 {uris, ["amqp://"]},
+				 {declarations, []},
+				 {publish_properties, [{delivery_mode, 2}]},
+				 {publish_fields, [{exchange, <<"cega">>},
+						   {routing_key, <<"files.verified">>}
+						  ]}
+				]},
+			       {ack_mode, on_confirm},
+			       {reconnect_delay, 5}
+			      ]}
+	     ]}
   ]}
 ].
 EOF
