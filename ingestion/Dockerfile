@@ -12,12 +12,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # This will pin the package versions
 COPY requirements.txt /root/LocalEGA/requirements.txt
+RUN pip install --upgrade pip && \
+    pip install -r /root/LocalEGA/requirements.txt
+
 COPY setup.py /root/LocalEGA/setup.py
 COPY lega /root/LocalEGA/lega
-
-RUN pip install --upgrade pip && \
-    pip install -r /root/LocalEGA/requirements.txt && \
-    pip install /root/LocalEGA
+RUN pip install /root/LocalEGA
 
 
 ##########################

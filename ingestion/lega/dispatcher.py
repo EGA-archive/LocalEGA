@@ -92,6 +92,7 @@ def work(data):
 
         job_id, staging_info = job
         staging_info['accession_id'] = accession_id
+        # keep the type, it is used by save2db
         LOG.info('Found job id %s for correlation_id %s and accession_id %s', job_id, correlation_id, accession_id)
 
         # Sanity check or crash
