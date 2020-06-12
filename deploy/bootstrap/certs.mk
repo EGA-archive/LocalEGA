@@ -77,7 +77,7 @@ DOMAIN_EMAIL := -dev.ega@crg.eu
 ###############################################
 ../private/certs/%.sec.pem: | ../private/certs
 	@echo "Creating $(@F)"
-	@$(OPENSSL) genpkey -algorithm RSA -out $@ 2>../private/.err
+	@$(OPENSSL) genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:4096 -out $@ 2>../private/.err
 	@chmod 444 $@
 
 # 444 instead of 400 to solve permission issues when docker-compose is injecting the files
