@@ -104,9 +104,9 @@ The reference implementation can be deployed locally, using
       $ cd LocalEGA/deploy
       $ make -C bootstrap  # Generate the configuration settings
       $ make -j 4 images   # optional, (pre/re)generate the images
-      $ make up            # Start a local instance, including a fake Central EGA
-      $ make ps            # See the status of Local EGA instance
-      $ make logs          # See the (very verbose) logs of Local EGA instance
+      $ make up            # Start a Local EGA instance, including a fake Central EGA
+      $ make ps            # See the status of this Local EGA instance
+      $ make logs          # See the (very verbose) logs of this Local EGA instance
 
 
 Once the bootstrap files are generated, all interesting settings are
