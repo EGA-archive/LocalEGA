@@ -2,31 +2,20 @@ body { overflow-x: initial !important; } /* Fix readthedocs bug */
 
 .bolditalic { font-weight: bold; font-style:italic; }
 
-/* footer * { display:none; } */
-/* footer > hr, */
-/* footer > div { display: block; } */
+#lega,
+#lega-save { margin-bottom: 1.5em; }
 
-
-/* #ega thead { valign:top; } */
-/* #ega tbody { valign:bottom; } */
-
-#lega { margin-bottom: 1.5em; }
-
-/* #ega tr th { font-size: 90%; margin: 0; overflow: visible; padding: 0.5em 1em; border: 1px solid #e1e4e5; text-align:left; white-space: initial; } */
-/* #ega tr th { font-weight: bold; border: 1px solid #e1e4e5; border-bottom-width:2px; } */
-/* #ega tr th:first-child { text-align:right; } */
-/* #ega tr th:last-child { text-align:center; } */
-
-/* #ega tbody tr:nth-child(odd){ background-color: #f3f6f6; } */
-
-#lega tr td { font-size: 90%; margin: 0; padding: 0.5em 1em; border: 1px solid #e1e4e5; text-align:left; white-space: initial; vertical-align:middle; }
-#lega tr td:first-child { text-align:right; border:none; font-weight:bold; font-variant: small-caps; }
-#lega tr td:last-child { text-align:center; border:none; }
-
+#lega tr td,
+#lega-save tr td { font-size: 90%; margin: 0; padding: 0.5em 1em; border: 1px solid #e1e4e5; text-align:left; white-space: initial; vertical-align:middle; }
+#lega tr td:first-child,
+#lega-save tr td:first-child { text-align:right; border:none; font-weight:bold; font-variant: small-caps; }
+#lega tr td:last-child,
+#lega-save tr td:last-child { text-align:center; border:none; }
 
 .lega-stable { color: green; }
 .lega-dev { color: orange; }
 .lega-unstable { color: red; }
 
 
-#lega thead{ display: none; }
+#lega thead,
+#lega-save thead{ display: none; }

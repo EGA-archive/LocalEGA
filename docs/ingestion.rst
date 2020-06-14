@@ -13,6 +13,13 @@ Besides the :ref:`inbox login system`, the long-term database and
 archive storage, the ingestion pipeline employs a microservice
 architecture with the following components:
 
+.. image:: /static/ingestion.png
+   :target: ./_static/ingestion.png
+   :alt: Ingestion Architecture and Connected Components
+
+The reference implementation implements the ingestion using a
+microservice architecture with an internal database, a staging area
+and a local broker.
 
 .. raw:: html
    :file: ingestion.html
@@ -22,7 +29,7 @@ system`. For a given Local EGA, Central EGA selects the associated
 ``vhost`` and drops, in the upstream queue, one message per file to
 ingest, with ``type=ingest``.
 
-On the Local EGA, an ingest worker retrieves this message, finds the
+On the Local EGA side, an worker retrieves this message, finds the
 associated file in the inbox, splits its Crypt4GH header, decrypts its
 data portion (aka its payload), checksums its content, and moves the
 payload to a staging area (with a temporary name). The files are read
@@ -46,47 +53,41 @@ was once done
 <https://github.com/EGA-archive/LocalEGA/blob/v0.3.0/lega/utils/storage.py>`_
 and is now offload to our swedish and finnish partners).
 
-Upon completion, the accession id, the header, and the archive paths
-are saved in a separate long-term database, specific for each Local
-EGA. The reference implementation provides one for illustration, and
-save a few more useful bits of information such as the payload size
-and checksum. This allows a system administrator to do data curation
-regularly.
-
 If any of the above steps generates an error, we exit the workflow and
 log the error. In case the error is related to a misuse from the user,
 such as submitting to the wrong Local EGA or tempering with the
 encrypted file, the error is forwarded to Central EGA in order to be
-displayed for the user.
+displayed for the user. If not, the error is left for a Local EGA
+system administrator to handle.
 
-.. image:: /static/components.jpeg
-   :target: ./_static/components.jpeg
-   :alt: General Architecture and Connected Components
+Upon completion, the accession id, the header, and the archive paths
+are saved in a separate long-term database, specific for each Local
+EGA. The reference implementation provides one for illustration, and
+saves a few more useful bits of information such as the payload size
+and checksum. This allows a system administrator to do data curation
+regularly.
+
+.. raw:: html
+   :file: ingestion-save.html
+
+See the `long-term database schema
+<https://github.com/EGA-archive/LocalEGA/blob/master/ingestion/db/archive-db.sql>`_,
+for an example.
+
+
 
 Installation & Bootstrap
 ------------------------
 
 .. highlight:: shell
 
-The ingestion pipeline is an event-driven microservice architecture,
-with (scalable) containers connected to a local message broker, and
-storing long-lived information into a database.
+A reference implementation can be found in the `Local EGA Github
+repository`_. We containerized the code and use `Docker`_ to deploy
+it.
 
-A reference implementation can be download and installed from the
-`Local EGA Github repository`_.
-
-However, we containerized the code and use `Docker`_ to deploy it.
-Since there are several components with multiple settings, we created
-a bootstrap script to help deploy a LocalEGA instance, on your local
-machine. The sources for the external components are in seperate
-repositories, i.e., the `inbox`_, the `local message
-broker
-<https://github.com/EGA-archive/LocalEGA/blob/master/ingestion/mq>`_
-and the `database
-<https://github.com/EGA-archive/LocalEGA/blob/master/ingestion/db/archive-db.sql>`_,
-and will be pulled in when booting the instance.
-
-The bootstrap generates random passwords, configuration files,
+Since there are several components with multiple settings, we also
+created a bootstrap script to help deploy a LocalEGA instance, on your
+local machine. The bootstrap generates random passwords, configuration files,
 necessary public/secret keys, certificates for secure communication
 and connect the different components together (via docker-compose
 files).
@@ -110,8 +111,11 @@ Local EGA components, using:
     $ make up
 
 The docker images are automatically generated on `docker hub`_, and
-will be pulled with booting. That said, you can also (pre/re)generate
-them with ``make images``.
+will be pulled in when booting the LocalEGA instance. This includes a
+reference implementation of the `inbox component`_, found in a
+separate repository.
+
+That said, you can also (pre/re)generate the images with ``make -j 4 images``.
 
 Use ``make ps`` to see its status.
 
@@ -165,7 +169,7 @@ creation (i.e., they are integrated to the CI).
 .. _Docker Swarm: https://github.com/neicnordic/LocalEGA-deploy-swarm
 .. _Kubernetes: https://github.com/neicnordic/LocalEGA-deploy-init
 .. _Our partners: https://github.com/neicnordic/LocalEGA
-.. _inbox: https://github.com/EGA-archive/LocalEGA-inbox
+.. _inbox component: https://github.com/EGA-archive/LocalEGA-inbox
 .. _docker hub: https://hub.docker.com/orgs/egarchive/repositories
 
 .. |Testsuite| image:: https://github.com/EGA-archive/LocalEGA/workflows/Testsuite/badge.svg
