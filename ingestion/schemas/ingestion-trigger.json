@@ -32,7 +32,7 @@
                     "type": "string",
                     "const": "sha256",
                     "title": "The checksum type schema",
-                    "description": "We use sha256",
+                    "description": "We use sha256"
                 },
                 "value": {
                     "$id": "#/definitions/checksum-sha256/properties/value",
@@ -68,7 +68,7 @@
                     "type": "string",
                     "const": "md5",
                     "title": "The checksum type schema",
-                    "description": "We use md5",
+                    "description": "We use md5"
                 },
                 "value": {
                     "$id": "#/definitions/checksum-md5/properties/value",
@@ -81,7 +81,7 @@
                     ]
                 }
             }
-	},
+	}
     },
     "properties": {
 	"type": {

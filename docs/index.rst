@@ -2,6 +2,10 @@
 Local EGA
 ================
 
+.. image:: /static/CEGA-LEGAs.png
+   :alt: Central EGA and Local EGAs
+   :class: img-right
+
 The ``Local EGA`` project consists of several components:
 
 * An inbox
@@ -9,10 +13,16 @@ The ``Local EGA`` project consists of several components:
 * An ingestion pipeline
 * A distribution system
 
-In short, the ingestion pipeline moves encrypted files from the inbox
-into the long-term storage, and saves information in the database. In
-the process, each ingested file obtain an ``Accession ID``, which
-identifies it uniquely across `the EGA
+It aims at solving the issue where sensitive data cannot move across
+borders (cf to GDPR), while public metadata can. Files will be stored
+encrypted in the Local EGAs located in different countries, while
+public metadata stays at Central EGA.
+
+In short, submitters upload encrypted files into a Local EGA inbox,
+located in the relevant country. The ingestion pipeline moves the
+encrypted files from the inbox into the long-term storage, and saves
+information in the database. In the process, each ingested file obtain
+an ``Accession ID``, which identifies it uniquely across `the EGA
 <https://ega-archive.org/>`_. The distribution system allows
 requesters to access securely the encrypted files in the long-term
 storage, using the accession id, if permissions are granted by a Data
@@ -73,9 +83,9 @@ provided the original files.
    :maxdepth: 1
 
    Connection CEGA-LEGA <amqp>
-   Inbox                <inbox>
    Ingestion            <ingestion>
    Distribution         <outgestion>
+   Inbox                <inbox>
    Encryption           <encryption>
    Contributing         <https://github.com/EGA-archive/LocalEGA/blob/master/CONTRIBUTING.md>
 

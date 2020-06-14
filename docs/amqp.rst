@@ -13,15 +13,10 @@ problems. Naturally, this is configurable.
 In practice, the `reference implementation
 <https://github.com/EGA-archive/LocalEGA/tree/master/ingestion/mq>`_
 uses the RabbitMQ message broker for each LocalEGA, henceforth called
-``LegaMQ`` or *local broker*, which is the **only** component with the
-necessary credentials to connect to the Central EGA message broker,
-henceforth called ``CegaMQ`` or *central broker*. The other LocalEGA
-components are connected to their respective local broker.
-
-
-.. image:: /static/CEGA-LEGA.png
-   :target: ./_static/CEGA-LEGA.png
-   :alt: RabbitMQ setup
+*local broker*, which is the **only** component with the necessary
+credentials to connect to the Central EGA message broker, henceforth
+called *central broker*. The other LocalEGA components are connected
+to their respective local broker.
 
 .. note:: We pinned the RabbitMQ version to ``3.7.8``, so far, until
           both CegaMQ and LegaMQ can be upgraded simultaneously to the
@@ -38,19 +33,23 @@ string with the following syntax:
    amqps://<user>:<password>@<cega-host>:<port>/<vhost>
 
 
+.. image:: /static/amqp.png
+   :target: ./_static/amqp.png
+   :alt: RabbitMQ setup
+
 The connection is a two-way connection using a combination of a
 *federated queue* and a *shovel*.
 
-``LegaMQ`` registers a *federated queue* with ``CegaMQ`` as *upstream*
-and listens to the incoming messages. In order to minimize the number
-of connection sockets, all Local EGAs only use *one* federated queue
-towards the central broker, and all messages in the queue are
-distinguished with a ``type``.
+The local broker registers a *federated queue* with the central broker
+as *upstream*, named ``v1.files``, and listens to the incoming
+messages. In order to minimize the number of connection sockets, all
+Local EGAs only use *one* federated queue towards the central broker,
+and all messages in the queue are distinguished with a ``type``.
 
-Ingestion workers listen to the downstream queue of the local broker. If there
-are no messages to work on, ``LegaMQ`` will ask its upstream queue if
-it has messages. If so, messages are moved downstream. If not,
-ingestion workers wait for messages to arrive.
+Ingestion workers listen to the downstream queue of the local
+broker. If there are no messages to work on, the local broker will ask
+its upstream queue if it has messages. If so, messages are moved
+downstream. If not, ingestion workers wait for messages to arrive.
 
 .. note:: This allows a Local EGA instance to *also* ingest files from
    other sources than Central EGA. For example, a message, external to
@@ -58,25 +57,20 @@ ingestion workers wait for messages to arrive.
    ingest non-EGA files.
 
 
-``CegaMQ`` receives notifications from ``LegaMQ`` using a
-*shovel*. ``LegaMQ`` has an exchange named ``cega`` configured such
-that all messages published to it get forwarded to CentralEGA (using
-the same routing key). This is how we propagate the different status
-of the workflow to the central broker, using the following routing keys:
+The central broker receives notifications from the local broker using
+a *shovel*. The local broker has an exchange named ``cega`` configured
+such that all messages published to it get forwarded to CentralEGA
+(using the same routing key). This is how we propagate the different
+status of the workflow to the central broker, using the following
+routing keys:
 
-+-----------------------+---------------------------------------------+
-| Name                  | Purpose                                     |
-+=======================+=============================================+
-| files.archived        | file is properly ingested                   |
-+-----------------------+---------------------------------------------+
-| files.completed       | file is properly backed-up                  |
-+-----------------------+---------------------------------------------+
-| files.error           | user-related error is detected              |
-+-----------------------+---------------------------------------------+
-| files.inbox           | file is (re)uploaded or removed             |
-+-----------------------+---------------------------------------------+
+* ``files.verified`` for properly ingested files, ready to request an Accession ID.
+* ``files.completed`` for properly backed-up files, ready to be distributed
+* ``files.error`` for user-related errors
+* ``files.inbox`` for inbox file operations
 
-
+The shovel is backed by a ``to_cega`` is case *CegaMQ* is temporarily
+unavailable. This is similar to a (reverse) federated queue.
 
 
 Message interface (API)

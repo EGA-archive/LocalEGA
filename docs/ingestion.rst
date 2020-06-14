@@ -101,7 +101,6 @@ Once the source tree downloaded, in the ``deploy`` directory, run the following 
 
     $ make -C bootstrap
 
-
 Once the bootstrap files are generated, all interesting settings are
 found in the ``private`` sub-directory, and you can spin up the
 Local EGA components, using:
@@ -112,8 +111,7 @@ Local EGA components, using:
 
 The docker images are automatically generated on `docker hub`_, and
 will be pulled in when booting the LocalEGA instance. This includes a
-reference implementation of the `inbox component`_, found in a
-separate repository.
+reference implementation of the :ref:`inbox login system`.
 
 That said, you can also (pre/re)generate the images with ``make -j 4 images``.
 
@@ -139,24 +137,17 @@ will interact with the system. All tests are performed on GitHub
 Actions runner, when there is a push to master or a Pull Request
 creation (i.e., they are integrated to the CI).
 
-+-----------------------+-------------------------------------------------------+
-| Category              | Purpose                                               |
-+=======================+=======================================================+
-| `Integration Tests`_  | test the overall ingestion architecture               |
-|                       | and simulate how a user will use the system           |
-+-----------------------+-------------------------------------------------------+
-| `Robustness Tests`_   | test the microservice architecture and how            |
-|                       | the components are inter-connected. They, for example,|
-|                       | check that if the database or one microservice        |
-|                       | is restarted, the overall functionality remains.      |
-+-----------------------+-------------------------------------------------------+
-| `Security Tests`_     | increase confidence around security of the            |
-|                       | implementation. They give some deployment guarantees, |
-|                       | such as one user cannot see the inbox of another user,|
-|                       | or the vault is not accessible from the inbox.        |
-+-----------------------+-------------------------------------------------------+
-| `Stress Tests`_       | "measure" performance                                 |
-+-----------------------+-------------------------------------------------------+
+* `Integration Tests`_: test the overall ingestion architecture and
+  simulate how a user will use the system.
+* `Robustness Tests`_: test the microservice architecture and how the
+  components are inter-connected. They, for example, check that if the
+  database or one microservice is restarted, the overall functionality
+  remains.
+* `Security Tests`_: increase confidence around security of the
+  implementation. They give some deployment guarantees, such as one
+  user cannot see the inbox of another user, or the vault is not
+  accessible from the inbox.
+* `Stress Tests`_: "measure" performance
 
 
 .. _All tests: https://github.com/EGA-archive/LocalEGA/tree/master/tests
@@ -169,7 +160,6 @@ creation (i.e., they are integrated to the CI).
 .. _Docker Swarm: https://github.com/neicnordic/LocalEGA-deploy-swarm
 .. _Kubernetes: https://github.com/neicnordic/LocalEGA-deploy-init
 .. _Our partners: https://github.com/neicnordic/LocalEGA
-.. _inbox component: https://github.com/EGA-archive/LocalEGA-inbox
 .. _docker hub: https://hub.docker.com/orgs/egarchive/repositories
 
 .. |Testsuite| image:: https://github.com/EGA-archive/LocalEGA/workflows/Testsuite/badge.svg
