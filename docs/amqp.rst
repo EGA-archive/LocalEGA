@@ -69,8 +69,8 @@ routing keys:
 * ``files.error`` for user-related errors
 * ``files.inbox`` for inbox file operations
 
-The shovel is backed by a ``to_cega`` is case the central broker is
-temporarily unavailable. This is similar to a (reverse) federated
+The shovel is backed by a ``to_cega`` queue in case the central broker
+is temporarily unavailable. This is similar to a (reverse) federated
 queue.
 
 
