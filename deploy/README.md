@@ -25,6 +25,7 @@ The credentials for the test users are found in `private/users`.
 | make up          | `docker-compose up -d` | Use `docker-compose up -d --scale ingest=3 --scale verify=5` instead, if you want to start 3 ingestion and 5 verification workers. |
 | make down        | `docker-compose down -v` | `-v`: removing networks and volumes |
 | make ps          | `docker-compose ps` | |
+| make logs        | `docker-compose logs -f` | very verbose output |
 
 Note that, in this architecture, we use separate volumes, e.g. for the
 inbox area, for the archive (be it a POSIX file system or backed by
@@ -36,23 +37,24 @@ S3). They will be created on-the-fly by docker-compose.
 
 Create the base image by executing:
 
-	make image
+	make -j4 images
 
-It takes some time. The result is an image, named `egarchive/lega-base`, and containing `python 3.6` and the LocalEGA services.
+It takes some time. The result is an image, named `egarchive/lega-base`, and containing `python` and the LocalEGA services.
 
-The following images are pulled from Docker Hub, when starting LocalEGA (only the first time, if not present):
+The following images are also generated (or pulled from Docker Hub, when starting LocalEGA, only the first time, if not present):
 
-* [`egarchive/lega-mq`](https://github.com/EGA-archive/LocalEGA-mq) (based on `rabbitmq:3.6.14-management`)
-* [`egarchive/lega-db`](https://github.com/EGA-archive/LocalEGA-db) (based on `postgres:11.2`)
+* `egarchive/lega-mq` (based on `rabbitmq:3.6.14-management`)
+* `egarchive/lega-db` (based on `postgres:12.1`)
 * [`egarchive/lega-inbox`](https://github.com/EGA-archive/LocalEGA-inbox) (based on OpenSSH version 7.8p1 and CentOS7)
-* `python:3.8-alpine3.11` 
 
 
 > Important notice: The user inside the container is called `lega`,
 > and its ID is by default 1000. When (re)building the image, the
-> above target `make image` will make the ID match the current user
-> calling the command. This is important to allow injected files to be
+> target `make image` will make the ID match the current user calling
+> the command. This is important to allow injected files to be
 > readable by the `lega` user inside the containers.
+
+If images are not available, docker-compose will try to pull them from docker hub or build them locally, if possible.
 
 ----
 
@@ -60,11 +62,9 @@ The following images are pulled from Docker Hub, when starting LocalEGA (only th
 
 We use 2 stubbing services in order to fake the necessary Central EGA components (mostly for local or Travis tests).
 
-| Container    | Role |
-|-------------:|------|
-| `cega-users` | Sets up a small list of test users |
-| `cega-mq`    | Sets up a RabbitMQ message broker with appropriate accounts, exchanges, queues and bindings |
+| Container        | Role |
+|-----------------:|------|
+| `cega-users`     | Sets up a small list of test users |
+| `cega-mq`        | Sets up a RabbitMQ message broker with appropriate accounts, exchanges, queues and bindings |
+| `cega-accession` | Sets up a non-persistent accession service |
 
-If the `cega-users` is not built, it will be build by docker-compose. If you want to build yourself, you can run:
-
-	docker-compose build cega-users
