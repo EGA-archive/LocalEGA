@@ -8,7 +8,7 @@ from recommonmark.parser import CommonMarkParser
 
 # Get the project root dir, which is the parent dir of this
 # sys.path.insert(0, os.path.dirname(os.getcwd()))
-sys.path.insert(0, os.path.abspath('..'))
+sys.path.insert(0, os.path.abspath('../ingestion'))
 # print('PYTHONPATH =', sys.path)
 from lega import __version__
 
