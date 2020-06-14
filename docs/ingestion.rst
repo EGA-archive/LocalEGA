@@ -95,27 +95,30 @@ files).
 Finally, the bootstrap creates a few test users and a fake Central EGA
 instance, to demonstrate the connection, and allow to run the `testsuite`_
 
-Once the source tree downloaded, in the ``deploy`` directory, run the following command:
+The reference implementation can be deployed locally, using
+`docker-compose`_ (suitable for testing or local development).
 
 .. code-block:: console
 
-    $ make -C bootstrap
+      $ git clone https://github.com/EGA-archive/LocalEGA.git LocalEGA
+      $ cd LocalEGA/deploy
+      $ make -C bootstrap  # Generate the configuration settings
+      $ make -j 4 images   # optional, (pre/re)generate the images
+      $ make up            # Start a local instance, including a fake Central EGA
+      $ make ps            # See the status of Local EGA instance
+      $ make logs          # See the (very verbose) logs of Local EGA instance
+
 
 Once the bootstrap files are generated, all interesting settings are
-found in the ``private`` sub-directory, and you can spin up the
-Local EGA components, using:
+found in the ``deploy/private`` sub-directory.
 
-.. code-block:: console
+There is no need to pre/re-generate the docker images, because
+they are automatically generated on `docker hub`_, and will be pulled
+in when booting the LocalEGA instance. This includes a reference
+implementation of the :ref:`inbox login system`. That said, executing
+``make -j 4 images`` will generate them locally.
 
-    $ make up
-
-The docker images are automatically generated on `docker hub`_, and
-will be pulled in when booting the LocalEGA instance. This includes a
-reference implementation of the :ref:`inbox login system`.
-
-That said, you can also (pre/re)generate the images with ``make -j 4 images``.
-
-Use ``make ps`` to see its status.
+You can clean up the local instance using ``make down``.
 
 .. note:: **Production deployments**: `Our partners`_ developed
 	  alternative bootstrap methods for `Docker Swarm`_ and
@@ -161,6 +164,7 @@ creation (i.e., they are integrated to the CI).
 .. _Kubernetes: https://github.com/neicnordic/LocalEGA-deploy-init
 .. _Our partners: https://github.com/neicnordic/LocalEGA
 .. _docker hub: https://hub.docker.com/orgs/egarchive/repositories
+.. _docker-compose: https://docs.docker.com/compose/
 
 .. |Testsuite| image:: https://github.com/EGA-archive/LocalEGA/workflows/Testsuite/badge.svg
 	:alt: Testsuite Status
