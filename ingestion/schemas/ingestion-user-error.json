@@ -1,14 +1,12 @@
 {
-    "title": "JSON schema for Local EGA accession message interface",
-    "$id": "https://github.com/EGA-archive/LocalEGA/tree/master/schemas/ingestion-accession.json",
+    "title": "JSON schema for Local EGA message interface to Central EGA",
+    "$id": "https://github.com/EGA-archive/LocalEGA/tree/master/schemas/ingestion-user-error.json",
     "$schema": "http://json-schema.org/draft-07/schema",
     "type": "object",
     "required": [
-        "type",
         "user",
         "filepath",
-        "accession_id",
-        "decrypted_checksums"
+        "reason"
     ],
     "additionalProperties": true,
     "definitions": {
@@ -32,7 +30,7 @@
                 "type": {
                     "$id": "#/definitions/checksum-sha256/properties/type",
                     "type": "string",
-		    "const": "sha256",
+                    "const": "sha256",
                     "title": "The checksum type schema",
                     "description": "We use sha256"
                 },
@@ -86,14 +84,7 @@
 	}
     },
     "properties": {
-	"type": {
-            "$id": "#/properties/type",
-            "type": "string",
-            "title": "The message type",
-            "description": "The message type",
-	    "const": "accession"
-        },
-        "user": {
+	"user": {
             "$id": "#/properties/user",
             "type": "string",
             "title": "The username",
@@ -111,18 +102,18 @@
                 "/ega/inbox/user.name@central-ega.eu/the-file.c4gh"
             ]
         },
-        "accession_id": {
-            "$id": "#/properties/accession_id",
+        "reason": {
+            "$id": "#/properties/reason",
             "type": "string",
-            "title": "The Accession identifier",
-            "description": "The Accession identifier",
-	    "pattern": "^EGAF[0-9]{11}$",
+            "title": "A user-related error",
+            "description": "The reason why the error occured",
             "examples": [
-                "EGAF12345678901"
+                "File not found in the inbox",
+                "Invalid file decryption"
             ]
         },
-        "decrypted_checksums": {
-            "$id": "#/properties/decrypted_checksums",
+        "encrypted_checksums": {
+            "$id": "#/properties/encrypted_checksums",
             "type": "array",
             "title": "The checksums of the original file",
             "description": "The checksums of the original file. The md5 one is required",
@@ -130,15 +121,10 @@
                 [ { "type": "sha256", "value": "82E4e60e7beb3db2e06A00a079788F7d71f75b61a4b75f28c4c942703dabb6d6" },
                   { "type": "md5"   , "value": "7Ac236b1a8dce2dac89e7cf45d2b48BD" }]
             ],
-	    "contains": {
-                "type": "object",
-                "properties": { "type": { "const": "md5" } },
-                "required": ["type"],
-            },
             "additionalItems": false,
             "items": {
 		"anyOf": [ { "$ref": "#/definitions/checksum-sha256" },
-			 { "$ref": "#/definitions/checksum-md5" } ]
+			   { "$ref": "#/definitions/checksum-md5" } ]
 	    }
         }
     }

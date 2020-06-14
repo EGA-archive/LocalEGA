@@ -170,6 +170,19 @@ preferred. For example, a request for an Accession ID could be:
 
 .. note:: When requesting an Accession ID, the md5 decrypted_checksums field is, for the moment, mandatory.
 
+When an error occurs on the Local EGA side, but the error is
+user-related, such as an invalid encryption format, or a missing file
+in the inbox (after deletion, for example), the error message must
+contain a field named ``reason``, explaining why the error occured. For example:
+
+.. code::
+
+		{
+                                 "user": "john",
+                             "filepath": "/inbox/user/dir1/file.txt.c4gh",
+                               "reason": "File not found in inbox"
+		}
+
 The messages sent by the inbox hooks capture operation of the files,
 be it a (re)upload, a rename or a removal.  They must contain the
 fields: ``user``, ``filepath``, ``operation``, where the value is
