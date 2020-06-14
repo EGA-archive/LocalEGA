@@ -3,7 +3,7 @@ formats:
 build:
     image: latest
 python:
-   version: 3.6
+   version: 3.7
    setup_py_install: False
    extra_requirements:
         - docs

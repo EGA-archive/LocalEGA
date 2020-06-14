@@ -1,0 +1,128 @@
+{
+    "title": "JSON schema for Local EGA ingestion trigger message interface",
+    "$id": "https://github.com/EGA-archive/LocalEGA/tree/master/schemas/ingestion-ingest.json",
+    "$schema": "http://json-schema.org/draft-07/schema",
+    "type": "object",
+    "required": [
+        "type",
+        "user",
+        "filepath"
+    ],
+    "additionalProperties": true,
+    "definitions": {
+	"checksum-sha256": {
+            "$id": "#/definitions/checksum-sha256",
+            "type": "object",
+            "title": "The sha256 checksum schema",
+            "description": "A representation of a sha256 checksum value",
+            "examples": [
+                {
+                    "type": "sha256",
+                    "value": "82e4e60e7beb3db2e06a00a079788f7d71f75b61a4b75f28c4c942703dabb6d6"
+                }
+            ],
+            "required": [
+                "type",
+                "value"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "type": {
+                    "$id": "#/definitions/checksum-sha256/properties/type",
+                    "type": "string",
+                    "const": "sha256",
+                    "title": "The checksum type schema",
+                    "description": "We use sha256"
+                },
+                "value": {
+                    "$id": "#/definitions/checksum-sha256/properties/value",
+                    "type": "string",
+                    "title": "The checksum value in hex format",
+                    "description": "The checksum value in (case-insensitive) hex format",
+		    "pattern": "^[a-fA-F0-9]{64}$",
+                    "examples": [
+                        "82E4e60e7beb3db2e06A00a079788F7d71f75b61a4b75f28c4c942703dabb6d6"
+                    ]
+                }
+            }
+	},
+	"checksum-md5": {
+            "$id": "#/definitions/checksum-md5",
+            "type": "object",
+            "title": "The md5 checksum schema",
+            "description": "A representation of a md5 checksum value",
+            "examples": [
+                {
+                    "type": "md5",
+                    "value": "7Ac236b1a8dce2dac89e7cf45d2b48BD"
+                }
+            ],
+            "required": [
+                "type",
+                "value"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "type": {
+                    "$id": "#/definitions/checksum-md5/properties/type",
+                    "type": "string",
+                    "const": "md5",
+                    "title": "The checksum type schema",
+                    "description": "We use md5"
+                },
+                "value": {
+                    "$id": "#/definitions/checksum-md5/properties/value",
+                    "type": "string",
+                    "title": "The checksum value in hex format",
+                    "description": "The checksum value in (case-insensitive) hex format",
+		    "pattern": "^[a-fA-F0-9]{32}$",
+                    "examples": [
+                        "7Ac236b1a8dce2dac89e7cf45d2b48BD"
+                    ]
+                }
+            }
+	}
+    },
+    "properties": {
+	"type": {
+            "$id": "#/properties/type",
+            "type": "string",
+            "title": "The message type",
+            "description": "The message type",
+	    "enum": [ "ingest", "cancel" ]
+        },
+        "user": {
+            "$id": "#/properties/user",
+            "type": "string",
+            "title": "The username",
+            "description": "The username",
+            "examples": [
+                "user.name@central-ega.eu"
+            ]
+        },
+        "filepath": {
+            "$id": "#/properties/filepath",
+            "type": "string",
+            "title": "The new filepath",
+            "description": "The new filepath",
+            "examples": [
+                "/ega/inbox/user.name@central-ega.eu/the-file.c4gh"
+            ]
+        },
+        "encrypted_checksums": {
+            "$id": "#/properties/encrypted_checksums",
+            "type": "array",
+            "title": "The checksums of the encrypted file",
+            "description": "An explanation about the purpose of this instance.",
+            "examples": [
+                [ { "type": "sha256", "value": "82E4e60e7beb3db2e06A00a079788F7d71f75b61a4b75f28c4c942703dabb6d6" },
+                  { "type": "md5"   , "value": "7Ac236b1a8dce2dac89e7cf45d2b48BD" }]
+            ],
+            "additionalItems": false,
+            "items": {
+		"anyOf": [ { "$ref": "#/definitions/checksum-sha256" },
+			   { "$ref": "#/definitions/checksum-md5" } ]
+	    }
+        }
+    }
+}
