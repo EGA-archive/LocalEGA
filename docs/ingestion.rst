@@ -17,9 +17,9 @@ architecture with the following components:
    :target: ./_static/ingestion.png
    :alt: Ingestion Architecture and Connected Components
 
-The reference implementation implements the ingestion using a
-microservice architecture with an internal database, a staging area
-and a local broker.
+The reference implementation uses a microservice architecture with an
+internal database, a staging area and a local broker, for the
+ingestion pipeline.
 
 .. raw:: html
    :file: ingestion.html
@@ -50,7 +50,7 @@ POSIX compliant file system. In order to use an S3-backed storage, the
 Local EGA system administrator can use `s3fs-fuse
 <https://github.com/s3fs-fuse/s3fs-fuse>`_, or update the code (`as it
 was once done
-<https://github.com/EGA-archive/LocalEGA/blob/v0.3.0/lega/utils/storage.py>`_
+<https://github.com/EGA-archive/LocalEGA/blob/v0.4.0/lega/utils/storage.py>`_
 and is now offload to our swedish and finnish partners).
 
 If any of the above steps generates an error, we exit the workflow and
@@ -70,9 +70,6 @@ regularly.
 .. raw:: html
    :file: ingestion-save.html
 
-See the `long-term database schema
-<https://github.com/EGA-archive/LocalEGA/blob/master/ingestion/db/archive-db.sql>`_,
-for an example.
 
 
 

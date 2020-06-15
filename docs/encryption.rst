@@ -18,9 +18,9 @@ part is called the Crypt4GH header.
    :target: https://crypt4gh.readthedocs.io/en/latest/_images/encryption.png
    :alt: Encryption
 
-There are `several advantages for using the Crypt4GH format
-<https://crypt4gh.readthedocs.io/en/latest/encryption.html>`_. The
-main ones are:
+There are several advantages for using `the Crypt4GH format
+<http://samtools.github.io/hts-specs/crypt4gh.pdf>`_. The main ones
+are:
 
 * No re-encryption upon ingestion (only decryption).
 * Minimal re-encryption for data distribution.
