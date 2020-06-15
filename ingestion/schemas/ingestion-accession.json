@@ -130,11 +130,6 @@
                 [ { "type": "sha256", "value": "82E4e60e7beb3db2e06A00a079788F7d71f75b61a4b75f28c4c942703dabb6d6" },
                   { "type": "md5"   , "value": "7Ac236b1a8dce2dac89e7cf45d2b48BD" }]
             ],
-	    "contains": {
-                "type": "object",
-                "properties": { "type": { "const": "md5" } },
-                "required": ["type"],
-            },
             "additionalItems": false,
             "items": {
 		"anyOf": [ { "$ref": "#/definitions/checksum-sha256" },
