@@ -73,6 +73,10 @@ The shovel is backed by a ``to_cega`` queue in case the central broker
 is temporarily unavailable. This is similar to a (reverse) federated
 queue.
 
+.. image:: /static/amqp-ping-pong.png
+   :target: ./_static/amqp-ping-pong.png
+   :alt: Flow of RabbitMQ messages
+
 
 Message interface (API) CEGA |connect| LEGA
 ============================================
