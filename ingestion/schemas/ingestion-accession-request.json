@@ -1,6 +1,6 @@
 {
-    "title": "JSON schema for Local EGA message interface to Central EGA",
-    "$id": "https://github.com/EGA-archive/LocalEGA/tree/master/schemas/ingestion-to-cega.json",
+    "title": "JSON schema for Local EGA message interface for requesting an Accession ID to Central EGA",
+    "$id": "https://github.com/EGA-archive/LocalEGA/tree/master/schemas/ingestion-accession-request.json",
     "$schema": "http://json-schema.org/draft-07/schema",
     "type": "object",
     "required": [
@@ -100,16 +100,6 @@
             "description": "The new filepath",
             "examples": [
                 "/ega/inbox/user.name@central-ega.eu/the-file.c4gh"
-            ]
-        },
-        "accession_id": {
-            "$id": "#/properties/accession_id",
-            "type": "string",
-            "title": "The Accession identifier",
-            "description": "The Accession identifier",
-	    "pattern": "^EGAF[0-9]{11}$",
-            "examples": [
-                "EGAF12345678901"
             ]
         },
         "decrypted_checksums": {
