@@ -153,10 +153,13 @@ Messages from Local EGA to Central EGA are used in the following cases:
 * User-related Errors
 
 The message must contain the ``user`` or ``filepath``, and you can
-refer to the `JSON Schemas for ingestion messages
-<https://github.com/EGA-archive/LocalEGA/tree/master/ingestion/schemas/ingestion-to-cega.json>`_. Valid
-checksum algorithms are "md5" and "sha256", where "sha256" is
-preferred. For example, a request for an Accession ID could be:
+refer to the `accession request
+<https://github.com/EGA-archive/LocalEGA/tree/master/ingestion/schemas/ingestion-accession-request.json>`_
+and `completion message
+<https://github.com/EGA-archive/LocalEGA/tree/master/ingestion/schemas/ingestion-completion.json>`_
+JSON Schemas. Valid checksum algorithms are "md5" and "sha256", where
+"sha256" is preferred. For example, a request for an Accession ID
+could be:
 
 .. code::
 
