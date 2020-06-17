@@ -143,13 +143,13 @@ RETURNS local_ega.jobs.id%TYPE AS $insert_job$
 	                   WHERE correlation_id = cid AND
 	  	                 inbox_path = inpath AND
 				 user_id = uid AND
-	  	              	 inbox_path_encrypted_checksum = checksum AND
-	  	              	 inbox_path_encrypted_checksum_type = checksum_type AND
+	  	              	 inbox_checksum = checksum AND
+	  	              	 inbox_checksum_type = checksum_type AND
 			      	 NOT (status = 'ERROR' OR status = 'CANCELED');
 	   IF FOUND THEN RETURN -1; END IF;
 
 	   -- If not found, make a new insertion
-	   INSERT INTO local_ega.jobs (correlation_id,inbox_path,user_id,inbox_path_encrypted_checksum,inbox_path_encrypted_checksum_type)
+	   INSERT INTO local_ega.jobs (correlation_id,inbox_path,user_id,inbox_checksum,inbox_checksum_type)
 	   VALUES(cid,inpath,uid,checksum,checksum_type)
 	   ON CONFLICT -- ON CONSTRAINT (correlation_id,inbox_path,user_id,inbox_sha256)
 	   DO NOTHING -- UPDATE SET status = 'CANCELED' -- data race here ?
