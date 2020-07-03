@@ -20,5 +20,6 @@ body { overflow-x: initial !important; } /* Fix readthedocs bug */
 #lega thead,
 #lega-save thead{ display: none; }
 
-
 .img-right { float:right; width:50%; }
+
+.youtube_wrapper { float:right; width:50%; margin-bottom:1em; }
