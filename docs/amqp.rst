@@ -101,7 +101,7 @@ Central EGA |cegatolega| Local EGA
 ----------------------------------
 
 Central EGA uses a unique upstream queue, to minimize the number of
-connection sockets. In order to distinguish message, Central EGA adds
+connection sockets. In order to distinguish messages, Central EGA adds
 a field named ``type`` to all outgoing messages. There are 5 types of
 messages so far:
 

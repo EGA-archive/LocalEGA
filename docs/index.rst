@@ -2,9 +2,22 @@
 Local EGA
 ================
 
-.. image:: /static/CEGA-LEGAs.png
-   :alt: Central EGA and Local EGAs
-   :class: img-right
+.. raw:: html
+
+   <iframe allowfullscreen="true"
+	   src="https://www.youtube.com/embed/k9R8W3V3ugU"
+           class="youtube_wrapper">
+   </iframe>
+
+.. raw:: latex
+
+   \begin{quote}\begin{center}\fbox{\url{https://youtu.be/k9R8W3V3ugU}}\end{center}\end{quote}
+
+..
+   .. image:: /static/CEGA-LEGAs.png
+      :alt: Central EGA and Local EGAs, in a nutshell
+      :class: img-right
+      :target: https://www.youtube.com/watch?v=k9R8W3V3ugU
 
 The ``Local EGA`` project consists of several components:
 
@@ -18,11 +31,12 @@ borders (cf to GDPR), while public metadata can. Files will be stored
 encrypted in the Local EGAs located in different countries, while
 public metadata stays at Central EGA.
 
-In short, submitters upload encrypted files into a Local EGA inbox,
-located in the relevant country. The ingestion pipeline moves the
-encrypted files from the inbox into the long-term storage, and saves
-information in the database. In the process, each ingested file obtain
-an ``Accession ID``, which identifies it uniquely across `the EGA
+`In short <https://www.youtube.com/watch?v=k9R8W3V3ugU>`_, submitters
+upload encrypted files into a Local EGA inbox, located in the relevant
+country. The ingestion pipeline moves the encrypted files from the
+inbox into the long-term storage, and saves information in the
+database. In the process, each ingested file obtain an ``Accession
+ID``, which identifies it uniquely across `the EGA
 <https://ega-archive.org/>`_. The distribution system allows
 requesters to access securely the encrypted files in the long-term
 storage, using the accession id, if permissions are granted by a Data
@@ -31,6 +45,7 @@ Access Commity (``DAC``).
 .. image:: /static/overview.png
    :target: ./_static/overview.png
    :alt: General Architecture and Connected Components
+
 
 Files are encrypted whether in transit or at rest. The transport
 depends on the inbox and files are stored using the `Crypt4GH file
