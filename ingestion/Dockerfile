@@ -1,7 +1,7 @@
 ##########################
 ## Build env, it works with debian buster 3.8
 ##########################
-FROM python:slim as BUILD
+FROM python:3.9-slim as BUILD
 
 ENV DEBIAN_FRONTEND noninteractive
 
@@ -23,7 +23,7 @@ RUN pip install /root/LocalEGA
 ##########################
 ## Final image
 ##########################
-FROM python:slim
+FROM python:3.9-slim
 
 LABEL maintainer "EGA System Developers"
 LABEL org.label-schema.schema-version="1.0"
@@ -36,7 +36,7 @@ RUN apt-get update && \
 		libpq5 \
 	&& rm -rf /var/lib/apt/lists/*
 
-COPY --from=BUILD usr/local/lib/python3.8/ usr/local/lib/python3.8/
+COPY --from=BUILD usr/local/lib/python3.9/ usr/local/lib/python3.9/
 COPY --from=BUILD /usr/local/bin/ega-* /usr/local/bin/
 
 ARG LEGA_UID=1000
