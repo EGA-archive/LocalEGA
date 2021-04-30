@@ -1,4 +1,4 @@
-FROM rabbitmq:3.7.8-management-alpine
+FROM rabbitmq:3.8.14-management-alpine
 
 LABEL maintainer "EGA System Developers"
 LABEL org.label-schema.schema-version="1.0"
