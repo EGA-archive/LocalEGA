@@ -33,7 +33,7 @@ config = {
         'cega-mq': {
             'hostname': f'cega-mq{HOSTNAME_DOMAIN}',
             'ports': ["15670:15672", "5670:5671"],
-            'image': 'rabbitmq:3.8.14-management-alpine',
+            'image': 'rabbitmq:3.8.16-management-alpine',
             'container_name': f'cega-mq{HOSTNAME_DOMAIN}',
             'volumes': [
                 './cega-mq-defs.json:/etc/rabbitmq/defs.json',
