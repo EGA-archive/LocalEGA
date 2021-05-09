@@ -6,7 +6,8 @@ HOSTNAME_DOMAIN=
 
 .PHONY: up down clean ps clean-volumes clean-all images erase purge preflight-check
 
-up: .env private/lega.yml
+lega-up: SELECTED=inbox ingest cleanup db backup1 backup2 save2db archive-db mq dispatcher
+lega-up up: .env private/lega.yml
 	@docker-compose up -d ${SELECTED}
 
 private/lega.yml .env:

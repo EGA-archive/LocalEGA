@@ -18,11 +18,6 @@ credentials to connect to the Central EGA message broker, henceforth
 called *central broker*. The other LocalEGA components are connected
 to their respective local broker.
 
-.. note:: We pinned the RabbitMQ version to ``3.7.8``, so far, until
-          both the central broker and the local brokers can be
-          upgraded simultaneously to the latest version.
-
-
 For each LocalEGA instance, the central broker configures a ``vhost``,
 and creates the credentials to connect to that ``vhost`` in the form
 of a *username/password* pair. The local brokers then use a connection
