@@ -1,6 +1,6 @@
 # That's just "pip install Sphinx PyYAML sphinx_rtd_theme recommonmark"
 alabaster==0.7.12
-Babel==2.8.0
+Babel==2.9.1
 certifi==2019.11.28
 chardet==3.0.4
 commonmark==0.9.1
