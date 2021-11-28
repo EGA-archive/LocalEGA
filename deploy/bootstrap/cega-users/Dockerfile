@@ -1,7 +1,7 @@
 ##########################
 ## Build env
 ##########################
-FROM python:3.8-alpine3.11 as BUILD
+FROM python:3.10-alpine3.14 as BUILD
 
 RUN apk add gcc musl-dev
 
@@ -11,7 +11,7 @@ RUN pip install --upgrade pip && \
 ##########################
 ## Final image
 ##########################
-FROM python:3.8-alpine3.11
+FROM python:3.10-alpine3.14
 
 LABEL maintainer "EGA System Developers"
 LABEL org.label-schema.schema-version="1.0"

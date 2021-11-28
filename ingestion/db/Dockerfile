@@ -1,4 +1,4 @@
-FROM postgres:14.1-alpine
+FROM postgres:13.4-alpine
 
 LABEL maintainer "EGA System Developers"
 LABEL org.label-schema.schema-version="2.1"

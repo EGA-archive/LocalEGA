@@ -31,9 +31,7 @@ Users are handled through Central EGA, directly.
       platforms='any',
       install_requires=[
           'amqpstorm',
-          'requests',
           'psycopg2-binary>=2.8.5',
           'PyYaml',
-          'boto3',
           'crypt4gh>=1.3',
       ])

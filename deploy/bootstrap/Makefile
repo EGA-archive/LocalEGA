@@ -13,7 +13,8 @@
 # * The certificates
 # * the secrets
 #
-#
+#   Use make PYTHON=python3 PIP=pip3 if you don't have 
+#   `python` and `pip` pointing to python 3
 #########################################################
 
 
@@ -23,14 +24,13 @@ OPENSSL=openssl
 HOSTNAME_DOMAIN=
 #HOSTNAME_DOMAIN=.localega
 
+PYTHON=python
+PIP=pip
+
 .PHONY: all users certs clean clean-all
 .DELETE_ON_ERROR: ../private/*
 
 SECRETS:= master.key.passphrase db.lega mq.admin archive-db.lega
-
-ifdef S3
-SECRETS+= s3.access s3.secret
-endif
 
 ALL_FILES=$(addprefix ../private/, lega-entrypoint.sh cega-entrypoint.sh \
 		                   cega-mq-defs.json cega-mq-rabbitmq.config cega-accession.ini \
@@ -41,7 +41,7 @@ ALL_FILES=$(addprefix ../private/, lega-entrypoint.sh cega-entrypoint.sh \
 all: requirements ../.env $(ALL_FILES) certs users
 
 requirements:
-	pip install -r requirements.txt
+	$(PIP) install -r requirements.txt
 
 dev: export DEPLOY_DEV=yesplease
 dev: all
@@ -57,11 +57,11 @@ dev: all
 
 ../private/cega.conf: run/cega/conf.py | ../private
 	@echo "Creating CentralEGA configuration trace: $(@F)"
-	@python -m run.cega.conf > $@
+	@$(PYTHON) -m run.cega.conf > $@
 
 ../private/lega.conf: run/lega/conf.py $(addprefix ../private/secrets/,$(SECRETS))
 	@echo "Creating LocalEGA configuration trace: $(@F)"
-	@python -m run.lega.conf --secrets $(CURDIR)/../private/secrets > $@
+	@$(PYTHON) -m run.lega.conf --secrets $(CURDIR)/../private/secrets > $@
 
 ../.env: | ../private
 	@echo "COMPOSE_PROJECT_NAME=lega" > $@
@@ -72,7 +72,7 @@ dev: all
 
 ../private/cega-mq-defs.json: ../private/cega.conf run/cega/mq_defs.py | ../private
 	@echo "Creating CentralEGA MQ defs: $(@F)"
-	@python -m run.cega.mq_defs < $< > $@
+	@$(PYTHON) -m run.cega.mq_defs < $< > $@
 
 ../private/cega-mq-rabbitmq.config: run/cega/mq-rabbitmq.config | ../private
 	@echo "Creating CentralEGA MQ conf: $(@F)"
@@ -80,41 +80,41 @@ dev: all
 
 ../private/cega.yml: run/cega/services.py | ../private
 	@echo "Creating CentralEGA docker-compose file: $(@F)"
-	@python -m run.cega.services > $@
+	@$(PYTHON) -m run.cega.services > $@
 
 ../private/cega-accession.ini: ../private/cega.conf run/cega/accession.py | ../private
 	@echo "Creating CentralEGA docker-compose file: $(@F)"
-	@python -m run.cega.accession $< > $@
+	@$(PYTHON) -m run.cega.accession $< > $@
 
 ############### Generate LocalEGA settings
 
 ../private/lega.yml: run/lega/services.py | ../private
 ../private/lega.yml: ../private/cega.conf ../private/lega.conf
 	@echo "Creating LocalEGA docker-compose file: $(@F)"
-	@python -m run.lega.services ../private/cega.conf ../private/lega.conf 2>../private/.err > $@
+	@$(PYTHON) -m run.lega.services ../private/cega.conf ../private/lega.conf 2>../private/.err > $@
 
 ../private/pipeline.yml: run/lega/pipeline.py | ../private
 ../private/pipeline.yml: ../private/cega.conf ../private/lega.conf
 	@echo "Creating LocalEGA docker-compose file: $(@F)"
-	@python -m run.lega.pipeline ../private/cega.conf ../private/lega.conf 2>../private/.err > $@
+	@$(PYTHON) -m run.lega.pipeline ../private/cega.conf ../private/lega.conf 2>../private/.err > $@
 
 ../private/backup1.ini: ../private/lega.conf run/lega/backup.py | ../private
 	@echo "Creating LocalEGA service configuration: $(@F)"
-	@python -m run.lega.backup --queue accession \
+	@$(PYTHON) -m run.lega.backup --queue accession \
 	                           --destination /ega/vault \
 			           --routing_key backup1 \
 	                      $< 2>../private/.err > $@
 
 ../private/backup2.ini: ../private/lega.conf run/lega/backup.py | ../private
 	@echo "Creating LocalEGA service configuration: $(@F)"
-	@python -m run.lega.backup --queue backup1 \
+	@$(PYTHON) -m run.lega.backup --queue backup1 \
 	                           --destination /ega/vault.bkp \
 	                           --routing_key backup2 \
 	                      $< 2>../private/.err > $@
 
 ../private/%.ini: ../private/lega.conf run/lega/%.py | ../private
 	@echo "Creating LocalEGA service configuration: $(@F)"
-	@python -m run.lega.$* $< 2>../private/.err > $@
+	@$(PYTHON) -m run.lega.$* $< 2>../private/.err > $@
 
 ../private/master.key.sec: ../private/secrets/master.key.passphrase
 	@echo "Creating master key: $(@F)"
@@ -125,17 +125,11 @@ dev: all
 # Stronger passphrase
 ../private/secrets/master.key.passphrase: | ../private/secrets
 	@echo "Creating master key passphrase: $(@F)"
-	@python -m run.pwd_gen 32 > $@
-
-ifdef S3
-../private/secrets/s3.access ../private/secrets/s3.secret: | ../private/secrets
-	@echo "Creating S3 credentials: $(@F)"
-	@python -m run.pwd_gen 32 > $@
-endif
+	@$(PYTHON) -m run.pwd_gen 32 > $@
 
 ../private/secrets/%: | ../private/secrets
 	@echo "Creating secret: $(@F)"
-	@python -m run.pwd_gen 16 > $@
+	@$(PYTHON) -m run.pwd_gen 16 > $@
 
 ############### Generate CentralEGA users
 
@@ -160,10 +154,6 @@ COMPONENTS=dispatcher \
            keys \
            inbox \
 	   archive-db
-
-ifdef S3
-COMPONENTS+=archive inbox-s3-backend
-endif
 
 COMPONENTS+=cega-mq cega-users cega-accession testsuite
 
