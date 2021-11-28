@@ -1,8 +1,8 @@
 # LocalEGA database definitions and docker image
 
 We use
-[Postgres 12.1](https://github.com/docker-library/postgres/tree/0d0485cb02e526f5a240b7740b46c35404aaf13f/12/alpine)
-and Alpine 3.10.
+[Postgres 14.1](https://github.com/docker-library/postgres/blob/e331a5bb8dd2494ffd70d67eeca495ace748c8bd/14/alpine)
+and Alpine 3.14.
 
 Security is hardened:
 - We do not use 'trust' even for local connections

@@ -38,7 +38,10 @@ ALL_FILES=$(addprefix ../private/, lega-entrypoint.sh cega-entrypoint.sh \
 		                   dispatcher.ini ingest.ini backup1.ini backup2.ini cleanup.ini save2db.ini \
 	                           pipeline.yml lega.yml cega.yml)
 
-all: ../.env $(ALL_FILES) certs users
+all: requirements ../.env $(ALL_FILES) certs users
+
+requirements:
+	pip install -r requirements.txt
 
 dev: export DEPLOY_DEV=yesplease
 dev: all

@@ -1,6 +1,6 @@
 # LocalEGA internal message broker in a docker image
 
-We use [RabbitMQ 3.8.16](https://hub.docker.com/_/rabbitmq) including the management plugins.
+We use [RabbitMQ 3.9.10](https://hub.docker.com/_/rabbitmq) including the management plugins.
 
 ## Configuration
 
