@@ -17,7 +17,7 @@ LABEL maintainer "EGA System Developers"
 LABEL org.label-schema.schema-version="1.0"
 LABEL org.label-schema.vcs-url="https://github.com/EGA-archive/LocalEGA"
 
-COPY --from=BUILD usr/local/lib/python3.8/ usr/local/lib/python3.8/
+COPY --from=BUILD usr/local/lib/python3.10/ usr/local/lib/python3.10/
 
 VOLUME /cega/users
 
