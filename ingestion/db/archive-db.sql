@@ -36,6 +36,7 @@ CREATE TABLE local_ega.main (
 
        decrypted_checksum     VARCHAR(128) NULL, -- NOT NULL, -- only sha256
        
+       dataset_id             TEXT, -- can be NULL at first
        accession_id           TEXT, UNIQUE (accession_id),
        payload_path           TEXT, UNIQUE (payload_path), -- prefix it with file:// or s3://
        payload_path2          TEXT, UNIQUE (payload_path2),

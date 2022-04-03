@@ -103,7 +103,10 @@ def work(data):
 
         # Just record it in the pipeline db
         # db.set_accession_id(job_id, accession_id)
-  
+
+        # Help the save2db know it's a completed ingestion
+        staging_info['type'] = 'accession'
+        
         # Republish and let this LocalEGA
         routing_key = CONF.get('DEFAULT', 'accession_routing_key', fallback='accession')
         publish(staging_info, routing_key=routing_key)  # will use the same correlation_id
@@ -111,7 +114,7 @@ def work(data):
     elif job_type == 'mapping':
 
         LOG.info('Receiving a mapping (correlation_id %s)', correlation_id)
-        data.pop('type', None)
+        #data.pop('type', None)
         # Republish and let the mapper handle it
         routing_key = CONF.get('DEFAULT', 'mapping_routing_key', fallback='save2db')
         publish(data, routing_key=routing_key)  # will use the same correlation_id

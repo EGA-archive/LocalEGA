@@ -1,7 +1,7 @@
 ##########################
 ## Build env
 ##########################
-FROM python:3.10-alpine3.14 as BUILD
+FROM python:3.9-alpine as BUILD
 
 RUN apk add gcc musl-dev
 
@@ -11,13 +11,13 @@ RUN pip install --upgrade pip && \
 ##########################
 ## Final image
 ##########################
-FROM python:3.10-alpine3.14
+FROM python:3.9-alpine
 
 LABEL maintainer "EGA System Developers"
 LABEL org.label-schema.schema-version="1.0"
 LABEL org.label-schema.vcs-url="https://github.com/EGA-archive/LocalEGA"
 
-COPY --from=BUILD usr/local/lib/python3.10/ usr/local/lib/python3.10/
+COPY --from=BUILD usr/local/lib/python3.9/ usr/local/lib/python3.9/
 
 VOLUME /cega/users
 

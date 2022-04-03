@@ -16,6 +16,7 @@ DEBUG_LOG=${BATS_TEST_FILENAME}.debug
 # Data directory
 TESTDATA_DIR=$HERE
 USERS_DIR=${DOCKER_PATH}/private/users
+SECRETS_DIR=${DOCKER_PATH}/private/secrets
 
 # This CEGA_CONNECTION is against the fake CentralEGA, deployed on the same network
 # as LocalEGA components, and accessible from the localhost via a port mapping
@@ -95,6 +96,9 @@ function get_user_seckey {
 }
 function get_user_passphrase {
     cat ${USERS_DIR}/${1}.passphrase
+}
+function get_archive_db_secret {
+    cat ${SECRETS_DIR}/archive-db.lega
 }
 
 

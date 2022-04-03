@@ -48,6 +48,7 @@ def fetch_user_info(identifier, query):
     raise web.HTTPBadRequest(text='Missing or wrong idType')
 
 async def user(request):
+    print('Getting a user for ', request.path, file=sys.stderr)
     # Authenticate
     auth_header = request.headers.get('AUTHORIZATION')
     if not auth_header:
@@ -99,6 +100,6 @@ if __name__ == '__main__':
         uids[d['uid']] = i
 
     # Registering the routes
-    server.router.add_get('/lega/v1/legas/users/{identifier}', user, name='user')
+    server.router.add_get('/users/{identifier}', user, name='user')
     # aaaand... cue music
     web.run_app(server, host=host, port=port, shutdown_timeout=0, ssl_context=ssl_ctx)

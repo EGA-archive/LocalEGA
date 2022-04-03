@@ -1,4 +1,5 @@
 #!/usr/bin/env bats
+# -*- mode:shell-script -*-
 
 load ../_common/helpers
 
@@ -141,13 +142,11 @@ function teardown() {
 }
 
 
-# Ingesting a file with the wrong LocalEGA PGP key
-# ------------------------------------------------
+# Ingesting a file with the wrong LocalEGA Crypt4GH key
+# -----------------------------------------------------
 #
-# Create a temporary new PGP key, as if it was another LocalEGA
+# Create a temporary new Crypt4GH key, as if it was another LocalEGA
 # The keyserver does not have that key, so ingestion should raise an error
-# Note: the EGA keyserver returns a 200 with an empty payload,
-# so the verify is adjusted to correct that bug.
 #
 # A message should be found in the error queue, because it is a user error
 
@@ -160,13 +159,16 @@ function teardown() {
     cat > ${TESTFILES}/fake_keygen.sh <<EOF
 set timeout -1
 spawn crypt4gh-keygen --sk ${EGA_SECKEY} --pk ${EGA_PUBKEY} -f
-expect "Passphrase for *"
+expect "Enter passphrase for *"
 send -- "${FAKE_PASSPHRASE}\r"
-expect eof
+expect "Enter passphrase for *"
+send -- "${FAKE_PASSPHRASE}\r"
+expect "Your private key *"
+expect "Your public key *"
 EOF
     expect -f ${TESTFILES}/fake_keygen.sh &>/dev/null
     rm -f ${TESTFILES}/fake_keygen.sh
-    
+
     # This will use EGA_PUBKEY
     lega_ingest $(uuidgen) 1 v1.files.error
 }

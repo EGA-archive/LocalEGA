@@ -81,6 +81,7 @@ def main(confs):
         "bindings": [
             add_binding(exchange, vhost, 'v1.files', 'accession'),
             add_binding(exchange, vhost, 'v1.files', 'files'),
+            add_binding(exchange, vhost, 'v1.files', 'mapping'),
             add_binding(exchange, vhost, 'v1.files.inbox', 'files.inbox'),
             add_binding(exchange, vhost, 'v1.files.error','files.error'),
             add_binding(exchange, vhost, 'v1.files.processing', 'files.processing'),

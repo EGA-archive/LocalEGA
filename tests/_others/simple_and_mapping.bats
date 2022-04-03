@@ -38,6 +38,8 @@ function setup() {
     # legarun docker port inbox 9000
     # [ "$status" -eq 0 ]
     # INBOX_PORT=${output##*:}
+
+    ARCHIVE_DB_PORT="15432"
 }
 
 function teardown() {
@@ -51,6 +53,38 @@ function teardown() {
 # ----------------------
 # A message should be found in the completed queue
 
-@test "Ingest properly a test file" {
-    lega_ingest $(uuidgen) 1 v1.files.completed /dev/urandom
+@test "Ingest properly a test file, with a dataset mapping" {
+
+    local FILENAME=$(uuidgen)
+    lega_ingest ${FILENAME} 1 v1.files.completed /dev/urandom
+    [ "$status" -eq 0 ]
+
+    # Find the accession_id in archive-db
+    run docker-compose exec -e PGPASSWORD=$(<private/secrets/archive-db.lega) archive-db \
+                       psql -h localhost -U lega -d lega --csv -q -t -c \
+		       "select accession_id from local_ega.main where inbox_path LIKE '%${FILENAME}%';"
+
+    DATASET="EGAD00000000001" # forcing Dataset 1
+    ACCESSION=$(echo $output | tr -d '\r\n')
+    cat > ${TESTFILES}/message.json <<EOF
+{
+ "type": "mapping",
+ "dataset_id": "$DATASET",
+ "accession_ids": ["$ACCESSION"]
+}
+EOF
+
+    # Publish the file to simulate a CentralEGA mapping
+    #legarun ${MQ_PUBLISH} --correlation_id $(uuidgen) mapping "$(<${TESTFILES}/message.json)"
+    legarun ${MQ_PUBLISH} mapping "$(<${TESTFILES}/message.json)"
+    [ "$status" -eq 0 ]
+
+    run sleep 5
+
+    # Check if the message is in the database
+    run docker-compose exec -e PGPASSWORD=$(<private/secrets/archive-db.lega) archive-db \
+                       psql -h localhost -U lega -d lega --csv -q -t -c \
+		       "select * from local_ega.main where accession_id = '${ACCESSION}' AND dataset_id = '${DATASET}';"
+    [ "$status" -eq 0 ]
+    [ ${#lines[@]} -ge 1 ]
 }

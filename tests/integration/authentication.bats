@@ -1,4 +1,5 @@
 #!/usr/bin/env bats
+# -*- mode:shell-script -*-
 
 load ../_common/helpers
 

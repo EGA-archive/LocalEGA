@@ -8,6 +8,8 @@ Worker storing mappings into the storage database.
 
 import logging
 
+from psycopg2 import sql
+
 from .conf import CONF
 from .conf.logging import _cid
 from .utils import db, exceptions, clean_message, get_sha256
@@ -16,7 +18,7 @@ from .utils.amqp import consume, publish
 LOG = logging.getLogger(__name__)
 
 
-def save_to_db(correlation_id, data):
+def save_file_to_db(correlation_id, data):
     filepath = data['filepath']
     username = data['user']
     accession_id = data['accession_id']
@@ -67,6 +69,23 @@ def save_to_db(correlation_id, data):
                      'payload_path2': 'file://' + paths[1],
                     })
 
+def save_mapping_to_db(correlation_id, data):
+    dataset_id = data['dataset_id']
+    accession_ids = data['accession_ids']
+    assert accession_ids # aka accession_ids is not None and len(accession_ids) > 0
+
+    # Save mapping to DB: the file should already exist.
+    # Here we use an example DB.
+    # Each LocalEGA can implement their own schema and update the query below
+    with db.connection.cursor() as cur:
+        cur.execute('''UPDATE local_ega.main 
+                       SET dataset_id = %(dataset_id)s
+                       WHERE accession_id = ANY(%(accession_ids)s);''',
+                    { 'dataset_id': dataset_id,
+                      'accession_ids': accession_ids
+                     })
+        
+
 def work(data):
 
     LOG.info('Working on %s', data)
@@ -77,28 +96,23 @@ def work(data):
         raise exceptions.InvalidBrokerMessage('Missing correlation_id. We should have one already set')
 
     job_type = data.get('type', None)
-    if job_type not in ('ingest', 'mapping'):
-        raise exceptions.InvalidBrokerMessage(f'Invalid job type: {job_type}')
 
-
-    if job_type == 'ingest':
-        save_to_db(correlation_id, data)
+    if job_type == 'accession':
+        LOG.info('Receiving an ingestion command (correlation_id %s)', correlation_id)
+        save_file_to_db(correlation_id, data)
         clean_message(data)
         publish(data)  # will publish to cega, use the same correlation_id
         return
 
     if job_type == 'mapping':
-
         LOG.info('Receiving a mapping (correlation_id %s)', correlation_id)
-
-        # just save to db
-
+        save_mapping_to_db(correlation_id, data)
+        #publish(data)  # will publish to cega, use the same correlation_id
         return
-        
+
+    # Otherwise
+    raise exceptions.InvalidBrokerMessage(f'Invalid job type: {job_type}')
 
 
 def main():
     consume(work)
-
-# if __name__ == '__main__':
-#     main()

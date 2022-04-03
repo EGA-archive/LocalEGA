@@ -34,7 +34,7 @@ config['mq'] = {
     'exchange': 'localega.v1',
 }
 config['users'] = {
-    'endpoint': r'https://cega-users/lega/v1/legas/users',
+    'endpoint': r'https://cega-users/users',
     'credentials': 'legatest:legatest',
 }
 
