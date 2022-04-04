@@ -53,7 +53,8 @@ def save_file_to_db(correlation_id, data):
                            VALUES (%(correlation_id)s,%(inbox_user)s,%(inbox_path)s,
                                    %(enc_cs)s,%(enc_cs_t)s,%(inbox_path_size)s,
                                    %(header)s,%(payload_size)s,%(payload_cs)s,
-                                   %(decrypted_cs)s,%(accession_id)s,%(payload_path)s,%(payload_path2)s);''',
+                                   %(decrypted_cs)s,%(accession_id)s,%(payload_path)s,%(payload_path2)s)
+                           ON CONFLICT DO NOTHING;''', # in case we insert the same accession_id, cuz we have the same content
                     {'correlation_id': correlation_id,
                      'inbox_user': username,
                      'inbox_path': filepath,

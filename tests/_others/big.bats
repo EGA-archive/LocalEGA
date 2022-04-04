@@ -6,6 +6,10 @@ load ../_common/helpers
 # CEGA_CONNECTION and CEGA_USERS_CREDS should be already set,
 # when this script runs
 
+# The name of the testfile can be ${BATS_TEST_NAME}, however, multiple runs of the testsuite
+# would produce multiple message in the queues and the MQ_GET/MQ_FIND would get confused.
+# We therefore use a uuid name, which can later be updated back to ${BATS_TEST_NAME}
+
 function setup() {
 
     # Defining the TMP dir
@@ -26,64 +30,30 @@ function setup() {
     TESTUSER_SECKEY=$(get_user_seckey ${TESTUSER})
     TESTUSER_PASSPHRASE=$(get_user_passphrase ${TESTUSER})
 
-    echo "Test user sec key: ${TESTUSER_SECKEY}"
-    echo "Test user passphrase: ${TESTUSER_PASSPHRASE}"
 
     # Find inbox port mapping. Usually 2222:9000
     INBOX_PORT="2222"
     # legarun docker port inbox 9000
     # [ "$status" -eq 0 ]
     # INBOX_PORT=${output##*:}
-    LEGA_SFTP="sftp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -P ${INBOX_PORT}"
 }
 
 function teardown() {
-    # rm -rf ${TESTFILES}
+    rm -rf ${TESTFILES}
 
     # Kill an SSH-agent for this env
     [[ -n "${SSH_AGENT_PID}" ]] && kill -TERM "${SSH_AGENT_PID}"
-
-    # unset TESTUSER
-    # unset TESTUSER_SECKEY
 }
 
-# Ingesting a 1 GB file
+# Ingesting a "big" file
 # ----------------------
 # A message should be found in the completed queue
+#
+# Note: We have tested with a 10 GB file by hand,
+# and we are here 'only' ingesting a 1 GB file (for speed)
+# Moreover, we are depleting the random pool,
+# so we're using the /dev/zero for that particular test
 
-@test "Ingest properly a big file" {
-    
-    TESTFILE=$(uuidgen)
-
-    [ -n "${TESTUSER}" ]
-    [ -n "${TESTUSER_SECKEY}" ]
-    [ -n "${TESTUSER_PASSPHRASE}" ]
-
-    # Generate a random file (1 GB)
-    export C4GH_PASSPHRASE=${TESTUSER_PASSPHRASE}
-    dd if=/dev/zero bs=1048576 count=1000 of=${TESTFILES}/${TESTFILE}
-    # dd if=/dev/urandom bs=1048576 count=1000 of=${TESTFILES}/${TESTFILE}
-    crypt4gh encrypt --sk ${TESTUSER_SECKEY} --recipient_pk ${EGA_PUBKEY} < ${TESTFILES}/${TESTFILE} > ${TESTFILES}/${TESTFILE}.c4ga
-    unset C4GH_PASSPHRASE
-
-    # Upload it
-    UPLOAD_CMD="put ${TESTFILES}/${TESTFILE}.c4ga /${TESTFILE}.c4ga"
-    ${LEGA_SFTP} ${TESTUSER}@localhost <<< ${UPLOAD_CMD}
-    [ "$?" -eq 0 ]
-
-    # Fetch the correlation id for that file (Hint: with user/filepath combination)
-    retry_until 0 10 1 ${MQ_GET} v1.files.inbox "${TESTUSER}" "/${TESTFILE}.c4ga"
-    [ "$status" -eq 0 ]
-    CORRELATION_ID=$output
-
-    # Publish the file to simulate a CentralEGA trigger
-    MESSAGE="{ \"user\": \"${TESTUSER}\", \"filepath\": \"/${TESTFILE}.c4ga\"}"
-    legarun ${MQ_PUBLISH} --correlation_id ${CORRELATION_ID} files "$MESSAGE"
-    [ "$status" -eq 0 ]
-
-
-    # Check that a message with the above correlation id arrived in the expected queue
-    # Waiting 300 seconds.
-    retry_until 0 30 10 ${MQ_GET} v1.files.completed "${TESTUSER}" "/${TESTFILE}.c4ga"
-    [ "$status" -eq 0 ]
+@test "Ingest properly a 1GB file" {
+    lega_ingest $(uuidgen) 1000 v1.files.completed /dev/zero
 }
