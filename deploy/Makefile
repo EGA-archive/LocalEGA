@@ -98,6 +98,6 @@ purge:
 ####################################################
 # Checking the archive DB
 
-dbshell:
-	chmod 600 $(CURDIR)/private/certs/save2db.sec.pem
-	psql "postgres://lega:----------------@localhost:15432/lega?sslmode=verify-ca&sslcert=$(CURDIR)/private/certs/save2db.cert.pem&sslkey=$(CURDIR)/private/certs/save2db.sec.pem&sslrootcert=$(CURDIR)/private/certs/CA.save2db.cert.pem"
+dbshell: private/secrets/archive-db.lega
+	@chmod 600 $(CURDIR)/private/certs/save2db.sec.pem
+	@psql "postgres://lega:$(file <$<)@localhost:15432/lega?sslmode=verify-ca&sslcert=$(CURDIR)/private/certs/save2db.cert.pem&sslkey=$(CURDIR)/private/certs/save2db.sec.pem&sslrootcert=$(CURDIR)/private/certs/CA.save2db.cert.pem"
