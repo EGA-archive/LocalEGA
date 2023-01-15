@@ -27,7 +27,7 @@ CentralEGA via a :doc:`shovel mechanism on the local message broker
 
 
 .. note:: After proper configuration, there is no user maintenance, it is
-   automagic. The other advantage is to have a central location of the
+   automatic. The other advantage is to have a central location of the
    EGA users.
 
    Moreover, it is also possible to add non-EGA users if necessary, by
