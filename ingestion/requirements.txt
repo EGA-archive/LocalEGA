@@ -2,7 +2,7 @@ AMQPStorm==2.10.4
 bcrypt==3.2.0
 cffi==1.15.0
 crypt4gh==1.5
-cryptography==36.0.0
+cryptography==39.0.1
 docopt==0.6.2
 pamqp==2.3.0
 psycopg2-binary==2.8.5

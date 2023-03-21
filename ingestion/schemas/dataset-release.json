@@ -1,0 +1,30 @@
+{
+    "title": "JSON schema for Local EGA dataset release message interface",
+    "$id": "https://github.com/EGA-archive/LocalEGA/tree/master/schemas/dataset-release.json",
+    "$schema": "http://json-schema.org/draft-07/schema",
+    "type": "object",
+    "required": [
+        "type",
+        "dataset_id",
+    ],
+    "additionalProperties": true,
+    "properties": {
+        "type": {
+            "$id": "#/properties/type",
+            "type": "string",
+            "title": "The message type",
+            "description": "The message type",
+            "const": "release"
+        },
+        "dataset_id": {
+            "$id": "#/properties/dataset_id",
+            "type": "string",
+            "title": "The Accession identifier for the dataset",
+            "description": "The Accession identifier for the dataset",
+            "pattern": "^EGAD[0-9]{11}$",
+            "examples": [
+                "EGAD12345678901"
+            ]
+        }
+    }
+}
