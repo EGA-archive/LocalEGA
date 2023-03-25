@@ -69,7 +69,7 @@ def main(confs):
         ],
         "exchanges": [
             {
-                "name":"localega.v1",
+                "name":"localega",
                 "vhost": vhost,
                 "type":"topic",
                 "durable":True,

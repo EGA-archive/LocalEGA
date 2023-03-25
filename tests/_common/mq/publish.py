@@ -60,7 +60,7 @@ if mq_connection.startswith('amqps'):
 
 connection = pika.BlockingConnection(parameters)
 channel = connection.channel()
-channel.basic_publish(exchange='localega.v1',
+channel.basic_publish(exchange='localega',
                       routing_key=args.routing_key,
                       body=args.message,
                       properties=pika.BasicProperties(correlation_id=correlation_id,
