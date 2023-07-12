@@ -38,7 +38,7 @@ cat > /etc/rabbitmq/definitions.json <<EOF
   "parameters": [
     {
       "name": "from_cega", "vhost": "/", "component": "federation-upstream",
-      "value": { "ack-mode": "on-confirm", "queue": "v1.files", "trust-user-id": false, "uri": "${CEGA_CONNECTION}" }
+      "value": { "ack-mode": "on-confirm", "queue": "to_fega", "trust-user-id": false, "uri": "${CEGA_CONNECTION}" }
     }
   ],
   "policies": [
@@ -91,7 +91,7 @@ cat > /etc/rabbitmq/advanced.config <<EOF
 					{uris, ["${CEGA_CONNECTION}"]},
 					{declarations, []},
 					{publish_properties, [{delivery_mode, 2}]},
-					{publish_fields, [{exchange, <<"localega.v1">>}]}]
+					{publish_fields, [{exchange, <<"localega">>}]}]
 			 },
 			 {ack_mode, on_confirm},
 			 {reconnect_delay, 5}

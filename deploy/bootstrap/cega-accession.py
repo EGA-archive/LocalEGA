@@ -40,7 +40,7 @@ def work(data):
 
     if md5_checksum is None:
         data['reason'] = 'Missing md5 checksum'
-        publish(data, exchange='localega.v1', routing_key='files.error')
+        publish(data, exchange='localega', routing_key='files.error')
         
 
     filepath = data['filepath']
@@ -53,7 +53,7 @@ def work(data):
     data['accession_id'] = accession
     
     # Publish the answer
-    publish(data, exchange='localega.v1', routing_key='accession')
+    publish(data, exchange='localega', routing_key='accession')
     # All good: Ack message
 
 def main():

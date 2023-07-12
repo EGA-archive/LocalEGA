@@ -36,7 +36,7 @@ The connection is a two-way connection using a combination of a
 *federated queue* and a *shovel*.
 
 The local broker registers a *federated queue* with the central broker
-as *upstream*, named ``v1.files``, and listens to the incoming
+as *upstream*, named ``to_fega``, and listens to the incoming
 messages. In order to minimize the number of connection sockets, all
 Local EGAs only use *one* federated queue towards the central broker,
 and all messages in the queue are distinguished with a ``type``.
@@ -105,6 +105,8 @@ messages so far:
 * ``type=accession``: contains an accession id
 * ``type=mapping``: contains a dataset to accession id mapping (they
   are known at the metadata release stage or when permissions are granted by a DAC
+* ``type=release``: contains an dataset accession id for release
+* ``type=deprecate``: contains an dataset accession id for deprecation
 * ``type=heartbeat``: A mean to check if the Local EGA instance is "alive"
 
 Refer to the complete JSON Schemas for `the ingestion trigger message
