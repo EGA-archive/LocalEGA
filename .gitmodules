@@ -8,3 +8,6 @@
 [submodule "inbox"]
 	path = src/inbox
 	url = https://github.com/EGA-archive/LocalEGA-inbox.git
+[submodule "distribution"]
+	path = src/distribution
+	url = https://github.com/EGA-archive/LocalEGA-distribution.git
