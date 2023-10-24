@@ -1,0 +1,68 @@
+[DEFAULT]
+log = debug
+
+master_pubkey = c4gh_master_pubkey
+service_key = c4gh_service_seckey
+
+[inbox]
+# %s will be the username
+location = /ega/inbox/%s
+
+[staging]
+# %s will be the username
+location = /ega/staging/%s
+
+[vault]
+location = /ega/vault
+
+[backup]
+location = /ega/vault.bkp
+
+[broker]
+connection = amqp://admin:secret@mq:5672/%2F
+connection_name = FEGA handler
+
+# consuming from
+queue = from_cega
+
+# publish to
+cega_exchange = cega
+lega_exchange = lega
+
+
+[db]
+connection = postgres://lega:change-me-please@vault-db:5432/ega?application_name=LocalEGA
+
+dac_query = SELECT * FROM process_dac_dataset_message($1)
+# $1 is the jsonb message
+
+dataset_mapping = SELECT * FROM process_dataset_mapping_message($1)
+# $1 is the jsonb message
+dataset_release = SELECT * FROM process_release_message($1)
+# $1 is the jsonb message
+dataset_deprecated = SELECT * FROM process_deprecated_message($1)
+# $1 is the jsonb message
+
+dataset_permission = SELECT * FROM process_dataset_permission($1)
+# $1 is the jsonb message
+
+save_query = SELECT * FROM public.upsert_file($1, $2, $3, $4, $5, $6, $7)
+# $1: the inbox path -- used for display_name
+# $2: the encrypted payload filesize
+# $3: the header
+# $4: the payload_checksum -- sha256
+# $5: the decrypted_checksum -- sha256 (just informative)
+# $6: the accession_id
+# $7: the relative_path (relative to the vault mountpoint)
+
+[c4gh_master_pubkey]
+loader_class = C4GHFilePubKey
+filepath = /etc/ega/master.pubkey
+
+[c4gh_service_seckey]
+loader_class = C4GHFileKey
+passphrase = some-secret-passphrase
+filepath = /etc/ega/service.seckey
+
+
+

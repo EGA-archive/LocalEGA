@@ -1,0 +1,10 @@
+[submodule "pg_crypt4gh"]
+	path = src/vault/pg_crypt4gh
+	url = https://github.com/silverdaz/pg_crypt4gh.git
+[submodule "libsodium"]
+	path = src/vault/libsodium
+	url = https://github.com/jedisct1/libsodium.git
+	branch = stable
+[submodule "inbox"]
+	path = src/inbox
+	url = https://github.com/EGA-archive/LocalEGA-inbox.git
