@@ -11,10 +11,9 @@ You can provision and deploy the different components, locally, using [docker-co
 
 ## Quick install
 
-	cd deploy
-	make -C bootstrap
-	make -j 4 images
-	make up
+	cd deploy/docker
+	# Rename the *.sample files, and update their sensitive information
+	docker-compose up -d 
 
 After a few seconds, you then have a locally-deployed instance of
 LocalEGA (using a fake Central EGA), and you can run the
@@ -26,8 +25,3 @@ Find the [LocalEGA documentation](http://localega.readthedocs.io) hosted on [Rea
 
 ![Architecture](docs/static/overview.png)
 
-Other provisioning methods are provided by [our partners](https://github.com/neicnordic/LocalEGA):
-
-* on an [OpenStack cluster](https://github.com/NBISweden/LocalEGA-deploy-terraform), using `terraform`;
-* on a [Kubernetes/OpenShift cluster](https://github.com/NBISweden/LocalEGA-deploy-k8s), using `kubernetes`;
-* on a [Docker Swarm cluster](https://github.com/NBISweden/LocalEGA-deploy-swarm), using `gradle`.
