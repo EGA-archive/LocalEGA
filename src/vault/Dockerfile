@@ -9,7 +9,7 @@ ENV DEBIAN_FRONTEND noninteractive
 RUN apt-get update; \
 #    apt-get upgrade -y; \
     apt-get install -y --no-install-recommends \
-            vim ca-certificates pkg-config git gcc make automake autoconf libtool xutils-dev \
+	    ca-certificates pkg-config git gcc make automake autoconf libtool \
             bzip2 zlib1g-dev libssl-dev libedit-dev libpq-dev postgresql-server-dev-15 \
             cmake
 
