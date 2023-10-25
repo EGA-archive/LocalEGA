@@ -15,6 +15,7 @@ tests/_common/mq/*.pem
 deploy/docker/*
 !deploy/docker/Makefile
 !deploy/docker/README.md
+!deploy/docker/*.sample
 
 # =====================================
 # Byte-compiled / optimized / DLL files
