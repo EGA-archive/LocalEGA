@@ -11,7 +11,8 @@ volumes:
 services:
   inbox:
     hostname: inbox
-    depends_on: mq
+    depends_on:
+      - mq
     container_name: inbox
     networks:
       - external
@@ -30,7 +31,8 @@ services:
       # - MQ_CA=/etc/ega/CA.cert
       # - MQ_CLIENT_CERT=/etc/ega/ssl.cert
       # - MQ_CLIENT_KEY=/etc/ega/ssl.key
-    ports: 2222:9000
+    ports:
+      - 2222:9000
     image: crg/fega-inbox:latest
     build: ../../src/inbox
     volumes:
@@ -38,9 +40,10 @@ services:
 
   mq:
     environment:
-    - CEGA_CONNECTION=amqps://fega-node:fega-secret@rabbitmq.test.ega-archive.org:5671/fega-node
+      - CEGA_CONNECTION=amqps://fega-node:fega-secret@rabbitmq.test.ega-archive.org:5671/fega-node
     hostname: mq
-    ports: 15672:15672
+    ports:
+      - 15672:15672
     image: rabbitmq:3.11.10-management-alpine
     container_name: mq
     networks:
@@ -57,7 +60,8 @@ services:
     command: 'rabbitmq-server'
 
   handler:
-    depends_on: mq
+    depends_on:
+      - mq
     hostname: handler
     build: ../../src
     image: fega/handler:latest

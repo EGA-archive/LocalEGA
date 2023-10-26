@@ -5,19 +5,12 @@
 [![Testsuite](https://github.com/EGA-archive/LocalEGA/workflows/Testsuite/badge.svg)](https://github.com/EGA-archive/LocalEGA/actions)
 
 
-The [code](ingestion/lega) is written in Python (3.7+).
-
-You can provision and deploy the different components, locally, using [docker-compose](deploy).
+The [code](src) is written in Python (3.7+), C and SQL.
 
 ## Quick install
 
-	cd deploy/docker
-	# Rename the *.sample files, and update their sensitive information
-	docker-compose up -d 
-
-After a few seconds, you then have a locally-deployed instance of
-LocalEGA (using a fake Central EGA), and you can run the
-[testsuite](tests).
+You can provision and deploy the different components, locally, using [docker](deploy/docker).
+Follow along the instructions and after a few seconds, you then have a locally-deployed instance of LocalEGA (using a fake Central EGA), and you can run the [testsuite](tests).
 
 ## Architecture
 

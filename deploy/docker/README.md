@@ -15,12 +15,14 @@ We assume you have created a local user and a group named `lega`. If not, you ca
     groupadd -r lega
     useradd -M -g lega lega
 
-Create the docker image (for ingestion) with:
+Create the docker images with:
 
-	make image
-
+	make -j 3 images
+	
 Update the configuration files with the proper settings.
-> Hint: copy the supplied sample files and adjust the passwords appropriately.
+> Hint: copy the supplied sample files and adjust the passwords appropriately.  
+> `for f in *.sample; do cp $f ${f//.sample/}; done`
+
 
 The included message broker uses an administrator account with
 `admin:secret` as `username:password`. This is up to you to update it
@@ -67,3 +69,7 @@ Finally, you need to prepare the storage mountpoints for:
 	chmod 700 data/vault.bkp
 ```
 Adjust the paths in the `docker-compose.yml` file and the `lega.ini` handler configuration.
+
+Finally, you are now ready to instanciate the containers
+
+	docker-compose up -d 

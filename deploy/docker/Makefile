@@ -1,4 +1,4 @@
-
+SHELL := /bin/bash
 
 
 define error-inbox-lega-message
@@ -18,7 +18,20 @@ image-handler:
 
 image-vault:
 	make -C ../../src/vault latest
-
+init-vault:
+	make -C ../../src/vault init
 
 images: image-inbox image-handler image-vault
 
+confs:
+	for f in *.sample; do cp $$f $${f//.sample/}; done
+
+init-vault:
+
+up:
+	@docker-compose up -d inbox mq vault-db
+	@sleep 3 # wait a bit
+	@docker-compose up -d handler
+
+down:
+	docker-compose down -v
