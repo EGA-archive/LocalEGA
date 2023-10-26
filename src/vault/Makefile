@@ -1,9 +1,9 @@
 
-DB_DATA := $(shell pwd)/../../deploy/docker/data/vault-db
-ETC_DB := $(shell pwd)
+DB_DATA=$(shell pwd)/data
 SERVICE=vault-db
 IMG=fega/vault-db:latest
-PG_SU_PASSWORD=change-me-please-it-is-important
+
+PG_SU_PASSWORD=very-strong-password
 DATABASE_NAME=ega
 
 all: latest
@@ -15,6 +15,10 @@ $(DB_DATA):
 build: ARGS+=--target BUILD
 build latest:
 	docker build $(ARGS) -t fega/vault-db:$@ .
+
+###########################
+rm:
+	rm -rI $(DB_DATA)
 
 ###########################
 

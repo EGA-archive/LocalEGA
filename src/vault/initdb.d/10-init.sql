@@ -17,6 +17,3 @@ CREATE USER lega WITH LOGIN ENCRYPTED PASSWORD 'change-me-please';
 
 -- To distribute data
 CREATE USER distribution WITH LOGIN ENCRYPTED PASSWORD 'change-me-please';
-
--- To manage permissions
-CREATE USER permission WITH LOGIN ENCRYPTED PASSWORD 'change-me-please';

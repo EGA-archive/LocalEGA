@@ -62,26 +62,6 @@ GRANT EXECUTE 	ON FUNCTION crypt4gh.parse_pubkey 			TO lega;
 
 
 -- #####################################################
--- Grant permissions to the permission user
--- (e.g. listing requests, granting/denying requests)
--- #####################################################
-
-GRANT USAGE 			ON SCHEMA public 					TO permission;
-GRANT SELECT 			ON public.user_table 					TO permission;
-GRANT SELECT 			ON public.dac_table 					TO permission;
-GRANT SELECT 			ON public.dac_dataset_table 				TO permission;
-GRANT SELECT 			ON public.dataset_table 				TO permission;
-
-GRANT USAGE 			ON SCHEMA request 					TO permission;
-GRANT SELECT			ON ALL TABLES IN SCHEMA request				TO permission;
-
-GRANT USAGE 			ON SCHEMA private 					TO permission;
-GRANT USAGE			ON SEQUENCE private.dataset_permission_table_id_seq	TO permission;
-GRANT SELECT,INSERT,DELETE 	ON private.dataset_permission_table 			TO permission;
---GRANT SELECT 			ON private.permission 					TO permission;
-
-
--- #####################################################
 -- Grant permissions for the NSS system
 -- #####################################################
 
