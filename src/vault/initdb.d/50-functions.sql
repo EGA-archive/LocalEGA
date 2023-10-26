@@ -296,9 +296,9 @@ DECLARE
 	_username text;
 	_password_hash text;
 BEGIN
-	_username = _json_message->>'username';
+	_username = _json_message->>'user';
 	IF _username IS NULL THEN
-		RAISE EXCEPTION 'username is required';
+		RAISE EXCEPTION 'user is required';
 	END IF;
 
 	_password_hash = _json_message->>'password_hash';
@@ -328,9 +328,9 @@ DECLARE
 	_keys jsonb;
 	_user_id bigint;
 BEGIN
-	_username = _json_message->>'username';
+	_username = _json_message->>'user';
 	IF _username IS NULL THEN
-		RAISE EXCEPTION 'username is required';
+		RAISE EXCEPTION 'user is required';
 	END IF;
 
 	_keys = _json_message->>'keys';
@@ -371,7 +371,7 @@ DECLARE
 	_username text;
 	_user_id bigint;
 BEGIN	
-	_username = _json_message->>'username';
+	_username = _json_message->>'user';
 	IF _username IS NULL THEN 
 		RAISE EXCEPTION 'username is required';
 	END IF;

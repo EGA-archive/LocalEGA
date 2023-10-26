@@ -65,7 +65,3 @@ CREATE TRIGGER dataset_permission_table_update_edited_columns
 BEFORE UPDATE ON private.dataset_permission_table
 FOR EACH ROW EXECUTE PROCEDURE public.update_edited_columns();
 
-CREATE TRIGGER permission_action_table_update_edited_columns
-BEFORE UPDATE ON request.permission_action_table
-FOR EACH ROW EXECUTE PROCEDURE public.update_edited_columns();
-

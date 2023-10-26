@@ -56,6 +56,9 @@ COPY --from=BUILD /usr/local/lib/pkgconfig         /usr/local/lib/pkgconfig
 
 RUN ldconfig -v
 
+ENV PGDATA=/ega/data
+VOLUME /ega/data
+
 # We do not want to start the docker-entrypoint.sh script
 USER postgres
 EXPOSE 5432

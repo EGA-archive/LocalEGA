@@ -19,21 +19,6 @@ ON private.user_password_table
 USING btree (user_id ASC NULLS LAST)
 ;
 
--- #####################
--- Datasets 
--- #####################
-
-CREATE INDEX idx_dataset_id_include_enabled_stable_id
-ON public.dataset_table
-USING btree (node_name, id ASC NULLS LAST)
-INCLUDE (stable_id); --, is_released);
-
-
---CREATE INDEX ega_stable_id_idx
---ON public.dataset_table
---USING btree (stable_id ASC NULLS LAST)
---WHERE (is_released)
---;
 
 -- #####################
 -- Files

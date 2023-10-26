@@ -10,7 +10,7 @@ all: latest
 
 $(DB_DATA):
 	mkdir -p $@
-	chown -R 999.999 $@ # that the postgres user and group in the container
+	-chown -R 999:999 $@ # that the postgres user and group in the container
 
 build: ARGS+=--target BUILD
 build latest:
@@ -33,7 +33,7 @@ ifdef DEBUG
 init: ENTRYPOINT=-d --entrypoint /bin/sleep
 init: CMD=356d
 else
-init: ENTRYPOINT=-it --entrypoint /ega/build.sh
+init: ENTRYPOINT=-it --entrypoint /ega/build.sh --user root
 endif
 init:
 	docker run --rm \

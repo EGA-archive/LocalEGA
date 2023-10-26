@@ -60,7 +60,7 @@ GRANT EXECUTE ON FUNCTION public.process_user_contact_message             	TO le
 GRANT USAGE	ON SCHEMA crypt4gh 					TO lega;
 GRANT EXECUTE 	ON FUNCTION crypt4gh.parse_pubkey 			TO lega;
 
--- TODO
+
 -- #####################################################
 -- Grant permissions to the permission user
 -- (e.g. listing requests, granting/denying requests)
@@ -75,13 +75,21 @@ GRANT SELECT 			ON public.dataset_table 				TO permission;
 GRANT USAGE 			ON SCHEMA request 					TO permission;
 GRANT SELECT			ON ALL TABLES IN SCHEMA request				TO permission;
 
-GRANT USAGE                     ON SEQUENCE request.permission_action_table_id_seq     	TO permission;
-GRANT SELECT,INSERT,UPDATE 	ON request.permission_action_table 			TO permission;
-
-GRANT EXECUTE 			ON ALL FUNCTIONS IN SCHEMA request 			TO permission;
-
 GRANT USAGE 			ON SCHEMA private 					TO permission;
 GRANT USAGE			ON SEQUENCE private.dataset_permission_table_id_seq	TO permission;
 GRANT SELECT,INSERT,DELETE 	ON private.dataset_permission_table 			TO permission;
 --GRANT SELECT 			ON private.permission 					TO permission;
 
+
+-- #####################################################
+-- Grant permissions for the NSS system
+-- #####################################################
+
+GRANT USAGE ON SCHEMA fs TO lega;
+GRANT EXECUTE ON FUNCTION fs.trigger_nss_users() TO lega;
+GRANT EXECUTE ON FUNCTION fs.make_nss_users() TO lega;
+GRANT EXECUTE ON FUNCTION fs.trigger_nss_passwords() TO lega;
+GRANT EXECUTE ON FUNCTION fs.make_nss_passwords() TO lega;
+GRANT EXECUTE ON FUNCTION fs.make_nss_groups() TO lega;
+GRANT EXECUTE ON FUNCTION fs.trigger_authorized_keys() TO lega;
+GRANT EXECUTE ON FUNCTION fs.make_authorized_keys TO lega;
