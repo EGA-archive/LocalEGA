@@ -55,6 +55,12 @@ save_query = SELECT * FROM public.upsert_file($1, $2, $3, $4, $5, $6, $7)
 # $6: the accession_id
 # $7: the relative_path (relative to the vault mountpoint)
 
+# $1 is the jsonb message
+on_dac_dataset_update = SELECT * FROM process_dac_dataset_message($1)
+on_dac_members_update = SELECT * FROM process_dac_members_message($1)
+on_dac_update = SELECT * FROM process_dac_message($1)
+# $1 is the jsonb message
+
 [c4gh_master_pubkey]
 loader_class = C4GHFilePubKey
 filepath = /etc/ega/master.pubkey
