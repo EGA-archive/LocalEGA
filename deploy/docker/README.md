@@ -14,10 +14,6 @@ We assume you have created a local user and a group named `lega`. If not, you ca
 
     groupadd -r lega
     useradd -M -g lega lega
-
-Create the docker images with:
-
-	make -j 3 images LEGA_GID=$(id -g lega)
 	
 Update the configuration files with the proper settings.
 > Hint: copy the supplied sample files and adjust the passwords appropriately.  
@@ -69,6 +65,28 @@ Finally, you need to prepare the storage mountpoints for:
 	chmod 700 data/vault.bkp
 ```
 Adjust the paths in the `docker-compose.yml` file and the `lega.ini` handler configuration.
+
+Create the docker images with:
+
+	make -j 3 images LEGA_GID=$(id -g lega)
+
+Prepare the vault database 
+
+	echo 'very-strong-password' > pg_vault_su_password
+	chmod 600 pg_vault_su_password
+	make init-vault
+	
+Update the database password for the following database users. First
+use `make psql`, to connect, and then issue the following SQL
+commands:
+
+	-- To input data
+	ALTER ROLE lega WITH PASSWORD 'strong-password';
+
+	-- To distribute data
+	ALTER USER distribution WITH PASSWORD 'another-strong-password';
+
+Update the handler `lega.ini` configuration file, with the `lega` user password from the database.
 
 Finally, you are now ready to instanciate the containers
 
