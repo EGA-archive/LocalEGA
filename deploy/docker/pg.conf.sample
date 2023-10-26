@@ -70,6 +70,8 @@ default_text_search_config = 'pg_catalog.english'
 shared_preload_libraries='pg_crypt4gh'
 
 crypt4gh.master_seckey = '3030303030303030303030303030303030303030303030303030303030303030'
-
-vault.dirpath = '/var/lib/localEGA/vault'
+#
+# Update crypt4gh.master_seckey with the following python code snippet:
+# python -c 'import crypt4gh.keys; print(crypt4gh.keys.get_private_key("/path/to/master.key.sec", lambda: "passphrase").hex())'
+#
 

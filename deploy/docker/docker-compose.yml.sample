@@ -97,5 +97,5 @@ services:
       - vault
     user: postgres
     ports:
-      - 15432:5432
+      - 5432:5432
     entrypoint: ['postgres', '-c', 'config_file=/etc/ega/pg.conf']

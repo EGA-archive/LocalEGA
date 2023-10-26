@@ -32,6 +32,9 @@ up:
 	@docker-compose up -d inbox mq vault-db
 	@sleep 3 # wait a bit
 	@docker-compose up -d handler
-
 down:
 	docker-compose down -v
+logs:
+	docker-compose logs -f
+ps:
+	docker-compose ps

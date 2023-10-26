@@ -17,7 +17,7 @@ We assume you have created a local user and a group named `lega`. If not, you ca
 
 Create the docker images with:
 
-	make -j 3 images
+	make -j 3 images LEGA_GID=$(id -g lega)
 	
 Update the configuration files with the proper settings.
 > Hint: copy the supplied sample files and adjust the passwords appropriately.  
@@ -72,4 +72,4 @@ Adjust the paths in the `docker-compose.yml` file and the `lega.ini` handler con
 
 Finally, you are now ready to instanciate the containers
 
-	docker-compose up -d 
+	make up
