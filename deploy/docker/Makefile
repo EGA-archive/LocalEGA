@@ -6,11 +6,16 @@ Please specify the group id via the LEGA_GID variable.
 For example, by calling "make $@ LEGA_GID=$$(id -g lega)"
 endef
 
+ARCH=$(shell uname -m)
+ifeq ($(ARCH), arm64) # reset for MacOS
+	ARCH=aarch64
+endif
+
 image-inbox:
 ifeq ($(LEGA_GID),)
 	$(error $(error-inbox-lega-message))
 endif
-	make -C ../../src/inbox latest LEGA_GID=$(LEGA_GID)
+	make -C ../../src/inbox latest LEGA_GID=$(LEGA_GID) ARCH=$(ARCH)
 
 image-handler:
 	make -C ../../src/handler latest
@@ -31,6 +36,8 @@ endif
 	make -C ../../src/vault init DB_DATA=$(shell pwd)/data/vault-db PG_SU_PASSWORD=$(file < pg_vault_su_password)
 
 
+vault-db-up:
+	docker-compose up -d vault-db
 
 #############################
 ## Utility targets

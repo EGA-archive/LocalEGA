@@ -76,6 +76,9 @@ Prepare the vault database
 	chmod 600 pg_vault_su_password
 	make init-vault
 	
+	# start the database
+	make vault-db-up
+	
 Update the database password for the following database users. First
 use `make psql`, to connect, and then issue the following SQL
 commands:
