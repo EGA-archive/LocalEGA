@@ -20,10 +20,10 @@ We assume you have created a local user and a group named `lega`. If not, you ca
 Update the configuration files with the proper settings.
 > Hint: copy the supplied sample files and adjust the passwords appropriately.  
 
-	cp docker-compose.yml.sample docker-compose.yml
-	cp ../../src/vault/pg.conf.sample pg.conf
-	cp ../../src/vault/pg_hba.conf.sample pg_hba.conf
-	cp ../../src/handler/conf.ini.sample lega.ini
+	cp docker-compose.yml.sample           docker-compose.yml
+	cp ../../src/vault/pg.conf.sample      pg.conf
+	cp ../../src/vault/pg_hba.conf.sample  pg_hba.conf
+	cp ../../src/handler/conf.ini.sample   lega.ini
 
 
 The included message broker uses an administrator account with
