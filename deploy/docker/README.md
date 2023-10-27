@@ -82,7 +82,7 @@ Prepare the vault database
 	make init-vault
 	
 	# start the database
-	make vault-db-up
+	docker-compose up -d vault-db
 	
 Update the database password for the following database users. First
 use `make psql`, to connect, and then issue the following SQL
@@ -115,4 +115,17 @@ The default supplied one is not very restrictive, and you should adjust it in yo
 
 Finally, you are now ready to instantiate the containers
 
-	make up
+	# We start with the inbox, and the broker, (the vault database is already started above)
+	docker-compose up -d inbox mq vault-db
+	
+	# We wait a bit, and check that they are up
+	# And we start the handler, that connects to the broker and the vault database
+	docker-compose up -d handler
+
+You can follow along with
+
+	docker-compose logs -f
+
+and tear all down with
+
+	docker-compose down -v

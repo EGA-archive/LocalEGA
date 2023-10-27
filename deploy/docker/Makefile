@@ -36,17 +36,10 @@ endif
 	make -C ../../src/vault init DB_DATA=$(shell pwd)/data/vault-db PG_SU_PASSWORD=$(file < pg_vault_su_password)
 
 
-vault-db-up:
-	docker-compose up -d vault-db
-
 #############################
 ## Utility targets
 #############################
 
-up:
-	@docker-compose up -d inbox mq vault-db
-	@sleep 10 # wait a bit
-	@docker-compose up -d handler
 down:
 	docker-compose down -v
 logs:
