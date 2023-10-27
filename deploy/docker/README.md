@@ -108,7 +108,8 @@ print(key_content.hex())
 ```
 
 The `pg_hba.conf` controls the network accesses to the database.  
-The default supplied one is not very restrictive, and you should adjust it in your production environment (For example, by enabled TLS/SSL in the `pg.conf` and restrict network CIDRs in `pg_hba.conf`).
+The default supplied one is not very restrictive, and you should adjust it in your production environment.  
+(For example, by enabling TLS/SSL in the `pg.conf` and restricting network CIDRs in `pg_hba.conf`).
 
 # Instantiate the containers 
 
