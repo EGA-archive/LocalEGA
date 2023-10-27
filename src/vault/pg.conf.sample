@@ -75,3 +75,4 @@ crypt4gh.master_seckey = '303030303030303030303030303030303030303030303030303030
 # python -c 'import crypt4gh.keys; print(crypt4gh.keys.get_private_key("/path/to/master.key.sec", lambda: "passphrase").hex())'
 #
 
+vault.dirpath = '/path/to/vault/directory/for/distribution'
