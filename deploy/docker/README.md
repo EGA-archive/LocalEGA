@@ -14,7 +14,9 @@ We assume you have created a local user and a group named `lega`. If not, you ca
 
     groupadd -r lega
     useradd -M -g lega lega
-	
+
+# Sensitive data
+
 Update the configuration files with the proper settings.
 > Hint: copy the supplied sample files and adjust the passwords appropriately.  
 > `for f in *.sample; do cp $f ${f//.sample/}; done`
@@ -40,6 +42,7 @@ Repeat the same for the master key:
 	chown lega master.key
 	chown lega master.key.pub
 	
+# Mountpoints / File system
 
 Finally, you need to prepare the storage mountpoints for:
 * the inbox of the users
@@ -70,6 +73,8 @@ Create the docker images with:
 
 	make -j 3 images LEGA_GID=$(id -g lega)
 
+# The vault database
+
 Prepare the vault database 
 
 	echo 'very-strong-password' > pg_vault_su_password
@@ -91,6 +96,22 @@ commands:
 
 Update the handler `lega.ini` configuration file, with the `lega` user password from the database.
 
-Finally, you are now ready to instanciate the containers
+In the `pg.conf` file, update the `crypt4gh.master_seckey` secret with the hex value of the master private key.  
+You can run the following python snippet to get it: (you need the `crypt4gh` package: `pip install crypt4gh`).
+
+```python
+import crypt4gh.keys
+
+key_content = crypt4gh.keys.get_private_key("/path/to/master.key.sec", lambda: "passphrase")
+
+print(key_content.hex())
+```
+
+The `pg_hba.conf` controls the network accesses to the database.  
+The default supplied one is not very restrictive, and you should adjust it in your production environment (For example, by enabled TLS/SSL in the `pg.conf` and restrict network CIDRs in `pg_hba.conf`).
+
+# Instantiate the containers 
+
+Finally, you are now ready to instantiate the containers
 
 	make up
