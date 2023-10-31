@@ -7,6 +7,7 @@ networks:
 
 volumes:
   mq:
+  cega-mq:
 
 services:
   inbox:
@@ -18,8 +19,10 @@ services:
       - external
       - internal
     environment:
-      - CEGA_ENDPOINT=https://nss.test.ega-archive.org
-      - CEGA_ENDPOINT_CREDS=fega-node:fega-secret
+      # - CEGA_ENDPOINT=https://nss.test.ega-archive.org
+      # - CEGA_ENDPOINT_CREDS=fega-node:fega-secret
+      - CEGA_ENDPOINT=http://cega:8080
+      - CEGA_ENDPOINT_CREDS=fega:testing
       - MQ_CONNECTION=amqp://admin:change-me-please@mq:5672/%2F
       - MQ_EXCHANGE=cega
       - MQ_ROUTING_KEY=files.inbox
@@ -40,7 +43,8 @@ services:
 
   mq:
     environment:
-      - CEGA_CONNECTION=amqps://fega-node:fega-secret@rabbitmq.test.ega-archive.org:5671/fega-node
+      # - CEGA_CONNECTION=amqps://fega-node:fega-secret@rabbitmq.test.ega-archive.org:5671/fega-node
+      - CEGA_CONNECTION=amqp://admin:secret@cega-mq:5672/%2F
     hostname: mq
     ports:
       - 15672:15672
@@ -99,3 +103,31 @@ services:
     ports:
       - 5432:5432
     entrypoint: ['postgres', '-c', 'config_file=/etc/ega/pg.conf']
+
+  cega-mq:
+    hostname: cega-mq
+    ports:
+      - 15670:15672
+    image: rabbitmq:3.11.10-management-alpine
+    container_name: cega-mq
+    networks:
+      - internal
+    volumes:
+      - cega-mq:/var/lib/rabbitmq
+      - ./cega/mq-entrypoint.sh:/usr/local/bin/ega-entrypoint.sh
+    entrypoint: ['/usr/local/bin/ega-entrypoint.sh']
+    command: 'rabbitmq-server'
+
+  cega:
+    environment:
+      - MQ_URL=amqp://admin:secret@cega-mq:5672/%2F
+    hostname: cega
+    ports:
+      - 8080:8080
+    image: cega
+    build: ./cega
+    container_name: cega
+    networks:
+      - internal
+    entrypoint: ['python', 'server.py']
+    command: '-d'
