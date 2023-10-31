@@ -18,3 +18,11 @@ You can start the Central EGA (fake) component with:
 
     # and after a few seconds, start the Central all-in-one service
 	docker-compose up -d cega
+
+The Central EGA services are at (and you can update `docker-compose.yml` accordingly)
+
+| Service        | URL | Credentials |
+|---------------:|-----|-------------|
+| NSS            | `http://cega:8080` | `fega:testing` |
+| RabbitMQ       | `amqp://cega-mq:5672/%2F` | `admin:secret` |
+
