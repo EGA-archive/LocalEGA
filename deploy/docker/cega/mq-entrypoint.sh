@@ -28,12 +28,15 @@ cat > /etc/rabbitmq/definitions.json <<EOF
   "parameters": [],
   "policies": [],
   "queues": [
+    {"name": "to_fega", "vhost": "/", "durable": true, "auto_delete": false, "arguments":{}},
     {"name": "from_fega", "vhost": "/", "durable": true, "auto_delete": false, "arguments":{}}
   ],
   "exchanges": [
+    {"name":"localega", "vhost":"/", "type":"topic", "durable":true, "auto_delete":false, "internal":false, "arguments":{}},
     {"name":"cega", "vhost":"/", "type":"topic", "durable":true, "auto_delete":false, "internal":false, "arguments":{}}
   ], 
   "bindings": [
+    { "source":"localega", "vhost": "/", "destination":"to_fega", "destination_type":"queue", "routing_key":"#", "arguments":{}},
     { "source":"cega", "vhost": "/", "destination":"from_fega", "destination_type":"queue", "routing_key":"#", "arguments":{}}
   ]
 }

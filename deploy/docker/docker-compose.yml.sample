@@ -129,5 +129,7 @@ services:
     container_name: cega
     networks:
       - internal
+    volumes:
+      - ./cega/users/users.json:/ega/users.json
     entrypoint: ['python', 'server.py']
     command: '-d'

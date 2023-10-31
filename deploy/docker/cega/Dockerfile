@@ -23,7 +23,7 @@ RUN groupadd ega && \
     mkdir /ega
 
 COPY server.py /ega/server.py
-COPY users.json /ega/users.json
+COPY users/users.json /ega/users.json
 
 USER ega
 WORKDIR /ega

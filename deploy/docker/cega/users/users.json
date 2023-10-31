@@ -1,0 +1,37 @@
+{
+    "john": {
+	"sshPublicKeys": [ "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDk/eIKlcX1EsCi0ukGLQrUoCzM/ezydUIVaW39GsQKv john@LocalEGA" ],
+	"username": "john",
+	"passwordHash": "$2b$12$9sa9okBwdVKFgcXnSVQIc.41n9nFA/.2VchnjzMa1FfJBD0Zp/G9O",
+	"uid": 5001,
+	"gecos": "LocalEGA (test) User",
+	"lastChanged": 19430
+    },
+    "5001": {
+	"sshPublicKeys": [ "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDk/eIKlcX1EsCi0ukGLQrUoCzM/ezydUIVaW39GsQKv john@LocalEGA" ],
+	"username": "john",
+	"passwordHash": "$2b$12$9sa9okBwdVKFgcXnSVQIc.41n9nFA/.2VchnjzMa1FfJBD0Zp/G9O",
+	"uid": 5001,
+	"gecos": "LocalEGA (test) User",
+	"lastChanged": 19430
+    },
+
+
+    "jane": {
+	"sshPublicKeys": [ "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEoe0fZU+7gqus+BBHkRk5zVu4/l87PxaPY8fGFT+YJr jane@LocalEGA" ],
+	"username": "jane",
+	"passwordHash": "$2b$12$otjfgrPG8HTFfSsK2f2ULO7sVg0c5plBgoHKAU8pSSKH7JKiFv5DG",
+	"uid": 5002,
+	"gecos": "LocalEGA (test) User",
+	"lastChanged": 19430
+    },
+
+    "5002": {
+	"sshPublicKeys": [ "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEoe0fZU+7gqus+BBHkRk5zVu4/l87PxaPY8fGFT+YJr jane@LocalEGA" ],
+	"username": "jane",
+	"passwordHash": "$2b$12$otjfgrPG8HTFfSsK2f2ULO7sVg0c5plBgoHKAU8pSSKH7JKiFv5DG",
+	"uid": 5002,
+	"gecos": "LocalEGA (test) User",
+	"lastChanged": 19430
+    }
+}
