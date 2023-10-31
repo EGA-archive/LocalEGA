@@ -21,8 +21,8 @@ You can start the Central EGA (fake) component with:
 
 The Central EGA services are at (and you can update `docker-compose.yml` accordingly)
 
-| Service        | URL | Credentials |
-|---------------:|-----|-------------|
-| NSS            | `http://cega:8080` | `fega:testing` |
-| RabbitMQ       | `amqp://cega-mq:5672/%2F` | `admin:secret` |
+| Service        | URL | Credentials | Example |
+|---------------:|-----|-------------|---------|
+| NSS            | `http://cega:8080` | `fega:testing` | `curl -u fega:testing http://localhost:8080/username/john` |
+| RabbitMQ       | `amqp://cega-mq:5672/%2F` | `admin:secret` | `CEGA_CONNECTION=amqp://admin:secret@cega-mq:5672/%2F` |
 
