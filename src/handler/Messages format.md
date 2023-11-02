@@ -204,6 +204,34 @@ Required:
 }
 ```
 
+## File error (FEGA → CEGA)
+Routing key: **files.error**
+
+### Description
+Message sent when a user error has been found by the node while ingesting a file (e.g. file could not be decrypted).
+
+### Format
+Required:
+- type: "error"
+- user: string
+- filepath: string
+- reason: string
+
+Optional:
+- encrypted_checksums: array of checksums with this format:
+	- type: string
+	- value: string
+
+### Example
+```json
+{
+   "type":"error",
+   "user":"oscar",
+   "filepath":"32/upload-test-161b38e98b.txt.c4gh",
+   "reason": "Could not decrypt file"
+}
+```
+
 ## Dataset mapping (CEGA → FEGA)
 Routing key: **dataset.mapping**
 
