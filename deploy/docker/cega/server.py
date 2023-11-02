@@ -1,5 +1,4 @@
 import logging
-import os
 import argparse
 from pathlib import Path
 from logging.config import dictConfig
@@ -20,7 +19,7 @@ HTTP_AUTH_PASSWORD = 'testing' # yup, we don't care, it's just for testing
 ## Consumer 
 #############################################################
 
-async def on_message(message):
+async def on_message(message, publish_channel):
     try:
         correlation_id = message.header.properties.correlation_id
         body = message.body.decode()
@@ -77,6 +76,7 @@ async def initialize(app, mq_url, queue, prefetch=None):
     app['mq'] = mq
 
     channel = await mq.channel()
+    publish_channel = await mq.channel()
     if prefetch:
         prefetch = int(prefetch)
         LOG.debug('Prefetch: %s', prefetch)
@@ -85,7 +85,11 @@ async def initialize(app, mq_url, queue, prefetch=None):
     LOG.debug('Creating consumer for %s', queue)
     app['mq_consumer'] = None
     try:
-        task = asyncio.create_task(channel.basic_consume(queue, on_message, no_ack=False, consumer_tag='LocalEGA-test'))
+
+        async def _on_message(message):
+            return await on_message(message, publish_channel)
+
+        task = asyncio.create_task(channel.basic_consume(queue, _on_message, no_ack=False, consumer_tag='LocalEGA-test'))
         app['mq_consumer'] = task
         def discard():
             app['mq_consumer'] = None
@@ -150,6 +154,9 @@ if __name__ == '__main__':
     parser.add_argument('-u', '--users', default=str(Path(__file__).parent.resolve() / 'users.json'))
     parser.add_argument('-q', '--queue', default='from_fega')
     parser.add_argument('-p', '--port', type=int, default=8080)
+    parser.add_argument('-b', '--broker')
+    parser.add_argument('-f', '--prefetch', type=int, default=None)
+    
 
     args = parser.parse_args()
 
@@ -205,4 +212,4 @@ if __name__ == '__main__':
                  }
                 })
 
-    main(args.port, args.users, os.getenv('MQ_URL'), args.queue, mq_prefetch = os.getenv('MQ_PREFETCH'))
+    main(args.port, args.users, args.broker, args.queue, mq_prefetch = args.prefetch)

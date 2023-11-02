@@ -119,8 +119,8 @@ services:
     command: 'rabbitmq-server'
 
   cega:
-    environment:
-      - MQ_URL=amqp://admin:secret@cega-mq:5672/%2F
+    depends_on:
+      - cega-mq
     hostname: cega
     ports:
       - 8080:8080
@@ -132,4 +132,4 @@ services:
     volumes:
       - ./cega/users/users.json:/ega/users.json
     entrypoint: ['python', 'server.py']
-    command: '-d'
+    command: '-d -b amqp://admin:secret@cega-mq:5672/%2F -f 1'
