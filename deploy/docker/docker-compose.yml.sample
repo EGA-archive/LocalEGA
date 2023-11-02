@@ -5,9 +5,9 @@ networks:
   internal:
   vault:
 
-volumes:
-  mq:
-  cega-mq:
+# volumes:
+#   mq:
+#   cega-mq:
 
 services:
   inbox:
@@ -58,7 +58,7 @@ services:
     #   - MQ_SERVER_CERT=/etc/rabbitmq/ssl.cert
     #   - MQ_SERVER_KEY=/etc/rabbitmq/ssl.key
     volumes:
-      - mq:/var/lib/rabbitmq
+    #  - mq:/var/lib/rabbitmq
       - ../../src/mq/entrypoint.sh:/usr/local/bin/ega-entrypoint.sh
     entrypoint: ['/usr/local/bin/ega-entrypoint.sh']
     command: 'rabbitmq-server'
@@ -113,10 +113,9 @@ services:
     networks:
       - internal
     volumes:
-      - cega-mq:/var/lib/rabbitmq
-      - ./cega/mq-entrypoint.sh:/usr/local/bin/ega-entrypoint.sh
-    entrypoint: ['/usr/local/bin/ega-entrypoint.sh']
-    command: 'rabbitmq-server'
+      # - cega-mq:/var/lib/rabbitmq
+      - ./cega/mq/definitions.json:/etc/rabbitmq/definitions.json
+      - ./cega/mq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
 
   cega:
     depends_on:
@@ -131,5 +130,5 @@ services:
       - internal
     volumes:
       - ./cega/users/users.json:/ega/users.json
-    entrypoint: ['python', 'server.py']
-    command: '-d -b amqp://admin:secret@cega-mq:5672/%2F -f 1'
+    entrypoint: ['python', '-m', 'server']
+    command: '-d -f 1 amqp://admin:secret@cega-mq:5672/%2F'

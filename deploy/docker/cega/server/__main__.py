@@ -2,68 +2,14 @@ import logging
 import argparse
 from pathlib import Path
 from logging.config import dictConfig
-import sys
-import json
 import asyncio
-from base64 import b64decode
 
 from aiohttp import web
 import aiormq
 
+from . import users, mq
+
 LOG = logging.getLogger(__name__)
-
-HTTP_AUTH_USERNAME = 'fega'
-HTTP_AUTH_PASSWORD = 'testing' # yup, we don't care, it's just for testing
-
-#############################################################
-## Consumer 
-#############################################################
-
-async def on_message(message, publish_channel):
-    try:
-        correlation_id = message.header.properties.correlation_id
-        body = message.body.decode()
-        LOG.debug('[%s] %s', correlation_id, body)
-        await message.channel.basic_ack(message.delivery.delivery_tag)
-    except Exception as e:
-        LOG.error('%r', e)
-        await message.channel.basic_nack(message.delivery.delivery_tag)
-
-#############################################################
-## Central EGA users 
-#############################################################
-USERS = {}
-
-async def get_user(request):
-
-    # Authenticate
-    auth_header = request.headers.get('AUTHORIZATION')
-    if not auth_header:
-        raise web.HTTPUnauthorized(reason='Protected access')
-    _, token = auth_header.split(None, 1)  # Skipping the Basic keyword
-    auth_user, auth_password = b64decode(token).decode().split(':', 1)
-    if HTTP_AUTH_USERNAME != auth_user or HTTP_AUTH_PASSWORD != auth_password:
-        raise web.HTTPUnauthorized(reason='Protected access')
-
-    # Search
-    term = request.match_info.get('term')
-    record = USERS.get(term)
-
-    if not record:
-        raise web.HTTPNotFound(reason='User not found')
-
-    return web.json_response(record,
-                             headers = { "Server": "Central EGA (test) Server",
-                                         "X-EGA-apiVersion" : "v2",
-                                         "X-EGA-docLink" : "https://ega-archive.org",
-                                        })
-
-def load_users(filepath):
-    global USERS
-    with open(filepath, 'r') as stream:
-        USERS = json.load(stream)
-    LOG.debug('Loaded %d users: %s', len(USERS) / 2, list(USERS.keys()))
-
 
 #############################################################
 ## Server init/destroy
@@ -72,11 +18,11 @@ def load_users(filepath):
 async def initialize(app, mq_url, queue, prefetch=None):
     """Initialize server."""
 
-    mq = await aiormq.connect(mq_url)
-    app['mq'] = mq
+    mq_connection = await aiormq.connect(mq_url)
+    app['mq'] = mq_connection
 
-    channel = await mq.channel()
-    publish_channel = await mq.channel()
+    channel = await mq_connection.channel()
+    publish_channel = await mq_connection.channel()
     if prefetch:
         prefetch = int(prefetch)
         LOG.debug('Prefetch: %s', prefetch)
@@ -87,7 +33,12 @@ async def initialize(app, mq_url, queue, prefetch=None):
     try:
 
         async def _on_message(message):
-            return await on_message(message, publish_channel)
+            try:
+                await mq.on_message(message, publish_channel)
+                await message.channel.basic_ack(message.delivery.delivery_tag)
+            except Exception as e:
+                LOG.error('%r', e)
+                await message.channel.basic_nack(message.delivery.delivery_tag)
 
         task = asyncio.create_task(channel.basic_consume(queue, _on_message, no_ack=False, consumer_tag='LocalEGA-test'))
         app['mq_consumer'] = task
@@ -126,7 +77,7 @@ async def error_middleware(request, handler):
 def main(port, users_filepath, mq_url, queue, mq_prefetch=None):
 
     # Load Users
-    load_users(users_filepath)
+    users.load_users(users_filepath)
 
     # Configure the app
     server = web.Application(middlewares = [error_middleware])
@@ -136,8 +87,8 @@ def main(port, users_filepath, mq_url, queue, mq_prefetch=None):
     server.on_cleanup.append(destroy)
 
     # Configure the endpoints
-    server.add_routes([web.get('/username/{term}', get_user),
-                       web.get('/user-id/{term}', get_user),
+    server.add_routes([web.get('/username/{term}', users.get_user),
+                       web.get('/user-id/{term}', users.get_user),
                        ])
 
     # run the server on a port number
@@ -151,11 +102,11 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Fake Central EGA server/consumer')
     parser.add_argument('-v', '--verbose', action='store_true')
     parser.add_argument('-d', '--debug', action='store_true')
-    parser.add_argument('-u', '--users', default=str(Path(__file__).parent.resolve() / 'users.json'))
+    parser.add_argument('-u', '--users', default=str(Path(__file__).parent.parent.resolve() / 'users.json'))
     parser.add_argument('-q', '--queue', default='from_fega')
     parser.add_argument('-p', '--port', type=int, default=8080)
-    parser.add_argument('-b', '--broker')
     parser.add_argument('-f', '--prefetch', type=int, default=None)
+    parser.add_argument('broker')
     
 
     args = parser.parse_args()
@@ -166,8 +117,6 @@ if __name__ == '__main__':
     if args.debug:
         log_level = 'DEBUG'
 
-    print(args)
-
     # Configure the logging
     dictConfig({ "version": 1,
                  "root": {
@@ -176,6 +125,11 @@ if __name__ == '__main__':
                  },
                  "loggers": {
                      "__main__": {
+                         "level": log_level,
+                         "propagate": True,
+                         "handlers": [ "console" ]
+                     },
+                     "server": {
                          "level": log_level,
                          "propagate": True,
                          "handlers": [ "console" ]

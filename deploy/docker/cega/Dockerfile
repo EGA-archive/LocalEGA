@@ -22,7 +22,7 @@ RUN groupadd ega && \
     useradd -M -g ega ega && \
     mkdir /ega
 
-COPY server.py /ega/server.py
+COPY server /ega/server
 COPY users/users.json /ega/users.json
 
 USER ega
