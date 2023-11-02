@@ -29,6 +29,13 @@ WORKDIR /var/src/pg_crypt4gh
 RUN make
 RUN make install
 
+######### SQLite box pgxs
+COPY pg_sqlite_fs /var/src/pg_sqlite_fs
+
+WORKDIR /var/src/pg_sqlite_fs
+RUN make
+RUN make install
+
 ############ For debug
 RUN echo "alias ll='ls -al'" >> ~/.bashrc
 RUN ldconfig -v

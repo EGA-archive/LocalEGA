@@ -11,3 +11,6 @@
 [submodule "distribution"]
 	path = src/distribution
 	url = https://github.com/EGA-archive/LocalEGA-distribution.git
+[submodule "src/vault/pg_sqlite_fs"]
+	path = src/vault/pg_sqlite_fs
+	url = https://github.com/silverdaz/pg_sqlite_fs.git

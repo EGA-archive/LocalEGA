@@ -7,11 +7,23 @@ LOG = logging.getLogger(__name__)
 
 EGAF_COUNTER = 0
 
-EGAF = {}
+EGAF = {} # checksum -> accession id
 
-#############################################################
-## Consumer 
-#############################################################
+async def mq_send(publish_channel, message, routing_key, properties=None):
+    return await publish_channel.basic_publish(json.dumps(message).encode(),
+                                               routing_key=routing_key,
+                                               exchange='localega',
+                                               properties=properties)
+
+def get_file_accession(checksum):
+    global EGAF
+    global EGAF_COUNTER
+    accession_id = EGAF.get(checksum)
+    if accession_id is None:
+        EGAF_COUNTER = EGAF_COUNTER + 1
+        accession_id = f"EGAF9{EGAF_COUNTER:0>11}"
+        EGAF[checksum] = accession_id
+    return accession_id
 
 async def on_message(message, publish_channel, users):
     correlation_id = message.header.properties.correlation_id
@@ -27,7 +39,7 @@ async def on_message(message, publish_channel, users):
     if routing_key == 'files.completed':
         dataset_id = await send_mapping(publish_channel, body)
         await send_dataset_release(publish_channel, dataset_id)
-        await send_permission(publish_channel, dataset_id, users)
+        await send_permission(publish_channel, dataset_id, users['jane-distribution'])
         return
 
 
@@ -39,8 +51,8 @@ async def send_ingestion(publish_channel, correlation_id, body):
         "encrypted_checksums": body['encrypted_checksums']
     }
     LOG.debug('Sending to FEGA: [%s] %s', correlation_id, message)
-    await publish_channel.basic_publish(json.dumps(message).encode(), routing_key='ingest', exchange='localega', 
-                                        properties=aiormq.spec.Basic.Properties(correlation_id=correlation_id))
+    await mq_send(publish_channel, message, 'ingest',
+                  properties=aiormq.spec.Basic.Properties(correlation_id=correlation_id))
 
 
 async def send_accession(publish_channel, correlation_id, body):
@@ -53,8 +65,8 @@ async def send_accession(publish_channel, correlation_id, body):
     }
 
     LOG.debug('Sending to FEGA: [%s] %s', correlation_id, message)
-    await publish_channel.basic_publish(json.dumps(message).encode(),routing_key='accession', exchange='localega', 
-                                        properties=aiormq.spec.Basic.Properties(correlation_id=correlation_id))
+    await mq_send(publish_channel, message, 'accession',
+                  properties=aiormq.spec.Basic.Properties(correlation_id=correlation_id))
 
 
 async def send_mapping(publish_channel, body):
@@ -62,10 +74,10 @@ async def send_mapping(publish_channel, body):
     message = {
         "type":"mapping",
         "dataset_id": dataset_id,
-        "accession_ids": [ getEGAF(body['decrypted_checksums'][0]['value']) ]
+        "accession_ids": [ get_file_accession(body['decrypted_checksums'][0]['value']) ]
     }
     LOG.debug('Sending to FEGA: %s', message)
-    await publish_channel.basic_publish(json.dumps(message).encode(),routing_key='dataset.mapping', exchange='localega')
+    await mq_send(publish_channel, message, 'dataset.mapping')
     return dataset_id
 
 
@@ -76,31 +88,19 @@ async def send_dataset_release(publish_channel, dataset_id):
         "dataset_id": dataset_id
     }
     LOG.debug('Sending to FEGA: %s', message)
-    await publish_channel.basic_publish(json.dumps(message).encode(),routing_key='dataset.release', exchange='localega')
-    return dataset_id
+    await mq_send(publish_channel, message, 'dataset.release')
 
 
-async def send_permission(publish_channel, dataset_id, users):
+async def send_permission(publish_channel, dataset_id, user):
     message = {
        "type":"permission",
-       "user": users['jane-distribution'],
+       "user": user,
        "edited_at":"2023-10-20T10:57:56.981814+00:00",
        "created_at":"2023-10-20T10:57:56.981814+00:00",
        "dataset_id": dataset_id,
        "expires_at": None
     }
     LOG.debug('Sending to FEGA: %s', message)
-    await publish_channel.basic_publish(json.dumps(message).encode(),routing_key='dataset.permission', exchange='localega')
+    await mq_send(publish_channel, message, 'dataset.permission')
 
 
-def getEGAF(checksum):
-    global EGAF
-    global EGAF_COUNTER
-
-    my_egaf = EGAF.get(checksum)
-    if my_egaf is None:
-        EGAF_COUNTER = EGAF_COUNTER + 1
-        my_egaf = f"EGAF9{EGAF_COUNTER:0>11}"
-        EGAF[checksum] = my_egaf
-
-    return my_egaf

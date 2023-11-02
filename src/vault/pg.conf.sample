@@ -76,3 +76,8 @@ crypt4gh.master_seckey = '303030303030303030303030303030303030303030303030303030
 #
 
 vault.dirpath = '/path/to/vault/directory/for/distribution'
+
+#------------------------------------------------------------------------------
+# SQLite box settings
+#------------------------------------------------------------------------------
+sqlite_fs.location = '/sqlite-boxes'

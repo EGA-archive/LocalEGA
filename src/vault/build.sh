@@ -60,8 +60,9 @@ echo "Starting the server internally"
 PGUSER=postgres \
       pg_ctl -D "$PGDATA" \
              -o "-c listen_addresses='localhost' -c password_encryption=scram-sha-256 -p 5432" \
-	     -o "-c crypt4gh.master_seckey=fake -c shared_preload_libraries='pg_crypt4gh'" \
 	     -o "-c wal_level=minimal -c max_wal_senders=0" \
+	     -o "-c crypt4gh.master_seckey=fake -c shared_preload_libraries='pg_crypt4gh'" \
+	     -o "-c sqlite_fs.location=/sqlite-boxes" \
 	     -w start
 
 # Stop the server when exiting and receiving an interrupt
