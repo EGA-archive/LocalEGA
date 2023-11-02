@@ -23,7 +23,7 @@ services:
       # - CEGA_ENDPOINT_CREDS=fega-node:fega-secret
       - CEGA_ENDPOINT=http://cega:8080
       - CEGA_ENDPOINT_CREDS=fega:testing
-      - MQ_CONNECTION=amqp://admin:change-me-please@mq:5672/%2F
+      - MQ_CONNECTION=amqp://admin:secret@mq:5672/%2F
       - MQ_EXCHANGE=cega
       - MQ_ROUTING_KEY=files.inbox
       - MQ_VERIFY_PEER=no

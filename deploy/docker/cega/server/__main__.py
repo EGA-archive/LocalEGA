@@ -34,7 +34,7 @@ async def initialize(app, mq_url, queue, prefetch=None):
 
         async def _on_message(message):
             try:
-                await mq.on_message(message, publish_channel)
+                await mq.on_message(message, publish_channel, users.USERS)
                 await message.channel.basic_ack(message.delivery.delivery_tag)
             except Exception as e:
                 LOG.error('%r', e)

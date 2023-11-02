@@ -33,5 +33,19 @@
 	"uid": 5002,
 	"gecos": "LocalEGA (test) User",
 	"lastChanged": 19430
-    }
+    },
+
+    "jane-distribution" : {
+      "keys":[ {
+                "key":"ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEoe0fZU+7gqus+BBHkRk5zVu4/l87PxaPY8fGFT+YJr jane@LocalEGA",
+                "type":"ssh-ed25519"
+             } 
+      ],
+      "email":"jane@jane.com",
+      "country":"World",
+      "username":"jane",
+      "full_name":"Jane Doe",
+      "institution":"Local EGA",
+      "password_hash":"$2b$12$otjfgrPG8HTFfSsK2f2ULO7sVg0c5plBgoHKAU8pSSKH7JKiFv5DG"
+   }
 }
