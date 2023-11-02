@@ -33,7 +33,15 @@ async def on_message(message, publish_channel, users):
     LOG.debug('Routing key %s', routing_key)
 
     if routing_key == 'files.inbox':
-        return await send_ingestion(publish_channel, correlation_id, body)
+        operation = body['operation']
+        if operation == 'upload':
+            return await send_ingestion(publish_channel, correlation_id, body)
+        if operation == 'remove':
+            return await send_cancel(publish_channel, correlation_id, body)
+        if operation == 'rename':
+            LOG.debug('Rename: do nothing')
+            return
+        raise ValueError(f'Invalid operation: {operation}')
     if routing_key == 'files.verified':
         return await send_accession(publish_channel, correlation_id, body)
     if routing_key == 'files.completed':
@@ -54,13 +62,24 @@ async def send_ingestion(publish_channel, correlation_id, body):
     await mq_send(publish_channel, message, 'ingest',
                   properties=aiormq.spec.Basic.Properties(correlation_id=correlation_id))
 
+async def send_cancel(publish_channel, correlation_id, body):
+    message = {
+        "type":"cancel",
+        "user": body['user'],
+        "filepath": body['filepath'],
+        #"encrypted_checksums": body['encrypted_checksums']
+    }
+    LOG.debug('Sending to FEGA: [%s] %s', correlation_id, message)
+    await mq_send(publish_channel, message, 'cancel',
+                  properties=aiormq.spec.Basic.Properties(correlation_id=correlation_id))
+
 
 async def send_accession(publish_channel, correlation_id, body):
     message = {
         "type":"accession",
         "user": body['user'],
         "filepath": body['filepath'],
-        "accession_id": getEGAF(body['decrypted_checksums'][0]['value']), 
+        "accession_id": get_file_accession(body['decrypted_checksums'][0]['value']), 
         "decrypted_checksums": body['decrypted_checksums']
     }
 

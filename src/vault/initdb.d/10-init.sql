@@ -13,7 +13,7 @@ SET default_tablespace = '';
 
 
 -- To input data
-CREATE USER lega WITH LOGIN ENCRYPTED PASSWORD NULL;
+CREATE USER lega WITH LOGIN PASSWORD NULL;
 
 -- To distribute data
-CREATE USER distribution WITH LOGIN ENCRYPTED PASSWORD NULL;
+CREATE USER distribution WITH LOGIN PASSWORD NULL;

@@ -58,3 +58,38 @@ psql:
 	psql
 
 
+#############################
+## Distribution
+#############################
+
+SQL_FILES=$(notdir $(wildcard ../../src/distribution/src/db/*.sql))
+
+echo:
+	@echo $(SQL_FILES)
+
+load: $(SQL_FILES:%=load-%)
+
+load-%: export PGHOST=localhost
+load-%: export PGPORT=5432
+load-%: export PGUSER=postgres
+load-%: export PGPASSWORD=$(file < pg_vault_su_password)
+load-%: export PGDATABASE=ega
+load-%:
+	psql < ../../src/distribution/src/db/$*
+
+
+
+#############################
+## Upload example
+#############################
+
+data/example.txt.c4gh: data/example.txt
+	crypt4gh encrypt --recipient_pk service.key.pub < $< > $@
+
+data/example.txt:
+	dd if=/dev/urandom bs=1024 count=2 > $@
+
+example: data/example.txt.c4gh
+
+sftp:
+	sftp -P 2222 john@localhost
