@@ -23,6 +23,7 @@ async def get_user(request):
 
     # Search
     term = request.match_info.get('term')
+    LOG.debug('Looking up %s', term)
     record = request.app['users'].get(term)
 
     if not record:

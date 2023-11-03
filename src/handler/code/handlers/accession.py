@@ -121,7 +121,7 @@ async def execute(config, message):
                           for encrypted_packet in header.encrypt(packet, [master_key])]
         master_header = header.serialize(master_packets)
 
-        LOG.info('Decrypting / Copying / Checksuming the payload')
+        LOG.info('Copying / Checksuming the payload')
         loop = asyncio.get_running_loop()
         while True:
             # Making it asyncio
