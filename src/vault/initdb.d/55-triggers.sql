@@ -45,14 +45,6 @@ CREATE TRIGGER user_table_update_edited_columns
 BEFORE UPDATE ON public.user_table
 FOR EACH ROW EXECUTE PROCEDURE public.update_edited_columns();
 
-CREATE TRIGGER group_table_update_edited_columns
-BEFORE UPDATE ON public.group_table
-FOR EACH ROW EXECUTE PROCEDURE public.update_edited_columns();
-
-CREATE TRIGGER user_group_table_update_edited_columns
-BEFORE UPDATE ON public.user_group_table
-FOR EACH ROW EXECUTE PROCEDURE public.update_edited_columns();
-
 CREATE TRIGGER user_key_table_update_edited_columns
 BEFORE UPDATE ON public.user_key_table
 FOR EACH ROW EXECUTE PROCEDURE public.update_edited_columns();

@@ -12,9 +12,6 @@ GRANT SELECT,INSERT,UPDATE,DELETE 	ON TABLE public.dac_dataset_table 	TO lega;
 GRANT SELECT,INSERT,UPDATE,DELETE	ON TABLE public.dac_user_table 		TO lega;
 GRANT SELECT,INSERT,DELETE		ON TABLE public.dataset_file_table 	TO lega;
 
-GRANT SELECT				ON TABLE public.requesters		TO lega;
-GRANT SELECT				ON TABLE public.ssh_keys		TO lega;
-
 GRANT USAGE 				ON SCHEMA private 			TO lega;
 GRANT SELECT,INSERT,UPDATE,DELETE 	ON TABLE private.file_table 		TO lega;
 GRANT USAGE                             ON SEQUENCE private.dataset_permission_table_id_seq TO lega;
