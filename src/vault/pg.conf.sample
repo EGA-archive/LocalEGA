@@ -81,3 +81,15 @@ vault.dirpath = '/path/to/vault/directory/for/distribution'
 # SQLite box settings
 #------------------------------------------------------------------------------
 sqlite_fs.location = '/sqlite-boxes'
+
+#------------------------------------------------------------------------------
+# EGA NSS SETTINGS
+#------------------------------------------------------------------------------
+
+nss.uid_shift = 10000
+nss.gid_shift = 0
+nss.users = '/etc/ega/nss/users'
+nss.groups = '/etc/ega/nss/groups'
+nss.passwords = '/etc/ega/nss/passwords'
+nss.authorized_keys = '/etc/ega/authorized_keys'
+

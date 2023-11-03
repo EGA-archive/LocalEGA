@@ -95,8 +95,8 @@ services:
       - ./pg.conf:/etc/ega/pg.conf
       - ./pg_hba.conf:/etc/ega/pg_hba.conf
       # For the distribution users
-      # - /etc/ega/nss:/ega/cache/nss
-      # - /etc/ega/authorized_keys:/ega/cache/authorized_keys
+      - /opt/LocalEGA/nss:/etc/ega/nss
+      - /opt/LocalEGA/authorized_keys:/etc/ega/authorized_keys
     networks:
       - vault
     user: postgres
