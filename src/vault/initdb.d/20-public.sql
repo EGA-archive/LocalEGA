@@ -1,38 +1,3 @@
-CREATE FUNCTION public.sys2db_user_id(_sys_uid bigint)
-RETURNS bigint
-LANGUAGE SQL
-AS $_$
-   SELECT _sys_uid - 10000;
-$_$;
-
-CREATE FUNCTION public.db2sys_user_id(_db_uid bigint)
-RETURNS bigint
-LANGUAGE SQL
-AS $_$
-   SELECT _db_uid + 10000;
-$_$;
-
-
-------------
--- GROUPS --
-------------
-
-CREATE TABLE public.group_table (
-
-  id      		BIGSERIAL PRIMARY KEY,
-  name    		varchar(64),
-  description 		text,
-  is_enabled            boolean NOT NULL DEFAULT true,
-
-    -- auditing
-    created_by_db_user      text NOT NULL DEFAULT CURRENT_USER,
-    created_at              timestamp(6) with time zone NOT NULL DEFAULT now(),
-    edited_by_db_user       text NOT NULL DEFAULT CURRENT_USER,
-    edited_at               timestamp(6) with time zone NOT NULL DEFAULT now()
-
-);
-
-
 -----------
 -- USERS --
 -----------
@@ -58,19 +23,6 @@ CREATE TABLE public.user_table
     edited_by_db_user       text NOT NULL DEFAULT CURRENT_USER,
     edited_at               timestamp(6) with time zone NOT NULL DEFAULT now()
 );
-
-CREATE TABLE public.user_group_table (
-    id         		BIGSERIAL PRIMARY KEY,
-    user_id    		bigint NOT NULL REFERENCES public.user_table(id),
-    group_id    	bigint NOT NULL REFERENCES public.group_table(id),
-
-    -- auditing
-    created_by_db_user      text NOT NULL DEFAULT CURRENT_USER,
-    created_at              timestamp(6) with time zone NOT NULL DEFAULT now(),
-    edited_by_db_user       text NOT NULL DEFAULT CURRENT_USER,
-    edited_at               timestamp(6) with time zone NOT NULL DEFAULT now()
-);
-
 
 ----------
 -- KEYS --
