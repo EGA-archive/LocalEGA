@@ -7,7 +7,6 @@ from aiohttp import web
 
 LOG = logging.getLogger(__name__)
 
-USERS = {}
 HTTP_AUTH_USERNAME = 'fega'
 HTTP_AUTH_PASSWORD = 'testing' # yup, we don't care, it's just for testing
 
@@ -24,7 +23,7 @@ async def get_user(request):
 
     # Search
     term = request.match_info.get('term')
-    record = USERS.get(term)
+    record = request.app['users'].get(term)
 
     if not record:
         raise web.HTTPNotFound(reason='User not found')
@@ -36,7 +35,8 @@ async def get_user(request):
                                         })
 
 def load_users(filepath):
-    global USERS
+    users = {}
     with open(filepath, 'r') as stream:
-        USERS = json.load(stream)
-    LOG.debug('Loaded %d users: %s', len(USERS) / 2, list(USERS.keys()))
+        users = json.load(stream)
+    LOG.debug('Loaded %d users: %s', len(users) / 2, list(users.keys()))
+    return users

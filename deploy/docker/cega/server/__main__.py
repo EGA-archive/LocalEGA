@@ -7,7 +7,7 @@ import asyncio
 from aiohttp import web
 import aiormq
 
-from . import users, mq
+from . import users, mq, request
 
 LOG = logging.getLogger(__name__)
 
@@ -15,14 +15,18 @@ LOG = logging.getLogger(__name__)
 ## Server init/destroy
 #############################################################
 
-async def initialize(app, mq_url, queue, prefetch=None):
+async def initialize(app, users_filepath, mq_url, queue, prefetch=None):
     """Initialize server."""
+
+    # Load users
+    app['users'] = users.load_users(users_filepath)
 
     mq_connection = await aiormq.connect(mq_url)
     app['mq'] = mq_connection
 
     channel = await mq_connection.channel()
     publish_channel = await mq_connection.channel()
+    app['mq_channel'] = publish_channel
     if prefetch:
         prefetch = int(prefetch)
         LOG.debug('Prefetch: %s', prefetch)
@@ -34,7 +38,7 @@ async def initialize(app, mq_url, queue, prefetch=None):
 
         async def _on_message(message):
             try:
-                await mq.on_message(message, publish_channel, users.USERS)
+                await mq.on_message(message, publish_channel)
                 await message.channel.basic_ack(message.delivery.delivery_tag)
             except Exception as e:
                 LOG.error('%r', e)
@@ -76,19 +80,17 @@ async def error_middleware(request, handler):
 
 def main(port, users_filepath, mq_url, queue, mq_prefetch=None):
 
-    # Load Users
-    users.load_users(users_filepath)
-
     # Configure the app
     server = web.Application(middlewares = [error_middleware])
     async def _init(app):
-        await initialize(app, mq_url, queue, prefetch=mq_prefetch)
+        await initialize(app, users_filepath, mq_url, queue, prefetch=mq_prefetch)
     server.on_startup.append(_init)
     server.on_cleanup.append(destroy)
 
     # Configure the endpoints
     server.add_routes([web.get('/username/{term}', users.get_user),
                        web.get('/user-id/{term}', users.get_user),
+                       web.get('/permission/{username}/{dataset_id}', request.grant_permission),
                        ])
 
     # run the server on a port number
@@ -108,7 +110,6 @@ if __name__ == '__main__':
     parser.add_argument('-f', '--prefetch', type=int, default=None)
     parser.add_argument('broker')
     
-
     args = parser.parse_args()
 
     log_level = 'CRITICAL'

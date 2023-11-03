@@ -25,7 +25,7 @@ def get_file_accession(checksum):
         EGAF[checksum] = accession_id
     return accession_id
 
-async def on_message(message, publish_channel, users):
+async def on_message(message, publish_channel):
     correlation_id = message.header.properties.correlation_id
     routing_key = message.routing_key
     body = json.loads(message.body.decode())
@@ -47,7 +47,6 @@ async def on_message(message, publish_channel, users):
     if routing_key == 'files.completed':
         dataset_id = await send_mapping(publish_channel, body)
         await send_dataset_release(publish_channel, dataset_id)
-        await send_permission(publish_channel, dataset_id, users['jane-distribution'])
         return
 
 
@@ -110,16 +109,5 @@ async def send_dataset_release(publish_channel, dataset_id):
     await mq_send(publish_channel, message, 'dataset.release')
 
 
-async def send_permission(publish_channel, dataset_id, user):
-    message = {
-       "type":"permission",
-       "user": user,
-       "edited_at":"2023-10-20T10:57:56.981814+00:00",
-       "created_at":"2023-10-20T10:57:56.981814+00:00",
-       "dataset_id": dataset_id,
-       "expires_at": None
-    }
-    LOG.debug('Sending to FEGA: %s', message)
-    await mq_send(publish_channel, message, 'dataset.permission')
 
 
