@@ -53,16 +53,26 @@ initdb --username=postgres \
        --auth-host=scram-sha-256 \
        -D "$PGDATA"
 
+
+cat > /tmp/pg.conf <<EOF
+listen_addresses='localhost'
+port = 5432
+password_encryption=scram-sha-256
+wal_level=minimal
+max_wal_senders=0
+crypt4gh.master_seckey='3030303030303030303030303030303030303030303030303030303030303030'
+shared_preload_libraries='pg_crypt4gh'
+sqlite_fs.location='/tmp/non-existing'
+log_min_messages = warning
+EOF
+
 # internal start of server in order to allow setup using psql client
 # does not listen on external TCP/IP and waits until start finishes
 # Note: the $PGDATA/pg_hba.conf sets all connections to trust
-echo "Starting the server internally"
+echo "Starting the server internally | conf: /tmp/pg.conf"
 PGUSER=postgres \
       pg_ctl -D "$PGDATA" \
-             -o "-c listen_addresses='localhost' -c password_encryption=scram-sha-256 -p 5432" \
-	     -o "-c wal_level=minimal -c max_wal_senders=0" \
-	     -o "-c crypt4gh.master_seckey=fake -c shared_preload_libraries='pg_crypt4gh'" \
-	     -o "-c sqlite_fs.location=/sqlite-boxes" \
+             -o "-c config_file=/tmp/pg.conf" \
 	     -w start
 
 # Stop the server when exiting and receiving an interrupt
