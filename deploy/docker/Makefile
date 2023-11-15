@@ -1,12 +1,15 @@
 SHELL := /bin/bash
 
+LEGA_UID := $(shell id -u lega)
+LEGA_GID := $(shell id -g lega)
+
 #############################
 ## Build docker images
 #############################
 
 define error-lega-gid-message
 Please specify the group id via the LEGA_GID variable.
-For example, by calling "make $@ LEGA_GID=$$(id -g lega)"
+For example, by calling "make $@ LEGA_UID=$$(id -g lega)"
 endef
 
 image-inbox:
@@ -15,11 +18,20 @@ ifeq ($(LEGA_GID),)
 endif
 	make -C ../../src/inbox latest LEGA_GID=$(LEGA_GID)
 
+define error-lega-ugid-message
+Please specify the user and group ids via the LEGA_UID/LEGA_GID variable.
+For example, by calling "make $@ LEGA_UID=$$(id -u lega) LEGA_GID=$$(id -g lega)"
+endef
+
+
 image-handler:
-ifeq ($(LEGA_GID),)
-	$(error $(error-lega-gid-message))
+ifeq ($(LEGA_UID),)
+	$(error $(error-lega-ugid-message))
 endif
-	make -C ../../src/handler latest LEGA_GID=$(LEGA_GID)
+ifeq ($(LEGA_GID),)
+	$(error $(error-lega-ugid-message))
+endif
+	make -C ../../src/handler latest LEGA_UID=$(LEGA_UID) LEGA_GID=$(LEGA_GID)
 
 image-vault:
 	make -C ../../src/vault latest

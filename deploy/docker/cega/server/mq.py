@@ -7,6 +7,7 @@ LOG = logging.getLogger(__name__)
 
 EGAF_COUNTER = 0
 
+EGAD = "EGAD90000000123"
 EGAF = {} # checksum -> accession id
 
 async def mq_send(publish_channel, message, routing_key, properties=None):
@@ -88,19 +89,18 @@ async def send_accession(publish_channel, correlation_id, body):
 
 
 async def send_mapping(publish_channel, body):
-    dataset_id = "EGAD90000000123"
+    global EGAD
     message = {
         "type":"mapping",
-        "dataset_id": dataset_id,
+        "dataset_id": EGAD,
         "accession_ids": [ get_file_accession(body['decrypted_checksums'][0]['value']) ]
     }
     LOG.debug('Sending to FEGA: %s', message)
     await mq_send(publish_channel, message, 'dataset.mapping')
-    return dataset_id
+    return EGAD
 
 
 async def send_dataset_release(publish_channel, dataset_id):
-    dataset_id = "EGAD90000000123"
     message = {
         "type":"release",
         "dataset_id": dataset_id

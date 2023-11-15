@@ -15,6 +15,9 @@ endif
 
 build: ARGS+=--target BUILD
 latest build: 
+ifeq ($(LEGA_UID),)
+	$(error "Please specify the user id via the LEGA_UID variable")
+endif
 ifeq ($(LEGA_GID),)
 	$(error "Please specify the group id via the LEGA_GID variable")
 endif
@@ -22,6 +25,7 @@ endif
 	       --build-arg ARCH=$(ARCH) \
 	       --build-arg COMMIT=$(COMMIT) \
                --build-arg BUILD_DATE="$(shell date +%Y-%m-%d_%H.%M.%S)" \
+               --build-arg LEGA_UID=$(LEGA_UID) \
                --build-arg LEGA_GID=$(LEGA_GID) \
 	       -t $(IMG) .
-	docker tag $(IMG) crg/fega-inbox:$@
+	docker tag $(IMG) fega/handler:$@

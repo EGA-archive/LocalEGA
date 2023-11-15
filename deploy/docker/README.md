@@ -74,7 +74,7 @@ Adjust the paths in the `docker-compose.yml` file and the `lega.ini` handler con
 
 Create the docker images with:
 
-	make -j3 images LEGA_GID=$(id -g lega)
+	make -j3 images LEGA_UID=$(id -u lega) LEGA_GID=$(id -g lega)
 
 # The vault database
 
