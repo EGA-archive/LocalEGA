@@ -6,22 +6,17 @@ Please specify the group id via the LEGA_GID variable.
 For example, by calling "make $@ LEGA_GID=$$(id -g lega)"
 endef
 
-ARCH=$(shell uname -m)
-ifeq ($(ARCH), arm64) # reset for MacOS
-	ARCH=aarch64
-endif
-
 image-inbox:
 ifeq ($(LEGA_GID),)
 	$(error $(error-lega-gid-message))
 endif
-	make -C ../../src/inbox latest LEGA_GID=$(LEGA_GID) ARCH=$(ARCH)
+	make -C ../../src/inbox latest LEGA_GID=$(LEGA_GID)
 
 image-handler:
 ifeq ($(LEGA_GID),)
 	$(error $(error-lega-gid-message))
 endif
-	make -C ../../src/handler latest LEGA_GID=$(LEGA_GID) ARCH=$(ARCH)
+	make -C ../../src/handler latest LEGA_GID=$(LEGA_GID)
 
 image-vault:
 	make -C ../../src/vault latest
