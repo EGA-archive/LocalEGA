@@ -37,7 +37,6 @@ services:
     ports:
       - 2222:9000
     image: crg/fega-inbox:latest
-    build: ../../src/inbox
     volumes:
       - ./data/inbox:/ega/inbox
 
@@ -67,7 +66,6 @@ services:
     depends_on:
       - mq
     hostname: handler
-    build: ../../src
     image: fega/handler:latest
     container_name: handler
     volumes:
@@ -85,7 +83,6 @@ services:
 
   vault-db:
     hostname: vault
-    build: ../../src/vault
     image: fega/vault-db:latest
     container_name: vault-db
     environment:

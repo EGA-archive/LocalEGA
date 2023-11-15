@@ -109,4 +109,7 @@ data/example.txt:
 example: data/example.txt.c4gh
 
 sftp:
-	sftp -P 2222 john@localhost
+	sftp -P 9000 john@localhost
+
+permission:
+	curl http://localhost:8080/permission/jane/EGAD90000000123
