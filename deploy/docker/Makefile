@@ -1,7 +1,7 @@
 SHELL := /bin/bash
 
 
-define error-inbox-lega-message
+define error-lega-gid-message
 Please specify the group id via the LEGA_GID variable.
 For example, by calling "make $@ LEGA_GID=$$(id -g lega)"
 endef
@@ -13,12 +13,15 @@ endif
 
 image-inbox:
 ifeq ($(LEGA_GID),)
-	$(error $(error-inbox-lega-message))
+	$(error $(error-lega-gid-message))
 endif
 	make -C ../../src/inbox latest LEGA_GID=$(LEGA_GID) ARCH=$(ARCH)
 
 image-handler:
-	make -C ../../src/handler latest
+ifeq ($(LEGA_GID),)
+	$(error $(error-lega-gid-message))
+endif
+	make -C ../../src/handler latest LEGA_GID=$(LEGA_GID) ARCH=$(ARCH)
 
 image-vault:
 	make -C ../../src/vault latest
@@ -66,7 +69,8 @@ clean:
 ## Distribution
 #############################
 
-SQL_FILES=$(notdir $(wildcard ../../src/distribution/src/db/*.sql))
+# we need to sort to return the files in the desired order
+SQL_FILES=$(sort $(notdir $(wildcard ../../src/distribution/src/db/*.sql)))
 
 echo:
 	@echo $(SQL_FILES)
