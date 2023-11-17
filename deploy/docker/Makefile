@@ -49,11 +49,11 @@ endif
 	make -C ../../src/vault init DB_DATA=$(shell pwd)/data/vault-db PG_SU_PASSWORD=$(file < pg_vault_su_password)
 
 # Connect to the database from the host machine
-psql: export PGHOST=localhost
-psql: export PGPORT=5432
-psql: export PGUSER=postgres
-psql: export PGPASSWORD=$(file < pg_vault_su_password)
-psql: export PGDATABASE=ega
+export PGHOST=localhost
+export PGPORT=5432
+export PGUSER=postgres
+export PGPASSWORD=$(file < pg_vault_su_password)
+export PGDATABASE=ega
 psql:
 	psql
 
@@ -86,13 +86,18 @@ echo:
 
 load: $(SQL_FILES:%=load-%)
 
-load-%: export PGHOST=localhost
-load-%: export PGPORT=5432
-load-%: export PGUSER=postgres
-load-%: export PGPASSWORD=$(file < pg_vault_su_password)
-load-%: export PGDATABASE=ega
 load-%:
 	psql < ../../src/distribution/src/db/$*
+
+nss-users:
+	psql -c 'SELECT * FROM nss.make_users();'
+nss-passwords:
+	psql -c 'SELECT * FROM nss.make_passwords();'
+nss-groups:
+	psql -c 'SELECT * FROM nss.make_groups();'
+nss-keys:
+	psql -c 'SELECT nss.make_authorized_keys(r.db_uid) FROM public.requesters r;'
+nss: nss-users nss-passwords nss-groups nss-keys
 
 
 
