@@ -88,6 +88,7 @@ sqlite_fs.location = '/sqlite-boxes'
 
 nss.uid_shift = 10000
 nss.gid_shift = 0
+nss.homes = '/opt/LocalEGA/homes'
 nss.users = '/etc/ega/nss/users'
 nss.groups = '/etc/ega/nss/groups'
 nss.passwords = '/etc/ega/nss/passwords'
