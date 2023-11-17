@@ -1,6 +1,6 @@
 FROM rabbitmq:3.9.11-management-alpine
 
-LABEL maintainer "EGA System Developers"
+LABEL maintainer="EGA System Developers"
 LABEL org.label-schema.schema-version="1.0"
 LABEL org.label-schema.vcs-url="https://github.com/EGA-archive/LocalEGA"
 
