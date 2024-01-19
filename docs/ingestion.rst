@@ -29,7 +29,7 @@ system`. For a given Local EGA, Central EGA selects the associated
 ``vhost`` and drops, in the upstream queue, one message per file to
 ingest, with ``type=ingest``.
 
-On the Local EGA side, an worker retrieves this message, finds the
+On the Local EGA side, a worker retrieves this message, finds the
 associated file in the inbox, splits its Crypt4GH header, decrypts its
 data portion (aka its payload), checksums its content, and moves the
 payload to a staging area (with a temporary name). The files are read
@@ -82,32 +82,23 @@ A reference implementation can be found in the `Local EGA Github
 repository`_. We containerized the code and use `Docker`_ to deploy
 it.
 
-Since there are several components with multiple settings, we also
-created a bootstrap script to help deploy a LocalEGA instance, on your
-local machine. The bootstrap generates random passwords, configuration files,
-necessary public/secret keys, certificates for secure communication
-and connect the different components together (via docker-compose
-files).
+Since there are several components, we provide a docker-compsose files
+with some settings, and a README for the deployment.
 
-Finally, the bootstrap creates a few test users and a fake Central EGA
-instance, to demonstrate the connection, and allow to run the `testsuite`_
+Finally, there is also a `fake Central EGA instance <https://github.com/EGA-archive/LocalEGA/tree/master/deploy/docker/cega>`, 
+to demonstrate the connection by triggering some messages:
+
+.. code-block:: console
+    make example    # Encrypt a random file
+    make sftp       # Connect user John
+    put example     # Upload the file to the inbox
+
+Fake CEGA will trigger the ingestion message as soon as it receives the upload of this new file. 
+Fake CEGA will also send the accession message when requested.
+Finally, receiving a permission for user `jane` can be triggered by `make permission`.
 
 The reference implementation can be deployed locally, using
 `docker-compose`_ (suitable for testing or local development).
-
-.. code-block:: console
-
-      $ git clone https://github.com/EGA-archive/LocalEGA.git LocalEGA
-      $ cd LocalEGA/deploy
-      $ make -C bootstrap  # Generate the configuration settings
-      $ make -j 4 images   # optional, (pre/re)generate the images
-      $ make up            # Start a Local EGA instance, including a fake Central EGA
-      $ make ps            # See the status of this Local EGA instance
-      $ make logs          # See the (very verbose) logs of this Local EGA instance
-
-
-Once the bootstrap files are generated, all interesting settings are
-found in the ``deploy/private`` sub-directory.
 
 There is no need to pre/re-generate the docker images, because
 they are automatically generated on `docker hub`_, and will be pulled
@@ -122,47 +113,3 @@ You can clean up the local instance using ``make down``.
 	  `Kubernetes`_. Those methods allow you to deploy a LocalEGA
 	  instance in a production environment, including scaling and
 	  monitoring/healthcheck.
-
-.. _`testsuite`:
-
-Testsuite
----------
-
-We have implemented a testsuite, grouping tests into the following
-categories: *integration tests*, *robustness tests*, *security tests*,
-and *stress tests*.
-
-`All tests`_ simulate real-case user scenarios on how they
-will interact with the system. All tests are performed on GitHub
-Actions runner, when there is a push to master or a Pull Request
-creation (i.e., they are integrated to the CI).
-
-* `Integration Tests`_: test the overall ingestion architecture and
-  simulate how a user will use the system.
-* `Robustness Tests`_: test the microservice architecture and how the
-  components are inter-connected. They, for example, check that if the
-  database or one microservice is restarted, the overall functionality
-  remains.
-* `Security Tests`_: increase confidence around security of the
-  implementation. They give some deployment guarantees, such as one
-  user cannot see the inbox of another user, or the vault is not
-  accessible from the inbox.
-* `Stress Tests`_: "measure" performance
-
-
-.. _All tests: https://github.com/EGA-archive/LocalEGA/tree/master/tests
-.. _Integration Tests: https://github.com/EGA-archive/LocalEGA/tree/master/tests#integration-tests
-.. _Robustness Tests: https://github.com/EGA-archive/LocalEGA/tree/master/tests#robustness-tests
-.. _Security Tests: https://github.com/EGA-archive/LocalEGA/tree/master/tests#security
-.. _Stress Tests: https://github.com/EGA-archive/LocalEGA/tree/master/tests#stress
-.. _Local EGA Github repository: https://github.com/EGA-archive/LocalEGA
-.. _Docker: https://github.com/EGA-archive/LocalEGA/tree/master/deploy
-.. _Docker Swarm: https://github.com/neicnordic/LocalEGA-deploy-swarm
-.. _Kubernetes: https://github.com/neicnordic/LocalEGA-deploy-init
-.. _Our partners: https://github.com/neicnordic/LocalEGA
-.. _docker hub: https://hub.docker.com/orgs/egarchive/repositories
-.. _docker-compose: https://docs.docker.com/compose/
-
-.. |Testsuite| image:: https://github.com/EGA-archive/LocalEGA/workflows/Testsuite/badge.svg
-	:alt: Testsuite Status
-	:class: inline-baseline
