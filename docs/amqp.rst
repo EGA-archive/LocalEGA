@@ -79,7 +79,7 @@ Message interface (API) CEGA |connect| LEGA
 It is necessary to agree on the format of the messages exchanged
 between Central EGA and any Local EGAs. All messages are
 JSON-formatted. Specific details of the `format and description of 
-each message <https://github.com/EGA-archive/LocalEGA/blob/master/src/handler/Messages%20format.md>` 
+each message <https://github.com/EGA-archive/LocalEGA/blob/master/src/handler/Messages%20format.md>`_ 
 can be found in the repository.
 
 When the brokers exchange messages, the message headers have the following properties:

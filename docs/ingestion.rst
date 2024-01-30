@@ -3,7 +3,7 @@
 Ingestion
 =========
 
-|Testsuite| | Version |version| | Generated |today|
+| Version |version| | Generated |today|
 
 
 Architecture
@@ -82,10 +82,10 @@ A reference implementation can be found in the `Local EGA Github
 repository`_. We containerized the code and use `Docker`_ to deploy
 it.
 
-Since there are several components, we provide a docker-compsose files
+Since there are several components, we provide a docker-compose files
 with some settings, and a README for the deployment.
 
-Finally, there is also a `fake Central EGA instance <https://github.com/EGA-archive/LocalEGA/tree/master/deploy/docker/cega>`, 
+Finally, there is also a `fake Central EGA instance <https://github.com/EGA-archive/LocalEGA/tree/master/deploy/docker/cega>`_, 
 to demonstrate the connection by triggering some messages:
 
 .. code-block:: console
