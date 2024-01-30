@@ -86,6 +86,12 @@ echo:
 
 load: $(SQL_FILES:%=load-%)
 
+export PGHOST=localhost
+export PGPORT=5432
+export PGUSER=postgres
+export PGPASSWORD=$(file < pg_vault_su_password)
+export PGDATABASE=ega
+
 load-%:
 	psql < ../../src/distribution/src/db/$*
 
