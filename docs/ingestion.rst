@@ -89,14 +89,18 @@ Finally, there is also a `fake Central EGA instance <https://github.com/EGA-arch
 to demonstrate the connection by triggering some messages:
 
 .. code-block:: console
+
     make example                  # Encrypt a random file
     make sftp                     # Connect user John with password: john
     put data/example.txt.c4gh     # Upload the file to the inbox
 
+
 Fake CEGA will trigger the ingestion message as soon as it receives the upload of this new file. 
 Fake CEGA will also send the accession message when requested, and, after the completed message is received, it will finally send the release message.
 To verify that the communication went well, the database can be queried. First use `make psql`, then run this SQL command:
-.. code-block:: console   
+
+.. code-block:: console  
+
    select * from file_table;
 
        stable_id     | filesize | display_name | extension | created_by_db_user |          created_at           | edited_by_db_user |           edited_at           
@@ -104,11 +108,14 @@ To verify that the communication went well, the database can be queried. First u
     EGAF900000000001 |     2200 | example.txt  |           | lega               | 2024-01-30 14:59:15.862122+00 | lega              | 2024-01-30 14:59:15.862122+00
    (1 row)
 
+
 If everything went well, the file `example.txt` must exist and have an accession. 
 Please, note that accessions sent by Fake CEGA start at `EGAF900000000001`, and any new file uploaded to the inbox will issue a new accession, regardless of its content (as opposed to what Central EGA does, as it issues content-based accessions). This sequence will be restarted after a database rebuilding.
 
 Then, run this other command:
+
 .. code-block:: console   
+
    select * from dataset_table;
 
        stable_id    | title | description | access_type | is_released | is_deprecated | created_by_db_user |          created_at           | edited_by_db_user |          edited_at           
