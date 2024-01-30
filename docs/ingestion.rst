@@ -46,11 +46,9 @@ system (such as Ceph, for example).
 
 The backend store can be either a regular file system on disk, or an
 S3 object storage. The reference implementation can interface to a
-POSIX compliant file system. In order to use an S3-backed storage, the
-Local EGA system administrator can use `s3fs-fuse
-<https://github.com/s3fs-fuse/s3fs-fuse>`_, or update the code (`as it
-was once done
-<https://github.com/EGA-archive/LocalEGA/blob/v0.4.0/lega/utils/storage.py>`_
+POSIX compliant file system. In order to use an S3-backed storage, 
+the Local EGA system administrator can use `s3fs-fuse <https://github.com/s3fs-fuse/s3fs-fuse>`_, 
+or update the code (`as it was once done <https://github.com/EGA-archive/LocalEGA/blob/v0.4.0/lega/utils/storage.py>`_
 and is now offload to our swedish and finnish partners).
 
 If any of the above steps generates an error, we exit the workflow and

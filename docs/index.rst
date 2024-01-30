@@ -36,8 +36,7 @@ upload encrypted files into a Local EGA inbox, located in the relevant
 country. The ingestion pipeline moves the encrypted files from the
 inbox into the long-term storage, and saves information in the
 database. In the process, each ingested file obtain an ``Accession
-ID``, which identifies it uniquely across `the EGA
-<https://ega-archive.org/>`_. The distribution system allows
+ID``, which identifies it uniquely across `the EGA <https://ega-archive.org/>`_. The distribution system allows
 requesters to access securely the encrypted files in the long-term
 storage, using the accession id, if permissions are granted by a Data
 Access Commity (``DAC``).
@@ -48,8 +47,7 @@ Access Commity (``DAC``).
 
 
 Files are encrypted whether in transit or at rest. The transport
-depends on the inbox and files are stored using the `Crypt4GH file
-format <http://samtools.github.io/hts-specs/crypt4gh.pdf>`_. The
+depends on the inbox and files are stored using the `Crypt4GH file format <http://samtools.github.io/hts-specs/crypt4gh.pdf>`_. The
 metadata of the encrypted files and the permissions to access them are
 located at ``Central EGA``.
 
@@ -89,8 +87,7 @@ and Local EGAs are not the files' owner. Ownership is retained by the
 DACs, as a result of consent agreements signed by the submitters whom
 provided the original files.
 
-|moreabout| More details about the `EGA access model
-<https://ega-archive.org/access/faq>`_.
+|moreabout| More details about the `EGA access model <https://ega-archive.org/access/faq>`_.
 
 ----
 
