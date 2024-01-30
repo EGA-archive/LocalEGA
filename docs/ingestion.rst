@@ -143,3 +143,11 @@ You can clean up the local instance using ``make down``.
 	  `Kubernetes`_. Those methods allow you to deploy a LocalEGA
 	  instance in a production environment, including scaling and
 	  monitoring/healthcheck.
+
+.. _Local EGA Github repository: https://github.com/EGA-archive/LocalEGA
+.. _Docker: https://github.com/EGA-archive/LocalEGA/tree/master/deploy
+.. _Docker Swarm: https://github.com/neicnordic/LocalEGA-deploy-swarm
+.. _Kubernetes: https://github.com/neicnordic/LocalEGA-deploy-init
+.. _Our partners: https://github.com/neicnordic/LocalEGA
+.. _docker hub: https://hub.docker.com/orgs/egarchive/repositories
+.. _docker-compose: https://docs.docker.com/compose/
