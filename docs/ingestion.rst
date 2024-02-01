@@ -95,7 +95,7 @@ to demonstrate the connection by triggering some messages:
 
 Fake CEGA will trigger the ingestion message as soon as it receives the upload of this new file. 
 Fake CEGA will also send the accession message when requested, and, after the completed message is received, it will finally send the release message.
-To verify that the communication went well, the database can be queried. First use `make psql`, then run this SQL command:
+To verify that the communication went well, the database can be queried. First use ``make psql``, then run this SQL command:
 
 .. code-block:: console  
 
@@ -107,8 +107,9 @@ To verify that the communication went well, the database can be queried. First u
    (1 row)
 
 
-If everything went well, the file `example.txt` must exist and have an accession. 
-Please, note that accessions sent by Fake CEGA start at `EGAF900000000001`, and any new file uploaded to the inbox will issue a new accession, regardless of its content (as opposed to what Central EGA does, as it issues content-based accessions). This sequence will be restarted after a database rebuilding.
+If everything went well, the file ``example.txt`` must exist and have an accession. 
+Please, note that accessions sent by Fake CEGA start at ``EGAF900000000001``, and any new file uploaded to the inbox will issue a new accession, 
+regardless of its content (as opposed to what Central EGA does, as it issues content-based accessions). Bear in mind that this sequence will be restarted after a database rebuilding.
 
 Then, run this other command:
 
@@ -123,7 +124,7 @@ Then, run this other command:
 
 
 If the release message was received, this very same information should be returned. 
-Fake CEGA always sends a release message for this dataset `EGAD90000000123`, regardless the file uploaded to the inbox.
+Fake CEGA always sends a release message for this dataset ``EGAD90000000123``, regardless the file uploaded to the inbox.
 
 The reference implementation can be deployed locally, using
 `docker-compose`_ (suitable for testing or local development).

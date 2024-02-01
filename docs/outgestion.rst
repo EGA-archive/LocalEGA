@@ -27,15 +27,15 @@ A reference implementation can be found in the `Local EGA Distribution Github re
 
 Since there are several components, we provide several README for the deployment of each: NSS, PAM and SFTP server, as well as, new functions that must be added to the main database.
 
-To test that the deployment works, receiving a permission for user `jane` can be triggered by `make permission`. Bear in mind that this requires to have run the ingestion test, so there is at least one file successfully archived and the dataset `EGAD90000000123` is released.
+To test that the deployment works, receiving a permission for user ``jane`` can be triggered by ``make permission``. Bear in mind that this requires to have run the ingestion test, so there is at least one file successfully archived and the dataset ``EGAD90000000123`` is released.
 Then you can run:
 
 .. code-block:: console
 
-   sftp jane@localhost                                                                                # Connect user Jane with password: jane
-   get example.txt.c4gh                                                                               # download the file
-   crypt4gh decrypt --sk LocalEGA/deploy/docker/cega/users/jane.key < example.txt.c4gh > example.txt  # decrypt the file downloaded with jane's key
-   diff example.txt LocalEGA/deploy/docker/data/example.txt                                           # compare content of the decrypted file and the original one
+   sftp jane@localhost                                                         # Connect user Jane with password: jane
+   get example.txt.c4gh                                                        # download the file
+   crypt4gh decrypt --sk cega/users/jane.key < example.txt.c4gh > example.txt  # decrypt the file downloaded with jane's key
+   diff example.txt data/example.txt                                           # compare content of the decrypted file and the original one
 
 
 .. _Local EGA Distribution Github repository: https://github.com/EGA-archive/LocalEGA-distribution
