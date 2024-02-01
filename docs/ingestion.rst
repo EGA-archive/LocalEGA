@@ -71,8 +71,8 @@ regularly.
 
 
 
-Installation & Bootstrap
-------------------------
+Installation
+------------
 
 .. highlight:: shell
 

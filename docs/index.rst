@@ -31,7 +31,7 @@ borders (cf to GDPR), while public metadata can. Files will be stored
 encrypted in the Local EGAs located in different countries, while
 public metadata stays at Central EGA.
 
-`In short <https://www.youtube.com/watch?v=k9R8W3V3ugU>`_, submitters
+In short, submitters
 upload encrypted files into a Local EGA inbox, located in the relevant
 country. The ingestion pipeline moves the encrypted files from the
 inbox into the long-term storage, and saves information in the
@@ -87,7 +87,7 @@ and Local EGAs are not the files' owner. Ownership is retained by the
 DACs, as a result of consent agreements signed by the submitters whom
 provided the original files.
 
-|moreabout| More details about the `EGA access model <https://ega-archive.org/access/faq>`_.
+|moreabout| More details about the `EGA access model <https://ega-archive.org/access/request-data/how-to-request-data/>`_.
 
 ----
 
