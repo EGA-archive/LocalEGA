@@ -10,8 +10,8 @@ The distribution service is a server mounting a FUSE filesystem per user automat
 
 It comprises the following components:
 
-.. image:: /static/distribution.png
-   :target: ./_static/distribution.png
+.. image:: /static/distribution.jpg
+   :target: ./_static/distribution.jpg
    :alt: Distribution Architecture and Connected Components
 
 The reference implementation uses a microservice architecture with an internal database, a long-term storage compatible with FUSE, and a SFTP server connected to this FUSE FS.

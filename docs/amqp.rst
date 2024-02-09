@@ -94,21 +94,29 @@ connection sockets. In order to distinguish messages, Central EGA adds
 a field named ``type`` to all outgoing messages. There are 14 types of
 messages so far:
 
-* ``type=ingest``: an ingestion trigger
-* ``type=cancel``: an ingestion cancellation
-* ``type=accession``: contains an accession id
-* ``type=mapping``: contains a dataset to accession id mapping (they
+* ingestion process:
+   * ``type=ingest``: an ingestion trigger
+   * ``type=cancel``: an ingestion cancellation
+   * ``type=accession``: contains an accession id
+* metadata validation:
+   * ``type=mapping``: contains a dataset to accession id mapping (they
   are known at the metadata release stage)
-* ``type=release``: contains an dataset accession id for release
-* ``type=deprecate``: contains an dataset accession id for deprecation
-* ``type=heartbeat``: A mean to check if the Local EGA instance is "alive"
-* ``type=dac.dataset``: contains the DAC managing the dataset, and the members 
-* ``type=dac.members``: contains the members of a DAC
-* ``type=password.updated``: contains a password
-* ``type=contact.updated``: contains user information
-* ``type=keys.updated``: contains keys information
-* ``type=permission``: contains a permission of a user to a dataset
-* ``type=permission.deleted``: contains a permission removal
+* dataset release:
+   * ``type=release``: contains an dataset accession id for release
+* dataset reprecation:
+   * ``type=deprecate``: contains an dataset accession id for deprecation
+* DACs:
+   * ``type=dac.dataset``: contains the DAC managing the dataset, and the members 
+   * ``type=dac.members``: contains the members of a DAC
+* information about a requester or a DAC member:
+   * ``type=password.updated``: contains a password
+   * ``type=contact.updated``: contains user information
+   * ``type=keys.updated``: contains keys information
+* dataset permissions:
+   * ``type=permission``: contains a permission of a user to a dataset
+   * ``type=permission.deleted``: contains a permission removal
+* other:
+   * ``type=heartbeat``: A mean to check if the Local EGA instance is "alive"
 
 For example, an ingestion trigger would have the following format:
 
