@@ -41,8 +41,8 @@ requesters to access securely the encrypted files in the long-term
 storage, using the accession id, if permissions are granted by a Data
 Access Commity (``DAC``).
 
-.. image:: /static/CEGA-FEGA.jpg
-   :target: ./_static/CEGA-FEGA.jpg
+.. image:: /static/CEGA-FEGA.png
+   :target: ./_static/CEGA-FEGA.png
    :alt: General Architecture and Connected Components
 
 

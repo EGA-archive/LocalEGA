@@ -93,14 +93,12 @@ Central EGA uses a unique upstream queue, to minimize the number of
 connection sockets. In order to distinguish messages, Central EGA adds
 a field named ``type`` to all outgoing messages. There are 14 types of
 messages so far:
-
 * ingestion process:
    * ``type=ingest``: an ingestion trigger
    * ``type=cancel``: an ingestion cancellation
    * ``type=accession``: contains an accession id
 * metadata validation:
-   * ``type=mapping``: contains a dataset to accession id mapping (they
-  are known at the metadata release stage)
+   * ``type=mapping``: contains a dataset to accession id mapping (they are known at the metadata release stage)
 * dataset release:
    * ``type=release``: contains an dataset accession id for release
 * dataset reprecation:
