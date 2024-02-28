@@ -95,9 +95,9 @@ provided the original files.
    :maxdepth: 1
 
    Connection CEGA-LEGA <amqp>
+   Inbox                <inbox>
    Ingestion            <ingestion>
    Distribution         <outgestion>
-   Inbox                <inbox>
    Encryption           <encryption>
    Contributing         <https://github.com/EGA-archive/LocalEGA/blob/master/CONTRIBUTING.md>
 
