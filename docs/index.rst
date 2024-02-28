@@ -9,6 +9,8 @@ Local EGA
            class="youtube_wrapper">
    </iframe>
 
+[#]_
+
 .. raw:: latex
 
    \begin{quote}\begin{center}\fbox{\url{https://youtu.be/k9R8W3V3ugU}}\end{center}\end{quote}
@@ -104,3 +106,7 @@ provided the original files.
 
 
 .. |moreabout| unicode:: U+261E .. right pointing finger
+
+.. rubric:: Footnotes
+
+.. [#] Bear in mind that "Mini-Symposium Federated Human Data" was held on 2020, and specific details might no longer apply.
