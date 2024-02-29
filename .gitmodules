@@ -1,0 +1,16 @@
+[submodule "pg_crypt4gh"]
+	path = src/vault/pg_crypt4gh
+	url = https://github.com/silverdaz/pg_crypt4gh.git
+[submodule "libsodium"]
+	path = src/vault/libsodium
+	url = https://github.com/jedisct1/libsodium.git
+	branch = stable
+[submodule "inbox"]
+	path = src/inbox
+	url = https://github.com/EGA-archive/LocalEGA-inbox.git
+[submodule "distribution"]
+	path = src/distribution
+	url = https://github.com/EGA-archive/LocalEGA-distribution.git
+[submodule "src/vault/pg_sqlite_fs"]
+	path = src/vault/pg_sqlite_fs
+	url = https://github.com/silverdaz/pg_sqlite_fs.git

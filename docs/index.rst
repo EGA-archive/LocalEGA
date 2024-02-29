@@ -4,10 +4,11 @@ Local EGA
 
 .. raw:: html
 
-   <iframe allowfullscreen="true"
-	   src="https://www.youtube.com/embed/k9R8W3V3ugU"
-           class="youtube_wrapper">
-   </iframe>
+   <div class="youtube_wrapper">
+      <iframe allowfullscreen="true" src="https://www.youtube.com/embed/k9R8W3V3ugU">
+      </iframe>
+      <div class="caption">Mini-symposium held on 2020, specific details might no longer apply</div>
+   </div>
 
 .. raw:: latex
 
@@ -31,25 +32,23 @@ borders (cf to GDPR), while public metadata can. Files will be stored
 encrypted in the Local EGAs located in different countries, while
 public metadata stays at Central EGA.
 
-`In short <https://www.youtube.com/watch?v=k9R8W3V3ugU>`_, submitters
+In short, submitters
 upload encrypted files into a Local EGA inbox, located in the relevant
 country. The ingestion pipeline moves the encrypted files from the
 inbox into the long-term storage, and saves information in the
 database. In the process, each ingested file obtain an ``Accession
-ID``, which identifies it uniquely across `the EGA
-<https://ega-archive.org/>`_. The distribution system allows
+ID``, which identifies it uniquely across `the EGA <https://ega-archive.org/>`_. The distribution system allows
 requesters to access securely the encrypted files in the long-term
 storage, using the accession id, if permissions are granted by a Data
 Access Commity (``DAC``).
 
-.. image:: /static/overview.png
-   :target: ./_static/overview.png
+.. image:: /static/CEGA-FEGA.png
+   :target: ./_static/CEGA-FEGA.png
    :alt: General Architecture and Connected Components
 
 
 Files are encrypted whether in transit or at rest. The transport
-depends on the inbox and files are stored using the `Crypt4GH file
-format <http://samtools.github.io/hts-specs/crypt4gh.pdf>`_. The
+depends on the inbox and files are stored using the `Crypt4GH file format <http://samtools.github.io/hts-specs/crypt4gh.pdf>`_. The
 metadata of the encrypted files and the permissions to access them are
 located at ``Central EGA``.
 
@@ -89,8 +88,7 @@ and Local EGAs are not the files' owner. Ownership is retained by the
 DACs, as a result of consent agreements signed by the submitters whom
 provided the original files.
 
-|moreabout| More details about the `EGA access model
-<https://ega-archive.org/access/faq>`_.
+|moreabout| More details about the `EGA access model <https://ega-archive.org/access/request-data/how-to-request-data/>`_.
 
 ----
 
@@ -98,9 +96,9 @@ provided the original files.
    :maxdepth: 1
 
    Connection CEGA-LEGA <amqp>
+   Inbox                <inbox>
    Ingestion            <ingestion>
    Distribution         <outgestion>
-   Inbox                <inbox>
    Encryption           <encryption>
    Contributing         <https://github.com/EGA-archive/LocalEGA/blob/master/CONTRIBUTING.md>
 

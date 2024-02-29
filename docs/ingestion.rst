@@ -3,9 +3,6 @@
 Ingestion
 =========
 
-|Testsuite| | Version |version| | Generated |today|
-
-
 Architecture
 ------------
 
@@ -29,7 +26,7 @@ system`. For a given Local EGA, Central EGA selects the associated
 ``vhost`` and drops, in the upstream queue, one message per file to
 ingest, with ``type=ingest``.
 
-On the Local EGA side, an worker retrieves this message, finds the
+On the Local EGA side, a worker retrieves this message, finds the
 associated file in the inbox, splits its Crypt4GH header, decrypts its
 data portion (aka its payload), checksums its content, and moves the
 payload to a staging area (with a temporary name). The files are read
@@ -46,12 +43,10 @@ system (such as Ceph, for example).
 
 The backend store can be either a regular file system on disk, or an
 S3 object storage. The reference implementation can interface to a
-POSIX compliant file system. In order to use an S3-backed storage, the
-Local EGA system administrator can use `s3fs-fuse
-<https://github.com/s3fs-fuse/s3fs-fuse>`_, or update the code (`as it
-was once done
-<https://github.com/EGA-archive/LocalEGA/blob/v0.4.0/lega/utils/storage.py>`_
-and is now offload to our swedish and finnish partners).
+POSIX compliant file system. In order to use an S3-backed storage, 
+the Local EGA system administrator can use `s3fs-fuse <https://github.com/s3fs-fuse/s3fs-fuse>`_, 
+or update the code (`as it was once done <https://github.com/EGA-archive/LocalEGA/blob/v0.4.0/lega/utils/storage.py>`_
+and is now offloaded to our swedish and finnish partners).
 
 If any of the above steps generates an error, we exit the workflow and
 log the error. In case the error is related to a misuse from the user,
@@ -73,8 +68,8 @@ regularly.
 
 
 
-Installation & Bootstrap
-------------------------
+Installation
+------------
 
 .. highlight:: shell
 
@@ -82,32 +77,54 @@ A reference implementation can be found in the `Local EGA Github
 repository`_. We containerized the code and use `Docker`_ to deploy
 it.
 
-Since there are several components with multiple settings, we also
-created a bootstrap script to help deploy a LocalEGA instance, on your
-local machine. The bootstrap generates random passwords, configuration files,
-necessary public/secret keys, certificates for secure communication
-and connect the different components together (via docker-compose
-files).
+Since there are several components, we provide a docker-compose files
+with some settings, and a README for the deployment.
 
-Finally, the bootstrap creates a few test users and a fake Central EGA
-instance, to demonstrate the connection, and allow to run the `testsuite`_
-
-The reference implementation can be deployed locally, using
-`docker-compose`_ (suitable for testing or local development).
+Finally, there is also a `fake Central EGA instance <https://github.com/EGA-archive/LocalEGA/tree/master/deploy/docker/cega>`_, 
+to demonstrate the connection by triggering some messages:
 
 .. code-block:: console
 
-      $ git clone https://github.com/EGA-archive/LocalEGA.git LocalEGA
-      $ cd LocalEGA/deploy
-      $ make -C bootstrap  # Generate the configuration settings
-      $ make -j 4 images   # optional, (pre/re)generate the images
-      $ make up            # Start a Local EGA instance, including a fake Central EGA
-      $ make ps            # See the status of this Local EGA instance
-      $ make logs          # See the (very verbose) logs of this Local EGA instance
+    make example                  # Encrypt a random file
+    make sftp                     # Connect user John with password: john
+    put data/example.txt.c4gh     # Upload the file to the inbox
 
 
-Once the bootstrap files are generated, all interesting settings are
-found in the ``deploy/private`` sub-directory.
+Fake CEGA will trigger the ingestion message as soon as it receives the upload of this new file. 
+Fake CEGA will also send the accession message when requested, and, after the completed message is received, it will finally send the release message.
+To verify that the communication went well, the database can be queried. First use ``make psql``, then run this SQL command:
+
+.. code-block:: console  
+
+   select * from file_table;
+
+       stable_id     | filesize | display_name | extension | created_by_db_user |          created_at           | edited_by_db_user |           edited_at           
+   ------------------+----------+--------------+-----------+--------------------+-------------------------------+-------------------+-------------------------------
+    EGAF900000000001 |     2200 | example.txt  |           | lega               | 2024-01-30 14:59:15.862122+00 | lega              | 2024-01-30 14:59:15.862122+00
+   (1 row)
+
+
+If everything went well, the file ``example.txt`` must exist and have an accession. 
+Please, note that accessions sent by Fake CEGA start at ``EGAF900000000001``, and any new file uploaded to the inbox will issue a new accession, 
+regardless of its content (as opposed to what Central EGA does, as it issues content-based accessions). Bear in mind that this sequence will be restarted after a database rebuilding.
+
+Then, run this other command:
+
+.. code-block:: console   
+
+   select * from dataset_table;
+
+       stable_id    | title | description | access_type | is_released | is_deprecated | created_by_db_user |          created_at           | edited_by_db_user |          edited_at           
+   -----------------+-------+-------------+-------------+-------------+---------------+--------------------+-------------------------------+-------------------+------------------------------
+    EGAD90000000123 |       |             | controlled  | t           | f             | lega               | 2024-01-30 14:59:15.873562+00 | lega              | 2024-01-30 14:59:15.87962+00
+   (1 row)
+
+
+If the release message was received, this very same information should be returned. 
+Fake CEGA always sends a release message for this dataset ``EGAD90000000123``, regardless the file uploaded to the inbox.
+
+The reference implementation can be deployed locally, using
+`docker-compose`_ (suitable for testing or local development).
 
 There is no need to pre/re-generate the docker images, because
 they are automatically generated on `docker hub`_, and will be pulled
@@ -123,38 +140,6 @@ You can clean up the local instance using ``make down``.
 	  instance in a production environment, including scaling and
 	  monitoring/healthcheck.
 
-.. _`testsuite`:
-
-Testsuite
----------
-
-We have implemented a testsuite, grouping tests into the following
-categories: *integration tests*, *robustness tests*, *security tests*,
-and *stress tests*.
-
-`All tests`_ simulate real-case user scenarios on how they
-will interact with the system. All tests are performed on GitHub
-Actions runner, when there is a push to master or a Pull Request
-creation (i.e., they are integrated to the CI).
-
-* `Integration Tests`_: test the overall ingestion architecture and
-  simulate how a user will use the system.
-* `Robustness Tests`_: test the microservice architecture and how the
-  components are inter-connected. They, for example, check that if the
-  database or one microservice is restarted, the overall functionality
-  remains.
-* `Security Tests`_: increase confidence around security of the
-  implementation. They give some deployment guarantees, such as one
-  user cannot see the inbox of another user, or the vault is not
-  accessible from the inbox.
-* `Stress Tests`_: "measure" performance
-
-
-.. _All tests: https://github.com/EGA-archive/LocalEGA/tree/master/tests
-.. _Integration Tests: https://github.com/EGA-archive/LocalEGA/tree/master/tests#integration-tests
-.. _Robustness Tests: https://github.com/EGA-archive/LocalEGA/tree/master/tests#robustness-tests
-.. _Security Tests: https://github.com/EGA-archive/LocalEGA/tree/master/tests#security
-.. _Stress Tests: https://github.com/EGA-archive/LocalEGA/tree/master/tests#stress
 .. _Local EGA Github repository: https://github.com/EGA-archive/LocalEGA
 .. _Docker: https://github.com/EGA-archive/LocalEGA/tree/master/deploy
 .. _Docker Swarm: https://github.com/neicnordic/LocalEGA-deploy-swarm
@@ -162,7 +147,3 @@ creation (i.e., they are integrated to the CI).
 .. _Our partners: https://github.com/neicnordic/LocalEGA
 .. _docker hub: https://hub.docker.com/orgs/egarchive/repositories
 .. _docker-compose: https://docs.docker.com/compose/
-
-.. |Testsuite| image:: https://github.com/EGA-archive/LocalEGA/workflows/Testsuite/badge.svg
-	:alt: Testsuite Status
-	:class: inline-baseline

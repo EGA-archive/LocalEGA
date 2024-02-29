@@ -1,0 +1,131 @@
+version: '3.7'
+
+networks:
+  external:
+  internal:
+  vault:
+
+# volumes:
+#   mq:
+#   cega-mq:
+
+services:
+  inbox:
+    hostname: inbox
+    depends_on:
+      - mq
+    container_name: inbox
+    networks:
+      - external
+      - internal
+    environment:
+      # - CEGA_ENDPOINT=https://nss.test.ega-archive.org
+      # - CEGA_ENDPOINT_CREDS=fega-node:fega-secret
+      - CEGA_ENDPOINT=http://cega:8080
+      - CEGA_ENDPOINT_CREDS=fega:testing
+      - MQ_CONNECTION=amqp://admin:secret@mq:5672/%2F
+      - MQ_EXCHANGE=cega
+      - MQ_ROUTING_KEY=files.inbox
+      - MQ_VERIFY_PEER=no
+      - MQ_VERIFY_HOSTNAME=no
+      - AUTH_VERIFY_PEER=no
+      - AUTH_VERIFY_HOSTNAME=no
+      # add the relevant certificates if needed (including the volumes injections/mappings)
+      # - MQ_CA=/etc/ega/CA.cert
+      # - MQ_CLIENT_CERT=/etc/ega/ssl.cert
+      # - MQ_CLIENT_KEY=/etc/ega/ssl.key
+    ports:
+      - 2222:9000
+    image: crg/fega-inbox:latest
+    volumes:
+      - ./data/inbox:/ega/inbox
+
+  mq:
+    environment:
+      # - CEGA_CONNECTION=amqps://fega-node:fega-secret@rabbitmq.test.ega-archive.org:5671/fega-node
+      - CEGA_CONNECTION=amqp://admin:secret@cega-mq:5672/%2F
+    hostname: mq
+    ports:
+      - 15672:15672
+    image: rabbitmq:3.11.10-management-alpine
+    container_name: mq
+    networks:
+      - internal
+    # add the relevant certificates if needed (including the volumes injections/mappings)
+    # environment:
+    #   - MQ_CA=/etc/rabbitmq/CA.cert
+    #   - MQ_SERVER_CERT=/etc/rabbitmq/ssl.cert
+    #   - MQ_SERVER_KEY=/etc/rabbitmq/ssl.key
+    volumes:
+    #  - mq:/var/lib/rabbitmq
+      - ../../src/mq/entrypoint.sh:/usr/local/bin/ega-entrypoint.sh
+    entrypoint: ['/usr/local/bin/ega-entrypoint.sh']
+    command: 'rabbitmq-server'
+
+  handler:
+    depends_on:
+      - mq
+    hostname: handler
+    image: fega/handler:latest
+    container_name: handler
+    volumes:
+      - ./lega.ini:/etc/ega/lega.ini:ro
+      - ./service.key:/etc/ega/service.seckey:ro
+      - ./master.key.pub:/etc/ega/master.pubkey:ro
+      - ./data/inbox:/ega/inbox
+      - ./data/staging:/ega/staging
+      - ./data/vault:/ega/vault
+      - ./data/vault.bkp:/ega/vault.bkp
+    networks:
+      - internal
+      - vault
+    command: "/etc/ega/lega.ini"
+
+  vault-db:
+    hostname: vault
+    image: fega/vault-db:latest
+    container_name: vault-db
+    environment:
+      - PGDATA=/ega/data
+    volumes:
+      - ./data/vault-db:/ega/data
+      - ./pg.conf:/etc/ega/pg.conf
+      - ./pg_hba.conf:/etc/ega/pg_hba.conf
+      # For the distribution users
+      - /opt/LocalEGA/nss:/etc/ega/nss
+      - /opt/LocalEGA/authorized_keys:/etc/ega/authorized_keys
+    networks:
+      - vault
+    user: postgres
+    ports:
+      - 5432:5432
+    entrypoint: ['postgres', '-c', 'config_file=/etc/ega/pg.conf']
+
+  cega-mq:
+    hostname: cega-mq
+    ports:
+      - 15670:15672
+    image: rabbitmq:3.11.10-management-alpine
+    container_name: cega-mq
+    networks:
+      - internal
+    volumes:
+      # - cega-mq:/var/lib/rabbitmq
+      - ./cega/mq/definitions.json:/etc/rabbitmq/definitions.json
+      - ./cega/mq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
+
+  cega:
+    depends_on:
+      - cega-mq
+    hostname: cega
+    ports:
+      - 8080:8080
+    image: cega
+    build: ./cega
+    container_name: cega
+    networks:
+      - internal
+    volumes:
+      - ./cega/users/users.json:/ega/users.json
+    entrypoint: ['python', '-m', 'server']
+    command: '-d -f 1 amqp://admin:secret@cega-mq:5672/%2F'

@@ -1,0 +1,66 @@
+{
+  "users": [
+    {
+      "name": "admin", "password_hash": "IUBfMYLSSPynj8zjLxX3DtEHi0fhcKPhY/Cy7MJhrragBeP8",
+      "hashing_algorithm": "rabbit_password_hashing_sha256", "tags": "administrator"
+    }
+  ],
+  "vhosts": [
+    { "name": "/" }
+  ],
+  "permissions": [
+    { "user": "admin", "vhost": "/", "configure": ".*", "write": ".*", "read": ".*" }
+  ],
+  "parameters": [],
+  "policies": [],
+  "queues": [
+    {"name": "to_fega", "vhost": "/", "durable": true, "auto_delete": false, "arguments":{}},
+    {"name": "from_fega", "vhost": "/", "durable": true, "auto_delete": false, "arguments":{}}
+  ],
+  "exchanges": [
+    {"name":"localega", "vhost":"/", "type":"topic", "durable":true, "auto_delete":false, "internal":false, "arguments":{}}
+  ], 
+  "bindings": [
+      { "source":"localega", "vhost": "/", "destination_type":"queue", "arguments": {},
+	"routing_key":"accession", "destination":"to_fega" },
+      { "source":"localega", "vhost": "/", "destination_type":"queue", "arguments": {},
+	"routing_key":"cancel", "destination":"to_fega" },
+      { "source":"localega", "vhost": "/", "destination_type":"queue", "arguments": {},
+	"routing_key":"dac", "destination":"to_fega" },
+      { "source":"localega", "vhost": "/", "destination_type":"queue", "arguments": {},
+	"routing_key":"dac.dataset", "destination":"to_fega" },
+      { "source":"localega", "vhost": "/", "destination_type":"queue", "arguments": {},
+	"routing_key":"dac.members", "destination":"to_fega" },
+      { "source":"localega", "vhost": "/", "destination_type":"queue", "arguments": {},
+	"routing_key":"dataset.deprecate", "destination":"to_fega" },
+      { "source":"localega", "vhost": "/", "destination_type":"queue", "arguments": {},
+	"routing_key":"dataset.mapping", "destination":"to_fega" },
+      { "source":"localega", "vhost": "/", "destination_type":"queue", "arguments": {},
+	"routing_key":"dataset.permission", "destination":"to_fega" },
+      { "source":"localega", "vhost": "/", "destination_type":"queue", "arguments": {},
+	"routing_key":"dataset.permission.deleted", "destination":"to_fega" },
+      { "source":"localega", "vhost": "/", "destination_type":"queue", "arguments": {},
+	"routing_key":"dataset.release", "destination":"to_fega" },
+      { "source":"localega", "vhost": "/", "destination_type":"queue", "arguments": {},
+	"routing_key":"files", "destination":"to_fega" },
+      { "source":"localega", "vhost": "/", "destination_type":"queue", "arguments": {},
+	"routing_key":"ingest", "destination":"to_fega" },
+      { "source":"localega", "vhost": "/", "destination_type":"queue", "arguments": {},
+	"routing_key":"mapping", "destination":"to_fega" },
+      { "source":"localega", "vhost": "/", "destination_type":"queue", "arguments": {},
+	"routing_key":"user.contact.updated", "destination":"to_fega" },
+      { "source":"localega", "vhost": "/", "destination_type":"queue", "arguments": {},
+	"routing_key":"user.keys.updated", "destination":"to_fega" },
+      { "source":"localega", "vhost": "/", "destination_type":"queue", "arguments": {},
+	"routing_key":"user.password.updated", "destination":"to_fega" },
+
+      { "source":"localega", "vhost": "/", "destination_type":"queue", "arguments": {},
+	"routing_key":"files.completed", "destination":"from_fega" },
+      { "source":"localega", "vhost": "/", "destination_type":"queue", "arguments": {},
+	"routing_key":"files.error", "destination":"from_fega" },
+      { "source":"localega", "vhost": "/", "destination_type":"queue", "arguments": {},
+	"routing_key":"files.verified", "destination":"from_fega" },
+      { "source":"localega", "vhost": "/", "destination_type":"queue", "arguments": {},
+	"routing_key":"files.inbox", "destination":"from_fega"}	
+  ]
+}

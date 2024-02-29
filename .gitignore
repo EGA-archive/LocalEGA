@@ -4,7 +4,6 @@
 tmp/
 private/
 tests/**/tmpfiles
-deploy/bootstrap/settings.rc.private
 tests/**/*.sec
 tests/**/*.debug
 tests/**/*.d
@@ -12,6 +11,13 @@ tests/_common/users/
 tests/_common/backup
 tests/_common/mq/*.pem
 *.old
+
+deploy/docker/*
+!deploy/docker/Makefile
+!deploy/docker/README.md
+!deploy/docker/*.sample
+!deploy/docker/cega
+
 
 # =====================================
 # Byte-compiled / optimized / DLL files
