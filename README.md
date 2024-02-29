@@ -2,15 +2,13 @@
 
 
 [![Documentation Status](https://readthedocs.org/projects/localega/badge/?version=latest)](https://localega.readthedocs.io/en/latest/?badge=latest)
-[![Testsuite](https://github.com/EGA-archive/LocalEGA/workflows/Testsuite/badge.svg)](https://github.com/EGA-archive/LocalEGA/actions)
 
-
-The [code](src) is written in Python (3.7+), C and SQL.
+The [code](src) is written in Python (3.10+), C and SQL.
 
 ## Quick install
 
 You can provision and deploy the different components, locally, using [docker](deploy/docker).
-Follow along the instructions and after a few seconds, you then have a locally-deployed instance of LocalEGA (using a fake Central EGA), and you can run the [testsuite](tests).
+Follow along the instructions, you then have a locally-deployed instance of LocalEGA (using a fake Central EGA).
 
 ## Architecture
 
