@@ -22,5 +22,5 @@ body { overflow-x: initial !important; } /* Fix readthedocs bug */
 
 .img-right { float:right; width:50%; }
 
-.youtube_wrapper { float:right; width:50%; margin-bottom:1em; display: block; }
-.caption { text-align: center; }
+.youtube_wrapper { float:right; width:50%; margin-bottom:1em; }
+.caption { font-size: smaller }

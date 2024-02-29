@@ -8,7 +8,6 @@ Local EGA
       </iframe>
       <div class="caption">Symposium held on 2020, specific details might no longer apply</div>
    </div>
-[#]_
 
 .. raw:: latex
 
