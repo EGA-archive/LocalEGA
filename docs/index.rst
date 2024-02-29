@@ -2,6 +2,24 @@
 Local EGA
 ================
 
+.. raw:: html
+
+   <div class="youtube_wrapper">
+      <iframe allowfullscreen="true" src="https://www.youtube.com/embed/k9R8W3V3ugU">
+      </iframe>
+      <div class="caption">Mini-symposium held on 2020, specific details might no longer apply</div>
+   </div>
+
+.. raw:: latex
+
+   \begin{quote}\begin{center}\fbox{\url{https://youtu.be/k9R8W3V3ugU}}\end{center}\end{quote}
+
+..
+   .. image:: /static/CEGA-LEGAs.png
+      :alt: Central EGA and Local EGAs, in a nutshell
+      :class: img-right
+      :target: https://www.youtube.com/watch?v=k9R8W3V3ugU
+
 The ``Local EGA`` project consists of several components:
 
 * An inbox
@@ -14,7 +32,7 @@ borders (cf to GDPR), while public metadata can. Files will be stored
 encrypted in the Local EGAs located in different countries, while
 public metadata stays at Central EGA.
 
-`In short <https://www.youtube.com/embed/k9R8W3V3ugU>`_[#]_, submitters
+In short, submitters
 upload encrypted files into a Local EGA inbox, located in the relevant
 country. The ingestion pipeline moves the encrypted files from the
 inbox into the long-term storage, and saves information in the
@@ -87,7 +105,3 @@ provided the original files.
 
 
 .. |moreabout| unicode:: U+261E .. right pointing finger
-
-
-.. rubric:: Footnotes
-.. [#] Bear in mind that "Mini-Symposium Federated Human Data" was held on 2020, and specific details might no longer apply.
