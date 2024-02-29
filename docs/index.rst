@@ -3,6 +3,7 @@ Local EGA
 ================
 
 .. raw:: html
+
    <div class="youtube_wrapper">
       <iframe allowfullscreen="true" src="https://www.youtube.com/embed/k9R8W3V3ugU">
       </iframe>
