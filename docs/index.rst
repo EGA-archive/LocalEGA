@@ -3,12 +3,11 @@ Local EGA
 ================
 
 .. raw:: html
-
-   <iframe allowfullscreen="true"
-	   src="https://www.youtube.com/embed/k9R8W3V3ugU"
-           class="youtube_wrapper">
-   </iframe>
-
+   <div class="youtube_wrapper">
+      <iframe allowfullscreen="true" src="https://www.youtube.com/embed/k9R8W3V3ugU">
+      </iframe>
+      <div class="caption">Symposium held on 2020, specific details might no longer apply</div>
+   </div>
 [#]_
 
 .. raw:: latex
@@ -106,7 +105,3 @@ provided the original files.
 
 
 .. |moreabout| unicode:: U+261E .. right pointing finger
-
-.. rubric:: Footnotes
-
-.. [#] Bear in mind that "Mini-Symposium Federated Human Data" was held on 2020, and specific details might no longer apply.
