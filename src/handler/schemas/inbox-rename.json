@@ -1,0 +1,49 @@
+{
+    "title": "JSON schema for Local EGA inbox rename message interface",
+    "$id": "https://github.com/EGA-archive/LocalEGA/tree/master/schemas/inbox-rename.json",
+    "$schema": "http://json-schema.org/draft-07/schema",
+    "type": "object",
+    "required": [
+        "user",
+        "filepath",
+        "oldpath",
+        "operation"
+    ],
+    "additionalProperties": true,
+    "properties": {
+        "user": {
+            "$id": "#/properties/user",
+            "type": "string",
+            "title": "The username",
+            "description": "The username",
+            "examples": [
+                "user.name@central-ega.eu"
+            ]
+        },
+        "filepath": {
+            "$id": "#/properties/filepath",
+            "type": "string",
+            "title": "The new filepath",
+            "description": "The new filepath",
+            "examples": [
+                "/ega/inbox/user.name@central-ega.eu/the-file.c4gh"
+            ]
+        },
+        "oldpath": {
+            "$id": "#/properties/oldpath",
+            "type": "string",
+            "title": "The old filepath",
+            "description": "The old filepath",
+            "examples": [
+                "/ega/inbox/user.name@central-ega.eu/the-old-file.c4gh"
+            ]
+        },
+        "operation": {
+            "$id": "#/properties/operation",
+            "type": "string",
+            "const": "rename",
+            "title": "The operation type",
+            "description": "The operation type"
+        }
+    }
+}

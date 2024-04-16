@@ -1,0 +1,37 @@
+{
+    "title": "JSON schema for Local EGA permission removed message interface",
+    "$id": "https://github.com/EGA-archive/LocalEGA/tree/master/schemas/dataset-permission-deleted.json",
+    "$schema": "http://json-schema.org/draft-07/schema",
+    "type": "object",
+    "required": [
+        "type",
+        "user",
+        "dataset_id"
+    ],
+    "additionalProperties": false,
+    "properties": {
+        "type": {
+            "$id": "#/properties/type",
+            "type": "string",
+            "title": "The message type",
+            "description": "The message type",
+            "const": "permission.deleted"
+        },
+        "user": {
+            "$id": "#/properties/user",
+            "type": "string",
+            "title": "The user whose permission was removed",
+            "description": "The username of the user whose permission was removed"
+        },
+        "dataset_id": {
+            "$id": "#/properties/dataset_id",
+            "type": "string",
+            "title": "The Accession identifier for the dataset",
+            "description": "The Accession identifier for the dataset",
+            "pattern": "^EGAD[0-9]{11}$",
+            "examples": [
+                "EGAD12345678901"
+            ]
+        }
+    }
+}
