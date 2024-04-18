@@ -65,7 +65,7 @@ Prepare the storage mountpoints for:
 	chmod 2750 data/inbox # with the setgid bit, the `lega` user can _read_ the inbox files of each user.
 	                      # Other users then the owner can't.
 	chmod 700 data/staging
-	chmod 700 data/vault
+	chmod 750 data/vault  # lega group needs r,x in order to distribute files
 	chmod 700 data/vault.bkp
 ```
 Adjust the paths in the `docker-compose.yml` file and the `lega.ini` handler configuration.
