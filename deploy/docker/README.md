@@ -133,4 +133,4 @@ and tear all down with
 
 	docker-compose down -v
 
-Note that the `mq` component will try to create a federeted queue to another RabbitMQ server. In `cega` folder, you will find the necessary components to fake Central EGA, and test your local deployment in isolation.
+Note that the `mq` component will try to create a federated queue to another RabbitMQ server. In `cega` folder, you will find the necessary components to fake Central EGA, and test your local deployment in isolation.
