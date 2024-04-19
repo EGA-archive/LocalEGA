@@ -94,6 +94,7 @@ services:
       # For the distribution users
       - /opt/LocalEGA/etc/nss:/etc/ega/nss
       - /opt/LocalEGA/etc/authorized_keys:/etc/ega/authorized_keys
+      - /opt/LocalEGA/etc/sqlite-boxes:/sqlite-boxes
     networks:
       - vault
     user: postgres
