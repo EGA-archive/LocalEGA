@@ -1,0 +1,123 @@
+{
+    "title": "JSON schema for Local EGA file verified message interface",
+    "$id": "https://github.com/EGA-archive/LocalEGA/tree/master/schemas/ingestion-verification.json",
+    "$schema": "http://json-schema.org/draft-07/schema",
+    "type": "object",
+    "required": [
+        "type",
+        "user",
+        "filepath",
+        "encrypted_checksums",
+        "decrypted_checksums"
+    ],
+    "additionalProperties": false,
+    "definitions": {
+        "checksum-sha256": {
+            "$id": "#/definitions/checksum-sha256",
+            "type": "object",
+            "title": "The sha256 checksum schema",
+            "description": "A representation of a sha256 checksum value",
+            "required": [
+                "type",
+                "value"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "type": {
+                    "$id": "#/definitions/checksum-sha256/properties/type",
+                    "type": "string",
+                    "const": "sha256",
+                    "title": "The checksum type schema",
+                    "description": "We use sha256"
+                },
+                "value": {
+                    "$id": "#/definitions/checksum-sha256/properties/value",
+                    "type": "string",
+                    "title": "The checksum value in hex format",
+                    "description": "The checksum value in (case-insensitive) hex format",
+                    "pattern": "^[a-fA-F0-9]{64}$"
+                }
+            }
+        },
+        "checksum-md5": {
+            "$id": "#/definitions/checksum-md5",
+            "type": "object",
+            "title": "The md5 checksum schema",
+            "description": "A representation of a md5 checksum value",
+            "required": [
+                "type",
+                "value"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "type": {
+                    "$id": "#/definitions/checksum-md5/properties/type",
+                    "type": "string",
+                    "const": "md5",
+                    "title": "The checksum type schema",
+                    "description": "We use md5"
+                },
+                "value": {
+                    "$id": "#/definitions/checksum-md5/properties/value",
+                    "type": "string",
+                    "title": "The checksum value in hex format",
+                    "description": "The checksum value in (case-insensitive) hex format",
+                    "pattern": "^[a-fA-F0-9]{32}$"
+                }
+            }
+        }
+    },
+    "properties": {
+        "type": {
+            "$id": "#/properties/type",
+            "type": "string",
+            "title": "The message type",
+            "description": "The message type",
+            "enum": ["verified"]
+        },
+        "user": {
+            "$id": "#/properties/user",
+            "type": "string",
+            "title": "The username",
+            "description": "The username"
+        },
+        "filepath": {
+            "$id": "#/properties/filepath",
+            "type": "string",
+            "title": "The new filepath",
+            "description": "The new filepath"
+        },
+        "encrypted_checksums": {
+            "$id": "#/properties/encrypted_checksums",
+            "type": "array",
+            "title": "The checksums of the encrypted file",
+            "description": "Checksums of the encrypted file",
+            "items": {
+                "anyOf": [
+                    {
+                        "$ref": "#/definitions/checksum-sha256"
+                    },
+                    {
+                        "$ref": "#/definitions/checksum-md5"
+                    }
+                ]
+            }
+        },
+        "decrypted_checksums": {
+            "$id": "#/properties/decrypted_checksums",
+            "type": "array",
+            "title": "The checksums of the decrypted file",
+            "description": "Checksums of the decrypted file",
+            "items": {
+                "anyOf": [
+                    {
+                        "$ref": "#/definitions/checksum-sha256"
+                    },
+                    {
+                        "$ref": "#/definitions/checksum-md5"
+                    }
+                ]
+            }
+        }
+    }
+}

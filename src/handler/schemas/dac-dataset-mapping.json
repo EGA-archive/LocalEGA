@@ -1,0 +1,96 @@
+{
+    "title": "JSON schema for Local EGA DAC-dataset mapping message interface",
+    "$id": "https://github.com/EGA-archive/LocalEGA/tree/master/schemas/dac-dataset-mapping.json",
+    "$schema": "http://json-schema.org/draft-07/schema",
+    "type": "object",
+    "required": [
+        "type",
+        "accession_id",
+        "title",
+        "description",
+        "datasets",
+        "users"
+    ],
+    "additionalProperties": false,
+    "properties": {
+        "type": {
+            "$id": "#/properties/type",
+            "type": "string",
+            "title": "The message type",
+            "description": "The message type",
+            "const": "dac.dataset"
+        },
+        "accession_id": {
+            "$id": "#/properties/accession_id",
+            "type": "string",
+            "title": "The Accession identifier for the DAC",
+            "description": "The Accession identifier for the DAC",
+            "pattern": "^EGAC[0-9]{11}$",
+            "examples": [
+                "EGAC12345678901"
+            ]
+        },
+        "title": {
+            "$id": "#/properties/title",
+            "type": "string",
+            "title": "The title of the DAC",
+            "description": "The title of the DAC"
+        },
+        "description": {
+            "$id": "#/properties/description",
+            "type": "string",
+            "title": "The description of the DAC",
+            "description": "The description of the DAC"
+        },
+        "datasets": {
+            "$id": "#/properties/datasets",
+            "type": "array",
+            "title": "Information about datasets managed by the DAC",
+            "description": "Information about datasets managed by the DAC",
+            "items": {
+                "type": "object",
+                "required": ["title", "description", "accession_id"],
+                "properties": {
+                    "title": {"type": "string"},
+                    "description": {"type": "string"},
+                    "accession_id": {
+                        "type": "string",
+                        "pattern": "^EGAD[0-9]{11}$"
+                    }
+                }
+            }
+        },
+        "users": {
+            "$id": "#/properties/users",
+            "type": "array",
+            "title": "Information about users associated with the DAC",
+            "description": "Information about users associated with the DAC",
+            "items": {
+                "type": "object",
+                "required": [
+                    "email",
+                    "country",
+                    "is_main",
+                    "username",
+                    "full_name",
+                    "institution",
+                    "password_hash",
+                    "member_type"
+                ],
+                "properties": {
+                    "email": {"type": "string"},
+                    "country": {"type": "string"},
+                    "is_main": {"type": "boolean"},
+                    "username": {"type": "string"},
+                    "full_name": {"type": "string"},
+                    "institution": {"type": "string"},
+                    "password_hash": {"type": "string"},
+                    "member_type": {
+                        "type": "string",
+                        "enum": ["admin", "member"]
+                    }
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,54 @@
+{
+    "title": "JSON schema for Local EGA contact details updated message interface",
+    "$id": "https://github.com/EGA-archive/LocalEGA/tree/master/schemas/user-contact-updated.json",
+    "$schema": "http://json-schema.org/draft-07/schema",
+    "type": "object",
+    "required": [
+        "type",
+        "user",
+        "email",
+        "country",
+        "full_name",
+        "institution"
+    ],
+    "additionalProperties": false,
+    "properties": {
+        "type": {
+            "$id": "#/properties/type",
+            "type": "string",
+            "title": "The message type",
+            "description": "The message type",
+            "const": "contact.updated"
+        },
+        "user": {
+            "$id": "#/properties/user",
+            "type": "string",
+            "title": "The username",
+            "description": "The username"
+        },
+        "email": {
+            "$id": "#/properties/email",
+            "type": "string",
+            "title": "The user's email",
+            "description": "The user's email"
+        },
+        "country": {
+            "$id": "#/properties/country",
+            "type": "string",
+            "title": "The user's country",
+            "description": "The user's country"
+        },
+        "full_name": {
+            "$id": "#/properties/full_name",
+            "type": "string",
+            "title": "The user's full name",
+            "description": "The user's full name"
+        },
+        "institution": {
+            "$id": "#/properties/institution",
+            "type": "string",
+            "title": "The user's institution",
+            "description": "The user's institution"
+        }
+    }
+}

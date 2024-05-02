@@ -1,0 +1,39 @@
+{
+    "title": "JSON schema for Local EGA inbox remove message interface",
+    "$id": "https://github.com/EGA-archive/LocalEGA/tree/master/schemas/inbox-remove.json",
+    "$schema": "http://json-schema.org/draft-07/schema",
+    "type": "object",
+    "required": [
+        "user",
+        "filepath",
+        "operation"
+    ],
+    "additionalProperties": true,
+    "properties": {
+        "user": {
+            "$id": "#/properties/user",
+            "type": "string",
+            "title": "The username",
+            "description": "The username",
+            "examples": [
+                "user.name@central-ega.eu"
+            ]
+        },
+        "filepath": {
+            "$id": "#/properties/filepath",
+            "type": "string",
+            "title": "The unique identifier to the file location",
+            "description": "The unique identifier to the file location",
+            "examples": [
+                "/ega/inbox/user.name@central-ega.eu/the-file.c4gh"
+            ]
+        },
+        "operation": {
+            "$id": "#/properties/operation",
+            "type": "string",
+            "const": "remove",
+            "title": "The operation type",
+            "description": "The operation type"
+        }
+    }
+}
