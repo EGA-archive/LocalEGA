@@ -18,7 +18,7 @@ We assume you have created a local user and a group named `lega`. If not, you ca
 # Sensitive data
 
 Update the configuration files with the proper settings.
-> Hint: copy the supplied sample files and adjust the passwords appropriately.  
+> Hint: copy the supplied sample files and adjust the passwords, paths, etc., appropriately.  
 
 	cp docker-compose.yml.sample           docker-compose.yml
 	cp ../../src/vault/pg.conf.sample      pg.conf
