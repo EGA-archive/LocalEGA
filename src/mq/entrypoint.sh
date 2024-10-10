@@ -51,7 +51,7 @@ cat > /etc/rabbitmq/definitions.json <<EOF
     {"name":"lega", "vhost":"/", "type":"topic", "durable":true, "auto_delete":false, "internal":false, "arguments":{}}
   ], 
   "bindings": [
-    { "source":"cega", "vhost": "/", "destination":"errors", "destination_type":"queue", "routing_key":"user.error", "arguments":{}},
+    { "source":"cega", "vhost": "/", "destination":"errors", "destination_type":"queue", "routing_key":"files.error", "arguments":{}},
     { "source":"cega", "vhost": "/", "destination":"to_cega", "destination_type":"queue", "routing_key":"#", "arguments":{}},
     { "source":"lega", "vhost": "/", "destination":"system.errors", "destination_type":"queue", "routing_key":"system.error", "arguments":{}},
     { "source":"lega", "vhost": "/", "destination":"lega.all", "destination_type":"queue", "routing_key":"#", "arguments":{}}

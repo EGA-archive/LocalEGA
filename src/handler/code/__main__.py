@@ -21,7 +21,6 @@ from .handlers import (ingest,
 LOG = logging.getLogger(__name__)
 
 def mq_report(func):
-    
     async def wrapper(config, message):
         try:
             return await func(config, message)
@@ -29,10 +28,13 @@ def mq_report(func):
             LOG.error('Publish error to Central EGA: %r', e)
             # publish to Central EGA
             error = {
-                'error': repr(e),
-                'message': message.content,
+                'user': message.parsed.get('user','unknown'),
+                'filepath': message.parsed.get('filepath', 'unknown'),
+                'reason': repr(e),
             }
-            await config.mq.cega_publish(error, 'user.error', correlation_id=message.header.properties.content_type)
+            if 'encrypted_checksums' in message.parsed:
+                error['encrypted_checksums'] = message.parsed.get('encrypted_checksums')
+            await config.mq.cega_publish(error, 'files.error', correlation_id=message.header.properties.content_type)
         except Exception as e: # any other error
             LOG.error('Publish error to Local EGA Sys admins: %r', e)
             error = {
@@ -59,7 +61,7 @@ def ack_nack_on_exception(on_message):
 @mq_report # report after we ack/nack
 @ack_nack_on_exception
 async def work(config, message):
-    
+
     correlation_id = message.header.properties.correlation_id
     LOG.info('Working on message %d', message.delivery.delivery_tag, extra={'correlation_id': correlation_id})
 
@@ -72,18 +74,15 @@ async def work(config, message):
     LOG.debug('Message: %s', message.parsed)
 
     if job_type == 'ingest':
- 
         # delay in case another worker picked up a cancel message fast
         await asyncio.sleep(1)
 
         await ingest.execute(config, message)
-        
     elif job_type == 'cancel':
 
         await cancel.execute(config, message)
 
     elif job_type == 'accession':
-        
         await accession.execute(config, message)
 
     elif job_type == 'mapping':
@@ -154,7 +153,6 @@ async def work(config, message):
 
     else:
         raise Exception(f'Invalid operation: {job_type} for message: {message.content}')
-    
 
 
 
@@ -198,7 +196,6 @@ if __name__ == '__main__':
         command = ' '.join(sys.orig_argv)
         print(f'Usage: {command} <conf_file>')
         sys.exit(1)
-        
     loop = asyncio.get_event_loop()
     loop.create_task(main(sys.argv[1]))
     try:
