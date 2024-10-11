@@ -1,3 +1,5 @@
+⚠️ Please, note that this repository uses git submodules. Use flag `--recurse-submodules` when cloning it, and verify that they have been initialised.
+
 This document helps you prepare the (mininum) settings for your LocalEGA instance.
 
 All files are encrypted using Crypt4GH.
