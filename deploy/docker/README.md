@@ -72,6 +72,17 @@ Prepare the storage mountpoints for:
 ```
 Adjust the paths in the `docker-compose.yml` file and the `lega.ini` handler configuration.
 
+# FEGA Affiliates
+
+If you are preparing a FEGA Affiliate (not a FEGA Node), modify  the `docker-compose.yml` file adding your affiliate name (which must be agreed with CEGA beforehand) in an environment variable:
+
+ ```yaml
+ mq:
+    environment:
+		- AFFILIATE_NAME=xxxx
+
+```
+
 # Container images
 
 Create the docker images with:
